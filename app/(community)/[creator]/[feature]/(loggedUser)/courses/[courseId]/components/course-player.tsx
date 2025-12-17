@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import CourseHeader from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/[courseId]/components/course-header"
-import VideoPlayer from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/[courseId]/components/video-player"
+import EnhancedVideoPlayer from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/[courseId]/components/enhanced-video-player"
 import ChapterTabs from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/[courseId]/components/chapter-tabs"
 import CourseSidebar from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/[courseId]/components/course-sidebar"
 import { coursesApi } from "@/lib/api/courses.api"
@@ -34,8 +34,6 @@ export default function CoursePlayer({
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("content")
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
 
   const allChapters = course.sections.flatMap((s: any) => s.chapters)
 
@@ -43,12 +41,6 @@ export default function CoursePlayer({
     if (!Array.isArray(unlockedChapters)) return new Map<string, any>()
     return new Map<string, any>(unlockedChapters.map((c: any) => [String(c.id), c]))
   }, [unlockedChapters])
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, "0")}`
-  }
 
   const isChapterAccessible = (chapterId: string) => {
     const chapter = allChapters.find((c: any) => c.id === chapterId)
@@ -139,16 +131,13 @@ export default function CoursePlayer({
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-3 space-y-6">
-            <VideoPlayer 
+            <EnhancedVideoPlayer 
               creatorSlug={creatorSlug}
               currentChapter={currentChapter}
               isChapterAccessible={isChapterAccessible}
               enrollment={enrollment}
               slug={slug}
-              isPlaying={isPlaying}
-              setIsPlaying={setIsPlaying}
-              currentTime={currentTime}
-              formatTime={formatTime}
+              courseId={courseId}
             />
 
             <ChapterTabs 

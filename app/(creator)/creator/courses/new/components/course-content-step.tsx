@@ -191,13 +191,18 @@ export function CourseContentStep({
                                 />
                               </div>
                               <div className="space-y-1">
-                                <Label className="text-xs">Video URL</Label>
+                                <Label className="text-xs">Video URL (YouTube/Vimeo Embed)</Label>
                                 <Input
-                                  placeholder="https://example.com/video"
+                                  placeholder="https://www.youtube.com/embed/VIDEO_ID"
                                   value={chapter.videoUrl}
                                   onChange={(e) => updateChapter(section.id, chapter.id, "videoUrl", e.target.value)}
                                   className="h-8 text-sm"
                                 />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  💡 Use YouTube or Vimeo embed links to save storage. <br />
+                                  YouTube: https://www.youtube.com/embed/VIDEO_ID<br />
+                                  Vimeo: https://player.vimeo.com/video/VIDEO_ID
+                                </p>
                               </div>
                             </div>
 

@@ -32,19 +32,29 @@ export function transformCourse(backendCourse: any): any {
     description: section.description || '',
     order: section.ordre || section.order || 0,
     courseId: String(backendCourse._id || backendCourse.id || ''),
-    chapters: (section.chapitres || []).map((chapter: any) => ({
-      id: chapter.id || '',
-      title: chapter.titre || chapter.title || '',
-      content: chapter.description || chapter.contenu || '',
-      videoUrl: chapter.videoUrl || undefined,
-      duration: Number(chapter.duree ?? 0) || 0,
-      order: chapter.ordre || chapter.order || 0,
-      isPaidChapter: Boolean(chapter.isPaidChapter ?? chapter.isPaid),
-      isPreview: Boolean(chapter.isPreview ?? !(chapter.isPaidChapter ?? chapter.isPaid)),
-      price: Number(chapter.prix ?? chapter.price ?? 0) || 0,
-      sectionId: String(chapter.sectionId || section.id || ''),
-      createdAt: chapter.createdAt || new Date().toISOString(),
-    })),
+    chapters: (section.chapitres || []).map((chapter: any) => {
+      const isPaid = Boolean(chapter.isPaidChapter ?? chapter.isPaid);
+      const isPreview = Boolean(chapter.isPreview ?? !isPaid);
+      const content = typeof chapter.contenu === 'string' && chapter.contenu.trim().length > 0
+        ? chapter.contenu
+        : chapter.description || '';
+
+      return {
+        id: chapter.id || '',
+        title: chapter.titre || chapter.title || '',
+        content,
+        videoUrl: chapter.videoUrl || undefined,
+        duration: Number(chapter.duree ?? 0) || 0,
+        order: chapter.ordre || chapter.order || 0,
+        isPaidChapter: isPaid,
+        isPreview,
+        price: Number(chapter.prix ?? chapter.price ?? 0) || 0,
+        sectionId: String(chapter.sectionId || section.id || ''),
+        notes: typeof chapter.notes === 'string' ? chapter.notes : '',
+        resources: Array.isArray(chapter.ressources) ? chapter.ressources : [],
+        createdAt: chapter.createdAt || new Date().toISOString(),
+      };
+    }),
     createdAt: section.createdAt || new Date().toISOString(),
   }));
 
@@ -77,7 +87,7 @@ export function transformCourse(backendCourse: any): any {
     duration: backendCourse.duree || backendCourse.duration || 0,
     isPublished: backendCourse.isPublished !== false,
     enrollmentCount,
-    enrollments: Array(enrollmentCount).fill(null), // Create array with length matching enrollment count for component compatibility
+    enrollments: backendCourse.inscriptions || backendCourse.enrollments || [],
     rating: backendCourse.rating || 0,
     sections, // Include sections with chapters
     createdAt: backendCourse.createdAt || new Date().toISOString(),

@@ -48,8 +48,8 @@ export const postsApi = {
   },
 
   // Get posts by community
-  getByCommunity: async (communityId: string, params?: PaginationParams): Promise<PaginatedResponse<Post>> => {
-    return apiClient.get<PaginatedResponse<Post>>(`/posts`, { ...params, communityId });
+  getByCommunity: async (communityId: string, params?: PaginationParams & { userId?: string }): Promise<PaginatedResponse<Post>> => {
+    return apiClient.get<PaginatedResponse<Post>>(`/posts/community/${communityId}`, params);
   },
 
   // Like post

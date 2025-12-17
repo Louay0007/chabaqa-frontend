@@ -51,6 +51,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   const [isCreatingPost, setIsCreatingPost] = useState(false)
   const [bookmarkedPosts, setBookmarkedPosts] = useState<Set<string>>(new Set())
   const [postsPage, setPostsPage] = useState(1)
+  const [likingPosts, setLikingPosts] = useState<Set<string>>(new Set())
   // Media upload state
   const [uploadedImages, setUploadedImages] = useState<string[]>([])
   const [uploadedVideos, setUploadedVideos] = useState<string[]>([])
@@ -112,17 +113,71 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   const basePath = `/${community.creator.name}/${feature}`
 
   const handleLike = async (postId: string, isCurrentlyLiked: boolean) => {
+    // Prevent multiple clicks on the same post
+    if (likingPosts.has(postId)) {
+      return
+    }
+
     try {
+      // Mark this post as being liked
+      setLikingPosts(prev => new Set(prev).add(postId))
+
+      // Optimistic update: immediately update UI
+      setData(prevData => {
+        if (!prevData) return prevData
+        
+        return {
+          ...prevData,
+          posts: prevData.posts.map(post => {
+            if (post.id === postId) {
+              return {
+                ...post,
+                isLikedByUser: !isCurrentlyLiked,
+                likesCount: isCurrentlyLiked ? post.likesCount - 1 : post.likesCount + 1,
+              }
+            }
+            return post
+          })
+        }
+      })
+
+      // Make API call in background
       if (isCurrentlyLiked) {
         await postsApi.unlike(postId)
       } else {
         await postsApi.like(postId)
       }
-      // Refresh posts to get updated like count and isLikedByUser status
-      const updatedData = await communityHomeApi.getHomeData(feature, postsPage, 10)
-      setData(updatedData)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling like:', error)
+      
+      // Revert optimistic update on error
+      setData(prevData => {
+        if (!prevData) return prevData
+        
+        return {
+          ...prevData,
+          posts: prevData.posts.map(post => {
+            if (post.id === postId) {
+              return {
+                ...post,
+                isLikedByUser: isCurrentlyLiked,
+                likesCount: isCurrentlyLiked ? post.likesCount + 1 : post.likesCount - 1,
+              }
+            }
+            return post
+          })
+        }
+      })
+      
+      // Show error message
+      alert(error.message || 'Failed to update like')
+    } finally {
+      // Remove from liking set
+      setLikingPosts(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(postId)
+        return newSet
+      })
     }
   }
 
@@ -553,9 +608,10 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                               variant="ghost"
                               size="sm"
                               onClick={() => handleLike(post.id, post.isLikedByUser || false)}
-                              className={`${post.isLikedByUser ? "text-red-500" : "text-muted-foreground"} hover:text-red-500 text-xs sm:text-sm`}
+                              disabled={likingPosts.has(post.id)}
+                              className={`${post.isLikedByUser ? "text-red-500" : "text-muted-foreground"} hover:text-red-500 text-xs sm:text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
-                              <Heart className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 ${post.isLikedByUser ? "fill-current" : ""}`} />
+                              <Heart className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 transition-all ${post.isLikedByUser ? "fill-red-500 text-red-500" : ""}`} />
                               {post.likesCount}
                             </Button>
                             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-blue-500 text-xs sm:text-sm">
@@ -650,32 +706,37 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
               </Card>
 
               {/* Recent Courses */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-2 sm:pb-3">
-                  <CardTitle className="text-base sm:text-lg">Continue Learning</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 sm:space-y-3 p-4 sm:p-6">
-                  {courses.slice(0, 2).map((course) => (
-                    <div key={course.id} className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 bg-courses-50 rounded-lg">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-courses-200 rounded-lg flex items-center justify-center">
-                        <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-courses-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-xs sm:text-sm truncate">{course.title}</h4>
-                        <div className="flex items-center mt-1">
-                          <div className="w-14 sm:w-16 bg-gray-200 rounded-full h-1 sm:h-1.5 mr-1 sm:mr-2">
-                            <div className="bg-courses-500 h-1 sm:h-1.5 rounded-full" style={{ width: "65%" }} />
-                          </div>
-                          <span className="text-xs text-muted-foreground">65%</span>
+              {courses.length > 0 && (
+                <Card className="border-0 shadow-sm">
+                  <CardHeader className="pb-2 sm:pb-3">
+                    <CardTitle className="text-base sm:text-lg">Continue Learning</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 sm:space-y-3 p-4 sm:p-6">
+                    {courses.slice(0, 2).map((course) => (
+                      <Link 
+                        key={course.id} 
+                        href={`${basePath}/courses/${course.id}`}
+                        className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 bg-courses-50 rounded-lg hover:bg-courses-100 transition-colors cursor-pointer"
+                      >
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-courses-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-courses-600" />
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                  <Button variant="ghost" size="sm" className="w-full text-xs sm:text-sm" asChild>
-                    <Link href={`${basePath}/courses`}>View All Courses</Link>
-                  </Button>
-                </CardContent>
-              </Card>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-xs sm:text-sm truncate">{course.title}</h4>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {course.enrollmentCount} student{course.enrollmentCount !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                    <Button variant="ghost" size="sm" className="w-full text-xs sm:text-sm" asChild>
+                      <Link href={`${basePath}/courses`}>
+                        View All {courses.length} Course{courses.length !== 1 ? 's' : ''}
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Community Stats */}
               <Card className="border-0 shadow-sm">

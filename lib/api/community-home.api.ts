@@ -190,6 +190,7 @@ async function calculateStats(
 ): Promise<CommunityStats> {
   const now = new Date();
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
   // Count posts from this week
   const postsThisWeek = posts.filter(post => {
@@ -197,9 +198,15 @@ async function calculateStats(
     return postDate >= oneWeekAgo;
   }).length;
 
-  // For now, estimate active today as 10% of total members
-  // This can be improved with actual user activity tracking
-  const activeToday = Math.floor(community.members * 0.1);
+  // Count unique authors from posts in last 24 hours to estimate active today
+  const recentPosts = posts.filter(post => {
+    const postDate = new Date(post.createdAt);
+    return postDate >= oneDayAgo;
+  });
+  
+  const uniqueActiveAuthors = new Set(recentPosts.map(post => post.authorId)).size;
+  // Active today should be at least the number of people who posted, or estimate 5% of members minimum
+  const activeToday = Math.max(uniqueActiveAuthors, Math.ceil(community.members * 0.05));
 
   return {
     totalMembers: community.members,
@@ -243,8 +250,17 @@ export const communityHomeApi = {
       let posts: Post[] = [];
       let pagination = { page: 1, limit: 10, total: 0, totalPages: 0 };
 
+      // Get current user ID if available
+      const userId = currentUser.status === 'fulfilled' && currentUser.value
+        ? String(currentUser.value._id || currentUser.value.id || '')
+        : undefined;
+
       try {
-        const postsResult = await postsApi.getByCommunity(community.id, { page: postsPage, limit: postsLimit }) as any;
+        const postsResult = await postsApi.getByCommunity(community.id, { 
+          page: postsPage, 
+          limit: postsLimit,
+          userId 
+        }) as any;
         if (postsResult) {
           // Handle both array and paginated response formats
           const postsArray = Array.isArray(postsResult.data)
