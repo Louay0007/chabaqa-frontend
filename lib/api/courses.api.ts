@@ -107,6 +107,11 @@ export const coursesApi = {
     return apiClient.get('/cours/user/progress', params);
   },
 
+  // Get user enrollments
+  getMyEnrollments: async (): Promise<any> => {
+    return apiClient.get('/course-enrollment/my-enrollments');
+  },
+
   // Get course sections
   getSections: async (courseId: string): Promise<ApiSuccessResponse<CourseSection[]>> => {
     return apiClient.get<ApiSuccessResponse<CourseSection[]>>(`/courses/${courseId}/sections`);

@@ -127,11 +127,10 @@ export const coursesCommunityApi = {
    */
   async getCoursesPageData(slug: string): Promise<CoursesPageData> {
     try {
-      // Fetch in parallel
-      const [communityResponse, coursesResponse, userProgressResponse, currentUser] = await Promise.allSettled([
+      // Fetch in parallel (enrollment fetched client-side to access auth token)
+      const [communityResponse, coursesResponse, currentUser] = await Promise.allSettled([
         communitiesApi.getBySlug(slug),
         coursesApi.getByCommunity(slug, { page: 1, limit: 100, published: true }),
-        coursesApi.getUserProgress({ page: 1, limit: 100 }).catch(() => ({ data: { progress: [] } })),
         getMe().catch(() => null),
       ]);
 
@@ -152,40 +151,8 @@ export const coursesCommunityApi = {
           : [];
       }
 
-      // Handle user progress/enrollments
-      let userEnrollments: CourseEnrollment[] = [];
-      if (userProgressResponse.status === 'fulfilled') {
-        const progressData = userProgressResponse.value;
-        // Backend returns { progress: [...], pagination: {...} }
-        const progressList = progressData?.data?.progress || progressData?.progress || progressData || [];
-
-        // Get full course data for each enrollment to calculate progress
-        const enrollmentPromises = progressList.map(async (progressItem: any) => {
-          try {
-            // Backend progress item structure: { courseId, progress, chaptersCompleted, totalChapters, enrollment: {...} }
-            const courseId = String(progressItem.courseId || progressItem._id || '');
-            const courseData = courses.find(c => c.id === courseId);
-
-            // If enrollment data is nested
-            const enrollment = progressItem.enrollment || progressItem;
-
-            return {
-              id: String(enrollment._id || enrollment.id || ''),
-              userId: String(enrollment.userId?._id || enrollment.userId || ''),
-              courseId,
-              progress: progressItem.progress || 0,
-              completedChapters: enrollment.progression?.map((p: any) => String(p.chapterId || '')).filter(Boolean) || [],
-              enrolledAt: enrollment.enrolledAt || new Date().toISOString(),
-              lastAccessedAt: enrollment.updatedAt || enrollment.enrolledAt || new Date().toISOString(),
-            } as CourseEnrollment;
-          } catch (error) {
-            console.warn('Error transforming enrollment:', error);
-            return null;
-          }
-        });
-
-        userEnrollments = (await Promise.all(enrollmentPromises)).filter(Boolean) as CourseEnrollment[];
-      }
+      // User enrollments will be fetched client-side
+      const userEnrollments: CourseEnrollment[] = [];
 
       // Transform current user
       const user = currentUser.status === 'fulfilled' && currentUser.value

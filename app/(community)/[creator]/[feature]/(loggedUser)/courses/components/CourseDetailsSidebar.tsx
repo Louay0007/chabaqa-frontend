@@ -13,6 +13,22 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
+function normalizeCourseId(value: unknown): string {
+  if (!value) return ""
+  if (typeof value === "string") return value
+  if (typeof value === "object") {
+    const maybeRecord = value as Record<string, unknown>
+    const nestedId = maybeRecord._id ?? maybeRecord.id ?? maybeRecord.courseId
+    if (typeof nestedId === "string") return nestedId
+    if (typeof nestedId === "object" && nestedId) {
+      const nestedRecord = nestedId as Record<string, unknown>
+      if (typeof nestedRecord._id === "string") return nestedRecord._id
+      if (typeof nestedRecord.id === "string") return nestedRecord.id
+    }
+  }
+  return String(value)
+}
+
 interface CourseDetailsSidebarProps {
   selectedCourse: string | null
   allCourses: any[]
@@ -49,7 +65,12 @@ export default function CourseDetailsSidebar({
   }
 
   const course = allCourses.find((c) => c.id === selectedCourse)
-  const isEnrolled = userEnrollments.some((e) => e.courseId === selectedCourse)
+  // Normalize IDs for comparison
+  const isEnrolled = userEnrollments.some((e) => {
+    const enrollmentCourseId = normalizeCourseId(e?.courseId)
+    const currentCourseId = normalizeCourseId(selectedCourse)
+    return enrollmentCourseId === currentCourseId
+  })
   const pricing = course ? getCoursePricing(course) : null
 
   if (!course) return null
@@ -61,7 +82,8 @@ export default function CourseDetailsSidebar({
           <CardContent className="pt-6">
             <Button className="w-full" asChild>
               <Link href={`/${creatorSlug}/${slug}/courses/${selectedCourse}`}>
-                Enter course
+                <PlayCircle className="h-4 w-4 mr-2" />
+                Continue
               </Link>
             </Button>
           </CardContent>

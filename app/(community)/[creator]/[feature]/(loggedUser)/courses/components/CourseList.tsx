@@ -9,6 +9,22 @@ import { Star, BookOpen, Clock, Users, CheckCircle, Lock, Play } from "lucide-re
 import Image from "next/image"
 import Link from "next/link"
 
+function normalizeCourseId(value: unknown): string {
+  if (!value) return ""
+  if (typeof value === "string") return value
+  if (typeof value === "object") {
+    const maybeRecord = value as Record<string, unknown>
+    const nestedId = maybeRecord._id ?? maybeRecord.id ?? maybeRecord.courseId
+    if (typeof nestedId === "string") return nestedId
+    if (typeof nestedId === "object" && nestedId) {
+      const nestedRecord = nestedId as Record<string, unknown>
+      if (typeof nestedRecord._id === "string") return nestedRecord._id
+      if (typeof nestedRecord.id === "string") return nestedRecord.id
+    }
+  }
+  return String(value)
+}
+
 interface CourseListProps {
   filteredCourses: any[]
   userEnrollments: any[]
@@ -37,7 +53,16 @@ export default function CourseList({
   return (
     <div className="lg:col-span-2 space-y-6">
       {filteredCourses.map((course) => {
-        const isEnrolled = userEnrollments.some((e) => e.courseId === course.id)
+        // Normalize IDs for comparison
+        const isEnrolled = userEnrollments.some((e) => {
+          const enrollmentCourseId = normalizeCourseId(e?.courseId)
+          const currentCourseId = normalizeCourseId(course?.id || course?.mongoId)
+          const match = enrollmentCourseId === currentCourseId
+          if (match) {
+            console.log(`✅ Enrollment match for course: ${course.title}`, { enrollmentCourseId, currentCourseId })
+          }
+          return match
+        })
         const progress = getEnrollmentProgress(course.id)
         const totalChapters = course.sections?.reduce((acc: any, s: any) => acc + (s.chapters?.length || 0), 0) || 0
         const pricing = getCoursePricing(course)
@@ -169,7 +194,7 @@ return (
             <Button size="sm" asChild className="w-full sm:w-auto">
               <Link href={`/${creatorSlug}/${slug}/courses/${course.id}`}>
                 <Play className="h-4 w-4 mr-1" />
-                Enter course
+                Continue
               </Link>
             </Button>
           ) : pricing.type === "free" ? (

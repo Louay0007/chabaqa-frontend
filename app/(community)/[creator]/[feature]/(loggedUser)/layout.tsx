@@ -44,14 +44,14 @@ export const viewport: Viewport = {
 
 interface CreatorLayoutProps {
   children: React.ReactNode
-  params: { creator: string; feature: string }
+  params: Promise<{ creator: string; feature: string }>
 }
 
-export default function CreatorLayout({
+export default async function CreatorLayout({
   children,
   params
 }: CreatorLayoutProps) {
-  const { creator, feature } = params
+  const { creator, feature } = await params
 
   return (
     <>

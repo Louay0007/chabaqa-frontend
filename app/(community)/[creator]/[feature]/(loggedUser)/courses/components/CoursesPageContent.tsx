@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { coursesApi } from "@/lib/api/courses.api"
 import HeaderSection from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/components/HeaderSection"
 import CoursesTabs from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/components/CoursesTabs"
 import CourseList from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/components/CourseList"
@@ -14,6 +15,22 @@ interface CoursesPageContentProps {
   community: any
   allCourses: any[]
   userEnrollments: any[]
+}
+
+function normalizeCourseId(value: unknown): string {
+  if (!value) return ""
+  if (typeof value === "string") return value
+  if (typeof value === "object") {
+    const maybeRecord = value as Record<string, unknown>
+    const nestedId = maybeRecord._id ?? maybeRecord.id ?? maybeRecord.courseId
+    if (typeof nestedId === "string") return nestedId
+    if (typeof nestedId === "object" && nestedId) {
+      const nestedRecord = nestedId as Record<string, unknown>
+      if (typeof nestedRecord._id === "string") return nestedRecord._id
+      if (typeof nestedRecord.id === "string") return nestedRecord.id
+    }
+  }
+  return String(value)
 }
 
 export default function CoursesPageContent({ 
@@ -29,6 +46,41 @@ export default function CoursesPageContent({
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null)
 
   const [enrollments, setEnrollments] = useState<any[]>(userEnrollments)
+  const [isLoadingEnrollments, setIsLoadingEnrollments] = useState(true)
+
+  // Fetch enrollments client-side (requires auth token from browser)
+  useEffect(() => {
+    const fetchEnrollments = async () => {
+      try {
+        const response = await coursesApi.getMyEnrollments()
+        const enrollmentsList = Array.isArray(response?.enrollments) ? response.enrollments : []
+        
+        // Normalize and filter to only enrollments for courses in THIS community
+        const allCourseIds = new Set(allCourses.map(c => normalizeCourseId(c?.id || c?.mongoId)))
+        
+        const normalized = enrollmentsList
+          .map((enrollment: any) => ({
+            ...enrollment,
+            courseId: normalizeCourseId(enrollment?.courseId),
+          }))
+          .filter((enrollment: any) => allCourseIds.has(enrollment.courseId))
+        
+        setEnrollments(normalized)
+        console.log('✅ [CoursesPage] Fetched enrollments:', normalized.length, 'for this community')
+      } catch (error) {
+        console.log('⚠️ [CoursesPage] Failed to fetch enrollments (guest user?):', error)
+        setEnrollments([])
+      } finally {
+        setIsLoadingEnrollments(false)
+      }
+    }
+
+    fetchEnrollments()
+  }, [allCourses])
+
+  // Debug: Log enrollment data
+  console.log('📊 CoursesPage - User Enrollments:', enrollments)
+  console.log('📚 CoursesPage - All Courses:', allCourses.map(c => ({ id: c.id, title: c.title })))
   const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false)
   const [enrollTargetCourseId, setEnrollTargetCourseId] = useState<string | null>(null)
 
@@ -37,7 +89,12 @@ export default function CoursesPageContent({
       course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.description.toLowerCase().includes(searchQuery.toLowerCase())
 
-    const isEnrolled = enrollments.some((e) => e.courseId === course.id)
+    // Normalize IDs to strings for comparison
+    const isEnrolled = enrollments.some((e) => {
+      const enrollmentCourseId = normalizeCourseId(e?.courseId)
+      const currentCourseId = normalizeCourseId(course?.id || course?.mongoId)
+      return enrollmentCourseId === currentCourseId
+    })
 
     if (activeTab === "enrolled") {
       return matchesSearch && isEnrolled
@@ -108,6 +165,20 @@ export default function CoursesPageContent({
               creatorSlug={creatorSlug}
               slug={slug}
               onEnroll={(courseId: string) => {
+                // Check if already enrolled
+                const alreadyEnrolled = enrollments.some((e) => {
+                  const enrollmentCourseId = normalizeCourseId(e?.courseId)
+                  const targetCourseId = normalizeCourseId(courseId)
+                  return enrollmentCourseId === targetCourseId
+                })
+                
+                if (alreadyEnrolled) {
+                  console.log('⚠️ User already enrolled in course:', courseId)
+                  // Navigate directly to course
+                  router.push(`/${creatorSlug}/${slug}/courses/${courseId}`)
+                  return
+                }
+                
                 setEnrollTargetCourseId(courseId)
                 setIsEnrollDialogOpen(true)
               }}
@@ -122,6 +193,20 @@ export default function CoursesPageContent({
                 creatorSlug={creatorSlug}
                 slug={slug}
                 onEnroll={(courseId: string) => {
+                  // Check if already enrolled
+                  const alreadyEnrolled = enrollments.some((e) => {
+                    const enrollmentCourseId = normalizeCourseId(e?.courseId)
+                    const targetCourseId = normalizeCourseId(courseId)
+                    return enrollmentCourseId === targetCourseId
+                  })
+                  
+                  if (alreadyEnrolled) {
+                    console.log('⚠️ User already enrolled in course:', courseId)
+                    // Navigate directly to course
+                    router.push(`/${creatorSlug}/${slug}/courses/${courseId}`)
+                    return
+                  }
+                  
                   setEnrollTargetCourseId(courseId)
                   setIsEnrollDialogOpen(true)
                 }}
@@ -135,21 +220,33 @@ export default function CoursesPageContent({
           onOpenChange={setIsEnrollDialogOpen}
           course={enrollTargetCourseId ? allCourses.find((c) => c.id === enrollTargetCourseId) : null}
           isEnrolled={Boolean(enrollTargetCourseId && enrollments.some((e) => e.courseId === enrollTargetCourseId))}
-          onEnrolled={(enrollment) => {
-            const courseId = String(enrollment.courseId || enrollTargetCourseId || "")
-            if (!courseId) {
-              return
+          onEnrolled={(enrollment: any) => {
+            console.log("✅ User enrolled in course - Full enrollment object:", enrollment)
+            console.log("📋 enrollTargetCourseId:", enrollTargetCourseId)
+            console.log("📋 enrollment.courseId:", enrollment?.courseId)
+            console.log("📋 enrollment.mongoId:", enrollment?.mongoId)
+            
+            // Use enrollTargetCourseId for redirect since that's what the user clicked on
+            const courseIdForRedirect = enrollTargetCourseId
+            
+            // Add the new enrollment to state immediately
+            const normalizedEnrollment = {
+              ...enrollment,
+              courseId: normalizeCourseId(enrollTargetCourseId), // Use target ID, not response ID
             }
-
-            setEnrollments((prev) => {
-              const already = prev.some((e) => e.courseId === courseId)
-              if (already) {
-                return prev
-              }
-              return [...prev, { ...enrollment, courseId }]
+            
+            console.log("🚀 Redirecting to course:", courseIdForRedirect)
+            
+            setEnrollments(prev => {
+              const alreadyExists = prev.some(e => e.courseId === normalizedEnrollment.courseId)
+              if (alreadyExists) return prev
+              return [...prev, normalizedEnrollment]
             })
-
-            router.push(`/${creatorSlug}/${slug}/courses/${courseId}`)
+            
+            // Navigate to the course page using the original target ID
+            if (courseIdForRedirect) {
+              router.push(`/${creatorSlug}/${slug}/courses/${courseIdForRedirect}`)
+            }
           }}
         />
       </div>
