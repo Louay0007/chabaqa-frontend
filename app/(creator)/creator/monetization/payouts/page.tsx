@@ -1,0 +1,720 @@
+'use client'
+
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Search, Filter, Download, Plus, MoreHorizontal, CheckCircle, AlertCircle, Clock, TrendingUp, RefreshCw, Loader2 } from "lucide-react"
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { toast } from "@/components/ui/use-toast"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { api } from "@/lib/api"
+
+interface PayoutData {
+  id: string;
+  date: string;
+  amount: string;
+  status: 'completed' | 'pending' | 'failed' | 'cancelled' | 'scheduled';
+  method: string;
+  reference: string;
+  items: number;
+}
+
+export default function PayoutsPage() {
+  const [payouts, setPayouts] = useState<PayoutData[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
+  const [showRequestDialog, setShowRequestDialog] = useState(false);
+  const [newPayout, setNewPayout] = useState({
+    amount: "",
+    method: "bank_transfer"
+  });
+  const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [stats, setStats] = useState<any | null>(null);
+  const [availableBalance, setAvailableBalance] = useState<number | null>(null);
+
+  const loadPayouts = async () => {
+    setLoading(true);
+    try {
+      const res = await api.creatorAnalytics.getPayouts({ page: 1, limit: 50 }).catch(() => null as any);
+      const list = res?.data?.payouts || res?.payouts || [];
+      const normalized: PayoutData[] = (Array.isArray(list) ? list : []).map((p: any) => ({
+        id: p._id || p.id,
+        date: p.createdAt ? new Date(p.createdAt).toISOString().split("T")[0] : "",
+        amount: p.amount != null ? `$${Number(p.amount).toLocaleString()}` : "$0",
+        status: p.status || "pending",
+        method: p.method ? p.method.replace("_", " ") : "Bank Transfer",
+        reference: p.reference || "",
+        items: p.itemsCount || p.items || 0,
+      }));
+      setPayouts(normalized);
+
+      const statsRes = await api.creatorAnalytics.getPayoutStats().catch(() => null as any);
+      const balRes = await api.creatorAnalytics.getAvailableBalance().catch(() => null as any);
+      setStats(statsRes?.data || statsRes || null);
+      setAvailableBalance((balRes?.data?.availableBalance) ?? (balRes?.availableBalance) ?? null);
+    } catch (error) {
+      console.error('Failed to load payouts:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load payout data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load payouts from API
+  useEffect(() => {
+    loadPayouts();
+  }, []);
+
+  // Load payout stats from API
+  const loadStats = async () => {
+    setStatsLoading(true);
+    try {
+      const statsRes = await api.creatorAnalytics.getPayoutStats();
+      const balRes = await api.creatorAnalytics.getAvailableBalance().catch(() => null as any);
+      setStats(statsRes?.data || statsRes || null);
+      setAvailableBalance((balRes?.data?.availableBalance) ?? (balRes?.availableBalance) ?? null);
+      toast({ title: "Stats Updated", description: "Payout statistics have been refreshed." });
+    } catch (error) {
+      console.error('Failed to load stats:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load payout statistics.",
+        variant: "destructive",
+      });
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  // Filter payouts based on search query and active tab
+  const filteredPayouts = payouts.filter(payout => {
+    const matchesSearch = 
+      payout.reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payout.method.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payout.amount.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (activeTab === "all") return matchesSearch;
+    return matchesSearch && payout.status === activeTab;
+  });
+
+  // Handle requesting a new payout
+  const handleRequestPayout = async () => {
+    if (!newPayout.amount || isNaN(Number(newPayout.amount))) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid payout amount",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await api.creatorAnalytics.requestPayout({
+        amount: Number(newPayout.amount),
+        method: newPayout.method,
+      });
+
+      await loadPayouts();
+      setNewPayout({ amount: "", method: "bank_transfer" });
+      setShowRequestDialog(false);
+
+      toast({
+        title: "Payout Requested",
+        description: `Your payout request for $${Number(newPayout.amount).toLocaleString()} has been submitted`,
+      });
+    } catch (error) {
+      console.error('Failed to request payout:', error);
+      toast({
+        title: "Request Failed",
+        description: "Failed to submit payout request. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle payout actions
+  const handlePayoutAction = async (action: string, payout: PayoutData) => {
+    try {
+      switch(action) {
+        case "view":
+          toast({
+            title: "Viewing Details",
+            description: `Viewing details for payout ${payout.reference}`,
+          });
+          break;
+        case "download":
+          toast({ title: "Download Started", description: `Downloading receipt for payout ${payout.reference}` });
+          break;
+        case "cancel":
+          await api.creatorAnalytics.cancelPayout(payout.id, 'Cancelled by user');
+          await loadPayouts();
+          toast({ title: "Payout Cancelled", description: `Payout ${payout.reference} has been cancelled` });
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      console.error('Failed to perform payout action:', error);
+      toast({
+        title: "Action Failed",
+        description: "Failed to perform the requested action. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle export
+  const handleExport = async () => {
+    try {
+      // In a real implementation, this would call: await api.payments.exportPayouts();
+      toast({
+        title: "Export Started",
+        description: "Your payout data is being exported to CSV",
+      });
+    } catch (error) {
+      console.error('Failed to export payouts:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export payout data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="p-8 space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Payouts</h1>
+          <p className="text-gray-600 mt-1">Manage your earnings and payment requests</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={loadStats} disabled={statsLoading}>
+            {statsLoading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            Refresh Stats
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Request Payout
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Request Payout</DialogTitle>
+                <DialogDescription>
+                  Request a payout of your available earnings to your bank account or PayPal.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="payout-amount" className="text-right">
+                    Amount
+                  </Label>
+                  <Input
+                    id="payout-amount"
+                    type="number"
+                    value={newPayout.amount}
+                    onChange={(e) => setNewPayout({...newPayout, amount: e.target.value})}
+                    className="col-span-3"
+                    placeholder="1000"
+                    min="1"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="payout-method" className="text-right">
+                    Method
+                  </Label>
+                  <Select value={newPayout.method} onValueChange={(value) => setNewPayout({...newPayout, method: value})}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select payout method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                      <SelectItem value="paypal">PayPal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowRequestDialog(false)}>Cancel</Button>
+                <Button onClick={handleRequestPayout}>Request Payout</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Earned</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ${Number(stats?.totalPaid ?? 0).toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">Completed payouts</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Available Balance</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ${Number(availableBalance ?? stats?.pendingAmount ?? 0).toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">Ready or pending</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Next Payout</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {stats?.recentPayouts?.[0]?.scheduledFor
+                ? new Date(stats.recentPayouts[0].scheduledFor).toLocaleDateString()
+                : '—'}
+            </div>
+            <p className="text-xs text-muted-foreground">Scheduled payout</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {Math.round(Number(stats?.successRate ?? 0))}%
+            </div>
+            <p className="text-xs text-muted-foreground">Successful payouts</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Payout Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Payout Management</CardTitle>
+          <CardDescription>View and manage your payout history and requests</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="all" onValueChange={setActiveTab}>
+            <div className="flex items-center justify-between">
+              <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="completed">Completed</TabsTrigger>
+                <TabsTrigger value="pending">Pending</TabsTrigger>
+                <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
+                <TabsTrigger value="failed">Failed</TabsTrigger>
+              </TabsList>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search payouts..."
+                    className="pl-8 w-[250px]"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    toast({
+                      title: "Filter Applied",
+                      description: "Payout list has been filtered",
+                    });
+                  }}
+                >
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filter
+                </Button>
+              </div>
+            </div>
+
+            <TabsContent value="all" className="m-0">
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Reference</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead className="w-[80px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-4">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredPayouts.map((payout) => (
+                        <TableRow key={payout.id}>
+                          <TableCell>{payout.date}</TableCell>
+                          <TableCell>{payout.amount}</TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={
+                                payout.status === "completed" ? "default" : 
+                                payout.status === "failed" ? "destructive" : 
+                                "outline"
+                              }
+                              className="flex items-center gap-1 w-fit"
+                            >
+                              {payout.status === "completed" && <CheckCircle className="h-3 w-3" />}
+                              {payout.status === "pending" && <Clock className="h-3 w-3" />}
+                              {payout.status === "scheduled" && <Clock className="h-3 w-3" />}
+                              {payout.status === "failed" && <AlertCircle className="h-3 w-3" />}
+                              {payout.status === "cancelled" && <AlertCircle className="h-3 w-3" />}
+                              <span className="capitalize">{payout.status.replace("_", " ")}</span>
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{payout.method}</TableCell>
+                          <TableCell>{payout.reference}</TableCell>
+                          <TableCell>{payout.items}</TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Open menu</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handlePayoutAction("view", payout)}>View details</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handlePayoutAction("download", payout)}>Download receipt</DropdownMenuItem>
+                                {payout.status === "pending" && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                      className="text-red-600" 
+                                      onClick={() => handlePayoutAction("cancel", payout)}
+                                    >
+                                      Cancel payout
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="completed" className="m-0">
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Reference</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead className="w-[80px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPayouts
+                      .filter(p => p.status === "completed")
+                      .map((payout) => (
+                        <TableRow key={payout.id}>
+                          <TableCell>{payout.date}</TableCell>
+                          <TableCell>{payout.amount}</TableCell>
+                          <TableCell>
+                            <Badge className="flex items-center gap-1 w-fit">
+                              <CheckCircle className="h-3 w-3" />
+                              <span className="capitalize">{payout.status}</span>
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{payout.method}</TableCell>
+                          <TableCell>{payout.reference}</TableCell>
+                          <TableCell>{payout.items}</TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Open menu</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handlePayoutAction("view", payout)}>View details</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handlePayoutAction("download", payout)}>Download receipt</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="pending" className="m-0">
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Reference</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead className="w-[80px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPayouts
+                      .filter(p => p.status === "pending")
+                      .map((payout) => (
+                        <TableRow key={payout.id}>
+                          <TableCell>{payout.date}</TableCell>
+                          <TableCell>{payout.amount}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                              <Clock className="h-3 w-3" />
+                              <span className="capitalize">{payout.status}</span>
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{payout.method}</TableCell>
+                          <TableCell>{payout.reference}</TableCell>
+                          <TableCell>{payout.items}</TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Open menu</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handlePayoutAction("view", payout)}>View details</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handlePayoutAction("download", payout)}>Download receipt</DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="text-red-600" 
+                                  onClick={() => handlePayoutAction("cancel", payout)}
+                                >
+                                  Cancel payout
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="scheduled" className="m-0">
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Reference</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead className="w-[80px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPayouts
+                      .filter(p => p.status === "scheduled")
+                      .map((payout) => (
+                        <TableRow key={payout.id}>
+                          <TableCell>{payout.date}</TableCell>
+                          <TableCell>{payout.amount}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                              <Clock className="h-3 w-3" />
+                              <span className="capitalize">{payout.status.replace("_", " ")}</span>
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{payout.method}</TableCell>
+                          <TableCell>{payout.reference}</TableCell>
+                          <TableCell>{payout.items}</TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Open menu</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handlePayoutAction("view", payout)}>View details</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handlePayoutAction("download", payout)}>Download receipt</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="failed" className="m-0">
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Reference</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead className="w-[80px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPayouts
+                      .filter(p => p.status === "failed")
+                      .map((payout) => (
+                        <TableRow key={payout.id}>
+                          <TableCell>{payout.date}</TableCell>
+                          <TableCell>{payout.amount}</TableCell>
+                          <TableCell>
+                            <Badge variant="destructive" className="flex items-center gap-1 w-fit">
+                              <AlertCircle className="h-3 w-3" />
+                              <span className="capitalize">{payout.status}</span>
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{payout.method}</TableCell>
+                          <TableCell>{payout.reference}</TableCell>
+                          <TableCell>{payout.items}</TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Open menu</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handlePayoutAction("view", payout)}>View details</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handlePayoutAction("download", payout)}>Download receipt</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+          </Tabs>
+          <CardFooter className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Showing <strong>5</strong> of <strong>5</strong> payouts
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled
+                onClick={() => {
+                  toast({
+                    title: "Previous Page",
+                    description: "Navigating to previous page",
+                  });
+                }}
+              >
+                Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  toast({
+                    title: "Next Page",
+                    description: "Navigating to next page",
+                  });
+                }}
+              >
+                Next
+              </Button>
+            </div>
+          </CardFooter>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

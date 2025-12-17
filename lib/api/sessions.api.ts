@@ -1,0 +1,114 @@
+import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } from './client';
+import type { Session, SessionBooking } from './types';
+
+export interface CreateSessionResourceData {
+  title: string;
+  type: 'video' | 'article' | 'code' | 'tool' | 'pdf' | 'link';
+  url: string;
+  description: string;
+  order: number;
+}
+
+export interface CreateSessionData {
+  title: string;
+  description: string;
+  duration: number;
+  price: number;
+  currency: 'USD' | 'EUR' | 'TND';
+  communitySlug: string;
+  category?: string;
+  maxBookingsPerWeek?: number;
+  notes?: string;
+  isActive?: boolean;
+  resources: CreateSessionResourceData[];
+}
+
+export interface UpdateSessionData extends Partial<CreateSessionData> {
+  isActive?: boolean;
+}
+
+export interface BookSessionData {
+  scheduledAt: string;
+  notes?: string;
+}
+
+export interface UpdateBookingData {
+  status?: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  meetingLink?: string;
+  notes?: string;
+}
+
+export interface SessionListParams extends PaginationParams {
+  communitySlug?: string;
+  category?: string;
+  isActive?: boolean;
+  creatorId?: string;
+}
+
+// Sessions API
+export const sessionsApi = {
+  // Get all sessions
+  getAll: async (params?: SessionListParams): Promise<PaginatedResponse<Session>> => {
+    return apiClient.get<PaginatedResponse<Session>>('/sessions', params);
+  },
+
+  // Create session
+  create: async (data: CreateSessionData): Promise<ApiSuccessResponse<Session>> => {
+    return apiClient.post<ApiSuccessResponse<Session>>('/sessions', data);
+  },
+
+  // Get session by ID
+  getById: async (id: string): Promise<ApiSuccessResponse<Session>> => {
+    return apiClient.get<ApiSuccessResponse<Session>>(`/sessions/${id}`);
+  },
+
+  // Update session
+  update: async (id: string, data: UpdateSessionData): Promise<ApiSuccessResponse<Session>> => {
+    return apiClient.patch<ApiSuccessResponse<Session>>(`/sessions/${id}`, data);
+  },
+
+  // Delete session
+  delete: async (id: string): Promise<ApiSuccessResponse<void>> => {
+    return apiClient.delete<ApiSuccessResponse<void>>(`/sessions/${id}`);
+  },
+
+  // Get sessions by community (using slug)
+  getByCommunity: async (slug: string): Promise<any> => {
+    return apiClient.get(`/sessions/community/${slug}`);
+  },
+
+  // Book session
+  book: async (id: string, data: BookSessionData): Promise<ApiSuccessResponse<SessionBooking>> => {
+    return apiClient.post<ApiSuccessResponse<SessionBooking>>(`/sessions/${id}/book`, data);
+  },
+
+  // Get bookings
+  getBookings: async (id: string, params?: PaginationParams): Promise<PaginatedResponse<SessionBooking>> => {
+    return apiClient.get<PaginatedResponse<SessionBooking>>(`/sessions/${id}/bookings`, params);
+  },
+
+  // Update booking
+  updateBooking: async (id: string, bookingId: string, data: UpdateBookingData): Promise<ApiSuccessResponse<SessionBooking>> => {
+    return apiClient.patch<ApiSuccessResponse<SessionBooking>>(`/sessions/${id}/bookings/${bookingId}`, data);
+  },
+
+  // Get availability
+  getAvailability: async (id: string): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.get<ApiSuccessResponse<any>>(`/sessions/${id}/availability`);
+  },
+
+  // Get creator bookings
+  getCreatorBookings: async (): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.get<ApiSuccessResponse<any>>('/sessions/bookings/creator');
+  },
+
+  // Get user bookings
+  getUserBookings: async (): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.get<ApiSuccessResponse<any>>('/sessions/bookings/user');
+  },
+
+  // Get sessions by user (creator)
+  getByCreator: async (userId: string, params?: { page?: number; limit?: number; isActive?: boolean }): Promise<any> => {
+    return apiClient.get(`/sessions/by-user/${userId}`, params);
+  },
+};
