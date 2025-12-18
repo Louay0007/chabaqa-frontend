@@ -100,6 +100,17 @@ interface User {
   activityData?: ActivityData[];
 }
 
+// Utility function to deduplicate array by id or _id
+const deduplicateById = <T extends { id?: string; _id?: string }>(items: T[]): T[] => {
+  const seen = new Set<string>()
+  return items.filter((item) => {
+    const id = item.id || item._id
+    if (!id || seen.has(id)) return false
+    seen.add(id)
+    return true
+  })
+}
+
 // Utility functions for formatting
 const formatNumber = (num: number): string => {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
@@ -378,7 +389,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
         if (listRes.ok) {
           const data = await listRes.json()
           if (data.success && data.data) {
-            setProducts(data.data.products || [])
+            setProducts(deduplicateById(data.data.products || []))
             setProductsTotalPages(data.data.pagination?.totalPages || 1)
           }
         } else {
@@ -410,7 +421,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.data) {
-            setCourses(data.data.courses || [])
+            setCourses(deduplicateById(data.data.courses || []))
             setCoursesTotalPages(data.data.pagination?.totalPages || 1)
           }
         } else {
@@ -442,7 +453,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.data) {
-            setChallenges(data.data.challenges || [])
+            setChallenges(deduplicateById(data.data.challenges || []))
             setChallengesTotalPages(data.data.pagination?.totalPages || 1)
           }
         } else {
@@ -479,7 +490,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.data) {
-            setSessions(data.data.sessions || [])
+            setSessions(deduplicateById(data.data.sessions || []))
             setSessionsTotalPages(data.data.pagination?.totalPages || 1)
           }
         } else {
