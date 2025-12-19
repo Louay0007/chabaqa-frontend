@@ -57,31 +57,62 @@ export default function EnhancedVideoPlayer({
   const [player, setPlayer] = useState<any>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [watchTime, setWatchTime] = useState(0)
+  const [videoDuration, setVideoDuration] = useState(0)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastUpdateRef = useRef<number>(0)
   const playerRef = useRef<HTMLDivElement>(null)
+  const htmlVideoRef = useRef<HTMLVideoElement | null>(null)
 
   const videoUrl = currentChapter?.videoUrl || ''
   const platform = detectPlatform(videoUrl)
   const youtubeId = platform === 'youtube' ? extractYouTubeId(videoUrl) : null
   const vimeoId = platform === 'vimeo' ? extractVimeoId(videoUrl) : null
 
+  const isLocalFileVideo = useCallback(() => {
+    const safeUrl = String(videoUrl || '')
+    if (!safeUrl) return false
+    // URLs containing /uploads/ are local files. 
+    // We check for both /uploads/video/ and just /uploads/ for flexibility.
+    if (safeUrl.includes('/uploads/')) return true
+    return /\.(mp4|webm|mov|avi|mkv|3gp)(\?.*)?$/i.test(safeUrl)
+  }, [videoUrl])
+
+  // Diagnostic logging
+  useEffect(() => {
+    if (videoUrl) {
+      console.log(`🎬 [VideoPlayer] Loading: "${currentChapter?.titre || currentChapter?.title}"`)
+      console.log(`🔗 URL: ${videoUrl}`)
+      console.log(`🛠️ Type: ${isLocalFileVideo() ? 'Local File' : platform}`)
+    }
+  }, [videoUrl, currentChapter, platform, isLocalFileVideo])
+
   // Send watch time to backend every 10 seconds
-  const sendWatchTime = useCallback(async (time: number) => {
+  const sendWatchTime = useCallback(async (time: number, duration?: number) => {
     if (!enrollment || !currentChapter?.id) return
-    
+
     try {
-      await coursesApi.updateChapterWatchTime(
+      const response = await coursesApi.updateChapterWatchTime(
         String(courseId),
         String(currentChapter.id),
-        Math.floor(time)
+        Math.floor(time),
+        duration ? Math.floor(duration) : undefined
       )
       lastUpdateRef.current = time
-      console.log(`📊 Watch time updated: ${Math.floor(time)}s`)
+
+      const percentage = duration ? Math.round((time / duration) * 100) : 0
+      console.log(`📊 Watch time updated: ${Math.floor(time)}s / ${duration ? Math.floor(duration) + 's' : '?'} (${percentage}%)`)
+
+      if (response?.isAutoCompleted) {
+        console.log('✅ Chapter auto-completed!')
+      }
+
+      if (onWatchTimeUpdate) {
+        onWatchTimeUpdate(Math.floor(time))
+      }
     } catch (error) {
       console.error('Failed to update watch time:', error)
     }
-  }, [courseId, currentChapter?.id, enrollment])
+  }, [courseId, currentChapter?.id, enrollment, onWatchTimeUpdate])
 
   // Initialize YouTube Player
   useEffect(() => {
@@ -131,21 +162,66 @@ export default function EnhancedVideoPlayer({
     }
   }, [youtubeId, platform, currentChapter?.id, isChapterAccessible])
 
+  // Track watch time for native HTML5 video
+  useEffect(() => {
+    if (!isLocalFileVideo()) return
+    if (!enrollment || !currentChapter?.id) return
+    if (!isChapterAccessible(currentChapter?.id)) return
+
+    const videoEl = htmlVideoRef.current
+    if (!videoEl) return
+
+    const onPlay = () => setIsPlaying(true)
+    const onPause = () => setIsPlaying(false)
+    const onEnded = () => setIsPlaying(false)
+
+    videoEl.addEventListener('play', onPlay)
+    videoEl.addEventListener('pause', onPause)
+    videoEl.addEventListener('ended', onEnded)
+
+    return () => {
+      videoEl.removeEventListener('play', onPlay)
+      videoEl.removeEventListener('pause', onPause)
+      videoEl.removeEventListener('ended', onEnded)
+    }
+  }, [currentChapter?.id, enrollment, isChapterAccessible, isLocalFileVideo])
+
   // Track watch time when playing
   useEffect(() => {
+    if (isLocalFileVideo() && enrollment && currentChapter?.id) {
+      const videoEl = htmlVideoRef.current
+      if (!videoEl) return
+
+      intervalRef.current = setInterval(async () => {
+        const currentTime = Number(videoEl.currentTime || 0)
+        const duration = Number(videoEl.duration || 0)
+        setWatchTime(currentTime)
+        if (duration > 0) setVideoDuration(duration)
+
+        if (isPlaying && currentTime - lastUpdateRef.current >= 10) {
+          await sendWatchTime(currentTime, duration > 0 ? duration : undefined)
+        }
+      }, 1000)
+
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current)
+          intervalRef.current = null
+        }
+      }
+    }
+
     if (isPlaying && player && enrollment) {
       intervalRef.current = setInterval(async () => {
         try {
           const currentTime = await player.getCurrentTime()
+          const duration = await player.getDuration()
           setWatchTime(currentTime)
-          
+          if (duration > 0) setVideoDuration(duration)
+
           // Send update every 10 seconds
           if (currentTime - lastUpdateRef.current >= 10) {
-            await sendWatchTime(currentTime)
-          }
-
-          if (onWatchTimeUpdate) {
-            onWatchTimeUpdate(currentTime)
+            await sendWatchTime(currentTime, duration > 0 ? duration : undefined)
           }
         } catch (error) {
           console.error('Error getting current time:', error)
@@ -163,16 +239,16 @@ export default function EnhancedVideoPlayer({
         clearInterval(intervalRef.current)
       }
     }
-  }, [isPlaying, player, enrollment, sendWatchTime, onWatchTimeUpdate])
+  }, [currentChapter?.id, enrollment, isLocalFileVideo, isPlaying, player, sendWatchTime])
 
   // Send final watch time when chapter changes or component unmounts
   useEffect(() => {
     return () => {
       if (watchTime > lastUpdateRef.current && enrollment) {
-        sendWatchTime(watchTime)
+        sendWatchTime(watchTime, videoDuration > 0 ? videoDuration : undefined)
       }
     }
-  }, [currentChapter?.id, watchTime, enrollment, sendWatchTime])
+  }, [currentChapter?.id, watchTime, enrollment, sendWatchTime, videoDuration])
 
   if (!currentChapter?.videoUrl || !isChapterAccessible(currentChapter.id)) {
     return (
@@ -209,7 +285,19 @@ export default function EnhancedVideoPlayer({
   return (
     <Card className="border-0 shadow-sm overflow-hidden">
       <div className="relative bg-black aspect-video">
-        {platform === 'youtube' && youtubeId ? (
+        {isLocalFileVideo() ? (
+          <video
+            ref={htmlVideoRef}
+            src={videoUrl}
+            controls
+            preload="metadata"
+            className="absolute inset-0 w-full h-full"
+            onError={(e) => {
+              console.error("❌ Video Player Error:", e);
+              console.error("❌ Failed URL:", videoUrl);
+            }}
+          />
+        ) : platform === 'youtube' && youtubeId ? (
           <div ref={playerRef} className="absolute inset-0 w-full h-full" />
         ) : platform === 'vimeo' && vimeoId ? (
           <iframe
@@ -228,11 +316,20 @@ export default function EnhancedVideoPlayer({
             className="absolute inset-0 w-full h-full"
           />
         )}
-        
+
         {/* Watch time indicator (for tracking confirmation) */}
         {enrollment && watchTime > 0 && (
-          <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-            {Math.floor(watchTime / 60)}:{String(Math.floor(watchTime % 60)).padStart(2, '0')}
+          <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-2">
+            <div className="w-16 h-1.5 bg-gray-600 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary"
+                style={{ width: `${videoDuration > 0 ? (watchTime / videoDuration) * 100 : 0}%` }}
+              />
+            </div>
+            <span>
+              {Math.floor(watchTime / 60)}:{String(Math.floor(watchTime % 60)).padStart(2, '0')}
+              {videoDuration > 0 && ` / ${Math.floor(videoDuration / 60)}:${String(Math.floor(videoDuration % 60)).padStart(2, '0')}`}
+            </span>
           </div>
         )}
       </div>

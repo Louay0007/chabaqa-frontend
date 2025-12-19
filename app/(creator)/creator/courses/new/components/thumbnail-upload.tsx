@@ -5,7 +5,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Upload, X, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { apiClient } from "@/lib/api"
+import { apiClient } from "@/lib/api/client"
 
 interface ThumbnailUploadProps {
   value: string

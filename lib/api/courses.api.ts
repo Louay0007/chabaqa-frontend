@@ -78,8 +78,8 @@ export const coursesApi = {
     return apiClient.put(`/course-enrollment/${courseId}/chapters/${chapterId}/complete`);
   },
 
-  updateChapterWatchTime: async (courseId: string, chapterId: string, watchTime: number): Promise<any> => {
-    return apiClient.put(`/course-enrollment/${courseId}/chapters/${chapterId}/watch-time`, { watchTime });
+  updateChapterWatchTime: async (courseId: string, chapterId: string, watchTime: number, videoDuration?: number): Promise<any> => {
+    return apiClient.put(`/course-enrollment/${courseId}/chapters/${chapterId}/watch-time`, { watchTime, videoDuration });
   },
 
   // Update course
@@ -96,12 +96,12 @@ export const coursesApi = {
   getByCommunity: async (slug: string, params?: { page?: number; limit?: number; published?: boolean }): Promise<any> => {
     return apiClient.get(`/cours/community/${slug}`, params);
   },
-  
+
   // Get user enrolled courses
   getMyCourses: async (params?: PaginationParams): Promise<any> => {
     return apiClient.get('/cours/user/mes-cours', params);
   },
-  
+
   // Get user progress for all courses
   getUserProgress: async (params?: PaginationParams): Promise<any> => {
     return apiClient.get('/cours/user/progress', params);

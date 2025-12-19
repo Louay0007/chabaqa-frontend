@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { useState } from "react"
+import { apiClient } from "@/lib/api/client"
 
 interface CourseChapterForm {
   id: string
@@ -49,6 +51,20 @@ export function CourseContentStep({
   removeChapter,
 }: CourseContentStepProps) {
   const totalChapters = formData.sections.reduce((acc, section) => acc + section.chapters.length, 0)
+
+  const [uploadingChapterIds, setUploadingChapterIds] = useState<Record<string, boolean>>({})
+
+  const uploadVideoForChapter = async (sectionId: string, chapterId: string, file: File) => {
+    setUploadingChapterIds((prev) => ({ ...prev, [chapterId]: true }))
+    try {
+      const result = await apiClient.uploadFile<{ url: string }>("/upload/video", file, "video")
+      if (result?.url) {
+        updateChapter(sectionId, chapterId, "videoUrl", result.url)
+      }
+    } finally {
+      setUploadingChapterIds((prev) => ({ ...prev, [chapterId]: false }))
+    }
+  }
 
   return (
     <EnhancedCard>
@@ -191,18 +207,24 @@ export function CourseContentStep({
                                 />
                               </div>
                               <div className="space-y-1">
-                                <Label className="text-xs">Video URL (YouTube/Vimeo Embed)</Label>
+                                <Label className="text-xs">Chapter Video (Upload)</Label>
                                 <Input
-                                  placeholder="https://www.youtube.com/embed/VIDEO_ID"
-                                  value={chapter.videoUrl}
-                                  onChange={(e) => updateChapter(section.id, chapter.id, "videoUrl", e.target.value)}
+                                  type="file"
+                                  accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+                                  disabled={Boolean(uploadingChapterIds[chapter.id])}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0]
+                                    if (!file) return
+                                    void uploadVideoForChapter(section.id, chapter.id, file)
+                                  }}
                                   className="h-8 text-sm"
                                 />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  💡 Use YouTube or Vimeo embed links to save storage. <br />
-                                  YouTube: https://www.youtube.com/embed/VIDEO_ID<br />
-                                  Vimeo: https://player.vimeo.com/video/VIDEO_ID
-                                </p>
+                                {chapter.videoUrl ? (
+                                  <p className="text-xs text-muted-foreground mt-1 break-all">{chapter.videoUrl}</p>
+                                ) : null}
+                                {uploadingChapterIds[chapter.id] ? (
+                                  <p className="text-xs text-muted-foreground mt-1">Uploading...</p>
+                                ) : null}
                               </div>
                             </div>
 

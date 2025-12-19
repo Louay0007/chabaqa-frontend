@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Users, Clock, Unlock, Lock, Eye } from "lucide-react"
+import Image from "next/image"
 
 interface ReviewPublishStepProps {
   formData: {
     title: string
     description: string
+    thumbnail: string
     price: string
     currency: string
     category: string
@@ -110,8 +112,18 @@ export function ReviewPublishStep({ formData, handleInputChange }: ReviewPublish
             <div>
               <h3 className="font-semibold mb-3">Course Preview</h3>
               <div className="border rounded-lg p-4 bg-gray-50">
-                <div className="w-full h-32 bg-gray-200 rounded mb-3 flex items-center justify-center">
-                  <span className="text-gray-500">Course Thumbnail</span>
+                <div className="w-full h-32 bg-gray-200 rounded mb-3 flex items-center justify-center overflow-hidden">
+                  {formData.thumbnail ? (
+                    <Image
+                      src={formData.thumbnail}
+                      alt="Course thumbnail"
+                      width={400}
+                      height={128}
+                      className="w-full h-full object-cover rounded"
+                    />
+                  ) : (
+                    <span className="text-gray-500">Course Thumbnail</span>
+                  )}
                 </div>
                 <h4 className="font-semibold">{formData.title || "Course Title"}</h4>
                 <p className="text-sm text-gray-600 mt-1 line-clamp-2">

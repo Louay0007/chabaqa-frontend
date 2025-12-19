@@ -64,7 +64,7 @@ export function transformCourse(backendCourse: any): any {
   const creator = backendCourse.creator || (backendCourse.creatorId ? {
     id: String(backendCourse.creatorId._id || backendCourse.creatorId.id || ''),
     name: `${backendCourse.creatorId.nom || ''} ${backendCourse.creatorId.prenom || ''}`.trim() || backendCourse.creatorId.name || 'Unknown',
-    avatar: backendCourse.creatorId.avatar || backendCourse.creatorId.profile_picture || undefined,
+    avatar: backendCourse.creatorId.avatar || backendCourse.creatorId.profile_picture || backendCourse.creatorId.photo_profil || undefined,
   } : {
     id: '',
     name: 'Unknown',
@@ -80,7 +80,7 @@ export function transformCourse(backendCourse: any): any {
     communityId: String(backendCourse.communityId || ''),
     creatorId: String(backendCourse.creatorId?._id || backendCourse.creatorId?.id || backendCourse.creatorId || ''),
     creator, // Include creator object for component compatibility
-    thumbnail: backendCourse.thumbnail || undefined,
+    thumbnail: backendCourse.thumbnail || backendCourse.image || undefined,
     price: backendCourse.prix || backendCourse.price || 0,
     priceType: backendCourse.isPaidCourse ? 'paid' : 'free',
     level: backendCourse.niveau || backendCourse.level || 'beginner',

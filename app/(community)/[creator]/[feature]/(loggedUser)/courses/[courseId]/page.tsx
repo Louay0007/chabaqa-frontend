@@ -25,23 +25,37 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
   const [unlockMessage, setUnlockMessage] = useState<string | undefined>(undefined)
   const [isEnrolled, setIsEnrolled] = useState<boolean | null>(null)
 
-  const refreshProgress = async (resolvedCourseId: string) => {
+  const refreshEnrollmentProgress = async (resolvedCourseId: string) => {
     const enrollmentProgress = await coursesApi.getCourseEnrollmentProgress(resolvedCourseId).catch(() => null)
     const rawEnrollment = (enrollmentProgress as any)?.enrollment || null
+    const progressPercentage = (enrollmentProgress as any)?.progress || 0
+
     const normalizedEnrollment = rawEnrollment
-      ? { ...rawEnrollment, progress: rawEnrollment.progression ?? [] }
+      ? {
+          ...rawEnrollment,
+          progress: rawEnrollment.progression ?? [],
+          progressPercentage: progressPercentage,
+        }
       : null
 
+    setEnrollment(normalizedEnrollment)
+    setIsEnrolled(Boolean(normalizedEnrollment))
+  }
+
+  const refreshUnlockedChapters = async (resolvedCourseId: string) => {
     const unlocked = await coursesApi.getUnlockedChapters(resolvedCourseId).catch(() => null)
     const unlockedList = (unlocked as any)?.unlockedChapters || null
     const sequentialEnabled = Boolean((unlocked as any)?.sequentialProgressionEnabled)
     const unlockMsg = (unlocked as any)?.unlockMessage
 
-    setEnrollment(normalizedEnrollment)
-    setIsEnrolled(Boolean(normalizedEnrollment))
     setUnlockedChapters(Array.isArray(unlockedList) ? unlockedList : null)
     setSequentialProgressionEnabled(sequentialEnabled)
     setUnlockMessage(typeof unlockMsg === "string" ? unlockMsg : undefined)
+  }
+
+  const refreshProgress = async (resolvedCourseId: string) => {
+    await refreshEnrollmentProgress(resolvedCourseId)
+    await refreshUnlockedChapters(resolvedCourseId)
   }
 
   useEffect(() => {
@@ -138,7 +152,11 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
       unlockMessage={unlockMessage}
       onRefreshProgress={async () => {
         const resolvedCourseId = String(course?.mongoId || courseId)
-        await refreshProgress(resolvedCourseId)
+        await refreshEnrollmentProgress(resolvedCourseId)
+      }}
+      onRefreshUnlockedChapters={async () => {
+        const resolvedCourseId = String(course?.mongoId || courseId)
+        await refreshUnlockedChapters(resolvedCourseId)
       }}
     />
   )

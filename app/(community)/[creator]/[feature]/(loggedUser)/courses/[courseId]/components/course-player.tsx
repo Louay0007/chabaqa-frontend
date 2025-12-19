@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import CourseHeader from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/[courseId]/components/course-header"
 import EnhancedVideoPlayer from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/[courseId]/components/enhanced-video-player"
 import ChapterTabs from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/[courseId]/components/chapter-tabs"
@@ -18,6 +18,7 @@ interface CoursePlayerProps {
   sequentialProgressionEnabled: boolean
   unlockMessage?: string
   onRefreshProgress?: () => Promise<void>
+  onRefreshUnlockedChapters?: () => Promise<void>
 }
 
 export default function CoursePlayer({
@@ -30,35 +31,43 @@ export default function CoursePlayer({
   sequentialProgressionEnabled,
   unlockMessage,
   onRefreshProgress,
+  onRefreshUnlockedChapters,
 }: CoursePlayerProps) {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("content")
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null)
 
   const allChapters = course.sections.flatMap((s: any) => s.chapters)
+  const hasEnrollment = Boolean(enrollment)
 
   const unlockedMap = useMemo(() => {
     if (!Array.isArray(unlockedChapters)) return new Map<string, any>()
     return new Map<string, any>(unlockedChapters.map((c: any) => [String(c.id), c]))
   }, [unlockedChapters])
 
-  const isChapterAccessible = (chapterId: string) => {
+  const isChapterAccessible = useCallback((chapterId: string) => {
     const chapter = allChapters.find((c: any) => c.id === chapterId)
     if (!chapter) return false
 
     const isFreeChapter = Boolean(chapter.isPreview) || !Boolean(chapter.isPaidChapter)
     if (isFreeChapter) return true
-    if (!enrollment) return false
+    if (!hasEnrollment) return false
 
     if (!sequentialProgressionEnabled) return true
     const unlocked = unlockedMap.get(String(chapterId))
     return Boolean(unlocked?.isUnlocked)
-  }
+  }, [allChapters, hasEnrollment, sequentialProgressionEnabled, unlockedMap])
+
+  const handleWatchTimeUpdate = useCallback(() => {
+    if (onRefreshProgress) {
+      void onRefreshProgress()
+    }
+  }, [onRefreshProgress])
 
   const defaultChapterId = useMemo(() => {
     const firstAccessible = allChapters.find((c: any) => isChapterAccessible(String(c.id)))
     return firstAccessible ? String(firstAccessible.id) : null
-  }, [allChapters, enrollment, sequentialProgressionEnabled, unlockedMap])
+  }, [allChapters, isChapterAccessible])
 
   const currentChapter = selectedChapter
     ? allChapters.find((c: any) => c.id === selectedChapter)
@@ -69,9 +78,7 @@ export default function CoursePlayer({
         : null
 
   const currentChapterIndex = currentChapter ? allChapters.findIndex((c: any) => c.id === currentChapter.id) : -1
-  const progress = enrollment
-    ? (enrollment.progress.filter((p: any) => p.isCompleted).length / allChapters.length) * 100
-    : 0
+  const progress = enrollment?.progressPercentage || 0
 
   const handleSelectChapter = async (chapterId: string) => {
     const chapter = allChapters.find((c: any) => String(c.id) === String(chapterId))
@@ -109,6 +116,9 @@ export default function CoursePlayer({
       if (onRefreshProgress) {
         await onRefreshProgress()
       }
+      if (onRefreshUnlockedChapters) {
+        await onRefreshUnlockedChapters()
+      }
     } catch (error) {
       toast({
         title: "Could not complete chapter",
@@ -138,6 +148,7 @@ export default function CoursePlayer({
               enrollment={enrollment}
               slug={slug}
               courseId={courseId}
+              onWatchTimeUpdate={handleWatchTimeUpdate}
             />
 
             <ChapterTabs 

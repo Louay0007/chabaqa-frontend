@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { useState } from "react"
 import { Course } from "@/lib/models"
+import { apiClient } from "@/lib/api/client"
 
 type ContentTabProps = {
   course: Course
@@ -52,6 +53,7 @@ export function ContentTab({
   onUpdateSection,
   onUpdateChapter,
 }: ContentTabProps) {
+  const [isUploading, setIsUploading] = useState(false)
   const [newSection, setNewSection] = useState({
     title: "",
     description: "",
@@ -84,6 +86,16 @@ export function ContentTab({
     price: "",
     notes: "",
   })
+
+  const uploadChapterVideo = async (file: File): Promise<string | null> => {
+    setIsUploading(true)
+    try {
+      const result = await apiClient.uploadFile<{ url: string }>("/upload/video", file, "video")
+      return result?.url ?? null
+    } finally {
+      setIsUploading(false)
+    }
+  }
 
   const handleAddSection = () => {
     void onAddSection({ titre: newSection.title, description: newSection.description })
@@ -241,8 +253,28 @@ export function ContentTab({
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Video URL</Label>
-                  <Input value={editChapter.videoUrl} onChange={(e) => setEditChapter((p) => ({ ...p, videoUrl: e.target.value }))} />
+                  <Label>Chapter Video (Upload)</Label>
+                  <Input
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+                    disabled={isUploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      void (async () => {
+                        const url = await uploadChapterVideo(file)
+                        if (url) {
+                          setEditChapter((p) => ({ ...p, videoUrl: url }))
+                        }
+                      })()
+                    }}
+                  />
+                  {editChapter.videoUrl ? (
+                    <p className="text-xs text-muted-foreground break-all">{editChapter.videoUrl}</p>
+                  ) : null}
+                  {isUploading ? (
+                    <p className="text-xs text-muted-foreground">Uploading...</p>
+                  ) : null}
                 </div>
                 <div className="space-y-2">
                   <Label>Chapter Content</Label>
@@ -377,13 +409,29 @@ export function ContentTab({
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="chapterVideo">Video URL</Label>
+                        <Label htmlFor="chapterVideo">Chapter Video (Upload)</Label>
                         <Input
                           id="chapterVideo"
-                          placeholder="https://youtube.com/embed/..."
-                          value={newChapter.videoUrl}
-                          onChange={(e) => setNewChapter((prev) => ({ ...prev, videoUrl: e.target.value }))}
+                          type="file"
+                          accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+                          disabled={isUploading}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (!file) return
+                            void (async () => {
+                              const url = await uploadChapterVideo(file)
+                              if (url) {
+                                setNewChapter((prev) => ({ ...prev, videoUrl: url }))
+                              }
+                            })()
+                          }}
                         />
+                        {newChapter.videoUrl ? (
+                          <p className="text-xs text-muted-foreground break-all">{newChapter.videoUrl}</p>
+                        ) : null}
+                        {isUploading ? (
+                          <p className="text-xs text-muted-foreground">Uploading...</p>
+                        ) : null}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="chapterContent">Chapter Content</Label>
