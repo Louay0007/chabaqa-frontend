@@ -16,7 +16,7 @@ export function Header() {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
-  const { user: authUser, loading } = useAuth()
+  const { user: authUser, loading, logout } = useAuth()
   const isAuthenticated = !!authUser
   const profileHandle = ((authUser?.email || "").split("@")[0]) || "user"
 
@@ -24,24 +24,14 @@ export function Header() {
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
-    setError("") // Reset error
+    setError("")
 
     try {
-      const result = await logoutAction()
-
-      if (result.success) {
-        // Rediriger vers la page de connexion avec un message de succès
-        router.push('/signin?message=Déconnexion réussie')
-        router.refresh()
-      } else {
-        // Afficher l'erreur à l'utilisateur
-        setError(result.error || "Erreur lors de la déconnexion")
-        console.error('Erreur lors de la déconnexion:', result.error)
-      }
+      await logout()
+      // logout() in provider now handles redirection via window.location.href
     } catch (error) {
       setError("Erreur de connexion")
       console.error('Erreur lors de la déconnexion:', error)
-    } finally {
       setIsLoggingOut(false)
     }
   }
@@ -204,4 +194,4 @@ export function Header() {
       </div>
     </header>
   )
- }
+}

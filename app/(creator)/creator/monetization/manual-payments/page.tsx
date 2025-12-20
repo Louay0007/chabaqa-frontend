@@ -1,0 +1,268 @@
+'use client'
+
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Search, CheckCircle, XCircle, Clock, Loader2, RefreshCw, Eye, ExternalLink } from "lucide-react"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+} from "@/components/ui/table"
+import { toast } from "@/components/ui/use-toast"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import { manualPaymentsApi } from "@/lib/api/manual-payments"
+import Image from "next/image"
+
+interface PaymentRequest {
+    _id: string;
+    buyerId: {
+        name: string;
+        email: string;
+        profile_picture?: string;
+    };
+    amountDT: number;
+    promoCode?: string;
+    paymentProof: string;
+    createdAt: string;
+    contentType: string;
+}
+
+export default function ManualPaymentsPage() {
+    const [payments, setPayments] = useState<PaymentRequest[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [processingId, setProcessingId] = useState<string | null>(null);
+    const [selectedProof, setSelectedProof] = useState<string | null>(null);
+
+    const loadPayments = async () => {
+        setLoading(true);
+        try {
+            const response = await manualPaymentsApi.getPendingPayments();
+            // @ts-ignore
+            setPayments(response.data || []);
+        } catch (error) {
+            console.error('Failed to load payments:', error);
+            toast({
+                title: "Error",
+                description: "Failed to load pending payments.",
+                variant: "destructive",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadPayments();
+    }, []);
+
+    const handleAction = async (orderId: string, action: 'approve' | 'reject') => {
+        setProcessingId(orderId);
+        try {
+            await manualPaymentsApi.verifyPayment(orderId, action);
+
+            toast({
+                title: action === 'approve' ? "Payment Approved" : "Payment Rejected",
+                description: `The payment has been ${action}d successfully.`,
+            });
+
+            // Remove from list or refresh
+            setPayments(prev => prev.filter(p => p._id !== orderId));
+        } catch (error) {
+            console.error(`Failed to ${action} payment:`, error);
+            toast({
+                title: "Action Failed",
+                description: `Failed to ${action} payment. Please try again.`,
+                variant: "destructive",
+            });
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    const filteredPayments = payments.filter(p =>
+        p.buyerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.buyerId?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const getFullImageUrl = (path: string) => {
+        if (!path) return '';
+        if (path.startsWith('http')) return path;
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3000';
+        return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+    };
+
+    return (
+        <div className="p-8 space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900">Manual Payments</h1>
+                    <p className="text-gray-600 mt-1">Verify and approve manual payment requests</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={loadPayments} disabled={loading}>
+                    {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                    Refresh
+                </Button>
+            </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Pending Requests</CardTitle>
+                    <CardDescription>Review proof of payments uploaded by users</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="relative w-full max-w-sm">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                type="search"
+                                placeholder="Search user..."
+                                className="pl-8"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <Badge variant="secondary" className="ml-2">
+                            {filteredPayments.length} Pending
+                        </Badge>
+                    </div>
+
+                    <div className="rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>User</TableHead>
+                                    <TableHead>Service</TableHead>
+                                    <TableHead>Amount</TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Proof</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-8">
+                                            <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                                            <p className="mt-2 text-sm text-muted-foreground">Loading specific requests...</p>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : filteredPayments.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-8">
+                                            <CheckCircle className="h-8 w-8 mx-auto text-green-500 mb-2" />
+                                            <p className="text-lg font-medium">All caught up!</p>
+                                            <p className="text-sm text-muted-foreground">No pending manual payments found.</p>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    filteredPayments.map((payment) => (
+                                        <TableRow key={payment._id}>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">{payment.buyerId?.name || 'Unknown'}</span>
+                                                    <span className="text-xs text-muted-foreground">{payment.buyerId?.email}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className="capitalize">
+                                                    {payment.contentType}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="font-bold">
+                                                {payment.amountDT.toFixed(2)} TND
+                                                {payment.promoCode && (
+                                                    <span className="block text-xs text-green-600">Promo: {payment.promoCode}</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {new Date(payment.createdAt).toLocaleDateString()}
+                                                <span className="block text-xs text-muted-foreground">
+                                                    {new Date(payment.createdAt).toLocaleTimeString()}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 gap-1"
+                                                    onClick={() => setSelectedProof(getFullImageUrl(payment.paymentProof))}
+                                                >
+                                                    <Eye className="h-3.5 w-3.5" />
+                                                    View Proof
+                                                </Button>
+                                            </TableCell>
+                                            <TableCell className="text-right space-x-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                    onClick={() => handleAction(payment._id, 'reject')}
+                                                    disabled={processingId === payment._id}
+                                                >
+                                                    {processingId === payment._id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Reject"}
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    className="bg-green-600 hover:bg-green-700"
+                                                    onClick={() => handleAction(payment._id, 'approve')}
+                                                    disabled={processingId === payment._id}
+                                                >
+                                                    {processingId === payment._id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Approve"}
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Dialog open={!!selectedProof} onOpenChange={(open) => !open && setSelectedProof(null)}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Payment Proof</DialogTitle>
+                        <DialogDescription>
+                            Review the uploaded proof of payment.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="mt-4 flex flex-col items-center justify-center min-h-[300px] bg-slate-50 rounded-lg p-4">
+                        {selectedProof && (
+                            <div className="relative w-full h-[500px]">
+                                <Image
+                                    src={selectedProof}
+                                    alt="Payment Proof"
+                                    fill
+                                    className="object-contain"
+                                    unoptimized // Allow external/local images without complex config
+                                />
+                            </div>
+                        )}
+                        <div className="mt-4 flex gap-2">
+                            <Button asChild variant="secondary" size="sm">
+                                <a href={selectedProof || '#'} target="_blank" rel="noopener noreferrer">
+                                    <ExternalLink className="h-4 w-4 mr-2" />
+                                    Open Original in New Tab
+                                </a>
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </div>
+    )
+}

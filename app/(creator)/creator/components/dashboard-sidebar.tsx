@@ -77,7 +77,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
 
   // Get the selected community to build dynamic links
   const selectedCommunity = communities.find(c => getCommunityId(c) === selectedCommunityId)
-  const communityFeedUrl = selectedCommunity 
+  const communityFeedUrl = selectedCommunity
     ? `/${encodeURIComponent(selectedCommunity.creator?.name || 'creator')}/${selectedCommunity.slug}/home`
     : '/creator/posts'
 
@@ -133,7 +133,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
       items: [
         { title: "Subscriptions", href: "/creator/monetization/subscriptions", badge: null },
         { title: "Payouts", href: "/creator/monetization/payouts", badge: null },
-
+        { title: "Manual Payments", href: "/creator/monetization/manual-payments", badge: null },
       ],
     },
     {

@@ -1,4 +1,6 @@
+import { useSWRConfig } from 'swr'
 import useSWR from 'swr'
+// If default import continues to fail, use named export or check build config
 import { authenticatedFetch } from '@/lib/authenticated-fetch'
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
@@ -7,23 +9,23 @@ const apiOrigin = apiBase.replace(/\/api$/, '')
 function resolveImageUrl(value?: string): string | undefined {
   const v = (value || '').trim()
   if (!v) return undefined
-  
+
   // If it's already a full URL (http:// or https://), return as-is
   if (/^https?:\/\//i.test(v)) return v
-  
+
   // If it's a root-relative path, return as-is
   if (v.startsWith('/')) return v
-  
+
   // If it's a relative path starting with common upload directories
   if (v.startsWith('uploads') || v.startsWith('storage') || v.startsWith('images')) {
     return `${apiOrigin}/${v.replace(/^\/+/, '')}`
   }
-  
+
   // If it looks like a filename or path without leading slash, assume it's in uploads/image/
   if (v && !v.includes('://')) {
     return `${apiOrigin}/uploads/image/${v}`
   }
-  
+
   return undefined
 }
 

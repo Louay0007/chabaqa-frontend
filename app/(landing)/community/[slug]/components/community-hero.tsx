@@ -26,6 +26,7 @@ interface CommunityHeroProps {
     coverImage?: string
     verified: boolean
     tags: string[]
+    isMember?: boolean
   }
   formatPrice: (price: number, priceType: string) => string
   formatMembers: (count: number) => string
@@ -52,7 +53,14 @@ export function CommunityHero({
     community.longDescription ||
     community.description ||
     ""
-  const heroCTA = heroContent?.ctaButtonText?.trim() || "Explore Community"
+
+  const isMember = community.isMember
+  const defaultCTA = isMember ? "Explore Community" : "Join Community"
+  const heroCTA = heroContent?.ctaButtonText?.trim() || defaultCTA
+
+  const ctaLink = isMember
+    ? `/community/${community.slug}/home`
+    : `/community/${community.slug}/checkout`
 
   return (
     <section className="relative bg-white min-h-screen border-b border-gray-100">
@@ -67,7 +75,7 @@ export function CommunityHero({
             Back to Communities
           </Link>
         </div>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           <div className="flex flex-col space-y-6">
             {/* Badges */}
@@ -93,7 +101,7 @@ export function CommunityHero({
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 leading-tight">
               {heroTitle}
             </h1>
-            
+
             <p className="text-lg text-gray-600 leading-relaxed">
               {heroSubtitle}
             </p>
@@ -145,7 +153,7 @@ export function CommunityHero({
                   </div>
                 </div>
               )}
-              
+
               {showRating && (
                 <div className="bg-white p-4 rounded-xl border border-gray-200 hover:border-yellow-300 transition-colors">
                   <div className="flex items-center gap-3">
@@ -159,7 +167,7 @@ export function CommunityHero({
                   </div>
                 </div>
               )}
-              
+
               <div className="bg-white p-4 rounded-xl border border-gray-200 hover:border-purple-300 transition-colors">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 bg-gradient-to-br from-purp le-50 to-purple-100 rounded-lg">
@@ -177,8 +185,8 @@ export function CommunityHero({
             {community.tags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {community.tags.slice(0, 6).map((tag, index) => (
-                  <Badge 
-                    key={index} 
+                  <Badge
+                    key={index}
                     variant="secondary"
                     className="bg-white border border-gray-200 text-gray-700 hover:border-[#8e78fb] hover:text-[#8e78fb] px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
                   >
@@ -186,7 +194,7 @@ export function CommunityHero({
                   </Badge>
                 ))}
                 {community.tags.length > 6 && (
-                  <Badge 
+                  <Badge
                     variant="secondary"
                     className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-sm font-medium"
                   >
@@ -211,9 +219,9 @@ export function CommunityHero({
                   <p className="text-sm text-gray-600 mt-1">No credit card required</p>
                 )}
               </div>
-              
+
               <Link
-                href={`/community/${community.slug}/home`}
+                href={ctaLink}
                 className="group w-full sm:w-auto text-center text-white font-bold py-4 px-10 rounded-xl bg-gradient-to-r from-[#8e78fb] to-[#f48fb1] hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-lg"
               >
                 <span className="flex items-center justify-center gap-2">

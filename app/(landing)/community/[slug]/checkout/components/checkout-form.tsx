@@ -7,7 +7,7 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, CheckCircle, Tag, Users, Star, Loader2, ShieldCheck, Percent } from "lucide-react"
+import { ArrowLeft, CheckCircle, Tag, Users, Star, Loader2, ShieldCheck, Percent, UploadCloud } from "lucide-react"
 import { communitiesApi } from "@/lib/api"
 
 interface CheckoutFormProps {
@@ -23,6 +23,7 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [alreadyMember, setAlreadyMember] = useState(false)
+  const [paymentProof, setPaymentProof] = useState<File | null>(null)
 
   const pricing = community as any
 
@@ -107,7 +108,7 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
           router.push(`/community/${community.slug}/home?joined=1`)
         }, 2000)
       } else {
-        // Paid community: initiate payment
+        // Paid community: initiate manual payment
         let headerToken: string | null = null
         if (typeof window !== 'undefined') {
           const rawLocalToken =
@@ -124,21 +125,29 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
             : null
         }
 
+        if (!paymentProof) {
+          setError("Please upload a payment proof")
+          setIsProcessing(false)
+          return
+        }
+
+        const formData = new FormData()
+        formData.append('communityId', community.id)
+        formData.append('proof', paymentProof)
+
         // Call payment init endpoint
         const paymentUrl = promoCode
-          ? `/api/payments/init/community?promoCode=${encodeURIComponent(promoCode)}`
-          : '/api/payments/init/community'
+          ? `/api/payments/manual/init/community?promoCode=${encodeURIComponent(promoCode)}`
+          : '/api/payments/manual/init/community'
 
         const response = await fetch(paymentUrl, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             ...(headerToken ? { Authorization: headerToken } : {}),
+            // Content-Type is set automatically for FormData
           },
           credentials: 'include',
-          body: JSON.stringify({
-            communityId: community.id,
-          }),
+          body: formData,
         })
 
         const data = await response.json()
@@ -147,16 +156,12 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
           throw new Error(data?.message || 'Failed to initiate payment')
         }
 
-        // Redirect to payment page (Flouci or Stripe)
-        if (data.link) {
-          // Flouci payment
-          window.location.href = data.link
-        } else if (data.checkoutUrl) {
-          // Stripe payment
-          window.location.href = data.checkoutUrl
-        } else {
-          throw new Error('No payment URL received')
-        }
+        setSuccess(true)
+        // For manual payment, we show a success message but DO NOT redirect
+        // The user must wait for creator approval
+        // setTimeout(() => {
+        //   router.push(`/community/${community.slug}/home?payment=pending`)
+        // }, 2000)
       }
     } catch (err: any) {
       console.error("Checkout error:", err)
@@ -361,8 +366,55 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
                     ? "You are already a member of this community. Redirecting to community..."
                     : basePrice <= 0
                       ? "Successfully joined! Redirecting to your community..."
-                      : "Redirecting to payment..."}
+                      : "Demande de paiement reçue. Veuillez attendre l'approbation du créateur pour accéder à la communauté."}
                 </p>
+              </div>
+            )}
+
+            {basePrice > 0 && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                <h3 className="font-bold mb-2">Instructions de virement</h3>
+                <p>Veuillez effectuer un virement du montant total ({formatCurrency(total)}) vers le compte suivant :</p>
+                <div className="mt-2 bg-white p-3 rounded border border-blue-100 font-mono text-gray-700">
+                  <p className="mb-1"><span className="font-semibold">Bénéficiaire:</span> {community.creatorBankDetails?.ownerName || community.creator?.name || "Chabaqa Creator"}</p>
+                  <p className="mb-1"><span className="font-semibold">Banque:</span> {community.creatorBankDetails?.bankName || "Banque Tunisienne"}</p>
+                  <p><span className="font-semibold">RIB:</span> {community.creatorBankDetails?.rib || "0000 0000 0000 0000 0000"}</p>
+                </div>
+                <p className="mt-2 text-xs">Une fois le virement effectué, veuillez télécharger la preuve de paiement (capture d'écran ou reçu) ci-dessous.</p>
+              </div>
+            )}
+
+            {basePrice > 0 && (
+              <div className="mb-6">
+                <Label htmlFor="proof" className="block text-sm font-medium text-gray-900 mb-2">
+                  Preuve de paiement (Requis)
+                </Label>
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-chabaqa-primary transition-colors cursor-pointer relative bg-white"
+                  onClick={() => document.getElementById('proof-upload')?.click()}>
+                  <div className="space-y-1 text-center">
+                    <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
+                    <div className="flex text-sm text-gray-600 justify-center">
+                      <label htmlFor="proof-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-chabaqa-primary hover:text-chabaqa-primary/80 focus-within:outline-none">
+                        <span>Upload a file</span>
+                        <input id="proof-upload" name="proof-upload" type="file" className="sr-only" accept="image/*,application/pdf" onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setPaymentProof(e.target.files[0])
+                          }
+                        }}
+                        />
+                      </label>
+                      <p className="pl-1">or drag and drop</p>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG, PDF up to 10MB
+                    </p>
+                    {paymentProof && (
+                      <p className="text-sm text-emerald-600 font-semibold mt-2">
+                        Selected: {paymentProof.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 

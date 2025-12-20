@@ -145,11 +145,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router])
 
   const logout = useCallback(async () => {
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('user')
-    setUser(null)
-    router.push('/signin')
-  }, [router])
+    try {
+      // 1. Clear all local storage keys used by various systems
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+      localStorage.removeItem('auth-preferences')
+      localStorage.removeItem('user-session')
+
+      // Clear anything else that might have been set
+      if (typeof window !== 'undefined') {
+        sessionStorage.clear()
+      }
+
+      setUser(null)
+
+      // 2. Call the backend logout to clear cookies
+      // We use fetch instead of server action directly to avoid re-renders before navigation
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+      await fetch(`${apiBase}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      }).catch(err => console.error("API logout failed:", err))
+
+      await fetch(`${apiBase}/auth/revoke-all-tokens`, {
+        method: 'POST',
+        credentials: 'include'
+      }).catch(err => console.error("Token revocation failed:", err))
+
+    } catch (e) {
+      console.error("Logout process error:", e)
+    } finally {
+      // 3. Perform a full page reload to signin page
+      // This is crucial to break any JS-resident loops and clear all provider states
+      window.location.href = '/signin?message=Déconnexion réussie'
+    }
+  }, [])
 
   useEffect(() => {
     fetchMe()
