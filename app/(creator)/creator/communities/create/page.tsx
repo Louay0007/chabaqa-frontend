@@ -1,434 +1,527 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
+import {
+  ArrowLeft,
+  Camera,
+  Play,
+  ArrowRight,
+  Users,
+  Lock,
+  Globe,
+  DollarSign,
+  Instagram,
+  Facebook,
+  Youtube,
+  Linkedin,
+  Check,
+  Globe2,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
+import { Card, CardContent } from "@/components/ui/card"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { EnhancedCard } from "@/components/ui/enhanced-card"
-import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { Upload, X, ArrowLeft, Plus, Eye, Save, Palette, Type, Layout, Zap } from "lucide-react"
-import Image from "next/image"
-import { api } from "@/lib/api"
-import { useToast } from "@/hooks/use-toast"
-
-const formSchema = z.object({
-  name: z.string().min(3, "Community name must be at least 3 characters").max(50),
-  description: z.string().min(10, "Description must be at least 10 characters").max(500),
-  longDescription: z.string().min(50, "Long description must be at least 50 characters").optional(),
-  isPrivate: z.boolean(),
-  categories: z.array(z.string()),
-  guidelines: z.string(),
-  settings: z.object({
-    primaryColor: z.string().default("#6366F1"),
-    secondaryColor: z.string().default("#10B981"),
-    logo: z.string().optional(),
-    welcomeMessage: z.string().optional(),
-    features: z.array(z.string()).default([]),
-    benefits: z.array(z.string()).default([]),
-    showHero: z.boolean().default(true),
-    showFeatures: z.boolean().default(true),
-    showPosts: z.boolean().default(true),
-    showBenefits: z.boolean().default(true),
-    showTestimonials: z.boolean().default(false),
-    showStats: z.boolean().default(true),
-    enableAnimations: z.boolean().default(true),
-    customCSS: z.string().optional(),
-    seoTitle: z.string().optional(),
-    seoDescription: z.string().optional(),
-  }).default({}),
-  coverImage: z.string().optional(),
-})
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { communitiesApi, type CreateCommunityData } from "@/lib/api/communities.api"
+import { ImageUpload } from "@/app/(dashboard)/components/image-upload"
+import { storageApi } from "@/lib/api"
+import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 
 export default function CreateCommunityPage() {
   const router = useRouter()
-  const { toast } = useToast()
-  const [activeTab, setActiveTab] = useState("basic")
-  const [hasChanges, setHasChanges] = useState(false)
-  const [bannerPreview, setBannerPreview] = useState<string>("")
-  const [iconPreview, setIconPreview] = useState<string>("")
-  const [submitting, setSubmitting] = useState(false)
-  const [bannerFile, setBannerFile] = useState<File | null>(null)
-  const [iconFile, setIconFile] = useState<File | null>(null)
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      longDescription: "",
-      isPrivate: false,
-      categories: [],
-      guidelines: "",
-      settings: {
-        primaryColor: "#6366F1",
-        secondaryColor: "#10B981",
-        welcomeMessage: "",
-        features: [],
-        benefits: [],
-        showHero: true,
-        showFeatures: true,
-        showPosts: true,
-        showBenefits: true,
-        showTestimonials: false,
-        showStats: true,
-        enableAnimations: true,
-      }
+  const { refreshCommunities, setSelectedCommunityId } = useCreatorCommunity()
+  const [currentStep, setCurrentStep] = useState(1)
+  const [formData, setFormData] = useState({
+    name: "",
+    bio: "",
+    country: "",
+    logo: "",
+    coverImage: "",
+    status: "public",
+    joinFee: "free",
+    feeAmount: "0",
+    currency: "TND",
+    socialLinks: {
+      instagram: "",
+      tiktok: "",
+      facebook: "",
+      youtube: "",
+      linkedin: "",
+      website: "",
     },
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
 
-  const slugify = (s: string) => s
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
+  const updateFormData = (field: string, value: any) => {
+    if (field.includes(".")) {
+      const [parent, child] = field.split(".")
+      setFormData((prev) => ({
+        ...prev,
+        [parent]: {
+          ...(prev[parent as keyof typeof prev] as object),
+          [child]: value,
+        },
+      }))
+    } else {
+      setFormData((prev) => ({ ...prev, [field]: value }))
+    }
+  }
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  // Submit community to backend using typed API client
+  const submitCommunity = async () => {
+    setIsSubmitting(true)
+    setError("")
+
     try {
-      setSubmitting(true)
-      const slug = slugify(values.name)
-      const category = values.categories?.[0] || "general"
+      // Map form data to API format matching backend DTO exactly
+      const communityData: CreateCommunityData = {
+        // Required fields
+        name: formData.name,
+        country: formData.country,
+        status: formData.status as 'public' | 'private',
+        joinFee: formData.joinFee as 'free' | 'paid',
+        feeAmount: formData.feeAmount,
+        currency: formData.currency as 'USD' | 'TND' | 'EUR',
+        socialLinks: formData.socialLinks,
 
-      // Upload files if selected
-      let coverUrl: string | undefined = bannerPreview || values.coverImage
-      let iconUrl: string | undefined = iconPreview || values.settings.logo
-      try {
-        if (bannerFile) {
-          const up = await api.storage.upload(bannerFile as any).catch(() => null as any)
-          coverUrl = up?.data?.url || up?.url || coverUrl
-        }
-        if (iconFile) {
-          const up = await api.storage.upload(iconFile as any).catch(() => null as any)
-          iconUrl = up?.data?.url || up?.url || iconUrl
-        }
-      } catch {}
-
-      const payload = {
-        name: values.name,
-        slug,
-        description: values.description,
-        longDescription: values.longDescription,
-        category,
-        tags: values.categories || [],
-        priceType: 'free' as const,
-        price: undefined as number | undefined,
-        image: iconUrl,
-        coverImage: coverUrl,
+        // Optional fields using backend DTO field names
+        bio: formData.bio || undefined,
+        logo: formData.logo || undefined,
+        coverImage: formData.coverImage || undefined,
+        category: 'General',
+        tags: [],
       }
-      const created = await api.communities.create(payload as any)
-      const comm = (created as any)?.data || created
-      const to = `/community/${comm?.slug || slug}/dashboard`
-      toast({ title: "Community created", description: `${values.name} is live.` })
-      router.push(to)
-    } catch (e) {
-      // Optionally show a toast; for now, keep console
-      console.error('Create community failed', e)
-      toast({ title: "Failed to create community", description: (e as any)?.message || 'Please try again.', variant: 'destructive' as any })
+
+      // Call API using typed client
+      const response = await communitiesApi.create(communityData)
+
+      setSuccess(true)
+      console.log("Community created successfully:", response.data)
+
+      // Get the new community ID from response
+      const newCommunity = response.data as any
+      const newCommunityId = newCommunity?._id || newCommunity?.id
+
+      // Refresh communities list in context and select the new one
+      await refreshCommunities()
+      if (newCommunityId) {
+        setSelectedCommunityId(newCommunityId)
+      }
+
+      // Redirect to creator dashboard after short delay
+      setTimeout(() => {
+        router.push('/creator/dashboard')
+      }, 1000)
+
+    } catch (err: any) {
+      setError(err.message || "Failed to create community. Please try again.")
+      console.error("Error creating community:", err)
     } finally {
-      setSubmitting(false)
+      setIsSubmitting(false)
     }
   }
 
-  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setBannerFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setBannerPreview(reader.result as string)
-        setHasChanges(true)
-      }
-      reader.readAsDataURL(file)
+  const canContinue = () => {
+    switch (currentStep) {
+      case 1:
+        return formData.name.trim() !== "" && formData.country.trim() !== ""
+      case 2:
+        if (formData.joinFee === "paid") {
+          return formData.feeAmount && parseFloat(formData.feeAmount) > 0
+        }
+        return true
+      case 3:
+        const socialLinks = formData.socialLinks
+        return Object.values(socialLinks).some(link => link.trim() !== "")
+      default:
+        return false
     }
   }
 
-  const handleIconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setIconFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setIconPreview(reader.result as string)
-        setHasChanges(true)
-      }
-      reader.readAsDataURL(file)
+  const nextStep = () => {
+    if (canContinue() && currentStep < 3) {
+      setCurrentStep(currentStep + 1)
     }
   }
 
-  useEffect(() => {
-    const sub = form.watch(() => setHasChanges(true))
-    return () => sub.unsubscribe?.()
-  }, [form])
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Name your community</h2>
+              <p className="text-gray-600 mb-6">You can always change this later.</p>
+
+              {/* Community Logo */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Community Logo</label>
+                <div className="max-w-xs">
+                  <ImageUpload
+                    currentImage={formData.logo}
+                    onImageChange={(url) => updateFormData("logo", url)}
+                    aspectRatio="square"
+                    maxSize={2}
+                    showPreview={true}
+                  />
+                </div>
+              </div>
+
+              {/* Community Cover Image */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Cover Image (optional)</label>
+                <ImageUpload
+                  currentImage={formData.coverImage}
+                  onImageChange={(url) => updateFormData("coverImage", url)}
+                  aspectRatio="wide"
+                  maxSize={5}
+                  showPreview={true}
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Community Name *</label>
+                <Input
+                  placeholder="e.g Creators Club"
+                  value={formData.name}
+                  onChange={(e) => updateFormData("name", e.target.value)}
+                  className="text-lg py-3 border-gray-200 focus:border-[#8e78fb] focus:ring-[#8e78fb]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Country *</label>
+              <Input
+                placeholder="e.g Tunis, France, Morocco..."
+                value={formData.country}
+                onChange={(e) => updateFormData("country", e.target.value)}
+                className="text-lg py-3 border-gray-200 focus:border-[#8e78fb] focus:ring-[#8e78fb]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Bio (optional)</label>
+              <Textarea
+                placeholder="Tell people what your community is about..."
+                value={formData.bio}
+                onChange={(e) => updateFormData("bio", e.target.value)}
+                className="min-h-[120px] border-gray-200 focus:border-[#8e78fb] focus:ring-[#8e78fb] resize-none"
+              />
+            </div>
+          </div>
+        )
+
+      case 2:
+        return (
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Community Settings</h2>
+              <p className="text-gray-600 mb-6">Configure your community access and pricing.</p>
+
+              <div className="space-y-6">
+                {/* Status Selection */}
+                <div>
+                  <label className="block text-lg font-semibold text-gray-900 mb-4">Community Status</label>
+                  <RadioGroup
+                    value={formData.status}
+                    onValueChange={(value) => updateFormData("status", value)}
+                    className="space-y-4"
+                  >
+                    <div className="flex items-center space-x-4 p-4 border-2 border-gray-200 rounded-xl hover:border-[#8e78fb] transition-colors">
+                      <RadioGroupItem value="public" id="public" className="text-[#8e78fb]" />
+                      <div className="flex items-center space-x-3 flex-1">
+                        <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center">
+                          <Globe className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <Label htmlFor="public" className="text-base font-medium cursor-pointer">
+                            Public
+                          </Label>
+                          <p className="text-sm text-gray-500">Anyone can find and join your community</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-4 p-4 border-2 border-gray-200 rounded-xl hover:border-[#8e78fb] transition-colors">
+                      <RadioGroupItem value="private" id="private" className="text-[#8e78fb]" />
+                      <div className="flex items-center space-x-3 flex-1">
+                        <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-pink-600 rounded-lg flex items-center justify-center">
+                          <Lock className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <Label htmlFor="private" className="text-base font-medium cursor-pointer">
+                            Private
+                          </Label>
+                          <p className="text-sm text-gray-500">Only invited members can join</p>
+                        </div>
+                      </div>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {/* Join Fee Selection */}
+                <div>
+                  <label className="block text-lg font-semibold text-gray-900 mb-4">Join Fee</label>
+                  <RadioGroup
+                    value={formData.joinFee}
+                    onValueChange={(value) => updateFormData("joinFee", value)}
+                    className="space-y-4"
+                  >
+                    <div className="flex items-center space-x-4 p-4 border-2 border-gray-200 rounded-xl hover:border-[#8e78fb] transition-colors">
+                      <RadioGroupItem value="free" id="free" className="text-[#8e78fb]" />
+                      <div className="flex items-center space-x-3 flex-1">
+                        <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center">
+                          <Users className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <Label htmlFor="free" className="text-base font-medium cursor-pointer">
+                            Free
+                          </Label>
+                          <p className="text-sm text-gray-500">No cost to join your community</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-4 p-4 border-2 border-gray-200 rounded-xl hover:border-[#8e78fb] transition-colors">
+                      <RadioGroupItem value="paid" id="paid" className="text-[#8e78fb]" />
+                      <div className="flex items-center space-x-3 flex-1">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center">
+                          <DollarSign className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <Label htmlFor="paid" className="text-base font-medium cursor-pointer">
+                            Paid
+                          </Label>
+                          <p className="text-sm text-gray-500 mb-3">Set a membership fee</p>
+                          {formData.joinFee === "paid" && (
+                            <div className="space-y-2">
+                              <Select value={formData.currency} onValueChange={(value) => updateFormData("currency", value)}>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Select currency" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="TND">🇹🇳 TND - Tunisian Dinar</SelectItem>
+                                  <SelectItem value="USD">🇺🇸 USD - US Dollar</SelectItem>
+                                  <SelectItem value="EUR">🇪🇺 EUR - Euro</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Input
+                                type="number"
+                                placeholder="Amount (e.g. 25.50)"
+                                value={formData.feeAmount}
+                                onChange={(e) => updateFormData("feeAmount", e.target.value)}
+                                className="w-full"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Social Media Links</h2>
+              <p className="text-gray-600 mb-6">Connect your community with social platforms. At least one is required.</p>
+
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-pink-600 rounded-xl flex items-center justify-center">
+                    <Instagram className="w-6 h-6 text-white" />
+                  </div>
+                  <Input
+                    placeholder="Instagram username or URL"
+                    value={formData.socialLinks.instagram}
+                    onChange={(e) => updateFormData("socialLinks.instagram", e.target.value)}
+                    className="flex-1 border-2 border-gray-200 focus:border-[#8e78fb] focus:ring-[#8e78fb] rounded-xl"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-black to-gray-800 rounded-xl flex items-center justify-center">
+                    <div className="text-white font-bold text-sm">TT</div>
+                  </div>
+                  <Input
+                    placeholder="TikTok username or URL"
+                    value={formData.socialLinks.tiktok}
+                    onChange={(e) => updateFormData("socialLinks.tiktok", e.target.value)}
+                    className="flex-1 border-2 border-gray-200 focus:border-[#8e78fb] focus:ring-[#8e78fb] rounded-xl"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
+                    <Facebook className="w-6 h-6 text-white" />
+                  </div>
+                  <Input
+                    placeholder="Facebook page URL"
+                    value={formData.socialLinks.facebook}
+                    onChange={(e) => updateFormData("socialLinks.facebook", e.target.value)}
+                    className="flex-1 border-2 border-gray-200 focus:border-[#8e78fb] focus:ring-[#8e78fb] rounded-xl"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center">
+                    <Youtube className="w-6 h-6 text-white" />
+                  </div>
+                  <Input
+                    placeholder="YouTube channel URL"
+                    value={formData.socialLinks.youtube}
+                    onChange={(e) => updateFormData("socialLinks.youtube", e.target.value)}
+                    className="flex-1 border-2 border-gray-200 focus:border-[#8e78fb] focus:ring-[#8e78fb] rounded-xl"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
+                    <Linkedin className="w-6 h-6 text-white" />
+                  </div>
+                  <Input
+                    placeholder="LinkedIn page URL"
+                    value={formData.socialLinks.linkedin}
+                    onChange={(e) => updateFormData("socialLinks.linkedin", e.target.value)}
+                    className="flex-1 border-2 border-gray-200 focus:border-[#8e78fb] focus:ring-[#8e78fb] rounded-xl"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-gray-500 to-gray-700 rounded-xl flex items-center justify-center">
+                    <Globe2 className="w-6 h-6 text-white" />
+                  </div>
+                  <Input
+                    placeholder="Your website URL"
+                    value={formData.socialLinks.website}
+                    onChange={(e) => updateFormData("socialLinks.website", e.target.value)}
+                    className="flex-1 border-2 border-gray-200 focus:border-[#8e78fb] focus:ring-[#8e78fb] rounded-xl"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
 
   return (
-    <div className="p-8">
+    <div className="p-8 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.back()}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Create New Community</h1>
-            <p className="text-gray-600 mt-1">Set up a new community for your audience to connect and engage</p>
-          </div>
-        </div>
+      <div className="mb-8">
+        <Button
+          variant="ghost"
+          onClick={() => router.back()}
+          className="mb-4 text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Dashboard
+        </Button>
 
-        <div className="flex items-center space-x-3">
-          <Button variant="outline" onClick={() => setHasChanges(false)} className="flex items-center space-x-2">
-            <Eye className="w-4 h-4" />
-            <span>Preview</span>
-          </Button>
-
-          <Button
-            onClick={form.handleSubmit(onSubmit)}
-            disabled={!hasChanges || submitting}
-            className="flex items-center space-x-2"
-            style={{
-              backgroundColor: form.getValues("settings.primaryColor"),
-              opacity: hasChanges ? 1 : 0.5,
-            }}
-          >
-            <Save className="w-4 h-4" />
-            <span>{submitting ? 'Creating...' : 'Create Community'}</span>
-          </Button>
-        </div>
+        <h1 className="text-3xl font-bold text-gray-900">Create New Community</h1>
+        <p className="text-gray-600 mt-2">Set up your community in 3 easy steps</p>
       </div>
 
-      {hasChanges && (
-        <div
-          className="border rounded-lg p-4 mb-8"
-          style={{
-            backgroundColor: `${form.getValues("settings.primaryColor")}10`,
-            borderColor: `${form.getValues("settings.primaryColor")}30`,
-          }}
-        >
-          <div className="flex items-center space-x-2">
+      {/* Steps Indicator */}
+      <div className="flex items-center gap-4 mb-8">
+        {[1, 2, 3].map((step) => (
+          <div key={step} className="flex items-center">
             <div
-              className="w-2 h-2 rounded-full animate-pulse"
-              style={{ backgroundColor: form.getValues("settings.primaryColor") }}
-            ></div>
-            <p className="font-medium" style={{ color: form.getValues("settings.primaryColor") }}>
-              You have unsaved changes
-            </p>
+              className={`flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold transition-all duration-300 ${step === currentStep
+                ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg"
+                : step < currentStep
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                  : "bg-gray-200 text-gray-500"
+                }`}
+            >
+              {step < currentStep ? <Check className="w-5 h-5" /> : step}
+            </div>
+            {step < 3 && (
+              <div
+                className={`w-16 h-1 mx-2 rounded-full transition-all duration-300 ${step < currentStep ? "bg-gradient-to-r from-purple-500 to-pink-500" : "bg-gray-200"
+                  }`}
+              />
+            )}
           </div>
+        ))}
+      </div>
+
+      {/* Error/Success Messages */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <p className="text-red-700 text-sm">{error}</p>
         </div>
       )}
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {/* Basic Information */}
-          <EnhancedCard>
-            <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-              <CardDescription>
-                Provide the essential details about your community
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Community Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Web Development Masters" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Choose a unique name that represents your community
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+      {success && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
+          <p className="text-green-700 text-sm">Your community has been created successfully! Redirecting...</p>
+        </div>
+      )}
 
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="What is your community about?"
-                        className="resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Describe what members can expect from your community
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+      {/* Form Content */}
+      <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
+        {renderStepContent()}
+      </div>
 
-              <FormField
-                control={form.control}
-                name="isPrivate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">Private Community</FormLabel>
-                      <FormDescription>
-                        Require approval for new members to join
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </EnhancedCard>
+      {/* Navigation Buttons */}
+      <div className="flex items-center justify-between">
+        {currentStep > 1 ? (
+          <Button variant="outline" onClick={prevStep}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+        ) : (
+          <div></div>
+        )}
 
-          {/* Media Upload */}
-          <EnhancedCard>
-            <CardHeader>
-              <CardTitle>Community Media</CardTitle>
-              <CardDescription>
-                Upload visual assets for your community
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Banner Upload */}
-              <div className="space-y-4">
-                <Label>Community Banner</Label>
-                <div className="relative">
-                  {bannerPreview ? (
-                    <div className="relative w-full h-48 rounded-lg overflow-hidden">
-                      <Image
-                        src={bannerPreview}
-                        alt="Banner preview"
-                        fill
-                        className="object-cover"
-                      />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={() => setBannerPreview("")}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-48 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 cursor-pointer">
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                        <p className="text-sm text-gray-500">Upload banner image</p>
-                      </div>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleBannerUpload}
-                      />
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              {/* Icon Upload */}
-              <div className="space-y-4">
-                <Label>Community Icon</Label>
-                <div className="relative">
-                  {iconPreview ? (
-                    <div className="relative w-24 h-24 rounded-full overflow-hidden">
-                      <Image
-                        src={iconPreview}
-                        alt="Icon preview"
-                        fill
-                        className="object-cover"
-                      />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="icon"
-                        className="absolute top-0 right-0"
-                        onClick={() => setIconPreview("")}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center w-24 h-24 rounded-full border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 cursor-pointer">
-                      <div className="flex flex-col items-center justify-center">
-                        <Upload className="h-6 w-6 text-gray-400 mb-1" />
-                        <p className="text-xs text-gray-500">Icon</p>
-                      </div>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleIconUpload}
-                      />
-                    </label>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </EnhancedCard>
-
-          {/* Guidelines */}
-          <EnhancedCard>
-            <CardHeader>
-              <CardTitle>Community Guidelines</CardTitle>
-              <CardDescription>
-                Set the rules and expectations for your community
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FormField
-                control={form.control}
-                name="guidelines"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Enter community guidelines..."
-                        className="resize-none min-h-[200px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Clear guidelines help maintain a healthy community environment
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </EnhancedCard>
-
-          {/* Submit Button */}
-          <div className="flex justify-end space-x-4">
-            <Button type="button" variant="outline">
-              Save as Draft
-            </Button>
-            <Button type="submit" disabled={submitting}>{submitting ? 'Creating...' : 'Create Community'}</Button>
-          </div>
-        </form>
-      </Form>
+        <Button
+          onClick={currentStep === 3 ? submitCommunity : nextStep}
+          disabled={!canContinue() || isSubmitting}
+          className={`px-8 py-3 rounded-xl font-semibold text-white transition-all duration-300 ${canContinue() && !isSubmitting
+            ? "bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg hover:shadow-xl hover:scale-105"
+            : "bg-gray-300 cursor-not-allowed"
+            }`}
+        >
+          {isSubmitting ? (
+            <div className="flex items-center">
+              <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Creating...
+            </div>
+          ) : currentStep === 3 ? (
+            "Create Community"
+          ) : (
+            <>
+              Continue
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   )
 }

@@ -68,7 +68,8 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
 
   const handleCommunityChange = (communityId: string) => {
     setSelectedCommunityId(communityId)
-    // No page reload needed - context updates all consumers automatically
+    // Refresh the page to reload all data for the new community
+    router.refresh()
   }
 
   const toggleSection = (section: string) => {
@@ -244,7 +245,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
       {/* Create Community Button */}
       <div className="p-3 border-b border-gray-200">
         {!isLoadingCommunities && communities.length === 0 ? (
-          <Link href="/build-community" className="block">
+          <Link href="/creator/communities/create" className="block">
             <Button
               className="w-full bg-gradient-to-r from-chabaqa-primary to-chabaqa-secondary1 text-white hover:from-chabaqa-primary/90 hover:to-chabaqa-secondary1/90 text-xs h-10"
               size="sm"
@@ -254,7 +255,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
             </Button>
           </Link>
         ) : (
-          <Link href="/build-community" className="block">
+          <Link href="/creator/communities/create" className="block">
             <Button
               className="w-full bg-gradient-to-r from-chabaqa-primary to-chabaqa-secondary1 text-white hover:from-chabaqa-primary/90 hover:to-chabaqa-secondary1/90 text-xs h-8"
               size="sm"

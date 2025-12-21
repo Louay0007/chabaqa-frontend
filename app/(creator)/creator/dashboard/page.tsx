@@ -129,7 +129,7 @@ export default function CreatorDashboardPage() {
 
         // If creator has no communities, redirect to create first one
         if (!creatorCommunities || creatorCommunities.length === 0) {
-          router.push('/build-community')
+          router.push('/creator/communities/create')
           return
         }
 
@@ -586,34 +586,35 @@ export default function CreatorDashboardPage() {
                   {creatorCourses.map((course) => {
                     const enrollmentCount = Array.isArray(course.enrollments) ? course.enrollments.length : 0
                     return (
-                    <EnhancedCard key={course.id} hover className="overflow-hidden">
-                      <div className="relative">
-                        <Image
-                          src={course.thumbnail || "/placeholder.svg?height=200&width=400&query=course+thumbnail"}
-                          alt={course.title}
-                          width={400}
-                          height={200}
-                          className="w-full h-48 object-cover"
-                        />
-                        <div className="absolute top-3 right-3">
-                          <Badge className="bg-courses-500 text-white">${course.price}</Badge>
+                      <EnhancedCard key={course.id} hover className="overflow-hidden">
+                        <div className="relative">
+                          <Image
+                            src={course.thumbnail || "/placeholder.svg?height=200&width=400&query=course+thumbnail"}
+                            alt={course.title}
+                            width={400}
+                            height={200}
+                            className="w-full h-48 object-cover"
+                          />
+                          <div className="absolute top-3 right-3">
+                            <Badge className="bg-courses-500 text-white">${course.price}</Badge>
+                          </div>
                         </div>
-                      </div>
-                      <CardHeader>
-                        <CardTitle className="line-clamp-2">{course.title}</CardTitle>
-                        <CardDescription className="line-clamp-3">{course.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="flex items-center justify-between">
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Users className="h-4 w-4 mr-1" />
-                          {enrollmentCount} enrolled
-                        </div>
-                        <Button size="sm" asChild>
-                          <Link href={`/creator/courses/${course.id}/manage`}>Manage</Link>
-                        </Button>
-                      </CardContent>
-                    </EnhancedCard>
-                  )})}
+                        <CardHeader>
+                          <CardTitle className="line-clamp-2">{course.title}</CardTitle>
+                          <CardDescription className="line-clamp-3">{course.description}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex items-center justify-between">
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <Users className="h-4 w-4 mr-1" />
+                            {enrollmentCount} enrolled
+                          </div>
+                          <Button size="sm" asChild>
+                            <Link href={`/creator/courses/${course.id}/manage`}>Manage</Link>
+                          </Button>
+                        </CardContent>
+                      </EnhancedCard>
+                    )
+                  })}
                 </div>
               </TabsContent>
 
@@ -622,24 +623,25 @@ export default function CreatorDashboardPage() {
                   {creatorChallenges.map((challenge) => {
                     const participantsCount = Array.isArray(challenge.participants) ? challenge.participants.length : 0
                     return (
-                    <EnhancedCard key={challenge.id} hover className="overflow-hidden">
-                      <div className="relative">
-                        <div className="bg-gradient-to-r from-challenges-500 to-orange-500 p-6 text-white">
-                          <h3 className="text-xl font-bold mb-2">{challenge.title}</h3>
-                          <p className="text-challenges-100 text-sm">{challenge.description}</p>
+                      <EnhancedCard key={challenge.id} hover className="overflow-hidden">
+                        <div className="relative">
+                          <div className="bg-gradient-to-r from-challenges-500 to-orange-500 p-6 text-white">
+                            <h3 className="text-xl font-bold mb-2">{challenge.title}</h3>
+                            <p className="text-challenges-100 text-sm">{challenge.description}</p>
+                          </div>
                         </div>
-                      </div>
-                      <CardContent className="flex items-center justify-between pt-4">
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Users className="h-4 w-4 mr-1" />
-                          {participantsCount} participants
-                        </div>
-                        <Button size="sm" asChild>
-                          <Link href={`/creator/challenges/${challenge.id}/manage`}>Manage</Link>
-                        </Button>
-                      </CardContent>
-                    </EnhancedCard>
-                  )})}
+                        <CardContent className="flex items-center justify-between pt-4">
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <Users className="h-4 w-4 mr-1" />
+                            {participantsCount} participants
+                          </div>
+                          <Button size="sm" asChild>
+                            <Link href={`/creator/challenges/${challenge.id}/manage`}>Manage</Link>
+                          </Button>
+                        </CardContent>
+                      </EnhancedCard>
+                    )
+                  })}
                 </div>
               </TabsContent>
 
@@ -669,33 +671,34 @@ export default function CreatorDashboardPage() {
                   {creatorPosts.map((post) => {
                     const commentsCount = Array.isArray(post.comments) ? post.comments.length : 0
                     return (
-                    <EnhancedCard key={post.id} hover className="overflow-hidden">
-                      <div className="relative">
-                        {post.thumbnail && (
-                          <Image
-                            src={post.thumbnail || "/placeholder.svg"}
-                            alt={post.title}
-                            width={400}
-                            height={200}
-                            className="w-full h-48 object-cover"
-                          />
-                        )}
-                      </div>
-                      <CardHeader>
-                        <CardTitle className="line-clamp-2">{post.title}</CardTitle>
-                        <CardDescription className="line-clamp-3">{post.excerpt}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="flex items-center justify-between">
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <MessageSquare className="h-4 w-4 mr-1" />
-                          {commentsCount} comments
+                      <EnhancedCard key={post.id} hover className="overflow-hidden">
+                        <div className="relative">
+                          {post.thumbnail && (
+                            <Image
+                              src={post.thumbnail || "/placeholder.svg"}
+                              alt={post.title}
+                              width={400}
+                              height={200}
+                              className="w-full h-48 object-cover"
+                            />
+                          )}
                         </div>
-                        <Button size="sm" asChild>
-                          <Link href={`/creator/posts/${post.id}/manage`}>Manage</Link>
-                        </Button>
-                      </CardContent>
-                    </EnhancedCard>
-                  )})}
+                        <CardHeader>
+                          <CardTitle className="line-clamp-2">{post.title}</CardTitle>
+                          <CardDescription className="line-clamp-3">{post.excerpt}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex items-center justify-between">
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <MessageSquare className="h-4 w-4 mr-1" />
+                            {commentsCount} comments
+                          </div>
+                          <Button size="sm" asChild>
+                            <Link href={`/creator/posts/${post.id}/manage`}>Manage</Link>
+                          </Button>
+                        </CardContent>
+                      </EnhancedCard>
+                    )
+                  })}
                 </div>
               </TabsContent>
             </Tabs>
