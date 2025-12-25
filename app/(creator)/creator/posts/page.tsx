@@ -38,7 +38,13 @@ export default function CreatorPostsPage() {
 
   // Load posts when community changes
   useEffect(() => {
-    if (communityLoading || !selectedCommunityId || !authUser) return
+    if (communityLoading || !authUser) return
+    if (!selectedCommunityId) {
+      setPosts([])
+      setStats({ total: 0, likes: 0, comments: 0 })
+      setLoading(false)
+      return
+    }
 
     const loadPosts = async () => {
       setLoading(true)
@@ -46,6 +52,7 @@ export default function CreatorPostsPage() {
         const response: any = await api.posts.getByCreator(authUser._id || authUser.id, {
           page: 1,
           limit: 50,
+          communityId: selectedCommunityId,
         })
 
         const postsList = response?.data || response || []
@@ -84,13 +91,15 @@ export default function CreatorPostsPage() {
   const handlePostCreated = () => {
     setIsCreateDialogOpen(false)
     // Reload posts
-    if (authUser) {
-      api.posts.getByCreator(authUser._id || authUser.id, { page: 1, limit: 50 })
+    if (authUser && selectedCommunityId) {
+      api.posts.getByCreator(authUser._id || authUser.id, { page: 1, limit: 50, communityId: selectedCommunityId })
         .then((response: any) => {
           const postsList = response?.data || response || []
           setPosts(Array.isArray(postsList) ? postsList : [])
         })
         .catch((error) => console.error('Failed to reload posts:', error))
+    } else {
+      setPosts([])
     }
   }
 
@@ -118,7 +127,7 @@ export default function CreatorPostsPage() {
         <CreatePostDialog
           open={isCreateDialogOpen}
           onOpenChange={setIsCreateDialogOpen}
-          communityId={selectedCommunityId}
+          communityId={selectedCommunityId || ""}
           onPostCreated={handlePostCreated}
         />
       </div>

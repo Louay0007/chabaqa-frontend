@@ -68,8 +68,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
 
   const handleCommunityChange = (communityId: string) => {
     setSelectedCommunityId(communityId)
-    // Refresh the page to reload all data for the new community
-    router.refresh()
+    // Context update triggers dashboard useEffect to reload data automatically
   }
 
   const toggleSection = (section: string) => {

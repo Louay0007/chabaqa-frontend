@@ -146,22 +146,22 @@ export default function CreatorDashboardPage() {
         const prevMonthEnd = new Date(toDate.getFullYear(), toDate.getMonth(), 0)
 
         const [coursesRes, challengesRes, sessionsRes, overviewRes, prevCoursesRes, prevChallengesRes, prevSessionsRes, prevOverviewRes] = await Promise.all([
-          // Courses: Always get creator's own courses
-          apiClient.get<any>(`/cours/user/created`, { limit: 100 }).catch((e) => { console.log('[Dashboard] Courses fetch error:', e); return null }),
+          // Courses: Get courses for selected community
+          apiClient.get<any>(`/cours/user/created`, { limit: 100, communityId: selectedCommunityId }).catch((e) => { console.log('[Dashboard] Courses fetch error:', e); return null }),
 
-          // Challenges: Get creator's challenges
-          apiClient.get<any>(`/challenges/by-user/${userId}`, { type: 'created', limit: 50 }).catch((e) => { console.log('[Dashboard] Challenges fetch error:', e); return null }),
+          // Challenges: Get challenges for selected community
+          apiClient.get<any>(`/challenges/by-user/${userId}`, { type: 'created', limit: 50, communityId: selectedCommunityId }).catch((e) => { console.log('[Dashboard] Challenges fetch error:', e); return null }),
 
-          // Sessions: Get creator's sessions
-          apiClient.get<any>(`/sessions`, { creatorId: userId, limit: 50 }).catch((e) => { console.log('[Dashboard] Sessions fetch error:', e); return null }),
+          // Sessions: Get sessions for selected community
+          apiClient.get<any>(`/sessions`, { creatorId: userId, limit: 50, communityId: selectedCommunityId }).catch((e) => { console.log('[Dashboard] Sessions fetch error:', e); return null }),
 
-          // Current month analytics
+          // Current month analytics for selected community
           api.creatorAnalytics.getOverview({ from: fromDate.toISOString(), to: toDate.toISOString(), communityId: selectedCommunityId }).catch(() => null as any),
 
           // Previous month data for growth calculation
-          apiClient.get<any>(`/cours/user/created`, { limit: 1000 }).catch(() => ({ data: { courses: [] } })),
-          apiClient.get<any>(`/challenges/by-user/${userId}`, { type: 'created', limit: 1000 }).catch(() => ({ data: { challenges: [] } })),
-          apiClient.get<any>(`/sessions`, { creatorId: userId, limit: 1000 }).catch(() => ({ data: { sessions: [] } })),
+          apiClient.get<any>(`/cours/user/created`, { limit: 1000, communityId: selectedCommunityId }).catch(() => ({ data: { courses: [] } })),
+          apiClient.get<any>(`/challenges/by-user/${userId}`, { type: 'created', limit: 1000, communityId: selectedCommunityId }).catch(() => ({ data: { challenges: [] } })),
+          apiClient.get<any>(`/sessions`, { creatorId: userId, limit: 1000, communityId: selectedCommunityId }).catch(() => ({ data: { sessions: [] } })),
           api.creatorAnalytics.getOverview({ from: prevMonthStart.toISOString(), to: prevMonthEnd.toISOString(), communityId: selectedCommunityId }).catch(() => null as any),
         ])
 
@@ -299,12 +299,9 @@ export default function CreatorDashboardPage() {
 
         setRecentActivity(sortedActivity)
 
-        // Get total members count across all communities
-        const totalMembersCount = creatorCommunities.reduce((total, community: any) => {
-          const count = community?.members || community?.membersCount || 0
-          return total + (typeof count === 'number' ? count : 0)
-        }, 0)
-        setMembersCount(totalMembersCount)
+        // Get members count for selected community only
+        const communityMembersCount = (selectedCommunity as any)?.membersCount || (selectedCommunity as any)?.members || 0
+        setMembersCount(typeof communityMembersCount === 'number' ? communityMembersCount : 0)
 
         // Build Top Performing Content (show recent content with engagement metrics)
         const topContentItems: any[] = []

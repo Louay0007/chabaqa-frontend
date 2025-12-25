@@ -37,11 +37,11 @@ export const creatorAnalyticsApi = {
   getPayouts: async (params?: any): Promise<ApiSuccessResponse<any>> => {
     return apiClient.get<ApiSuccessResponse<any>>('/payouts', params);
   },
-  getPayoutStats: async (): Promise<ApiSuccessResponse<any>> => {
-    return apiClient.get<ApiSuccessResponse<any>>('/payouts/stats');
+  getPayoutStats: async (params?: CreatorAnalyticsParams): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.get<ApiSuccessResponse<any>>('/payouts/stats', params);
   },
-  getAvailableBalance: async (): Promise<ApiSuccessResponse<any>> => {
-    return apiClient.get<ApiSuccessResponse<any>>('/payouts/available-balance');
+  getAvailableBalance: async (params?: CreatorAnalyticsParams): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.get<ApiSuccessResponse<any>>('/payouts/available-balance', params);
   },
   requestPayout: async (payload: any): Promise<ApiSuccessResponse<any>> => {
     return apiClient.post<ApiSuccessResponse<any>>('/payouts', payload);

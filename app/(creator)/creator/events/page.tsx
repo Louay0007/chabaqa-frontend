@@ -19,7 +19,14 @@ export default function EventsPage() {
 
   // Reload when community changes
   useEffect(() => {
-    if (communityLoading || !selectedCommunityId) return
+    if (communityLoading) return
+    if (!selectedCommunityId) {
+      toast({ title: 'Select a community', description: 'Choose a community to load events.', variant: 'destructive' as any })
+      setEvents([])
+      setRevenue(null)
+      setLoading(false)
+      return
+    }
 
     const load = async () => {
       setLoading(true)
@@ -33,9 +40,7 @@ export default function EventsPage() {
 
         // Fetch events - filter by community if selected
         // Note: Backend /events endpoint supports communityId but not creatorId in findAll
-        const eventsRes = selectedCommunityId
-          ? await apiClient.get<any>(`/events?communityId=${selectedCommunityId}&limit=50`).catch(() => null as any)
-          : await apiClient.get<any>(`/events?limit=50`).catch(() => null as any)
+        const eventsRes = await apiClient.get<any>('/events', { communityId, limit: 50 }).catch(() => null as any)
 
         // Backend returns { success: true, data: { events, pagination } }
         const rawEvents = eventsRes?.data?.events || eventsRes?.events || eventsRes?.data?.items || eventsRes?.items || []
@@ -59,7 +64,7 @@ export default function EventsPage() {
         const now = new Date()
         const to = now.toISOString()
         const from = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
-        const evtAgg = await api.creatorAnalytics.getEvents({ from, to }).catch(() => null as any)
+        const evtAgg = await api.creatorAnalytics.getEvents({ from, to, communityId }).catch(() => null as any)
         const byEvent = evtAgg?.data?.byEvent || evtAgg?.byEvent || evtAgg?.data?.items || evtAgg?.items || []
         const totalRevenue = (Array.isArray(byEvent) ? byEvent : []).reduce((sum: number, x: any) => sum + Number(x.revenue ?? 0), 0)
         if (!Number.isNaN(totalRevenue)) setRevenue(totalRevenue)

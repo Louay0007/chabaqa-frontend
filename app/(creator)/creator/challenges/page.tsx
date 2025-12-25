@@ -8,7 +8,7 @@ import ChallengesTabs from "./components/ChallengesTabs"
 import ChallengePerformanceOverview from "./components/ChallengePerformanceOverview"
 import { api, apiClient } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { useCreatorCommunity } from "../context/creator-community-context"
 
 export default function CreatorChallengesPage() {
   const { toast } = useToast()
@@ -34,7 +34,9 @@ export default function CreatorChallengesPage() {
 
         // Challenges list
         let listRes: any = null
-        if (slug) {
+        if (selectedCommunityId) {
+          listRes = await apiClient.get<any>(`/challenges/by-user/${user._id || user.id}`, { type: 'created', limit: 50, communityId: selectedCommunityId }).catch(() => null as any)
+        } else if (slug) {
           listRes = await apiClient.get<any>(`/challenges`, { communitySlug: slug, limit: 50 }).catch(() => null as any)
         } else {
           listRes = await apiClient.get<any>(`/challenges/by-user/${user._id || user.id}`, { type: 'created', limit: 50 }).catch(() => null as any)
@@ -61,7 +63,7 @@ export default function CreatorChallengesPage() {
         const now = new Date()
         const to = now.toISOString()
         const from = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
-        const challAgg = await api.creatorAnalytics.getChallenges({ from, to }).catch(() => null as any)
+        const challAgg = await api.creatorAnalytics.getChallenges({ from, to, communityId: selectedCommunityId }).catch(() => null as any)
         const byChallenge = challAgg?.data?.byChallenge || challAgg?.byChallenge || challAgg?.data?.items || challAgg?.items || []
         const totalRevenue = (Array.isArray(byChallenge) ? byChallenge : []).reduce((sum: number, x: any) => sum + Number(x.revenue ?? x.deposits ?? 0), 0)
         if (!Number.isNaN(totalRevenue)) setRevenue(totalRevenue)

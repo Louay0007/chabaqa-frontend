@@ -20,7 +20,14 @@ export default function CreatorProductsPage() {
 
   // Reload when community changes
   useEffect(() => {
-    if (communityLoading || !selectedCommunityId) return
+    if (communityLoading) return
+    if (!selectedCommunityId) {
+      toast({ title: 'Select a community', description: 'Choose a community to load products.', variant: 'destructive' as any })
+      setProducts([])
+      setRevenue(null)
+      setLoading(false)
+      return
+    }
 
     const load = async () => {
       setLoading(true)
@@ -30,7 +37,7 @@ export default function CreatorProductsPage() {
         if (!user) { setProducts([]); return }
 
         // Fetch creator products - backend returns { success: true, data: { products, pagination } }
-        const productsRes = await api.products.getByCreator(user._id || user.id, { limit: 50 }).catch(() => null as any)
+        const productsRes = await api.products.getByCreator(user._id || user.id, { limit: 50, communityId: selectedCommunityId }).catch(() => null as any)
         const rawProducts = productsRes?.data?.products || productsRes?.products || productsRes?.data?.items || productsRes?.items || []
         const normalized = (Array.isArray(rawProducts) ? rawProducts : []).map((p: any) => {
           const price = (p?.pricing?.price ?? p?.price ?? 0)
@@ -63,7 +70,7 @@ export default function CreatorProductsPage() {
         const now = new Date()
         const to = now.toISOString()
         const from = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
-        const prodAgg = await api.creatorAnalytics.getProducts({ from, to }).catch(() => null as any)
+        const prodAgg = await api.creatorAnalytics.getProducts({ from, to, communityId: selectedCommunityId }).catch(() => null as any)
         const byProduct = prodAgg?.data?.byProduct || prodAgg?.byProduct || prodAgg?.data?.items || prodAgg?.items || []
         const totalRevenue = (Array.isArray(byProduct) ? byProduct : []).reduce((sum: number, x: any) => sum + Number(x.revenue ?? 0), 0)
         if (!Number.isNaN(totalRevenue)) setRevenue(totalRevenue)
@@ -81,7 +88,7 @@ export default function CreatorProductsPage() {
       <ProductsHeader />
       <ProductsStatsGrid products={products} revenue={revenue} />
       <ProductsSearch />
-      <ProductsTabs products={products} communityId={selectedCommunityId} />
+      <ProductsTabs products={products} communityId={selectedCommunityId || ""} />
       <ProductsPerformance products={products} />
     </div>
   )

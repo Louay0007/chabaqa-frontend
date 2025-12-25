@@ -110,7 +110,7 @@ export const productsApi = {
   },
 
   // Get products by creator
-  getByCreator: async (creatorId: string, params?: PaginationParams): Promise<ApiSuccessResponse<any>> => {
+  getByCreator: async (creatorId: string, params?: PaginationParams & { communityId?: string }): Promise<ApiSuccessResponse<any>> => {
     return apiClient.get<ApiSuccessResponse<any>>(`/products/creator/${creatorId}`, params);
   },
 };

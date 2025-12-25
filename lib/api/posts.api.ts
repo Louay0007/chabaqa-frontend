@@ -73,7 +73,7 @@ export const postsApi = {
   },
 
   // Get posts by user (creator)
-  getByCreator: async (userId: string, params?: PaginationParams): Promise<PaginatedResponse<Post>> => {
+  getByCreator: async (userId: string, params?: PaginationParams & { communityId?: string }): Promise<PaginatedResponse<Post>> => {
     return apiClient.get<PaginatedResponse<Post>>(`/posts/user/${userId}`, params);
   },
 };

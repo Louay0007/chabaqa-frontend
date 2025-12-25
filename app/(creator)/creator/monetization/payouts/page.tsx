@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from "react"
+import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -41,14 +43,16 @@ import { api } from "@/lib/api"
 interface PayoutData {
   id: string;
   date: string;
-  amount: string;
+  amount: number;
   status: 'completed' | 'pending' | 'failed' | 'cancelled' | 'scheduled';
   method: string;
   reference: string;
   items: number;
+  currency?: string;
 }
 
 export default function PayoutsPage() {
+  const { selectedCommunityId, isLoading: communityLoading } = useCreatorCommunity()
   const [payouts, setPayouts] = useState<PayoutData[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
@@ -65,21 +69,31 @@ export default function PayoutsPage() {
   const loadPayouts = async () => {
     setLoading(true);
     try {
-      const res = await api.creatorAnalytics.getPayouts({ page: 1, limit: 50 }).catch(() => null as any);
+      if (!selectedCommunityId) {
+        setPayouts([]);
+        setStats(null);
+        setAvailableBalance(null);
+        setLoading(false);
+        return;
+      }
+      const res = await api.creatorAnalytics.getPayouts({ page: 1, limit: 50, communityId: selectedCommunityId }).catch(() => null as any);
       const list = res?.data?.payouts || res?.payouts || [];
+
       const normalized: PayoutData[] = (Array.isArray(list) ? list : []).map((p: any) => ({
         id: p._id || p.id,
         date: p.createdAt ? new Date(p.createdAt).toISOString().split("T")[0] : "",
-        amount: p.amount != null ? `$${Number(p.amount).toLocaleString()}` : "$0",
+        amount: Number(p.amount) || 0,
         status: p.status || "pending",
         method: p.method ? p.method.replace("_", " ") : "Bank Transfer",
         reference: p.reference || "",
         items: p.itemsCount || p.items || 0,
+        currency: p.currency || 'TND',
       }));
       setPayouts(normalized);
 
-      const statsRes = await api.creatorAnalytics.getPayoutStats().catch(() => null as any);
-      const balRes = await api.creatorAnalytics.getAvailableBalance().catch(() => null as any);
+      const statsRes = await api.creatorAnalytics.getPayoutStats({ communityId: selectedCommunityId }).catch(() => null as any);
+      const balRes = await api.creatorAnalytics.getAvailableBalance({ communityId: selectedCommunityId }).catch(() => null as any);
+
       setStats(statsRes?.data || statsRes || null);
       setAvailableBalance((balRes?.data?.availableBalance) ?? (balRes?.availableBalance) ?? null);
     } catch (error) {
@@ -96,15 +110,30 @@ export default function PayoutsPage() {
 
   // Load payouts from API
   useEffect(() => {
+    if (communityLoading) return;
+    if (!selectedCommunityId) {
+      toast({
+        title: "Select a community",
+        description: "Choose a community to view payouts.",
+        variant: "destructive",
+      });
+      setPayouts([]);
+      setStats(null);
+      setAvailableBalance(null);
+      setLoading(false);
+      return;
+    }
     loadPayouts();
-  }, []);
+  }, [selectedCommunityId, communityLoading]);
 
   // Load payout stats from API
   const loadStats = async () => {
     setStatsLoading(true);
     try {
-      const statsRes = await api.creatorAnalytics.getPayoutStats();
-      const balRes = await api.creatorAnalytics.getAvailableBalance().catch(() => null as any);
+      if (!selectedCommunityId) return;
+      const statsRes = await api.creatorAnalytics.getPayoutStats({ communityId: selectedCommunityId });
+      const balRes = await api.creatorAnalytics.getAvailableBalance({ communityId: selectedCommunityId }).catch(() => null as any);
+
       setStats(statsRes?.data || statsRes || null);
       setAvailableBalance((balRes?.data?.availableBalance) ?? (balRes?.availableBalance) ?? null);
       toast({ title: "Stats Updated", description: "Payout statistics have been refreshed." });
@@ -122,17 +151,24 @@ export default function PayoutsPage() {
 
   // Filter payouts based on search query and active tab
   const filteredPayouts = payouts.filter(payout => {
-    const matchesSearch = 
-      payout.reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payout.method.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payout.amount.toLowerCase().includes(searchQuery.toLowerCase());
+    const haystack = `${payout.reference} ${payout.method} ${payout.currency || ''} ${payout.amount}`.toLowerCase();
+    const matchesSearch = haystack.includes(searchQuery.toLowerCase());
     
     if (activeTab === "all") return matchesSearch;
     return matchesSearch && payout.status === activeTab;
   });
 
+  const formatAmount = (p: PayoutData) => {
+    const currency = p.currency || 'TND';
+    return `${currency} ${p.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
   // Handle requesting a new payout
   const handleRequestPayout = async () => {
+    if (!selectedCommunityId) {
+      toast({ title: "Select a community", description: "Choose a community before requesting a payout.", variant: "destructive" });
+      return;
+    }
     if (!newPayout.amount || isNaN(Number(newPayout.amount))) {
       toast({
         title: "Invalid Amount",
@@ -146,6 +182,7 @@ export default function PayoutsPage() {
       await api.creatorAnalytics.requestPayout({
         amount: Number(newPayout.amount),
         method: newPayout.method,
+        communityId: selectedCommunityId,
       });
 
       await loadPayouts();
@@ -411,7 +448,8 @@ export default function PayoutsPage() {
                       filteredPayouts.map((payout) => (
                         <TableRow key={payout.id}>
                           <TableCell>{payout.date}</TableCell>
-                          <TableCell>{payout.amount}</TableCell>
+                          <TableCell className="font-medium">{formatAmount(payout)}</TableCell>
+
                           <TableCell>
                             <Badge 
                               variant={
@@ -486,7 +524,7 @@ export default function PayoutsPage() {
                       .map((payout) => (
                         <TableRow key={payout.id}>
                           <TableCell>{payout.date}</TableCell>
-                          <TableCell>{payout.amount}</TableCell>
+                          <TableCell className="font-medium">{formatAmount(payout)}</TableCell>
                           <TableCell>
                             <Badge className="flex items-center gap-1 w-fit">
                               <CheckCircle className="h-3 w-3" />
@@ -538,7 +576,7 @@ export default function PayoutsPage() {
                       .map((payout) => (
                         <TableRow key={payout.id}>
                           <TableCell>{payout.date}</TableCell>
-                          <TableCell>{payout.amount}</TableCell>
+                          <TableCell className="font-medium">{formatAmount(payout)}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="flex items-center gap-1 w-fit">
                               <Clock className="h-3 w-3" />
@@ -597,7 +635,7 @@ export default function PayoutsPage() {
                       .map((payout) => (
                         <TableRow key={payout.id}>
                           <TableCell>{payout.date}</TableCell>
-                          <TableCell>{payout.amount}</TableCell>
+                          <TableCell className="font-medium">{formatAmount(payout)}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="flex items-center gap-1 w-fit">
                               <Clock className="h-3 w-3" />
@@ -649,7 +687,7 @@ export default function PayoutsPage() {
                       .map((payout) => (
                         <TableRow key={payout.id}>
                           <TableCell>{payout.date}</TableCell>
-                          <TableCell>{payout.amount}</TableCell>
+                          <TableCell className="font-medium">{formatAmount(payout)}</TableCell>
                           <TableCell>
                             <Badge variant="destructive" className="flex items-center gap-1 w-fit">
                               <AlertCircle className="h-3 w-3" />

@@ -7,7 +7,7 @@ import { CreatorCoursesSearch } from "./components/creator-courses-search"
 import { CreatorCoursesTabs } from "./components/creator-courses-tabs"
 import { CreatorCoursesPerformance } from "./components/creator-courses-performance"
 import { api, apiClient } from "@/lib/api"
-import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { useCreatorCommunity } from "../context/creator-community-context"
 
 
 export default function CreatorCoursesPage() {
@@ -28,10 +28,8 @@ export default function CreatorCoursesPage() {
         const user = me?.data || (me as any)?.user || null
         if (!user) { setCourses([]); return }
 
-        const communitySlug = selectedCommunity?.slug || ''
-
-        // Always fetch creator's own courses (not filtered by community page)
-        const res = await apiClient.get<any>(`/cours/user/created`, { limit: 100 }).catch((e) => {
+        // Always fetch creator's own courses filtered by selected community
+        const res = await apiClient.get<any>(`/cours/user/created`, { limit: 100, communityId: selectedCommunityId }).catch((e) => {
           console.log('[CreatorCourses] Fetch error:', e)
           return null as any
         })
@@ -45,7 +43,8 @@ export default function CreatorCoursesPage() {
         const now = new Date()
         const to = now.toISOString()
         const from = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
-        const topAgg = await api.creatorAnalytics.getCourses({ from, to }).catch(() => null as any)
+        const topAgg = await api.creatorAnalytics.getCourses({ from, to, communityId: selectedCommunityId }).catch(() => null as any)
+
         const raw = topAgg?.data?.byCourse || topAgg?.byCourse || topAgg?.data?.items || topAgg?.items || []
         const normalized = (Array.isArray(raw) ? raw : []).slice(0, 3).map((x: any) => ({
           id: x.contentId || x._id || x.id,

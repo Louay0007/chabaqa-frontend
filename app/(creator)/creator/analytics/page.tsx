@@ -19,16 +19,16 @@ import {
   ArrowUpRight,
   Clock,
 } from "lucide-react"
-import { api, apiClient } from "@/lib/api"
+import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 
 export default function CommunityAnalyticsPage() {
   const { toast } = useToast()
-  const [selectedCommunityId, setSelectedCommunityId] = useState<string>("")
+  const { selectedCommunityId, setSelectedCommunityId, communities, isLoading: communityLoading } = useCreatorCommunity()
   const [selectedFeature, setSelectedFeature] = useState("courses")
   const [timeRange, setTimeRange] = useState("7d")
   const [userPlan, setUserPlan] = useState<"starter"|"growth"|"pro">("starter")
-  const [communities, setCommunities] = useState<any[]>([])
   const [overview, setOverview] = useState<any | null>(null)
   const [membershipData, setMembershipData] = useState<any[]>([])
   const [engagementData, setEngagementData] = useState<any[]>([])
@@ -36,9 +36,10 @@ export default function CommunityAnalyticsPage() {
   const [analyticsGated, setAnalyticsGated] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  // Load communities, plan and analytics
+  // Load plan only (communities come from context)
   useEffect(() => {
-    const load = async () => {
+    const loadPlan = async () => {
+      if (communityLoading) return
       setLoading(true)
       setAnalyticsGated(false)
       try {
@@ -46,28 +47,21 @@ export default function CommunityAnalyticsPage() {
         const user = me?.data || (me as any)?.user || null
         if (!user) { setLoading(false); return }
 
-        const [myComms, subRes] = await Promise.all<any>([
-          api.communities.getMyCreated().catch(() => null as any),
-          // subscription endpoint not available in this env; default plan to starter/growth/pro hint from user if present
-          Promise.resolve(null as any)
-        ])
-        const comms = myComms?.data || []
-        setCommunities(comms)
-        const initialId = (comms?.[0]?.id) || (comms?.[0]?._id) || ""
-        setSelectedCommunityId(prev => prev || (initialId?.toString?.() || initialId))
+        const subRes = await Promise.resolve(null as any)
         const plan = (subRes?.data?.plan || subRes?.plan || user?.creatorPlan || 'starter') as any
         setUserPlan(plan === 'pro' || plan === 'growth' ? plan : 'starter')
       } finally {
         setLoading(false)
       }
     }
-    load()
-  }, [])
+    loadPlan()
+  }, [communityLoading])
 
   // Load analytics when filters change
   useEffect(() => {
     const loadAnalytics = async () => {
       if (!selectedCommunityId) return
+
       try {
         const now = new Date()
         const to = now.toISOString()
@@ -121,7 +115,7 @@ export default function CommunityAnalyticsPage() {
         // Top content for selected feature
         const topLoader = selectedFeature === 'courses' ? api.creatorAnalytics.getCourses
           : selectedFeature === 'challenges' ? api.creatorAnalytics.getChallenges
-          : selectedFeature === 'events' ? api.creatorAnalytics.getSessions
+          : selectedFeature === 'events' ? api.creatorAnalytics.getEvents
           : api.creatorAnalytics.getProducts
 
         const top = await topLoader({ from, to, communityId: selectedCommunityId }).catch(() => null as any)
@@ -143,6 +137,25 @@ export default function CommunityAnalyticsPage() {
     }
     loadAnalytics()
   }, [selectedCommunityId, selectedFeature, timeRange])
+
+  if (communityLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <p className="text-gray-600">Loading communities...</p>
+      </div>
+    )
+  }
+
+  if (!selectedCommunityId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="text-center space-y-3">
+          <h2 className="text-xl font-semibold text-gray-900">Select a community</h2>
+          <p className="text-gray-600">Choose a community to view its analytics.</p>
+        </div>
+      </div>
+    )
+  }
 
   const metrics = useMemo(() => {
     const o = overview || {}
@@ -193,7 +206,7 @@ export default function CommunityAnalyticsPage() {
             
             {/* Controls */}
             <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
-              <Select value={selectedCommunityId} onValueChange={setSelectedCommunityId}>
+              <Select value={selectedCommunityId || ""} onValueChange={setSelectedCommunityId}>
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Select Community" />
                 </SelectTrigger>
