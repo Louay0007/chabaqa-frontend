@@ -5,7 +5,7 @@ import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Heart, MessageCircle, Trash2, Edit2, Loader2 } from "lucide-react"
+import { Heart, MessageCircle, Share2, Trash2, Edit2, Loader2 } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -99,11 +99,15 @@ export function PostsList({ posts, onPostDeleted }: PostsListProps) {
             <div className="flex gap-6 text-sm text-gray-600 border-t pt-3">
               <div className="flex items-center gap-1">
                 <Heart className="h-4 w-4" />
-                <span>{post.likes || 0} likes</span>
+                <span>{post.likesCount ?? post.likes ?? 0} likes</span>
               </div>
               <div className="flex items-center gap-1">
                 <MessageCircle className="h-4 w-4" />
-                <span>{post.comments?.length || 0} comments</span>
+                <span>{post.commentsCount ?? post.comments?.length ?? 0} comments</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Share2 className="h-4 w-4" />
+                <span>{post.shareCount ?? 0} shares</span>
               </div>
             </div>
           </div>

@@ -50,8 +50,9 @@ export default function ManualPaymentsPage() {
         setLoading(true);
         try {
             const response = await manualPaymentsApi.getPendingPayments();
-            // @ts-ignore
-            setPayments(response.data || []);
+            // API shape: { success: true, data: PaymentRequest[] }
+            const items = (response as any)?.data?.data || (response as any)?.data || [];
+            setPayments(items as PaymentRequest[]);
         } catch (error) {
             console.error('Failed to load payments:', error);
             toast({
@@ -99,9 +100,26 @@ export default function ManualPaymentsPage() {
 
     const getFullImageUrl = (path: string) => {
         if (!path) return '';
+        // If already absolute, return as-is
         if (path.startsWith('http')) return path;
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3000';
-        return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+
+        // Backend runs on port 3001 by default (check your setup)
+        // Fallback to localhost:3001 if NEXT_PUBLIC_API_URL is not set or is pointing to frontend port
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+        let backendOrigin = 'http://localhost:3000'; // Default backend port
+
+        if (apiBase) {
+            try {
+                const url = new URL(apiBase);
+                backendOrigin = `${url.protocol}//${url.hostname}:${url.port || 3000}`;
+            } catch {
+                backendOrigin = 'http://localhost:3000';
+            }
+        }
+
+        // Relative path (e.g., /uploads/image/filename.jpg)
+        const normalized = path.startsWith('/') ? path : `/${path}`;
+        return `${backendOrigin}${normalized}`;
     };
 
     return (
@@ -242,23 +260,33 @@ export default function ManualPaymentsPage() {
                     </DialogHeader>
                     <div className="mt-4 flex flex-col items-center justify-center min-h-[300px] bg-slate-50 rounded-lg p-4">
                         {selectedProof && (
-                            <div className="relative w-full h-[500px]">
-                                <Image
+                            <div className="relative w-full h-[500px] flex items-center justify-center">
+                                <img
                                     src={selectedProof}
                                     alt="Payment Proof"
-                                    fill
-                                    className="object-contain"
-                                    unoptimized // Allow external/local images without complex config
+                                    className="max-h-[500px] max-w-full object-contain rounded"
+                                    referrerPolicy="no-referrer"
+                                    crossOrigin="anonymous"
+                                    onError={(e) => {
+                                        // fall back to showing raw URL if image fails
+                                        (e.currentTarget as HTMLImageElement).style.display = 'none'
+                                    }}
                                 />
                             </div>
                         )}
                         <div className="mt-4 flex gap-2">
-                            <Button asChild variant="secondary" size="sm">
-                                <a href={selectedProof || '#'} target="_blank" rel="noopener noreferrer">
-                                    <ExternalLink className="h-4 w-4 mr-2" />
-                                    Open Original in New Tab
-                                </a>
-                            </Button>
+                            {selectedProof && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                >
+                                    <a href={selectedProof || '#'} target="_blank" rel="noopener noreferrer">
+                                        <ExternalLink className="h-4 w-4 mr-2" />
+                                        Open Original in New Tab
+                                    </a>
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </DialogContent>

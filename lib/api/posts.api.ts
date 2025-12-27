@@ -1,5 +1,5 @@
 import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } from './client';
-import type { Post, Comment, PostLink } from './types';
+import type { Post, PostComment, PostLink, PostStats } from './types';
 
 export interface CreatePostData {
   title?: string;
@@ -53,23 +53,38 @@ export const postsApi = {
   },
 
   // Like post
-  like: async (id: string): Promise<ApiSuccessResponse<void>> => {
-    return apiClient.post<ApiSuccessResponse<void>>(`/posts/${id}/like`);
+  like: async (id: string): Promise<ApiSuccessResponse<PostStats>> => {
+    return apiClient.post<ApiSuccessResponse<PostStats>>(`/posts/${id}/like`);
   },
 
   // Unlike post
-  unlike: async (id: string): Promise<ApiSuccessResponse<void>> => {
-    return apiClient.post<ApiSuccessResponse<void>>(`/posts/${id}/unlike`);
+  unlike: async (id: string): Promise<ApiSuccessResponse<PostStats>> => {
+    return apiClient.post<ApiSuccessResponse<PostStats>>(`/posts/${id}/unlike`);
+  },
+
+  // Share post
+  share: async (id: string): Promise<ApiSuccessResponse<PostStats>> => {
+    return apiClient.post<ApiSuccessResponse<PostStats>>(`/posts/${id}/share`);
   },
 
   // Get comments
-  getComments: async (id: string, params?: PaginationParams): Promise<PaginatedResponse<Comment>> => {
-    return apiClient.get<PaginatedResponse<Comment>>(`/posts/${id}/comments`, params);
+  getComments: async (id: string, params?: PaginationParams): Promise<PaginatedResponse<PostComment>> => {
+    return apiClient.get<PaginatedResponse<PostComment>>(`/posts/${id}/comments`, params);
   },
 
   // Create comment
-  createComment: async (id: string, data: CreateCommentData): Promise<ApiSuccessResponse<Comment>> => {
-    return apiClient.post<ApiSuccessResponse<Comment>>(`/posts/${id}/comments`, data);
+  createComment: async (id: string, data: CreateCommentData): Promise<ApiSuccessResponse<PostComment>> => {
+    return apiClient.post<ApiSuccessResponse<PostComment>>(`/posts/${id}/comments`, data);
+  },
+
+  // Update comment
+  updateComment: async (postId: string, commentId: string, data: CreateCommentData): Promise<ApiSuccessResponse<PostComment>> => {
+    return apiClient.patch<ApiSuccessResponse<PostComment>>(`/posts/${postId}/comments/${commentId}`, data);
+  },
+
+  // Delete comment
+  deleteComment: async (postId: string, commentId: string): Promise<{ success: boolean; message: string }> => {
+    return apiClient.delete<{ success: boolean; message: string }>(`/posts/${postId}/comments/${commentId}`);
   },
 
   // Get posts by user (creator)

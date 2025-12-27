@@ -50,6 +50,7 @@ export function CreatePostDialog({
   const [linkTitle, setLinkTitle] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
+  const contentTextareaRef = useRef<HTMLTextAreaElement>(null)
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -63,8 +64,23 @@ export function CreatePostDialog({
   }
 
   const handleEmojiClick = (emoji: string) => {
-    console.log("Emoji clicked:", emoji)
-    setContent((prev) => prev + emoji)
+    const el = contentTextareaRef.current
+    if (!el) {
+      setContent((prev) => prev + emoji)
+      return
+    }
+
+    const start = el.selectionStart ?? content.length
+    const end = el.selectionEnd ?? content.length
+    const next = content.slice(0, start) + emoji + content.slice(end)
+    setContent(next)
+
+    // restore cursor position after state update
+    requestAnimationFrame(() => {
+      el.focus()
+      const pos = start + emoji.length
+      el.setSelectionRange(pos, pos)
+    })
   }
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -194,29 +210,30 @@ export function CreatePostDialog({
 
     setIsLoading(true)
     try {
-      // Build post content with media
-      let postContent = content
+      const images = uploadedFiles
+        .filter((f) => f.type === "photo" && f.url)
+        .map((f) => f.url)
 
-      // Add uploaded files to content
-      if (uploadedFiles.length > 0) {
-        postContent += "\n\n--- Media ---\n"
-        uploadedFiles.forEach((file) => {
-          if (file.type === "photo") {
-            postContent += `[Photo: ${file.originalName}](${file.url})\n`
-          } else if (file.type === "video") {
-            postContent += `[Video: ${file.originalName}](${file.url})\n`
-          } else if (file.type === "link") {
-            postContent += `[Link: ${file.title}](${file.url})\n`
-          }
-        })
-      }
+      const videos = uploadedFiles
+        .filter((f) => f.type === "video" && f.url)
+        .map((f) => f.url)
+
+      const links = uploadedFiles
+        .filter((f) => f.type === "link" && f.url)
+        .map((f) => ({
+          url: f.url,
+          title: f.title || undefined,
+        }))
 
       const response = await api.posts.create({
         title: title || undefined,
-        content: postContent,
+        content,
         communityId,
         tags,
-        thumbnail: uploadedFiles.find((f) => f.type === "photo")?.url,
+        thumbnail: images[0],
+        images: images.length > 0 ? images : undefined,
+        videos: videos.length > 0 ? videos : undefined,
+        links: links.length > 0 ? links : undefined,
       })
 
       toast({
@@ -297,8 +314,9 @@ export function CreatePostDialog({
               placeholder="Share your progress, ask questions, or celebrate wins..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              rows={5}
-              className="mt-1 resize-none"
+              ref={contentTextareaRef}
+              rows={6}
+              className="resize-none"
             />
           </div>
 

@@ -289,6 +289,9 @@ export interface Post {
   likesCount: number;
   commentsCount: number;
   isLikedByUser?: boolean;
+  shareCount?: number;
+  isSharedByUser?: boolean;
+  comments?: PostComment[];
   images?: string[];
   videos?: string[];
   links?: PostLink[];
@@ -296,6 +299,25 @@ export interface Post {
   createdAt: string;
   updatedAt: string;
   author: User;
+}
+
+export interface PostStats {
+  postId: string;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number;
+  isLikedByUser: boolean;
+  isSharedByUser: boolean;
+}
+
+export interface PostComment {
+  id: string;
+  content: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Comment {
