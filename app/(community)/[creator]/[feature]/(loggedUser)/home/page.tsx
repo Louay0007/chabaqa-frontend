@@ -40,6 +40,7 @@ import Image from "next/image"
 import { communityHomeApi, type CommunityHomeData } from "@/lib/api/community-home.api"
 import { postsApi } from "@/lib/api/posts.api"
 import type { Post, Challenge, Course, User, PostLink, PostComment } from "@/lib/api/types"
+import { resolveImageUrl } from "@/lib/hooks/useUser"
 
 interface PostWithInteractions extends Post {
   isBookmarked?: boolean;
@@ -134,7 +135,10 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
       const next = { ...prev }
       data.posts.forEach((post) => {
         if (!next[post.id] && post.comments) {
-          next[post.id] = post.comments as PostComment[]
+          next[post.id] = (post.comments as PostComment[]).map((c) => ({
+            ...c,
+            userAvatar: resolveImageUrl(c.userAvatar) || c.userAvatar,
+          }))
         }
       })
       return next
@@ -419,7 +423,14 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
 
   const getCommentsForPost = (postId: string) => commentsByPost[postId] || []
 
+  const normalizeComments = (items: PostComment[]) =>
+    (items || []).map((c) => ({
+      ...c,
+      userAvatar: resolveImageUrl(c.userAvatar) || c.userAvatar,
+    }))
+
   const handleToggleComments = async (postId: string) => {
+
     const next = new Set(openComments)
     if (next.has(postId)) {
       next.delete(postId)
@@ -434,10 +445,11 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
     try {
       const response = await postsApi.getComments(postId, { page: 1, limit: 50 })
       const comments = response.data || []
-      setCommentsByPost((prev) => ({ ...prev, [postId]: comments }))
+      setCommentsByPost((prev) => ({ ...prev, [postId]: normalizeComments(comments as PostComment[]) }))
       // Also update commentsCount on the post to stay in sync with backend
       setData((prevData) => {
         if (!prevData) return prevData
+
         return {
           ...prevData,
           posts: prevData.posts.map((p) =>
@@ -457,12 +469,16 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
     setCommentSubmitting((prev) => new Set(prev).add(postId))
     try {
       const response = await postsApi.createComment(postId, { content: draft })
-      const newComment = response.data
+      const newComment = {
+        ...(response.data as PostComment),
+        userAvatar: resolveImageUrl((response.data as PostComment)?.userAvatar) || (response.data as PostComment)?.userAvatar,
+      }
 
       setCommentsByPost((prev) => ({
         ...prev,
         [postId]: [...(prev[postId] || []), newComment],
       }))
+
       setCommentDrafts((prev) => ({ ...prev, [postId]: "" }))
 
       // Update counts

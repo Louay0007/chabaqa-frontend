@@ -6,15 +6,20 @@ import { authenticatedFetch } from '@/lib/authenticated-fetch'
 const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
 const apiOrigin = apiBase.replace(/\/api$/, '')
 
-function resolveImageUrl(value?: string): string | undefined {
+export function resolveImageUrl(value?: string): string | undefined {
   const v = (value || '').trim()
   if (!v) return undefined
 
   // If it's already a full URL (http:// or https://), return as-is
   if (/^https?:\/\//i.test(v)) return v
 
-  // If it's a root-relative path, return as-is
-  if (v.startsWith('/')) return v
+  // If it's a root-relative path, prefix backend origin for upload/static paths
+  if (v.startsWith('/')) {
+    if (v.startsWith('/uploads') || v.startsWith('/storage') || v.startsWith('/images')) {
+      return `${apiOrigin}${v}`
+    }
+    return v
+  }
 
   // If it's a relative path starting with common upload directories
   if (v.startsWith('uploads') || v.startsWith('storage') || v.startsWith('images')) {

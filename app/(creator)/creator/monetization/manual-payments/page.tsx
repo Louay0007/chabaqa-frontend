@@ -39,12 +39,31 @@ interface PaymentRequest {
     contentType: string;
 }
 
+interface ManualPaymentHistoryItem extends PaymentRequest {
+    status?: string;
+    paymentMethod?: string;
+    creatorNetDT?: number;
+}
+
+interface HistoryMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+}
+
 export default function ManualPaymentsPage() {
     const [payments, setPayments] = useState<PaymentRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [selectedProof, setSelectedProof] = useState<string | null>(null);
+
+    const [history, setHistory] = useState<ManualPaymentHistoryItem[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [historyStatus, setHistoryStatus] = useState<string>('paid');
+    const [historyPage, setHistoryPage] = useState<number>(1);
+    const [historyMeta, setHistoryMeta] = useState<HistoryMeta>({ page: 1, limit: 20, total: 0, totalPages: 1 });
 
     const loadPayments = async () => {
         setLoading(true);
@@ -65,8 +84,35 @@ export default function ManualPaymentsPage() {
         }
     };
 
+    const loadHistory = async (opts?: { status?: string; page?: number }) => {
+        setHistoryLoading(true);
+        try {
+            const response = await manualPaymentsApi.getHistory({
+                status: opts?.status ?? historyStatus,
+                page: opts?.page ?? historyPage,
+                limit: historyMeta.limit,
+            });
+            const items = (response as any)?.data?.data || (response as any)?.data || [];
+            const meta = (response as any)?.data?.meta;
+            setHistory(items as ManualPaymentHistoryItem[]);
+            if (meta) {
+                setHistoryMeta(meta as HistoryMeta);
+            }
+        } catch (error) {
+            console.error('Failed to load manual payments history:', error);
+            toast({
+                title: "Error",
+                description: "Failed to load payments history.",
+                variant: "destructive",
+            });
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
     useEffect(() => {
         loadPayments();
+        loadHistory({ status: 'paid', page: 1 });
     }, []);
 
     const handleAction = async (orderId: string, action: 'approve' | 'reject') => {
@@ -81,6 +127,7 @@ export default function ManualPaymentsPage() {
 
             // Remove from list or refresh
             setPayments(prev => prev.filter(p => p._id !== orderId));
+            loadHistory({ page: 1 });
         } catch (error) {
             console.error(`Failed to ${action} payment:`, error);
             toast({
@@ -94,6 +141,11 @@ export default function ManualPaymentsPage() {
     };
 
     const filteredPayments = payments.filter(p =>
+        p.buyerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.buyerId?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const filteredHistory = history.filter(p =>
         p.buyerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.buyerId?.email?.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -246,6 +298,173 @@ export default function ManualPaymentsPage() {
                                 )}
                             </TableBody>
                         </Table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Payment Proofs History</CardTitle>
+                    <CardDescription>All manual payment proofs with status and details</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                        <div className="flex items-center gap-2">
+                            <Button
+                                size="sm"
+                                variant={historyStatus === 'paid' ? 'default' : 'outline'}
+                                onClick={() => {
+                                    setHistoryStatus('paid')
+                                    setHistoryPage(1)
+                                    loadHistory({ status: 'paid', page: 1 })
+                                }}
+                            >
+                                Approved
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant={historyStatus === 'cancelled' ? 'default' : 'outline'}
+                                onClick={() => {
+                                    setHistoryStatus('cancelled')
+                                    setHistoryPage(1)
+                                    loadHistory({ status: 'cancelled', page: 1 })
+                                }}
+                            >
+                                Rejected
+                            </Button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Badge variant="secondary">
+                                {filteredHistory.length} Items
+                            </Badge>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => loadHistory({ page: historyPage })}
+                                disabled={historyLoading}
+                            >
+                                {historyLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                                Refresh
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>User</TableHead>
+                                    <TableHead>Service</TableHead>
+                                    <TableHead>Amount</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Proof</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {historyLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-8">
+                                            <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                                            <p className="mt-2 text-sm text-muted-foreground">Loading history...</p>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : filteredHistory.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-8">
+                                            <Clock className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                                            <p className="text-lg font-medium">No history yet</p>
+                                            <p className="text-sm text-muted-foreground">Manual payment proofs will appear here.</p>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    filteredHistory.map((payment) => (
+                                        <TableRow key={payment._id}>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">{payment.buyerId?.name || 'Unknown'}</span>
+                                                    <span className="text-xs text-muted-foreground">{payment.buyerId?.email}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className="capitalize">
+                                                    {payment.contentType}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="font-bold">
+                                                {payment.amountDT.toFixed(2)} TND
+                                                {payment.promoCode && (
+                                                    <span className="block text-xs text-green-600">Promo: {payment.promoCode}</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge
+                                                    variant={
+                                                        payment.status === 'paid'
+                                                            ? 'default'
+                                                            : payment.status === 'cancelled'
+                                                                ? 'destructive'
+                                                                : 'secondary'
+                                                    }
+                                                    className="capitalize"
+                                                >
+                                                    {payment.status || 'unknown'}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                {new Date(payment.createdAt).toLocaleDateString()}
+                                                <span className="block text-xs text-muted-foreground">
+                                                    {new Date(payment.createdAt).toLocaleTimeString()}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 gap-1"
+                                                    onClick={() => setSelectedProof(getFullImageUrl(payment.paymentProof))}
+                                                >
+                                                    <Eye className="h-3.5 w-3.5" />
+                                                    View Proof
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-4">
+                        <p className="text-xs text-muted-foreground">
+                            Page {historyMeta.page} of {historyMeta.totalPages} ({historyMeta.total} total)
+                        </p>
+                        <div className="flex gap-2">
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={historyMeta.page <= 1 || historyLoading}
+                                onClick={() => {
+                                    const nextPage = Math.max(1, historyMeta.page - 1)
+                                    setHistoryPage(nextPage)
+                                    loadHistory({ page: nextPage })
+                                }}
+                            >
+                                Prev
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={historyMeta.page >= historyMeta.totalPages || historyLoading}
+                                onClick={() => {
+                                    const nextPage = Math.min(historyMeta.totalPages, historyMeta.page + 1)
+                                    setHistoryPage(nextPage)
+                                    loadHistory({ page: nextPage })
+                                }}
+                            >
+                                Next
+                            </Button>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
