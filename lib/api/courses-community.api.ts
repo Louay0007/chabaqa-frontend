@@ -44,14 +44,28 @@ export function transformCourse(backendCourse: any): any {
         title: chapter.titre || chapter.title || '',
         content,
         videoUrl: chapter.videoUrl || undefined,
-        duration: Number(chapter.duree ?? 0) || 0,
+        // Handle duration: if duree > 300, it's likely already in seconds (legacy data)
+        // Otherwise, duree is in minutes, convert to seconds
+        duration: Number(chapter.duree ?? 0) > 300 
+          ? Number(chapter.duree ?? 0) 
+          : (Number(chapter.duree ?? 0) || 0) * 60,
         order: chapter.ordre || chapter.order || 0,
         isPaidChapter: isPaid,
         isPreview,
         price: Number(chapter.prix ?? chapter.price ?? 0) || 0,
         sectionId: String(chapter.sectionId || section.id || ''),
         notes: typeof chapter.notes === 'string' ? chapter.notes : '',
-        resources: Array.isArray(chapter.ressources) ? chapter.ressources : [],
+        resources: Array.isArray(chapter.ressources) 
+          ? chapter.ressources.map((r: any) => ({
+              id: r.id || '',
+              title: r.titre || r.title || '',
+              titre: r.titre || r.title || '',
+              type: r.type || 'link',
+              url: r.url || '',
+              description: r.description || '',
+              order: r.ordre || r.order || 0,
+            }))
+          : [],
         createdAt: chapter.createdAt || new Date().toISOString(),
       };
     }),
@@ -89,6 +103,8 @@ export function transformCourse(backendCourse: any): any {
     enrollmentCount,
     enrollments: backendCourse.inscriptions || backendCourse.enrollments || [],
     rating: backendCourse.rating || 0,
+    averageRating: backendCourse.averageRating || 0,
+    ratingCount: backendCourse.ratingCount || 0,
     sections, // Include sections with chapters
     createdAt: backendCourse.createdAt || new Date().toISOString(),
     updatedAt: backendCourse.updatedAt || new Date().toISOString(),

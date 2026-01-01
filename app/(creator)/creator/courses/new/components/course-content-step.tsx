@@ -19,6 +19,7 @@ interface CourseChapterForm {
   duration?: number
   order: number
   isPreview: boolean
+  notes?: string
 }
 
 interface CourseSectionForm {
@@ -234,6 +235,17 @@ export function CourseContentStep({
                                 placeholder="Describe what students will learn in this chapter..."
                                 value={chapter.content}
                                 onChange={(e) => updateChapter(section.id, chapter.id, "content", e.target.value)}
+                                rows={2}
+                                className="text-sm"
+                              />
+                            </div>
+
+                            <div className="space-y-1 mb-3">
+                              <Label className="text-xs">Instructor Notes (optional)</Label>
+                              <Textarea
+                                placeholder="Additional notes, tips, or instructions for students..."
+                                value={chapter.notes || ""}
+                                onChange={(e) => updateChapter(section.id, chapter.id, "notes", e.target.value)}
                                 rows={2}
                                 className="text-sm"
                               />

@@ -78,7 +78,51 @@ export default function CoursePlayer({
         : null
 
   const currentChapterIndex = currentChapter ? allChapters.findIndex((c: any) => c.id === currentChapter.id) : -1
-  const progress = enrollment?.progressPercentage || 0
+
+  const progress = useMemo(() => {
+    if (!currentChapter?.id) return 0
+    if (!enrollment?.progress || !Array.isArray(enrollment.progress)) return 0
+
+    const chapterProgress = enrollment.progress.find((p: any) => String(p.chapterId) === String(currentChapter.id))
+    if (chapterProgress?.isCompleted) return 100
+
+    // Use videoDuration from progress record (most accurate), fallback to chapter.duration
+    const videoDurationFromProgress = Number(chapterProgress?.videoDuration ?? 0)
+    const durationSeconds = videoDurationFromProgress > 0 
+      ? videoDurationFromProgress 
+      : Number(currentChapter.duration ?? 0)
+    
+    const watchTimeSeconds = Number(chapterProgress?.watchTime ?? 0)
+    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return 0
+
+    return Math.min((watchTimeSeconds / durationSeconds) * 100, 100)
+  }, [currentChapter?.id, currentChapter?.duration, enrollment?.progress])
+
+  const completedChaptersCount = useMemo(() => {
+    if (!enrollment?.progress || !Array.isArray(enrollment.progress)) return 0
+    return enrollment.progress.filter((p: any) => p?.isCompleted).length
+  }, [enrollment?.progress])
+
+  const remainingChaptersCount = useMemo(() => {
+    const total = Array.isArray(allChapters) ? allChapters.length : 0
+    return Math.max(total - completedChaptersCount, 0)
+  }, [allChapters, completedChaptersCount])
+
+  const isCurrentChapterCompleted = useMemo(() => {
+    if (!currentChapter?.id) return false
+    if (!enrollment?.progress || !Array.isArray(enrollment.progress)) return false
+    const chapterProgress = enrollment.progress.find((p: any) => String(p.chapterId) === String(currentChapter.id))
+    return Boolean(chapterProgress?.isCompleted)
+  }, [currentChapter?.id, enrollment?.progress])
+
+  const nextChapterId = useMemo(() => {
+    if (!currentChapter?.id) return null
+    if (!Array.isArray(allChapters)) return null
+    const idx = allChapters.findIndex((c: any) => String(c.id) === String(currentChapter.id))
+    if (idx === -1) return null
+    const next = allChapters[idx + 1]
+    return next ? String(next.id) : null
+  }, [allChapters, currentChapter?.id])
 
   const handleSelectChapter = async (chapterId: string) => {
     const chapter = allChapters.find((c: any) => String(c.id) === String(chapterId))
@@ -137,6 +181,8 @@ export default function CoursePlayer({
           course={course} 
           progress={progress} 
           allChapters={allChapters} 
+          completedChaptersCount={completedChaptersCount}
+          remainingChaptersCount={remainingChaptersCount}
         />
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -159,6 +205,16 @@ export default function CoursePlayer({
               allChapters={allChapters}
               canComplete={Boolean(enrollment && currentChapter?.id && isChapterAccessible(String(currentChapter.id)))}
               onCompleteChapter={handleCompleteChapter}
+              isCurrentChapterCompleted={isCurrentChapterCompleted}
+              nextChapterId={nextChapterId}
+              courseId={courseId}
+              onGoToNextChapter={async () => {
+                if (!nextChapterId) return
+                await handleSelectChapter(nextChapterId)
+                if (onRefreshUnlockedChapters) {
+                  await onRefreshUnlockedChapters()
+                }
+              }}
             />
           </div>
 
@@ -167,6 +223,8 @@ export default function CoursePlayer({
             enrollment={enrollment}
             allChapters={allChapters}
             progress={progress}
+            completedChaptersCount={completedChaptersCount}
+            remainingChaptersCount={remainingChaptersCount}
             selectedChapter={selectedChapter}
             setSelectedChapter={handleSelectChapter}
             isChapterAccessible={isChapterAccessible}

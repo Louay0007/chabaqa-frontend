@@ -9,9 +9,14 @@ interface CourseHeaderProps {
   course: any
   progress: number
   allChapters: any[]
+  completedChaptersCount: number
+  remainingChaptersCount: number
 }
 
-export default function CourseHeader({ creatorSlug, slug, course, progress, allChapters }: CourseHeaderProps) {
+export default function CourseHeader({ creatorSlug, slug, course, progress, allChapters, completedChaptersCount, remainingChaptersCount }: CourseHeaderProps) {
+  const averageRating = course.averageRating || course.rating || 0
+  const ratingCount = course.ratingCount || 0
+
 return (
   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-3 sm:space-y-0">
     <div className="flex items-center space-x-3 w-full sm:w-auto">
@@ -25,13 +30,17 @@ return (
 
     {/* Progress & Info */}
     <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 text-sm text-muted-foreground w-full sm:w-auto">
-      <span className="truncate">Progress: {Math.round(progress)}%</span>
+      <span className="truncate">Chapter progress: {Math.round(progress)}%</span>
+      <span className="hidden sm:inline">•</span>
+      <span className="truncate">{completedChaptersCount} completed</span>
+      <span className="hidden sm:inline">•</span>
+      <span className="truncate">{remainingChaptersCount} remaining</span>
       <span className="hidden sm:inline">•</span>
       <span className="truncate">{allChapters.length} chapters</span>
       <span className="hidden sm:inline">•</span>
       <div className="flex items-center truncate">
         <Star className="h-4 w-4 text-yellow-500 mr-1" />
-        4.8 (124 reviews)
+        {averageRating > 0 ? `${averageRating.toFixed(1)} (${ratingCount} reviews)` : "No reviews yet"}
       </div>
     </div>
 

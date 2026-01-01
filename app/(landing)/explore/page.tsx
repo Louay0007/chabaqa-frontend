@@ -4,6 +4,9 @@ import { ExplorePageClient } from "./explore-page-client"
 import { communitiesApi } from "@/lib/api"
 import type { Community } from "@/lib/api/types"
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // Resolve image url safely (absolute or local placeholder)
 function resolveImageUrl(value?: string): string {
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"

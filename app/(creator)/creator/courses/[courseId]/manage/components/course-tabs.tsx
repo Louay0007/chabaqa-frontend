@@ -17,6 +17,7 @@ export function CourseTabs({ activeTab, onTabChange, children }: CourseTabsProps
         <TabsTrigger value="content">Content Management</TabsTrigger>
         <TabsTrigger value="pricing">Pricing & Access</TabsTrigger>
         <TabsTrigger value="resources">Resources</TabsTrigger>
+        <TabsTrigger value="reviews">Reviews</TabsTrigger>
         <TabsTrigger value="analytics">Analytics</TabsTrigger>
         <TabsTrigger value="settings">Settings</TabsTrigger>
       </TabsList>

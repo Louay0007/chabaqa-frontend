@@ -129,7 +129,7 @@ return (
           </div>
           <div className="flex items-center text-sm text-muted-foreground mt-2 sm:mt-0 sm:ml-4 shrink-0">
             <Star className="h-4 w-4 text-yellow-500 mr-1" />
-            <span>4.8 (124)</span>
+            <span>{(course.averageRating || 0) > 0 ? `${Number(course.averageRating).toFixed(1)} (${course.ratingCount || 0})` : "No reviews"}</span>
           </div>
         </div>
 

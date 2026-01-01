@@ -148,7 +148,7 @@ export function CourseCard({ course }: CourseCardProps) {
           <div className="flex items-center text-muted-foreground">
             <Star className="h-4 w-4 mr-2" />
             <div>
-              <div className="font-medium text-foreground">4.8</div>
+              <div className="font-medium text-foreground">{(course.averageRating || 0) > 0 ? Number(course.averageRating).toFixed(1) : "-"}</div>
               <div>Rating</div>
             </div>
           </div>

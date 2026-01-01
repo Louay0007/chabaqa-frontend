@@ -31,7 +31,17 @@ export interface PaginationParams {
 }
 
 // API Client Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+// IMPORTANT:
+// - `NEXT_PUBLIC_*` env vars are inlined at build-time by Next.js.
+// - For server-side (SSR / RSC) requests in Docker, we need a runtime env var
+//   (e.g. `API_INTERNAL_URL`) so the frontend container can reach `backend:3000`.
+const getApiBaseUrl = () => {
+  if (typeof window === 'undefined') {
+    return process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+  }
+
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+};
 
 class ApiClient {
   private baseURL: string;
@@ -39,7 +49,7 @@ class ApiClient {
   private isRefreshing: boolean = false;
 
   constructor() {
-    this.baseURL = API_BASE_URL;
+    this.baseURL = getApiBaseUrl();
   }
 
   private async handleResponse<T>(response: Response): Promise<T> {
