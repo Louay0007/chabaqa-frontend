@@ -63,8 +63,11 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
 
   const refreshCourse = async () => {
     try {
+      console.log('Refreshing course data...')
       const rawCourse = await coursesApi.getCoursById(String(courseId))
+      console.log('Raw course from API:', rawCourse)
       const normalizedCourse = rawCourse ? transformCourse(rawCourse) : null
+      console.log('Normalized course:', normalizedCourse)
       setCourse(normalizedCourse)
     } catch (error) {
       console.error("Failed to refresh course:", error)

@@ -7,13 +7,19 @@ import { StarRating } from "./star-rating"
 import { Feedback } from "@/lib/api/feedback.api"
 import { formatDistanceToNow } from "date-fns"
 
-interface CourseReviewsListProps {
+interface ReviewsListProps {
   reviews: Feedback[]
   isLoading?: boolean
   currentUserId?: string
+  emptyMessage?: string
 }
 
-export function CourseReviewsList({ reviews, isLoading, currentUserId }: CourseReviewsListProps) {
+export function ReviewsList({ 
+  reviews, 
+  isLoading, 
+  currentUserId,
+  emptyMessage = "No reviews yet. Be the first to leave a review!"
+}: ReviewsListProps) {
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -38,7 +44,7 @@ export function CourseReviewsList({ reviews, isLoading, currentUserId }: CourseR
   if (reviews.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        <p>No reviews yet. Be the first to review this course!</p>
+        <p>{emptyMessage}</p>
       </div>
     )
   }

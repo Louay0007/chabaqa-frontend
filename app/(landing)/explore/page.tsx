@@ -37,26 +37,33 @@ function transformCommunityToExplore(community: Community) {
   const primaryImage = resolveImageUrl(
     (community as any).coverImage || (community as any).banner || community.image || (community as any).logo
   )
-  const avatar = resolveImageUrl(community.creator?.avatar)
+  
+  // Get creator avatar with fallback chain
+  const avatar = resolveImageUrl(
+    (community as any).creatorAvatar || 
+    community.creator?.avatar || 
+    (community as any).creator?.profile_picture ||
+    (community as any).creator?.photo_profil
+  )
 
   return {
     id: community.id,
     type: "community" as const,
     name: community.name,
     slug: community.slug,
-    creator: community.creator.name,
+    creator: community.creator?.name || (community as any).creator || 'Unknown',
     creatorAvatar: avatar,
     description: community.description,
     category: community.category,
     members: community.members,
-    rating: community.rating || 0,
+    rating: (community as any).averageRating || community.rating || 0,
     tags: community.tags,
     verified: community.verified,
     price: community.price,
     priceType: mapPriceType(community.priceType),
     image: primaryImage,
     featured: community.featured,
-    link: `/${community.creator.name}/${community.slug}`
+    link: `/${community.creator?.name || (community as any).creator}/${community.slug}`
   }
 }
 

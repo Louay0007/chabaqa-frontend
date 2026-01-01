@@ -151,34 +151,20 @@ export default function CourseDetailsSidebar({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-2 text-sm">
-            {course.learningObjectives?.map((objective: string, index: number) => (
-              <li key={index} className="flex items-start">
-                <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                {objective}
-              </li>
-            ))}
-            {!course.learningObjectives && (
-              <>
-                <li className="flex items-start">
+          {course.learningObjectives && course.learningObjectives.length > 0 ? (
+            <ul className="space-y-2 text-sm">
+              {course.learningObjectives.map((objective: string, index: number) => (
+                <li key={index} className="flex items-start">
                   <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                  Build responsive websites with modern HTML5 and CSS3
+                  {objective}
                 </li>
-                <li className="flex items-start">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                  Master JavaScript fundamentals and ES6+ features
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                  Create interactive web applications with React
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                  Deploy projects to production environments
-                </li>
-              </>
-            )}
-          </ul>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground italic">
+              No learning objectives specified for this course yet.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -190,24 +176,44 @@ export default function CourseDetailsSidebar({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center">
-              <Download className="h-4 w-4 mr-2" />
-              Source Code
-            </span>
-            <Button variant="ghost" size="sm" disabled={!isEnrolled}>
-              Download
-            </Button>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center">
-              <FileText className="h-4 w-4 mr-2" />
-              Course Notes
-            </span>
-            <Button variant="ghost" size="sm" disabled={!isEnrolled}>
-              View
-            </Button>
-          </div>
+          {course.ressources && course.ressources.length > 0 ? (
+            course.ressources.map((resource: any) => (
+              <div key={resource.id} className="flex items-center justify-between text-sm">
+                <span className="flex items-center">
+                  <Download className="h-4 w-4 mr-2" />
+                  {resource.titre || resource.title}
+                </span>
+                {resource.url && (
+                  <Button variant="ghost" size="sm" asChild disabled={!isEnrolled}>
+                    <a href={resource.url} target="_blank" rel="noopener noreferrer">
+                      {resource.type === 'link' || resource.type === 'lien' ? 'Open' : 'Download'}
+                    </a>
+                  </Button>
+                )}
+              </div>
+            ))
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center">
+                  <Download className="h-4 w-4 mr-2" />
+                  Source Code
+                </span>
+                <Button variant="ghost" size="sm" disabled={!isEnrolled}>
+                  Download
+                </Button>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Course Notes
+                </span>
+                <Button variant="ghost" size="sm" disabled={!isEnrolled}>
+                  View
+                </Button>
+              </div>
+            </>
+          )}
           <div className="flex items-center justify-between text-sm">
             <span className="flex items-center">
               <Award className="h-4 w-4 mr-2" />

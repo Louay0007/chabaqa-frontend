@@ -33,6 +33,7 @@ import {
   TrendingUp,
   Loader2,
   AlertCircle,
+  Star,
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
@@ -1165,6 +1166,12 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                     </Link>
                   </Button>
                   <Button variant="outline" className="w-full justify-start bg-transparent text-xs sm:text-sm" asChild>
+                    <Link href={`${basePath}/reviews`}>
+                      <Star className="h-3 w-3 sm:h-4 sm:w-4 mr-2 sm:mr-3" />
+                      Community Reviews
+                    </Link>
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start bg-transparent text-xs sm:text-sm" asChild>
                     <Link href={`${basePath}/progress`}>
                       <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-2 sm:mr-3" />
                       View Progress
@@ -1236,6 +1243,19 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                       <span className="font-semibold text-primary-600">#{stats.userRank}</span>
                     </div>
                   )}
+                  {/* Community Rating */}
+                  <div className="flex items-center justify-between text-xs sm:text-sm pt-2 border-t">
+                    <span className="text-muted-foreground">Rating</span>
+                    <Link href={`${basePath}/reviews`} className="flex items-center gap-1 hover:text-primary-600 transition-colors">
+                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                      <span className="font-semibold">
+                        {(community as any).averageRating?.toFixed(1) || community.rating?.toFixed(1) || '0.0'}
+                      </span>
+                      <span className="text-muted-foreground">
+                        ({(community as any).ratingCount || 0})
+                      </span>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             </div>

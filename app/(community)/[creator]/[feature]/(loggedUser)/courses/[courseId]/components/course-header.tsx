@@ -14,8 +14,10 @@ interface CourseHeaderProps {
 }
 
 export default function CourseHeader({ creatorSlug, slug, course, progress, allChapters, completedChaptersCount, remainingChaptersCount }: CourseHeaderProps) {
-  const averageRating = course.averageRating || course.rating || 0
-  const ratingCount = course.ratingCount || 0
+  const averageRating = Number(course?.averageRating || course?.rating || 0)
+  const ratingCount = Number(course?.ratingCount || 0)
+  
+  console.log('CourseHeader - Rating data:', { averageRating, ratingCount, course })
 
 return (
   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-3 sm:space-y-0">
@@ -39,8 +41,8 @@ return (
       <span className="truncate">{allChapters.length} chapters</span>
       <span className="hidden sm:inline">•</span>
       <div className="flex items-center truncate">
-        <Star className="h-4 w-4 text-yellow-500 mr-1" />
-        {averageRating > 0 ? `${averageRating.toFixed(1)} (${ratingCount} reviews)` : "No reviews yet"}
+        <Star className="h-4 w-4 text-yellow-500 mr-1 fill-yellow-500" />
+        {ratingCount > 0 ? `${averageRating.toFixed(1)} (${ratingCount} ${ratingCount === 1 ? 'review' : 'reviews'})` : "No reviews yet"}
       </div>
     </div>
 

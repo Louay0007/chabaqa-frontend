@@ -4,18 +4,34 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { StarRating } from "./star-rating"
-import { CourseReviewForm } from "./course-review-form"
-import { CourseReviewsList } from "./course-reviews-list"
-import { feedbackApi, Feedback, FeedbackStats } from "@/lib/api/feedback.api"
+import { ReviewForm } from "./review-form"
+import { ReviewsList } from "./reviews-list"
+import { feedbackApi, Feedback, FeedbackStats, CreateFeedbackDto } from "@/lib/api/feedback.api"
 import { Star } from "lucide-react"
 
-interface CourseReviewsSectionProps {
-  courseId: string
+export type RelatedModel = 'Cours' | 'Community' | 'Challenge' | 'Event' | 'Product' | 'Session'
+
+interface ReviewsSectionProps {
+  relatedId: string
+  relatedModel: RelatedModel
   showForm?: boolean
-  onRefreshCourse?: () => Promise<void>
+  onRefresh?: () => Promise<void>
+  title?: string
+  description?: string
+  emptyMessage?: string
+  promptMessage?: string
 }
 
-export function CourseReviewsSection({ courseId, showForm = true, onRefreshCourse }: CourseReviewsSectionProps) {
+export function ReviewsSection({ 
+  relatedId, 
+  relatedModel, 
+  showForm = true, 
+  onRefresh,
+  title = "Reviews",
+  description = "What others are saying",
+  emptyMessage = "No reviews yet. Be the first to leave a review!",
+  promptMessage = "Share your experience! Help others by leaving a review."
+}: ReviewsSectionProps) {
   const [reviews, setReviews] = useState<Feedback[]>([])
   const [stats, setStats] = useState<FeedbackStats | null>(null)
   const [myReview, setMyReview] = useState<Feedback | null>(null)
@@ -25,9 +41,9 @@ export function CourseReviewsSection({ courseId, showForm = true, onRefreshCours
     setIsLoading(true)
     try {
       const [reviewsData, statsData, myReviewData] = await Promise.allSettled([
-        feedbackApi.getByRelated("Cours", courseId),
-        feedbackApi.getStats("Cours", courseId),
-        feedbackApi.getMyFeedback("Cours", courseId).catch(() => null),
+        feedbackApi.getByRelated(relatedModel, relatedId),
+        feedbackApi.getStats(relatedModel, relatedId),
+        feedbackApi.getMyFeedback(relatedModel, relatedId).catch(() => null),
       ])
 
       let allReviews: Feedback[] = []
@@ -41,7 +57,6 @@ export function CourseReviewsSection({ courseId, showForm = true, onRefreshCours
         myReviewValue = myReviewData.value
       }
 
-      // Show all reviews in the list (including user's own review)
       setReviews(allReviews)
       setMyReview(myReviewValue)
 
@@ -57,19 +72,14 @@ export function CourseReviewsSection({ courseId, showForm = true, onRefreshCours
 
   useEffect(() => {
     fetchData()
-  }, [courseId])
+  }, [relatedId, relatedModel])
 
   const handleReviewSubmitted = async (review: Feedback) => {
-    console.log('Review submitted:', review)
     setMyReview(review)
-    
-    // Small delay to ensure backend has processed everything
     await new Promise(resolve => setTimeout(resolve, 500))
-    
-    await fetchData() // Refresh all data
-    
-    if (onRefreshCourse) {
-      await onRefreshCourse() // Refresh course data to update ratings everywhere
+    await fetchData()
+    if (onRefresh) {
+      await onRefresh()
     }
   }
 
@@ -111,13 +121,14 @@ export function CourseReviewsSection({ courseId, showForm = true, onRefreshCours
             <Card className="mb-4 bg-blue-50 border-blue-200">
               <CardContent className="p-4">
                 <p className="text-sm text-blue-800">
-                  <strong>Share your experience!</strong> Help other students by leaving a review for this course.
+                  <strong>{promptMessage}</strong>
                 </p>
               </CardContent>
             </Card>
           )}
-          <CourseReviewForm
-            courseId={courseId}
+          <ReviewForm
+            relatedId={relatedId}
+            relatedModel={relatedModel}
             existingReview={myReview}
             onReviewSubmitted={handleReviewSubmitted}
           />
@@ -127,14 +138,15 @@ export function CourseReviewsSection({ courseId, showForm = true, onRefreshCours
       {/* Reviews List */}
       <Card>
         <CardHeader>
-          <CardTitle>Student Reviews</CardTitle>
-          <CardDescription>What others are saying about this course</CardDescription>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
-          <CourseReviewsList 
+          <ReviewsList 
             reviews={reviews} 
             isLoading={isLoading}
             currentUserId={myReview?.user?._id}
+            emptyMessage={emptyMessage}
           />
         </CardContent>
       </Card>

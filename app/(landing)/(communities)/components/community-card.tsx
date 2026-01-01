@@ -136,13 +136,20 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
 
               {/* Creator */}
               <div className="flex items-center gap-2">
-                <Image
-                  src={community.creatorAvatar || "/placeholder.svg"}
-                  alt={community.creator}
-                  width={32}
-                  height={32}
-                  className="rounded-full ring-2 ring-chabaqa-primary/20 shadow-md"
-                />
+                <div className="relative w-8 h-8 flex-shrink-0">
+                  <Image
+                    src={community.creatorAvatar || "/placeholder.svg"}
+                    alt={community.creator}
+                    fill
+                    className="rounded-full ring-2 ring-chabaqa-primary/20 shadow-md object-cover"
+                    sizes="32px"
+                    unoptimized
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.src = "/placeholder.svg"
+                    }}
+                  />
+                </div>
                 <p className="text-xs text-gray-600">
                   Created by <span className="font-semibold text-gray-800">{community.creator}</span>
                 </p>
@@ -252,11 +259,20 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
 
         {/* Creator */}
         <div className="flex items-center gap-2">
-          <img
-            src={community.creatorAvatar || "/placeholder.svg"}
-            alt={community.creator}
-            className="w-5 h-5 rounded-full ring-1 ring-gray-200"
-          />
+          <div className="relative w-5 h-5 flex-shrink-0">
+            <Image
+              src={community.creatorAvatar || "/placeholder.svg"}
+              alt={community.creator}
+              fill
+              className="rounded-full ring-1 ring-gray-200 object-cover"
+              sizes="20px"
+              unoptimized
+              onError={(e) => {
+                const target = e.target as HTMLImageElement
+                target.src = "/placeholder.svg"
+              }}
+            />
+          </div>
           <p className="text-xs text-gray-600">
             by <span className="font-medium text-gray-800">{community.creator}</span>
           </p>

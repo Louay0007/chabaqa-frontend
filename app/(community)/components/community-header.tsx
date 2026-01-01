@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -34,17 +34,29 @@ import {
   Trophy,
   TrendingUp,
   ShoppingBag,
-  Sparkles
+  Sparkles,
+  Star
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { communitiesApi } from "@/lib/api/communities.api"
+import { notificationsApi } from "@/lib/api/notifications.api"
 import { useAuthContext } from "@/app/providers/auth-provider"
-import type { Community, User as UserType } from "@/lib/api/types"
+import { authApi } from "@/lib/api/auth.api"
+import type { Community } from "@/lib/api/types"
 
 
 interface CommunityHeaderProps {
   currentCommunity: string
   creatorSlug: string
+}
+
+interface Notification {
+  id: string
+  title: string
+  message: string
+  time: string
+  unread: boolean
+  createdAt?: string
 }
 
 const navigationItems = [
@@ -54,6 +66,7 @@ const navigationItems = [
   { label: "Sessions", href: "/sessions", icon: Calendar },
   { label: "Products", href: "/products", icon: ShoppingBag },
   { label: "Events", href: "/events", icon: Sparkles },
+  { label: "Reviews", href: "/reviews", icon: Star },
   { label: "Progress", href: "/progress", icon: TrendingUp },
   { label: "Achievements", href: "/achievements", icon: Trophy },
 ]
@@ -61,12 +74,62 @@ const navigationItems = [
 export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const pathname = usePathname()
+  const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userCommunities, setUserCommunities] = useState<Community[]>([])
   const [currentCommunityData, setCurrentCommunityData] = useState<Community | null>(null)
   const [loading, setLoading] = useState(true)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [notificationsLoading, setNotificationsLoading] = useState(true)
 
-  const { user: currentUser, isAuthenticated } = useAuthContext()
+  const { user: currentUser, isAuthenticated, logout } = useAuthContext()
+
+  // Fetch notifications
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!isAuthenticated) {
+        setNotificationsLoading(false)
+        return
+      }
+      
+      try {
+        const response = await notificationsApi.getAll({ limit: 10 })
+        const notificationsList = response?.items || []
+        
+        const formattedNotifications = notificationsList.map((n: any) => ({
+          id: n._id || n.id,
+          title: n.title || 'Notification',
+          message: n.message || n.body || '',
+          time: n.createdAt ? formatTimeAgo(new Date(n.createdAt)) : 'Just now',
+          unread: !n.read,
+          createdAt: n.createdAt,
+        }))
+        
+        setNotifications(formattedNotifications)
+      } catch (error) {
+        console.error('Error fetching notifications:', error)
+        setNotifications([])
+      } finally {
+        setNotificationsLoading(false)
+      }
+    }
+
+    fetchNotifications()
+  }, [isAuthenticated])
+
+  // Format time ago helper
+  const formatTimeAgo = (date: Date) => {
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins} min ago`
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -101,6 +164,45 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
     fetchData()
   }, [currentCommunity, isAuthenticated])
 
+  // Handle search
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/${creatorSlug}/${currentCommunity}/home?search=${encodeURIComponent(searchQuery.trim())}`)
+    }
+  }
+
+  // Handle create post - scroll to post form on home page
+  const handleCreatePost = () => {
+    router.push(`/${creatorSlug}/${currentCommunity}/home#create-post`)
+  }
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await authApi.logout()
+      logout()
+      router.push('/signin')
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Force logout even if API fails
+      logout()
+      router.push('/signin')
+    }
+  }
+
+  // Mark notification as read
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      await notificationsApi.markAsRead(notificationId)
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, unread: false } : n)
+      )
+    } catch (error) {
+      console.error('Error marking notification as read:', error)
+    }
+  }
+
   if (loading) {
     return (
       <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b shadow-sm">
@@ -120,32 +222,7 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
   }
 
   const community = currentCommunityData
-
-  // Use /community/[slug] route structure for all navigation
-
-  const notifications = [
-    {
-      id: "1",
-      title: "New challenge day",
-      message: "Day 19 of 30-Day Coding Challenge is now available",
-      time: "2 hours ago",
-      unread: true,
-    },
-    {
-      id: "2",
-      title: "Course update",
-      message: "New chapter added to React Fundamentals",
-      time: "4 hours ago",
-      unread: true,
-    },
-    {
-      id: "3",
-      title: "Session reminder",
-      message: "Your 1-on-1 session starts in 30 minutes",
-      time: "6 hours ago",
-      unread: false,
-    },
-  ]
+  const unreadCount = notifications.filter(n => n.unread).length
 
 return (
   <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b shadow-sm">
@@ -250,7 +327,7 @@ return (
         </div>
 
         {/* Desktop Search */}
-        <div className="hidden md:flex flex-1 max-w-md mx-8">
+        <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md mx-8">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -260,12 +337,12 @@ return (
               className="pl-10 bg-gray-50 border-0 focus-visible:ring-1 rounded-full"
             />
           </div>
-        </div>
+        </form>
 
         {/* Right Actions */}
         <div className="flex items-center space-x-2">
           {/* Create Button (Desktop Only) */}
-          <Button size="sm" className="hidden sm:flex rounded-full">
+          <Button size="sm" className="hidden sm:flex rounded-full" onClick={handleCreatePost}>
             <Plus className="h-4 w-4 mr-2" />
             Create Post
           </Button>
@@ -275,12 +352,12 @@ return (
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="relative rounded-full">
                 <Bell className="h-5 w-5" />
-                {notifications.filter((n) => n.unread).length > 0 && (
+                {unreadCount > 0 && (
                   <Badge
                     variant="destructive"
                     className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
                   >
-                    {notifications.filter((n) => n.unread).length}
+                    {unreadCount}
                   </Badge>
                 )}
               </Button>
@@ -290,25 +367,32 @@ return (
                 <SheetTitle>Notifications</SheetTitle>
               </SheetHeader>
               <div className="mt-6 space-y-4">
-                {notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={`p-3 rounded-lg border ${
-                      notification.unread ? "bg-primary-50 border-primary-200" : "bg-muted/50"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="text-sm font-medium">{notification.title}</h4>
-                        <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
-                        <p className="text-xs text-muted-foreground mt-2">{notification.time}</p>
+                {notificationsLoading ? (
+                  <div className="text-center py-4 text-muted-foreground">Loading...</div>
+                ) : notifications.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground">No notifications</div>
+                ) : (
+                  notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className={`p-3 rounded-lg border cursor-pointer hover:bg-muted/70 transition-colors ${
+                        notification.unread ? "bg-primary-50 border-primary-200" : "bg-muted/50"
+                      }`}
+                      onClick={() => notification.unread && markNotificationAsRead(notification.id)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="text-sm font-medium">{notification.title}</h4>
+                          <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
+                          <p className="text-xs text-muted-foreground mt-2">{notification.time}</p>
+                        </div>
+                        {notification.unread && (
+                          <div className="w-2 h-2 bg-primary-500 rounded-full mt-1" />
+                        )}
                       </div>
-                      {notification.unread && (
-                        <div className="w-2 h-2 bg-primary-500 rounded-full mt-1" />
-                      )}
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </SheetContent>
           </Sheet>
@@ -444,7 +528,10 @@ return (
                 <Button
                   variant="ghost"
                   className="w-full justify-start text-red-600"
-                  onClick={() => setMobileMenuOpen(false)} // ✅ closes menu
+                  onClick={() => {
+                    setMobileMenuOpen(false)
+                    handleLogout()
+                  }}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
@@ -497,7 +584,7 @@ return (
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" />
                 Log out
               </DropdownMenuItem>

@@ -34,6 +34,8 @@ export interface Community {
   priceType: 'free' | 'monthly' | 'yearly' | 'one-time';
   members: number;
   rating: number;
+  averageRating?: number;
+  ratingCount?: number;
   verified: boolean;
   featured: boolean;
   creator: {
