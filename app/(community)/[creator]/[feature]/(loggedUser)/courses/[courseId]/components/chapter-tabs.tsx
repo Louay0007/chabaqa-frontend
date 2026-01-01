@@ -18,6 +18,7 @@ interface ChapterTabsProps {
   nextChapterId?: string | null
   onGoToNextChapter?: () => void | Promise<void>
   courseId?: string
+  onRefreshCourse?: () => Promise<void>
 }
 
 const getResourceIcon = (type: string) => {
@@ -53,6 +54,7 @@ export default function ChapterTabs({
   nextChapterId,
   onGoToNextChapter,
   courseId,
+  onRefreshCourse,
 }: ChapterTabsProps) {
   const chapterResources = currentChapter?.resources || []
   const chapterNotes = currentChapter?.notes || ''
@@ -164,7 +166,7 @@ export default function ChapterTabs({
 
       <TabsContent value="reviews" className="mt-6">
         {courseId ? (
-          <CourseReviewsSection courseId={courseId} showForm={true} />
+          <CourseReviewsSection courseId={courseId} showForm={true} onRefreshCourse={onRefreshCourse} />
         ) : (
           <Card className="border-0 shadow-sm">
             <CardContent className="py-8 text-center text-muted-foreground">

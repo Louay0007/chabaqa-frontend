@@ -12,9 +12,10 @@ import { Star } from "lucide-react"
 interface CourseReviewsSectionProps {
   courseId: string
   showForm?: boolean
+  onRefreshCourse?: () => Promise<void>
 }
 
-export function CourseReviewsSection({ courseId, showForm = true }: CourseReviewsSectionProps) {
+export function CourseReviewsSection({ courseId, showForm = true, onRefreshCourse }: CourseReviewsSectionProps) {
   const [reviews, setReviews] = useState<Feedback[]>([])
   const [stats, setStats] = useState<FeedbackStats | null>(null)
   const [myReview, setMyReview] = useState<Feedback | null>(null)
@@ -53,9 +54,12 @@ export function CourseReviewsSection({ courseId, showForm = true }: CourseReview
     fetchData()
   }, [courseId])
 
-  const handleReviewSubmitted = (review: Feedback) => {
+  const handleReviewSubmitted = async (review: Feedback) => {
     setMyReview(review)
-    fetchData() // Refresh all data
+    await fetchData() // Refresh all data
+    if (onRefreshCourse) {
+      await onRefreshCourse() // Refresh course data to update ratings everywhere
+    }
   }
 
   return (

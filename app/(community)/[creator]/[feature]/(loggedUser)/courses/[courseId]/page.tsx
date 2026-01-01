@@ -61,6 +61,16 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
     await refreshUnlockedChapters(resolvedCourseId)
   }
 
+  const refreshCourse = async () => {
+    try {
+      const rawCourse = await coursesApi.getCoursById(String(courseId))
+      const normalizedCourse = rawCourse ? transformCourse(rawCourse) : null
+      setCourse(normalizedCourse)
+    } catch (error) {
+      console.error("Failed to refresh course:", error)
+    }
+  }
+
   useEffect(() => {
     let isActive = true
 
@@ -167,6 +177,7 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
       unlockedChapters={unlockedChapters}
       sequentialProgressionEnabled={sequentialProgressionEnabled}
       unlockMessage={unlockMessage}
+      onRefreshCourse={refreshCourse}
       onRefreshProgress={async () => {
         const resolvedCourseId = String(course?.mongoId || courseId)
         await refreshEnrollmentProgress(resolvedCourseId)

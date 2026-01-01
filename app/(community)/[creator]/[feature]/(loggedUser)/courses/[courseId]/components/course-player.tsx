@@ -17,6 +17,7 @@ interface CoursePlayerProps {
   unlockedChapters: any[] | null
   sequentialProgressionEnabled: boolean
   unlockMessage?: string
+  onRefreshCourse?: () => Promise<void>
   onRefreshProgress?: () => Promise<void>
   onRefreshUnlockedChapters?: () => Promise<void>
 }
@@ -30,6 +31,7 @@ export default function CoursePlayer({
   unlockedChapters,
   sequentialProgressionEnabled,
   unlockMessage,
+  onRefreshCourse,
   onRefreshProgress,
   onRefreshUnlockedChapters,
 }: CoursePlayerProps) {
@@ -208,6 +210,7 @@ export default function CoursePlayer({
               isCurrentChapterCompleted={isCurrentChapterCompleted}
               nextChapterId={nextChapterId}
               courseId={courseId}
+              onRefreshCourse={onRefreshCourse}
               onGoToNextChapter={async () => {
                 if (!nextChapterId) return
                 await handleSelectChapter(nextChapterId)
