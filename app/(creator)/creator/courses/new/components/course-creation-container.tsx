@@ -20,6 +20,7 @@ interface CourseChapterForm {
   duration?: number
   order: number
   isPreview: boolean
+  notes?: string
 }
 
 interface CourseSectionForm {
@@ -130,6 +131,7 @@ export function CourseCreationContainer() {
       duration: 0,
       order: section.chapters.length + 1,
       isPreview: false,
+      notes: "",
     }
 
     setFormData((prev) => ({
@@ -197,7 +199,7 @@ export function CourseCreationContainer() {
           prix: !c.isPreview ? (prixNum || 0) : 0, // If not preview, use course price
           ordre: c.order || (jdx + 1),
           duree: typeof c.duration === 'number' && c.duration > 0 ? `${c.duration}` : undefined,
-          notes: undefined,
+          notes: c.notes || undefined,
         }))
       }))
 

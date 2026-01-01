@@ -27,6 +27,7 @@ export * from './user.api';
 export * from './progression.api';
 export * from './achievements.api';
 export * from './community-page-content';
+export * from './feedback.api';
 
 // Re-export to avoid ambiguity
 export type { PaginationParams } from './client';
@@ -48,6 +49,7 @@ import { creatorAnalyticsApi } from './creator-analytics.api';
 import { notificationsApi } from './notifications.api';
 import { storageApi } from './storage.api';
 import { emailCampaignsApi } from './email-campaigns.api';
+import { feedbackApi } from './feedback.api';
 
 export const api = {
   auth: authApi,
@@ -66,4 +68,5 @@ export const api = {
   notifications: notificationsApi,
   storage: storageApi,
   emailCampaigns: emailCampaignsApi,
+  feedback: feedbackApi,
 };

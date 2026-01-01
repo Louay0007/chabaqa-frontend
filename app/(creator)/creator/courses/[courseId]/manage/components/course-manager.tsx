@@ -10,6 +10,7 @@ import { DetailsTab } from "./tabs/details-tab"
 import { ContentTab } from "./tabs/content-tab"
 import { PricingTab } from "./tabs/pricing-tab"
 import { ResourcesTab } from "./tabs/resources-tab"
+import { ReviewsTab } from "./tabs/reviews-tab"
 import { AnalyticsTab } from "./tabs/analytics-tab"
 import { SettingsTab } from "./tabs/settings-tab"
 
@@ -60,6 +61,17 @@ export function CourseManager({ courseId }: { courseId: string }) {
           isPreview: !Boolean(chapitre.isPaidChapter ?? chapitre.isPaid),
           price: chapitre.prix || 0,
           notes: chapitre.notes || "",
+          resources: Array.isArray(chapitre.ressources) 
+            ? chapitre.ressources.map((r: any) => ({
+                id: r.id || '',
+                title: r.titre || r.title || '',
+                titre: r.titre || r.title || '',
+                type: r.type || 'link',
+                url: r.url || '',
+                description: r.description || '',
+                order: r.ordre || r.order || 0,
+              }))
+            : [],
           createdAt: chapitre.createdAt ? new Date(chapitre.createdAt) : new Date(),
         })),
         createdAt: section.createdAt ? new Date(section.createdAt) : new Date(),
@@ -325,7 +337,11 @@ export function CourseManager({ courseId }: { courseId: string }) {
         )}
 
         {activeTab === "resources" && (
-          <ResourcesTab course={course} />
+          <ResourcesTab course={course} onRefresh={fetchCourse} />
+        )}
+
+        {activeTab === "reviews" && (
+          <ReviewsTab course={course} />
         )}
 
         {activeTab === "analytics" && (

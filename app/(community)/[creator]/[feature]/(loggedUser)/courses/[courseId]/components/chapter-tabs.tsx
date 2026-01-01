@@ -3,8 +3,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { FileText as FileTextIcon, Download as DownloadIcon } from "lucide-react"
+import { FileText as FileTextIcon, Download as DownloadIcon, Video, Code, Link as LinkIcon, FileType, Wrench, MessageSquare, Star } from "lucide-react"
+import { CourseReviewsSection } from "@/components/reviews/course-reviews-section"
 
 interface ChapterTabsProps {
   activeTab: string
@@ -14,6 +14,31 @@ interface ChapterTabsProps {
   allChapters: any[]
   canComplete?: boolean
   onCompleteChapter?: (chapterId: string) => void
+  isCurrentChapterCompleted?: boolean
+  nextChapterId?: string | null
+  onGoToNextChapter?: () => void | Promise<void>
+  courseId?: string
+}
+
+const getResourceIcon = (type: string) => {
+  switch (type) {
+    case 'video':
+      return <Video className="h-5 w-5 text-purple-500" />
+    case 'article':
+      return <FileTextIcon className="h-5 w-5 text-blue-500" />
+    case 'code':
+      return <Code className="h-5 w-5 text-green-500" />
+    case 'outil':
+    case 'tool':
+      return <Wrench className="h-5 w-5 text-orange-500" />
+    case 'pdf':
+      return <FileType className="h-5 w-5 text-red-500" />
+    case 'lien':
+    case 'link':
+      return <LinkIcon className="h-5 w-5 text-cyan-500" />
+    default:
+      return <FileTextIcon className="h-5 w-5 text-gray-500" />
+  }
 }
 
 export default function ChapterTabs({ 
@@ -24,13 +49,22 @@ export default function ChapterTabs({
   allChapters,
   canComplete,
   onCompleteChapter,
+  isCurrentChapterCompleted,
+  nextChapterId,
+  onGoToNextChapter,
+  courseId,
 }: ChapterTabsProps) {
+  const chapterResources = currentChapter?.resources || []
+  const chapterNotes = currentChapter?.notes || ''
+  const chapterContent = currentChapter?.content || ''
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
       <TabsList>
         <TabsTrigger value="content">Content</TabsTrigger>
         <TabsTrigger value="notes">Notes</TabsTrigger>
         <TabsTrigger value="resources">Resources</TabsTrigger>
+        <TabsTrigger value="reviews">Reviews</TabsTrigger>
         <TabsTrigger value="discussion">Discussion</TabsTrigger>
       </TabsList>
 
@@ -42,30 +76,28 @@ export default function ChapterTabs({
               Chapter {currentChapterIndex + 1} of {allChapters.length}
             </CardDescription>
           </CardHeader>
-          <CardContent className="prose max-w-none">
-            <p>{currentChapter?.content}</p>
+          <CardContent>
+            {chapterContent ? (
+              <div className="prose max-w-none">
+                <p className="whitespace-pre-wrap">{chapterContent}</p>
+              </div>
+            ) : (
+              <p className="text-muted-foreground italic">No content description for this chapter.</p>
+            )}
 
-            {canComplete && currentChapter?.id && onCompleteChapter ? (
-              <div className="not-prose mt-6">
+            <div className="flex flex-wrap gap-3 mt-6">
+              {canComplete && currentChapter?.id && onCompleteChapter && !isCurrentChapterCompleted ? (
                 <Button type="button" onClick={() => onCompleteChapter(String(currentChapter.id))}>
                   Mark as completed
                 </Button>
-              </div>
-            ) : null}
+              ) : null}
 
-            <h3>Key Learning Points</h3>
-            <ul>
-              <li>Understanding React component lifecycle</li>
-              <li>Managing component state effectively</li>
-              <li>Handling user interactions and events</li>
-              <li>Best practices for component composition</li>
-            </ul>
-
-            <h3>Practice Exercise</h3>
-            <p>
-              Create a simple counter component that demonstrates the concepts covered in this chapter. The
-              component should include increment, decrement, and reset functionality.
-            </p>
+              {isCurrentChapterCompleted && nextChapterId && onGoToNextChapter ? (
+                <Button type="button" onClick={() => void onGoToNextChapter()}>
+                  Next Chapter
+                </Button>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
       </TabsContent>
@@ -73,34 +105,20 @@ export default function ChapterTabs({
       <TabsContent value="notes" className="mt-6">
         <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>Your Notes</CardTitle>
-            <CardDescription>Take notes while learning</CardDescription>
+            <CardTitle>Instructor Notes</CardTitle>
+            <CardDescription>Additional notes and tips from the instructor</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            {chapterNotes ? (
               <div className="border rounded-lg p-4 bg-yellow-50">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm">Remember to use useEffect for side effects</p>
-                    <p className="text-xs text-muted-foreground mt-1">2 minutes ago</p>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    Edit
-                  </Button>
-                </div>
+                <p className="text-sm whitespace-pre-wrap">{chapterNotes}</p>
               </div>
-              <div className="border rounded-lg p-4 bg-blue-50">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm">Component composition is key for reusability</p>
-                    <p className="text-xs text-muted-foreground mt-1">5 minutes ago</p>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    Edit
-                  </Button>
-                </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileTextIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No instructor notes for this chapter</p>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </TabsContent>
@@ -109,70 +127,65 @@ export default function ChapterTabs({
         <Card className="border-0 shadow-sm">
           <CardHeader>
             <CardTitle>Chapter Resources</CardTitle>
-            <CardDescription>Additional materials for this chapter</CardDescription>
+            <CardDescription>Downloadable materials and links</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center space-x-3">
-                <FileTextIcon className="h-5 w-5 text-blue-500" />
-                <div>
-                  <p className="font-medium">Chapter Slides</p>
-                  <p className="text-sm text-muted-foreground">PDF • 2.3 MB</p>
+            {chapterResources.length > 0 ? (
+              chapterResources.map((resource: any, index: number) => (
+                <div key={resource.id || index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center space-x-3">
+                    {getResourceIcon(resource.type)}
+                    <div>
+                      <p className="font-medium">{resource.titre || resource.title}</p>
+                      {resource.description && (
+                        <p className="text-sm text-muted-foreground">{resource.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  {resource.url && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={resource.url} target="_blank" rel="noopener noreferrer">
+                        <DownloadIcon className="h-4 w-4 mr-2" />
+                        {resource.type === 'link' || resource.type === 'lien' ? 'Open' : 'Download'}
+                      </a>
+                    </Button>
+                  )}
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileTextIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No resources for this chapter</p>
               </div>
-              <Button variant="outline" size="sm">
-                <DownloadIcon className="h-4 w-4 mr-2" />
-                Download
-              </Button>
-            </div>
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center space-x-3">
-                <FileTextIcon className="h-5 w-5 text-green-500" />
-                <div>
-                  <p className="font-medium">Source Code</p>
-                  <p className="text-sm text-muted-foreground">ZIP • 1.1 MB</p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm">
-                <DownloadIcon className="h-4 w-4 mr-2" />
-                Download
-              </Button>
-            </div>
+            )}
           </CardContent>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="reviews" className="mt-6">
+        {courseId ? (
+          <CourseReviewsSection courseId={courseId} showForm={true} />
+        ) : (
+          <Card className="border-0 shadow-sm">
+            <CardContent className="py-8 text-center text-muted-foreground">
+              <Star className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Reviews unavailable</p>
+            </CardContent>
+          </Card>
+        )}
       </TabsContent>
 
       <TabsContent value="discussion" className="mt-6">
         <Card className="border-0 shadow-sm">
           <CardHeader>
             <CardTitle>Discussion</CardTitle>
-            <CardDescription>Ask questions and share insights</CardDescription>
+            <CardDescription>Community discussion for this chapter</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-4">
-              <div className="flex space-x-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                  <AvatarFallback>JD</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 space-y-2">
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-sm">
-                      Great explanation of React components! The examples really helped me understand the
-                      concept.
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                    <span>John Doe • 2 hours ago</span>
-                    <Button variant="ghost" size="sm" className="h-auto p-0">
-                      Reply
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-auto p-0">
-                      Like
-                    </Button>
-                  </div>
-                </div>
-              </div>
+          <CardContent>
+            <div className="text-center py-12 text-muted-foreground">
+              <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="font-medium">Discussion coming soon</p>
+              <p className="text-sm mt-1">You'll be able to ask questions and interact with other students here.</p>
             </div>
           </CardContent>
         </Card>

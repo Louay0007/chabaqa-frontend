@@ -11,6 +11,8 @@ interface CourseSidebarProps {
   enrollment: any
   allChapters: any[]
   progress: number
+  completedChaptersCount: number
+  remainingChaptersCount: number
   selectedChapter: string | null
   setSelectedChapter: (chapterId: string) => void | Promise<void>
   isChapterAccessible: (chapterId: string) => boolean
@@ -21,6 +23,8 @@ export default function CourseSidebar({
   enrollment, 
   allChapters, 
   progress, 
+  completedChaptersCount,
+  remainingChaptersCount,
   selectedChapter, 
   setSelectedChapter, 
   isChapterAccessible 
@@ -29,17 +33,16 @@ export default function CourseSidebar({
     <div className="space-y-6">
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg">Course Progress</CardTitle>
+          <CardTitle className="text-lg">Chapter Progress</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center mb-4">
             <div className="text-2xl font-bold text-courses-600">{Math.round(progress)}%</div>
-            <div className="text-sm text-muted-foreground">Complete</div>
+            <div className="text-sm text-muted-foreground">Current chapter</div>
           </div>
           <Progress value={progress} className="mb-4" />
           <div className="text-sm text-muted-foreground text-center">
-            {enrollment?.progress.filter((p: any) => p.isCompleted).length || 0} of {allChapters.length} chapters
-            completed
+            {completedChaptersCount} completed • {remainingChaptersCount} remaining
           </div>
         </CardContent>
       </Card>
