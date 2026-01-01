@@ -127,12 +127,16 @@ export default function ProductCard({
                   </Link>
                 </Button>
               ) : (product.price || 0) === 0 ? (
-                <Button size="sm" variant="outline">
-                  Get Free
+                <Button size="sm" variant="outline" asChild>
+                  <Link href={`/${creatorSlug}/${slug}/products/${productDetails.id}`}>
+                    Get Free
+                  </Link>
                 </Button>
               ) : (
-                <Button size="sm">
-                  Buy - ${product.price || 0}
+                <Button size="sm" asChild>
+                  <Link href={`/${creatorSlug}/${slug}/products/${productDetails.id}`}>
+                    Buy - ${product.price || 0}
+                  </Link>
                 </Button>
               )}
             </div>

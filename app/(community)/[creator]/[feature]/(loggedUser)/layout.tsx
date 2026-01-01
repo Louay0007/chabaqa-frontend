@@ -1,13 +1,6 @@
 import type { Metadata, Viewport } from "next"
-import { Inter } from "next/font/google"
 import "@/app/globals.css"
 import { CommunityHeader } from "@/app/(community)/components/community-header"
-
-const inter = Inter({ 
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-inter"
-})
 
 export const metadata: Metadata = {
   title: {
@@ -20,7 +13,7 @@ export const metadata: Metadata = {
   creator: "Chabaqa",
   openGraph: {
     type: "website",
-    locale: "en_US",
+    locale: "TN-216",
     title: "Chabaqa - Turn your passion into business",
     description: "A full-featured creator platform for building and managing communities",
     siteName: "Chabaqa"

@@ -1,13 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "../../globals.css"
-
-const inter = Inter({ 
-  subsets: ["latin"],
-  display: 'swap',
-  fallback: ['system-ui', 'arial']
-})
 
 export const metadata: Metadata = {
   title: "Sign In - Chabaqa",
@@ -21,7 +14,7 @@ export default function SignInLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} font-sans`}>{children}</body>
+      <body className="font-sans">{children}</body>
     </html>
   )
 }

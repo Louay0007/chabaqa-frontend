@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, use } from "react"
 import { useRouter } from "next/navigation"
 import CoursePlayer from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/[courseId]/components/course-player"
+import EnrollCourseDialog from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/components/EnrollCourseDialog"
 import { coursesApi } from "@/lib/api/courses.api"
 import { transformCourse } from "@/lib/api/courses-community.api"
 import { Button } from "@/components/ui/button"
@@ -15,6 +16,8 @@ type CoursePlayerPageProps = {
 export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
   const { creator, feature, courseId } = use(params)
   const router = useRouter()
+
+  const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false)
 
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -104,7 +107,7 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
       if (!isFreePreview) {
         return {
           title: "Enrollment Required",
-          description: "You need to enroll in this course to access its content.",
+          description: "You need to enroll in this course to access its content. If it's paid, you can submit a payment proof for creator verification.",
           showEnrollButton: true
         }
       }
@@ -129,6 +132,9 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
                     View Courses
                   </Link>
                 </Button>
+                <Button onClick={() => setIsEnrollDialogOpen(true)}>
+                  Enroll / Submit payment proof
+                </Button>
                 <Button variant="outline" onClick={() => router.back()}>
                   Go Back
                 </Button>
@@ -136,6 +142,17 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
             )}
           </div>
         </div>
+
+        <EnrollCourseDialog
+          open={isEnrollDialogOpen}
+          onOpenChange={setIsEnrollDialogOpen}
+          course={course}
+          isEnrolled={Boolean(isEnrolled)}
+          onEnrolled={(nextEnrollment: any) => {
+            setEnrollment(nextEnrollment)
+            setIsEnrolled(true)
+          }}
+        />
       </div>
     )
   }

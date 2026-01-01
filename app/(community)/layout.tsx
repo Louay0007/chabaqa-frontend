@@ -1,11 +1,8 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "../globals.css"
 import { AuthProvider } from "@/app/providers/auth-provider"
 import { CommunityProvider } from "@/app/providers/community-context"
-
-const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Chabaqa - Turn your passion into buisness",
@@ -20,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <AuthProvider>
           <CommunityProvider>
             {children}

@@ -1,11 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Calendar } from "@/components/ui/calendar"
+import { Input } from "@/components/ui/input"
+import { useToast } from "@/components/ui/use-toast"
 import {
   Dialog,
   DialogContent,
@@ -18,6 +20,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { CalendarIcon, Clock, Video, Star } from "lucide-react"
 import { format } from "date-fns"
+import { tokenStorage } from "@/lib/token-storage"
+import { sessionsApi } from "@/lib/api/sessions.api"
 
 const timeSlots = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"]
 
@@ -28,17 +32,109 @@ interface SessionCardProps {
 }
 
 export default function SessionCard({ session, selectedSession, setSelectedSession }: SessionCardProps) {
+  const { toast } = useToast()
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [selectedTime, setSelectedTime] = useState<string>("")
   const [bookingNotes, setBookingNotes] = useState("")
 
-  const handleBookSession = () => {
-    console.log("Booking session:", {
-      sessionId: selectedSession,
-      date: selectedDate,
-      time: selectedTime,
-      notes: bookingNotes,
-    })
+  const [promoCode, setPromoCode] = useState("")
+  const [paymentProof, setPaymentProof] = useState<File | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const isPaidSession = useMemo(() => Number(session?.price ?? 0) > 0, [session])
+
+  const scheduledAt = useMemo(() => {
+    if (!selectedDate || !selectedTime) return null
+    const [hh, mm] = selectedTime.split(":").map((v) => Number(v))
+    if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null
+    const next = new Date(selectedDate)
+    next.setHours(hh, mm, 0, 0)
+    return next.toISOString()
+  }, [selectedDate, selectedTime])
+
+  const handleConfirm = async () => {
+    setIsSubmitting(true)
+    try {
+      const accessToken = tokenStorage.getAccessToken()
+      if (!accessToken) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to book this session.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      if (isPaidSession) {
+        if (!paymentProof) {
+          toast({
+            title: "Payment proof required",
+            description: "Please upload a payment proof to submit your request.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        const promoQuery = promoCode.trim()
+          ? `?promoCode=${encodeURIComponent(promoCode.trim())}`
+          : ""
+
+        const formData = new FormData()
+        formData.append('sessionId', String(selectedSession || session?.id))
+        formData.append('proof', paymentProof)
+
+        const initResponse = await fetch(`/api/payments/manual/init/session${promoQuery}`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+          credentials: 'include',
+          body: formData,
+        })
+
+        const initData = await initResponse.json().catch(() => null)
+        if (!initResponse.ok) {
+          const message = initData?.message || initData?.error || 'Failed to submit payment proof'
+          throw new Error(message)
+        }
+
+        toast({
+          title: 'Payment submitted',
+          description: initData?.message || 'Your payment proof was submitted. Please wait for creator verification.',
+        })
+
+        setPromoCode("")
+        setPaymentProof(null)
+        return
+      }
+
+      if (!scheduledAt) {
+        toast({
+          title: "Missing date/time",
+          description: "Please select a date and time.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      await sessionsApi.book(String(selectedSession || session?.id), {
+        scheduledAt,
+        notes: bookingNotes.trim() || undefined,
+      })
+
+      toast({
+        title: "Booking requested",
+        description: "Your session booking was submitted.",
+      })
+    } catch (error: any) {
+      toast({
+        title: isPaidSession ? "Payment submission failed" : "Booking failed",
+        description: error?.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -62,7 +158,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
             <AvatarFallback>
               {(session.mentor?.name || 'Mentor')
                 .split(" ")
-                .map((n:any) => n[0])
+                .map((n: any) => n[0])
                 .join("")}
             </AvatarFallback>
           </Avatar>
@@ -93,13 +189,13 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
 
         {/* Tags - Responsive wrapping */}
         {session.tags && session.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {session.tags.map((tag:any) => (
-            <Badge key={tag} variant="outline" className="text-xs py-0.5 px-2">
-              {tag}
-            </Badge>
-          ))}
-        </div>
+          <div className="flex flex-wrap gap-1.5">
+            {session.tags.map((tag: any) => (
+              <Badge key={tag} variant="outline" className="text-xs py-0.5 px-2">
+                {tag}
+              </Badge>
+            ))}
+          </div>
         )}
 
         {/* Price and Book Button - Stack on mobile */}
@@ -122,7 +218,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                   Schedule your session with {session.mentor?.name || 'your mentor'}
                 </DialogDescription>
               </DialogHeader>
-              
+
               {/* Mobile-first responsive grid */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 py-4">
                 {/* Calendar Section */}
@@ -196,6 +292,32 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                     />
                   </div>
 
+                  {isPaidSession && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="promoCode" className="text-sm font-medium">Promo code (optional)</Label>
+                        <Input
+                          id="promoCode"
+                          value={promoCode}
+                          onChange={(e) => setPromoCode(e.target.value)}
+                          placeholder="e.g. WELCOME10"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="paymentProof" className="text-sm font-medium">Payment proof</Label>
+                        <Input
+                          id="paymentProof"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setPaymentProof(e.target.files?.[0] || null)}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Session Summary - Always visible on mobile */}
                   <div className="bg-sessions-50 p-3 sm:p-4 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
@@ -222,11 +344,13 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                   </div>
 
                   <Button
-                    onClick={handleBookSession}
-                    disabled={!selectedDate || !selectedTime}
+                    onClick={handleConfirm}
+                    disabled={isSubmitting || (isPaidSession ? false : !scheduledAt)}
                     className="w-full bg-sessions-500 hover:bg-sessions-600 h-10 text-sm font-medium"
                   >
-                    Confirm Booking - ${session.price}
+                    {isPaidSession
+                      ? (isSubmitting ? "Submitting..." : `Submit payment proof - $${session.price}`)
+                      : (isSubmitting ? "Submitting..." : `Confirm Booking - $${session.price}`)}
                   </Button>
                 </div>
               </div>

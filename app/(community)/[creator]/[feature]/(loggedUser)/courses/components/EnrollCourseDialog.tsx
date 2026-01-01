@@ -39,6 +39,7 @@ export default function EnrollCourseDialog({
 }: EnrollCourseDialogProps) {
   const { toast } = useToast()
   const [promoCode, setPromoCode] = useState("")
+  const [paymentProof, setPaymentProof] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const priceLabel = useMemo(() => {
@@ -59,7 +60,7 @@ export default function EnrollCourseDialog({
 
     setIsSubmitting(true)
     try {
-      // Paid course: go through checkout first
+      // Paid course: submit manual payment proof for creator verification
       if (isPaidCourse) {
         const accessToken = tokenStorage.getAccessToken()
         if (!accessToken) {
@@ -71,36 +72,46 @@ export default function EnrollCourseDialog({
           return
         }
 
+        if (!paymentProof) {
+          toast({
+            title: "Payment proof required",
+            description: "Please upload a payment proof to submit your request.",
+            variant: "destructive",
+          })
+          return
+        }
+
         const promoQuery = promoCode.trim()
           ? `?promoCode=${encodeURIComponent(promoCode.trim())}`
           : ""
 
-        const initResponse = await fetch(`/api/payments/init/stripe-link-course${promoQuery}`, {
-          method: "POST",
+        const formData = new FormData()
+        formData.append('courseId', String(course.id))
+        formData.append('proof', paymentProof)
+
+        const initResponse = await fetch(`/api/payments/manual/init/course${promoQuery}`, {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-          credentials: "include",
-          body: JSON.stringify({ courseId: String(course.id) }),
+          credentials: 'include',
+          body: formData,
         })
 
         const initData = await initResponse.json().catch(() => null)
-
         if (!initResponse.ok) {
-          const message = initData?.message || initData?.error || "Failed to initiate checkout"
+          const message = initData?.message || initData?.error || 'Failed to submit payment proof'
           throw new Error(message)
         }
 
-        const checkoutUrl = initData?.checkoutUrl
-        if (!checkoutUrl) {
-          throw new Error("Checkout URL missing from payment init response")
-        }
+        toast({
+          title: 'Payment submitted',
+          description: initData?.message || 'Your payment proof was submitted. Please wait for creator verification.',
+        })
 
-        // Close dialog before redirect
         onOpenChange(false)
         setPromoCode("")
-        window.location.href = checkoutUrl
+        setPaymentProof(null)
         return
       }
 
@@ -117,7 +128,7 @@ export default function EnrollCourseDialog({
       setPromoCode("")
     } catch (error) {
       toast({
-        title: isPaidCourse ? "Checkout failed" : "Enrollment failed",
+        title: isPaidCourse ? "Payment submission failed" : "Enrollment failed",
         description: getErrorMessage(error),
         variant: "destructive",
       })
@@ -135,7 +146,7 @@ export default function EnrollCourseDialog({
             {isEnrolled
               ? "You are already enrolled in this course."
               : isPaidCourse
-                ? "Proceed to checkout to purchase this course. After successful payment, you will be enrolled automatically."
+                ? "Upload a payment proof to submit your manual payment request. Access will be granted after creator verification."
                 : "Confirm enrollment to access this free course."}
           </DialogDescription>
         </DialogHeader>
@@ -156,6 +167,19 @@ export default function EnrollCourseDialog({
               disabled={!canEnroll || isSubmitting}
             />
           </div>
+
+          {isPaidCourse && (
+            <div className="space-y-2">
+              <Label htmlFor="paymentProof">Payment proof</Label>
+              <Input
+                id="paymentProof"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setPaymentProof(e.target.files?.[0] || null)}
+                disabled={!canEnroll || isSubmitting}
+              />
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -168,7 +192,7 @@ export default function EnrollCourseDialog({
             Cancel
           </Button>
           <Button type="button" onClick={handleConfirm} disabled={!canEnroll || isSubmitting}>
-            {isSubmitting ? "Processing..." : isPaidCourse ? "Proceed to checkout" : "Confirm enrollment"}
+            {isSubmitting ? "Processing..." : isPaidCourse ? "Submit payment proof" : "Confirm enrollment"}
           </Button>
         </DialogFooter>
       </DialogContent>

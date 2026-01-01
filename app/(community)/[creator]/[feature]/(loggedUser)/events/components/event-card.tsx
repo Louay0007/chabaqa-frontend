@@ -20,6 +20,11 @@ interface EventCardProps {
   setNotes: (notes: string) => void;
   setSelectedEvent: (event: EventWithTickets | null) => void;
   handleRegister: () => void;
+  promoCode: string;
+  setPromoCode: (code: string) => void;
+  paymentProof: File | null;
+  setPaymentProof: (file: File | null) => void;
+  isSubmitting: boolean;
 }
 
 export default function EventCard({
@@ -31,12 +36,19 @@ export default function EventCard({
   notes,
   setNotes,
   setSelectedEvent,
-  handleRegister
+  handleRegister,
+  promoCode,
+  setPromoCode,
+  paymentProof,
+  setPaymentProof,
+  isSubmitting
 }: EventCardProps) {
   const selectedTicketData = event.tickets?.find((t) => t.id === selectedTicket);
   const minPrice = event.tickets && event.tickets.length > 0
     ? Math.min(...event.tickets.map((t) => t.price || 0))
     : event.price || 0;
+
+  const selectedPrice = Number(selectedTicketData?.price || 0);
 
   return (
     <Card key={event.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
@@ -224,10 +236,40 @@ export default function EventCard({
                   <Button
                     className="w-full bg-purple-600 hover:bg-purple-700 h-10 sm:h-11 font-medium"
                     onClick={handleRegister}
-                    disabled={!selectedTicket}
+                    disabled={!selectedTicket || isSubmitting}
                   >
                     Confirm Registration - ${selectedTicketData ? selectedTicketData.price * quantity : 0}
                   </Button>
+
+                  {selectedTicketData && selectedPrice > 0 && (
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block">Promo code (optional)</Label>
+                        <Input
+                          value={promoCode}
+                          onChange={(e) => setPromoCode(e.target.value)}
+                          placeholder="e.g. WELCOME10"
+                          className="h-10"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block">Payment proof</Label>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setPaymentProof(e.target.files?.[0] || null)}
+                          disabled={isSubmitting}
+                        />
+                        {paymentProof && (
+                          <p className="text-xs text-muted-foreground mt-1 truncate">
+                            {paymentProof.name}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </DialogContent>

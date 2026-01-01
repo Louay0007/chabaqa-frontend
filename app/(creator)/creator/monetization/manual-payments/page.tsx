@@ -37,6 +37,13 @@ interface PaymentRequest {
     paymentProof: string;
     createdAt: string;
     contentType: string;
+    contentId?: string;
+    contentTitle?: string | null;
+    community?: {
+        _id: string;
+        name: string;
+        slug?: string;
+    } | null;
 }
 
 interface ManualPaymentHistoryItem extends PaymentRequest {
@@ -142,12 +149,18 @@ export default function ManualPaymentsPage() {
 
     const filteredPayments = payments.filter(p =>
         p.buyerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.buyerId?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+        p.buyerId?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.contentTitle || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.contentType || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.community?.name || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const filteredHistory = history.filter(p =>
         p.buyerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.buyerId?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+        p.buyerId?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.contentTitle || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.contentType || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.community?.name || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const getFullImageUrl = (path: string) => {
@@ -214,7 +227,9 @@ export default function ManualPaymentsPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>User</TableHead>
-                                    <TableHead>Service</TableHead>
+                                    <TableHead>Community</TableHead>
+                                    <TableHead>Content</TableHead>
+                                    <TableHead>Type</TableHead>
                                     <TableHead>Amount</TableHead>
                                     <TableHead>Date</TableHead>
                                     <TableHead>Proof</TableHead>
@@ -224,14 +239,14 @@ export default function ManualPaymentsPage() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center py-8">
+                                        <TableCell colSpan={8} className="text-center py-8">
                                             <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
                                             <p className="mt-2 text-sm text-muted-foreground">Loading specific requests...</p>
                                         </TableCell>
                                     </TableRow>
                                 ) : filteredPayments.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center py-8">
+                                        <TableCell colSpan={8} className="text-center py-8">
                                             <CheckCircle className="h-8 w-8 mx-auto text-green-500 mb-2" />
                                             <p className="text-lg font-medium">All caught up!</p>
                                             <p className="text-sm text-muted-foreground">No pending manual payments found.</p>
@@ -244,6 +259,26 @@ export default function ManualPaymentsPage() {
                                                 <div className="flex flex-col">
                                                     <span className="font-medium">{payment.buyerId?.name || 'Unknown'}</span>
                                                     <span className="text-xs text-muted-foreground">{payment.buyerId?.email}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {payment.community?.name ? (
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">{payment.community.name}</span>
+                                                        {payment.community.slug && (
+                                                            <span className="text-xs text-muted-foreground">{payment.community.slug}</span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground">—</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">{payment.contentTitle || '—'}</span>
+                                                    {payment.contentId && (
+                                                        <span className="text-xs text-muted-foreground">{payment.contentId}</span>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
@@ -354,7 +389,9 @@ export default function ManualPaymentsPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>User</TableHead>
-                                    <TableHead>Service</TableHead>
+                                    <TableHead>Community</TableHead>
+                                    <TableHead>Content</TableHead>
+                                    <TableHead>Type</TableHead>
                                     <TableHead>Amount</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead>Date</TableHead>
@@ -364,14 +401,14 @@ export default function ManualPaymentsPage() {
                             <TableBody>
                                 {historyLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center py-8">
+                                        <TableCell colSpan={8} className="text-center py-8">
                                             <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
                                             <p className="mt-2 text-sm text-muted-foreground">Loading history...</p>
                                         </TableCell>
                                     </TableRow>
                                 ) : filteredHistory.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center py-8">
+                                        <TableCell colSpan={8} className="text-center py-8">
                                             <Clock className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                                             <p className="text-lg font-medium">No history yet</p>
                                             <p className="text-sm text-muted-foreground">Manual payment proofs will appear here.</p>
@@ -384,6 +421,26 @@ export default function ManualPaymentsPage() {
                                                 <div className="flex flex-col">
                                                     <span className="font-medium">{payment.buyerId?.name || 'Unknown'}</span>
                                                     <span className="text-xs text-muted-foreground">{payment.buyerId?.email}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {payment.community?.name ? (
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">{payment.community.name}</span>
+                                                        {payment.community.slug && (
+                                                            <span className="text-xs text-muted-foreground">{payment.community.slug}</span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground">—</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">{payment.contentTitle || '—'}</span>
+                                                    {payment.contentId && (
+                                                        <span className="text-xs text-muted-foreground">{payment.contentId}</span>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                             <TableCell>

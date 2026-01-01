@@ -6,6 +6,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  output: 'standalone',
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
   images: {
     unoptimized: true,
     remotePatterns: [

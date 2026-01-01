@@ -3,18 +3,19 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, CheckCircle, Star } from "lucide-react"
 
 interface ProductHeaderProps {
+  creatorSlug: string
   slug: string
   product: any
   isPurchased: boolean
 }
 
-export default function ProductHeader({ slug, product, isPurchased }: ProductHeaderProps) {
+export default function ProductHeader({ creatorSlug, slug, product, isPurchased }: ProductHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
       {/* Back Button and Title Section */}
       <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
         <Button variant="ghost" size="icon" asChild className="shrink-0 h-9 w-9 sm:h-10 sm:w-10">
-          <Link href={`/${slug}/products`}>
+          <Link href={`/${creatorSlug}/${slug}/products`}>
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>

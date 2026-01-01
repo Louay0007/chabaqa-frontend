@@ -3,14 +3,19 @@ import { Codesandbox, FileText, DollarSign, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ProductWithDetails, ProductPurchase } from "@/lib/api/products-community.api"
 import { getFileTypeIcon } from "@/lib/utilsmedia"
+import Link from "next/link"
 
 interface ProductDetailsSidebarProps {
+  creatorSlug: string
+  slug: string
   selectedProduct: string | null
   allProducts: ProductWithDetails[]
   userPurchases: ProductPurchase[]
 }
 
 export default function ProductDetailsSidebar({
+  creatorSlug,
+  slug,
   selectedProduct,
   allProducts,
   userPurchases
@@ -124,8 +129,10 @@ export default function ProductDetailsSidebar({
                   <span className="text-2xl font-bold">${product.price}</span>
                 </div>
               )}
-              <Button className="w-full" size="lg">
-                {product.price === 0 ? 'Download Now' : 'Buy Now'}
+              <Button className="w-full" size="lg" asChild>
+                <Link href={`/${creatorSlug}/${slug}/products/${product.id}`}>
+                  {product.price === 0 ? 'Get Free' : 'Buy / Submit payment proof'}
+                </Link>
               </Button>
               {product.price > 0 && (
                 <div className="text-center text-sm text-muted-foreground">

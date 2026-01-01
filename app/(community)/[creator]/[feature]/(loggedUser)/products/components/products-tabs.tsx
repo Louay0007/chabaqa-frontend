@@ -135,6 +135,8 @@ export default function ProductsTabs({
           <div className="hidden xl:block space-y-4 sm:space-y-6">
             <div className="sticky top-4">
               <ProductDetailsSidebar
+                creatorSlug={creatorSlug}
+                slug={slug}
                 selectedProduct={selectedProduct}
                 allProducts={allProducts}
                 userPurchases={userPurchases}
