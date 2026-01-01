@@ -50,7 +50,7 @@ export function Header() {
   }, [])
 
   return (
-    <header className="w-full bg-gradient-to-b from-pink-100 to-white dark:from-gray-900 dark:to-gray-900">
+    <header className="sticky top-0 z-40 w-full bg-gradient-to-b from-pink-100 to-white dark:from-gray-900 dark:to-gray-900 ">
       <div className="mx-auto max-w-7xl px-4 lg:px-6">
         <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
           <nav aria-label="Global" className="flex items-center justify-between ">
