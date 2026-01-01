@@ -2,6 +2,8 @@ import BuildCommunityClient from "../components/build-community-client"
 import { redirect } from "next/navigation"
 import { getProfileServer } from "@/lib/auth.server"
 
+export const dynamic = 'force-dynamic'
+
 export default async function BuildCommunityPage() {
   // Vérifier si l'utilisateur est authentifié
   const user = await getProfileServer()

@@ -71,7 +71,7 @@ export function PricingDurationStep({ formData, handleInputChange, handleDayTogg
                 <SelectContent>
                   <SelectItem value="USD">USD</SelectItem>
                   <SelectItem value="EUR">EUR</SelectItem>
-                  <SelectItem value="GBP">GBP</SelectItem>
+                  <SelectItem value="TND">TND</SelectItem>
                 </SelectContent>
               </Select>
               <Input

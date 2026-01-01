@@ -169,6 +169,7 @@ const initialFormData = {
   title: "",
   description: "",
   thumbnail: "",
+  currency: "USD",
   depositAmount: "",
   maxParticipants: "",
   category: "",

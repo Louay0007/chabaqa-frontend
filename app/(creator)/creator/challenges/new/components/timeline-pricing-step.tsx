@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CalendarIcon, DollarSign, Users } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
@@ -12,6 +13,7 @@ import { Dispatch, SetStateAction } from "react"
 
 interface TimelinePricingStepProps {
   formData: {
+    currency?: string
     depositAmount: string
     maxParticipants: string
     rewards: {
@@ -113,14 +115,23 @@ export function TimelinePricingStep({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label htmlFor="depositAmount">Deposit Amount (USD) *</Label>
-            <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Label htmlFor="depositAmount">Deposit Amount *</Label>
+            <div className="flex">
+              <Select value={formData.currency || 'USD'} onValueChange={(value) => handleInputChange('currency', value)}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="TND">TND</SelectItem>
+                </SelectContent>
+              </Select>
               <Input
                 id="depositAmount"
                 type="number"
                 placeholder="50"
-                className="pl-10"
+                className="rounded-l-none"
                 value={formData.depositAmount}
                 onChange={(e) => handleInputChange("depositAmount", e.target.value)}
               />
@@ -150,13 +161,23 @@ export function TimelinePricingStep({
               <Label htmlFor="completionReward" className="text-sm">
                 Completion Reward
               </Label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <div className="flex">
+                <Select value={formData.currency || 'USD'} onValueChange={(value) => handleInputChange('currency', value)}>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="GBP">GBP</SelectItem>
+                    <SelectItem value="TND">TND</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Input
                   id="completionReward"
                   type="number"
                   placeholder="25"
-                  className="pl-10"
+                  className="rounded-l-none"
                   value={formData.rewards.completionReward}
                   onChange={(e) => handleInputChange("rewards.completionReward", e.target.value)}
                 />
@@ -167,13 +188,22 @@ export function TimelinePricingStep({
               <Label htmlFor="topPerformerBonus" className="text-sm">
                 Top Performer Bonus
               </Label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <div className="flex">
+                <Select value={formData.currency || 'USD'} onValueChange={(value) => handleInputChange('currency', value)}>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="TND">TND</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Input
                   id="topPerformerBonus"
                   type="number"
                   placeholder="100"
-                  className="pl-10"
+                  className="rounded-l-none"
                   value={formData.rewards.topPerformerBonus}
                   onChange={(e) => handleInputChange("rewards.topPerformerBonus", e.target.value)}
                 />
@@ -184,13 +214,22 @@ export function TimelinePricingStep({
               <Label htmlFor="streakBonus" className="text-sm">
                 Streak Bonus
               </Label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <div className="flex">
+                <Select value={formData.currency || 'USD'} onValueChange={(value) => handleInputChange('currency', value)}>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="TND">TND</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Input
                   id="streakBonus"
                   type="number"
                   placeholder="10"
-                  className="pl-10"
+                  className="rounded-l-none"
                   value={formData.rewards.streakBonus}
                   onChange={(e) => handleInputChange("rewards.streakBonus", e.target.value)}
                 />
