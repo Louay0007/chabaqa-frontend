@@ -40,8 +40,6 @@ export function Hero({ className }: HeroProps) {
     <section
       className={cn(
         "relative bg-white overflow-hidden",
-        // comfy vertical rhythm across breakpoints
-        "py-16 sm:py-14 lg:py-20",
         className,
       )}
     >
@@ -113,16 +111,17 @@ export function Hero({ className }: HeroProps) {
           </div>
 
           {/* Right: responsive timeline */}
-          <div className="relative lg:pl-4">
-            {/* Height is responsive; timeline adapts radius automatically */}
+          <div className="relative lg:pl-4 hidden lg:block">
             <RadialOrbitalTimeline
               timelineData={timelineData}
               logoSrc="/Logos/PNG/brandmark.png"
-              className="h-[470px] sm:h-[520px] lg:h-[680px]"
+              className="h-[470px] sm:h-[520px] lg:h-[600px]"
               autoRotateSpeed={0.25}
-              orbitRadius={200} // initial; component will adapt with ResizeObserver
+              orbitRadius={200}
             />
           </div>
+
+
         </div>
       </div>
     </section>

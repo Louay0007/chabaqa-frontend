@@ -36,7 +36,7 @@ export function CommunityHeader({ currentCommunity }: CommunityHeaderProps) {
               {/* Full text logo */}
               <div className="hidden sm:block relative h-24 w-[100px]">
                 <Image
-                  src="/Logos/PNG/frensh.png"
+                  src="/Logos/PNG/frensh1.png"
                   alt="Chabaqa Logo"
                   fill
                   style={{ objectFit: "contain" }}

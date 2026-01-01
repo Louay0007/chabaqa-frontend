@@ -18,7 +18,7 @@ export function Footer() {
           <div className="lg:col-span-1 text-center lg:text-left">
             <Link href="/" className="mb-4 block" aria-label={siteData.brand.name}>
               <Image
-                src="/Logos/PNG/frensh.png"
+                src="/Logos/PNG/frensh1.png"
                 alt="Chabaqa Logo"
                 width={150}
                 height={28}
