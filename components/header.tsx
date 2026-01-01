@@ -57,15 +57,15 @@ export function Header() {
             {/* Left: Logo */}
             <div className="flex lg:flex-1">
               <Link href="/" className="-ml-3 p-0.5 flex items-center" aria-label="Chabaqa">
-                <Image src="/Logos/PNG/frensh.png" alt="Chabaqa Logo" width={150} height={28} priority style={{ objectFit: 'contain' }} />
+                <Image src="/Logos/PNG/frensh1.png" alt="Chabaqa Logo" width={150} height={28} priority style={{ objectFit: 'contain' }} />
               </Link>
             </div>
 
             {/* Middle: Desktop links */}
             <div className="hidden lg:flex lg:gap-x-8">
               <Link href="/explore" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Explore</Link>
-              <Link href="/pricing" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Pricing</Link>
-              <Link href="/about" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">About</Link>
+              <Link href="/#pricing" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Pricing</Link>
+              <Link href="/#about" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">About</Link>
               <button className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors flex items-center gap-x-1" type="button">
                 Features
                 <ChevronDown className="w-4 h-4" />
