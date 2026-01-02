@@ -12,6 +12,7 @@ import { ChallengeNavigation } from "./challenge-navigation"
 import { api } from "@/lib/api"
 import { challengesApi, type CreateChallengeData } from "@/lib/api/challenges.api"
 import { useToast } from "@/hooks/use-toast"
+import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 
 export function CreateChallengeForm() {
   const router = useRouter()
@@ -20,7 +21,10 @@ export function CreateChallengeForm() {
   const [startDate, setStartDate] = useState<Date>()
   const [endDate, setEndDate] = useState<Date>()
   const [formData, setFormData] = useState(initialFormData)
-  const [communitySlug, setCommunitySlug] = useState<string>("")
+  
+  // Use the selected community from context
+  const { selectedCommunity } = useCreatorCommunity()
+  const communitySlug = selectedCommunity?.slug || ""
 
   const steps = [
     { id: 1, title: "Basic Info", description: "Challenge title, description, and settings" },
@@ -28,20 +32,6 @@ export function CreateChallengeForm() {
     { id: 3, title: "Challenge Steps", description: "Define daily tasks and deliverables" },
     { id: 4, title: "Review & Publish", description: "Review and publish your challenge" },
   ]
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const me = await api.auth.me().catch(() => null as any)
-        const user = me?.data || (me as any)?.user || null
-        if (!user) return
-        const myComms = await api.communities.getMyCreated().catch(() => null as any)
-        const first = (myComms?.data || [])[0]
-        if (first?.slug) setCommunitySlug(first.slug)
-      } catch {}
-    }
-    load()
-  }, [])
 
   const handleSubmit = async () => {
     try {

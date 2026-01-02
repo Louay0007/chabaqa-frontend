@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { productsApi, type CreateProductData } from "@/lib/api/products.api"
+import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 
 interface ProductVariantForm {
   id: string
@@ -44,7 +45,10 @@ export function ProductFormProvider({ children }: { children: React.ReactNode })
   const router = useRouter()
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
-  const [communityId, setCommunityId] = useState<string>("")
+  
+  // Use the selected community from context
+  const { selectedCommunityId } = useCreatorCommunity()
+  const communityId = selectedCommunityId || ""
   
   const [formData, setFormData] = useState({
     title: "",
@@ -64,20 +68,6 @@ export function ProductFormProvider({ children }: { children: React.ReactNode })
     isRecurring: false,
     recurringInterval: "month",
   })
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const me = await api.auth.me().catch(() => null as any)
-        const user = me?.data || (me as any)?.user || null
-        if (!user) return
-        const myComms = await api.communities.getMyCreated().catch(() => null as any)
-        const first = (myComms?.data || [])[0]
-        if (first?.id || first?._id) setCommunityId(first.id || first._id)
-      } catch {}
-    }
-    load()
-  }, [])
 
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))

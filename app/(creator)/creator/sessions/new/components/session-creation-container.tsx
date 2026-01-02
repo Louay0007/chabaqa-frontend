@@ -12,12 +12,16 @@ import { NavigationButtons } from "./navigation-buttons"
 import { api } from "@/lib/api"
 import { sessionsApi, type CreateSessionData } from "@/lib/api/sessions.api"
 import { useToast } from "@/hooks/use-toast"
+import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 
 export function SessionCreationContainer() {
   const router = useRouter()
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
-  const [communitySlug, setCommunitySlug] = useState<string>("")
+  
+  // Use the selected community from context
+  const { selectedCommunity } = useCreatorCommunity()
+  const communitySlug = selectedCommunity?.slug || ""
 
   const [formData, setFormData] = useState({
     title: "",
@@ -93,20 +97,6 @@ export function SessionCreationContainer() {
         : [...prev.availableDays, day],
     }))
   }
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const me = await api.auth.me().catch(() => null as any)
-        const user = me?.data || (me as any)?.user || null
-        if (!user) return
-        const myComms = await api.communities.getMyCreated().catch(() => null as any)
-        const first = (myComms?.data || [])[0]
-        if (first?.slug) setCommunitySlug(first.slug)
-      } catch {}
-    }
-    load()
-  }, [])
 
   const handleSubmit = async () => {
     try {

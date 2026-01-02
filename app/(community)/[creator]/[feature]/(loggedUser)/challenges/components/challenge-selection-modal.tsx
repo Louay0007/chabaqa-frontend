@@ -3,7 +3,6 @@
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -11,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { X, Zap, Calendar, Clock, DollarSign, Trophy, CheckCircle } from "lucide-react"
+import { Zap, Calendar, Clock, DollarSign, Trophy, CheckCircle, Users, Target } from "lucide-react"
 import { formatDate } from "@/lib/utils"
 import { tokenStorage } from "@/lib/token-storage"
 import { useState, useMemo } from "react"
@@ -23,17 +22,15 @@ interface ChallengeSelectionModalProps {
 
 export default function ChallengeSelectionModal({ challenge, setSelectedChallenge }: ChallengeSelectionModalProps) {
   const { toast } = useToast()
-  if (!challenge) return null
-
+  
   const [promoCode, setPromoCode] = useState("")
   const [paymentProof, setPaymentProof] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const priceLabel = useMemo(() => {
-    const amount = Number(challenge?.depositAmount ?? challenge?.pricing?.participationFee ?? 0)
-    if (amount <= 0) return "Free"
-    return `$${amount}`
-  }, [challenge])
+  if (!challenge) return null
+
+  const depositAmount = challenge?.depositAmount ?? 0
+  const completionReward = challenge?.completionReward ?? 0
 
   const handleJoin = async () => {
     setIsSubmitting(true)
@@ -48,7 +45,7 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
         return
       }
 
-      if (!paymentProof) {
+      if (depositAmount > 0 && !paymentProof) {
         toast({
           title: "Payment proof required",
           description: "Please upload a payment proof to submit your request.",
@@ -63,7 +60,9 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
 
       const formData = new FormData()
       formData.append('challengeId', String(challenge.id || challenge._id))
-      formData.append('proof', paymentProof)
+      if (paymentProof) {
+        formData.append('proof', paymentProof)
+      }
 
       const initResponse = await fetch(`/api/payments/manual/init/challenge${promoQuery}`, {
         method: 'POST',
@@ -76,21 +75,22 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
 
       const initData = await initResponse.json().catch(() => null)
       if (!initResponse.ok) {
-        const message = initData?.message || initData?.error || 'Failed to submit payment proof'
+        const message = initData?.message || initData?.error || 'Failed to join challenge'
         throw new Error(message)
       }
 
       toast({
-        title: 'Payment submitted',
-        description: initData?.message || 'Your payment proof was submitted. Please wait for creator verification.',
+        title: 'Success!',
+        description: initData?.message || (depositAmount > 0 
+          ? 'Payment proof submitted! Please wait for verification.' 
+          : 'You have joined the challenge successfully!'),
       })
 
-      setSelectedChallenge(null)
-      setPromoCode("")
-      setPaymentProof(null)
+      // Reload the page to show updated participation status
+      window.location.reload()
     } catch (error: any) {
       toast({
-        title: "Payment submission failed",
+        title: "Failed to join",
         description: error?.message || "Something went wrong. Please try again.",
         variant: "destructive",
       })
@@ -101,119 +101,122 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
 
   return (
     <Dialog open={!!challenge} onOpenChange={() => setSelectedChallenge(null)}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
-        <div className="relative">
-          <div className="bg-gradient-to-r from-challenges-500 to-orange-500 p-8 text-white rounded-t-2xl">
-            <div className="flex items-center space-x-3 mb-4">
-              <Zap className="h-8 w-8" />
-              <h2 className="text-3xl font-bold">{challenge.title}</h2>
+      <DialogContent className="w-[95vw] max-w-lg sm:w-full">
+        <DialogHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-gradient-to-r from-challenges-500 to-orange-500">
+              <Zap className="h-4 w-4 text-white" />
             </div>
-            <p className="text-challenges-100 text-lg">{challenge.description}</p>
+            <DialogTitle className="text-base font-bold line-clamp-1">{challenge.title}</DialogTitle>
+          </div>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-4 gap-2">
+            <div className="flex flex-col items-center gap-1 p-2 rounded-lg bg-muted/50">
+              <Calendar className="h-4 w-4 text-challenges-500" />
+              <p className="text-[10px] text-muted-foreground">Start</p>
+              <p className="text-xs font-semibold">{formatDate(challenge.startDate).split(',')[0]}</p>
+            </div>
+            <div className="flex flex-col items-center gap-1 p-2 rounded-lg bg-muted/50">
+              <Clock className="h-4 w-4 text-challenges-500" />
+              <p className="text-[10px] text-muted-foreground">Duration</p>
+              <p className="text-xs font-semibold">{challenge.duration || '30d'}</p>
+            </div>
+            <div className="flex flex-col items-center gap-1 p-2 rounded-lg bg-muted/50">
+              <DollarSign className="h-4 w-4 text-challenges-500" />
+              <p className="text-[10px] text-muted-foreground">Deposit</p>
+              <p className="text-xs font-semibold">{depositAmount > 0 ? `$${depositAmount}` : 'Free'}</p>
+            </div>
+            <div className="flex flex-col items-center gap-1 p-2 rounded-lg bg-muted/50">
+              <Trophy className="h-4 w-4 text-yellow-500" />
+              <p className="text-[10px] text-muted-foreground">Reward</p>
+              <p className="text-xs font-semibold">${completionReward}</p>
+            </div>
           </div>
 
-          <div className="p-8 space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <Calendar className="h-6 w-6 mx-auto mb-2 text-challenges-500" />
-                <div className="font-semibold">{formatDate(challenge.startDate)}</div>
-                <div className="text-sm text-muted-foreground">Start Date</div>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <Clock className="h-6 w-6 mx-auto mb-2 text-challenges-500" />
-                <div className="font-semibold">{challenge.duration}</div>
-                <div className="text-sm text-muted-foreground">Duration</div>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <DollarSign className="h-6 w-6 mx-auto mb-2 text-challenges-500" />
-                <div className="font-semibold">${challenge.depositAmount}</div>
-                <div className="text-sm text-muted-foreground">Deposit</div>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <Trophy className="h-6 w-6 mx-auto mb-2 text-challenges-500" />
-                <div className="font-semibold">${challenge.completionReward}</div>
-                <div className="text-sm text-muted-foreground">Reward</div>
-              </div>
+          {/* Benefits Section */}
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 p-2.5 rounded-lg border">
+            <h3 className="text-xs font-bold mb-1.5 flex items-center gap-1">
+              <Target className="h-3 w-3 text-green-600" />
+              What You'll Get
+            </h3>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { text: "Daily tasks", icon: CheckCircle },
+                { text: "Support", icon: Users },
+                { text: "Tracking", icon: Target },
+                { text: "Rewards", icon: Trophy }
+              ].map((item) => (
+                <div key={item.text} className="flex items-center gap-1.5 text-[11px]">
+                  <item.icon className="h-3 w-3 text-green-500 flex-shrink-0" />
+                  <span>{item.text}</span>
+                </div>
+              ))}
             </div>
+          </div>
 
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">What You'll Get</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span>Daily structured tasks</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span>Community support</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span>Progress tracking</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span>Completion rewards</span>
-                </div>
-              </div>
-            </div>
-
-            {challenge.notes && (
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-2">Important Notes</h4>
-                <p className="text-sm text-muted-foreground">{challenge.notes}</p>
-              </div>
-            )}
-
-            <div className="bg-yellow-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-2 text-yellow-800">Payment Information</h4>
-              <p className="text-sm text-yellow-700">
-                You'll pay a ${challenge.depositAmount} deposit to join. Complete the challenge to get $
-                {challenge.completionReward} back plus bonuses!
+          {/* Payment Information */}
+          {depositAmount > 0 && (
+            <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200">
+              <p className="text-[11px] text-amber-800">
+                Pay <strong>${depositAmount}</strong> to join. Complete to get <strong>${completionReward}</strong> back!
               </p>
             </div>
+          )}
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Price</span>
-                <span className="font-medium">{priceLabel}</span>
-              </div>
+          {/* Form Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="promoCode" className="text-xs">Promo code</Label>
+              <Input
+                id="promoCode"
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value)}
+                placeholder="Enter code"
+                disabled={isSubmitting}
+                className="h-8 text-xs"
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="promoCode">Promo code (optional)</Label>
-                <Input
-                  id="promoCode"
-                  value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value)}
-                  placeholder="e.g. WELCOME10"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="paymentProof">Payment proof</Label>
+            {depositAmount > 0 && (
+              <div className="space-y-1">
+                <Label htmlFor="paymentProof" className="text-xs">Payment proof *</Label>
                 <Input
                   id="paymentProof"
                   type="file"
                   accept="image/*"
                   onChange={(e) => setPaymentProof(e.target.files?.[0] || null)}
                   disabled={isSubmitting}
+                  className="h-8 text-xs"
                 />
               </div>
-            </div>
+            )}
+          </div>
 
-            <div className="flex space-x-4">
-              <Button
-                className="flex-1 bg-challenges-500 hover:bg-challenges-600"
-                onClick={handleJoin}
-                disabled={isSubmitting}
-              >
-                <DollarSign className="h-4 w-4 mr-2" />
-                {isSubmitting ? "Submitting..." : `Pay ${challenge.depositAmount} & Join Challenge`}
-              </Button>
-              <Button variant="outline" onClick={() => setSelectedChallenge(null)}>
-                Cancel
-              </Button>
-            </div>
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-1">
+            <Button
+              className="flex-1 h-9 text-xs font-semibold bg-gradient-to-r from-challenges-500 to-orange-500 hover:from-challenges-600 hover:to-orange-600"
+              onClick={handleJoin}
+              disabled={isSubmitting}
+            >
+              {isSubmitting 
+                ? "Processing..." 
+                : depositAmount > 0 
+                  ? `Pay $${depositAmount} & Join` 
+                  : "Join Free"
+              }
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-9 px-4 text-xs" 
+              onClick={() => setSelectedChallenge(null)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
           </div>
         </div>
       </DialogContent>

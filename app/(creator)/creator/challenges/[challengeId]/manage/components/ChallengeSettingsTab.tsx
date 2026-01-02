@@ -1,9 +1,39 @@
+"use client"
+
+import { useState } from "react"
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
-export default function ChallengeSettingsTab() {
+interface Props {
+  challengeId: string
+  onDeleteChallenge: () => Promise<void>
+}
+
+export default function ChallengeSettingsTab({ challengeId, onDeleteChallenge }: Props) {
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      await onDeleteChallenge()
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <EnhancedCard>
@@ -75,9 +105,28 @@ export default function ChallengeSettingsTab() {
               <h4 className="font-medium text-red-600">Delete Challenge</h4>
               <p className="text-sm text-muted-foreground">Permanently delete this challenge and all its data</p>
             </div>
-            <Button variant="destructive" size="sm">
-              Delete Challenge
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" disabled={isDeleting}>
+                  {isDeleting ? "Deleting..." : "Delete Challenge"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the challenge
+                    and remove all associated data including participants, tasks, and resources.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                    Delete Challenge
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </CardContent>
       </EnhancedCard>

@@ -125,8 +125,13 @@ export const challengesCommunityApi = {
       const [communityResponse, challengesResponse, userParticipationsResponse, currentUser] = await Promise.allSettled([
         communitiesApi.getBySlug(slug),
         challengesApi.getByCommunity(slug),
-        // Get user participations - backend endpoint: GET /challenges/my-participations?communitySlug=...
-        apiClient.get('/challenges/my-participations', { communitySlug: slug }).catch(() => ({ data: { participations: [] } } as any)),
+        // Get user participations - backend endpoint: GET /challenges/user/my-participations?communitySlug=...
+        // This endpoint requires auth, so we catch 401/403 errors and return empty participations
+        apiClient.get('/challenges/user/my-participations', { communitySlug: slug }).catch((error) => {
+          // Return empty participations for auth errors (user not logged in)
+          console.log('User participations fetch failed (likely not logged in):', error?.message || error);
+          return { data: { participations: [] } } as any;
+        }),
         getMe().catch(() => null),
       ]);
 

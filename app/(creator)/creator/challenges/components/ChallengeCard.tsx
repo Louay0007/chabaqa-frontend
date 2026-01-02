@@ -18,20 +18,26 @@ interface ChallengeCardProps {
 }
 
 export default function ChallengeCard({ challenge }: ChallengeCardProps) {
+  // Ensure dates are Date objects
+  const startDate = challenge.startDate instanceof Date ? challenge.startDate : new Date(challenge.startDate)
+  const endDate = challenge.endDate instanceof Date ? challenge.endDate : new Date(challenge.endDate)
+
   const getChallengeStatus = () => {
     const now = new Date()
-    if (challenge.startDate > now) return "upcoming"
-    if (challenge.endDate < now) return "completed"
+    if (startDate > now) return "upcoming"
+    if (endDate < now) return "completed"
     return "active"
   }
 
-  const formatDate = (date: Date) =>
-    date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  const formatDate = (date: Date | string) => {
+    const d = date instanceof Date ? date : new Date(date)
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  }
 
   const status = getChallengeStatus()
   const daysRemaining = Math.max(
     0,
-    Math.ceil((challenge.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    Math.ceil((endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
   )
 
   return (
@@ -91,7 +97,7 @@ export default function ChallengeCard({ challenge }: ChallengeCardProps) {
           <div className="flex items-center text-muted-foreground">
             <Calendar className="h-4 w-4 mr-2" />
             <div>
-              <div className="font-medium text-foreground">{formatDate(challenge.startDate)}</div>
+              <div className="font-medium text-foreground">{formatDate(startDate)}</div>
               <div>Start Date</div>
             </div>
           </div>
@@ -99,7 +105,7 @@ export default function ChallengeCard({ challenge }: ChallengeCardProps) {
             <Clock className="h-4 w-4 mr-2" />
             <div>
               <div className="font-medium text-foreground">
-                {status === "active" ? `${daysRemaining} days left` : formatDate(challenge.endDate)}
+                {status === "active" ? `${daysRemaining} days left` : formatDate(endDate)}
               </div>
               <div>{status === "active" ? "Remaining" : "End Date"}</div>
             </div>
@@ -145,7 +151,7 @@ export default function ChallengeCard({ challenge }: ChallengeCardProps) {
           </div>
           <div className="flex items-center space-x-2">
             <Button size="sm" variant="outline" asChild>
-              <Link href={`/creator/challenges/${challenge.id}/analytics`}>
+              <Link href={`/creator/challenges/${challenge.id}/manage?tab=analytics`}>
                 <TrendingUp className="h-4 w-4 mr-1" /> Analytics
               </Link>
             </Button>

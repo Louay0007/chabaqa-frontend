@@ -9,20 +9,18 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Upload } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
-import { Challenge } from "@/lib/models"
-
 export default function ChallengeDetailsTab({
   challenge,
   formData,
   onInputChange,
 }: {
-  challenge: Challenge
+  challenge: any
   formData: any
   onInputChange: (field: string, value: any) => void
 }) {
-  const totalParticipants = challenge.participants.length
+  const totalParticipants = challenge.participants?.length || 0
   const totalRewards = (challenge.completionReward || 0) + (challenge.topPerformerBonus || 0)
-  const averageProgress = challenge.participants.reduce((acc, p) => acc + p.progress, 0) / totalParticipants || 0
+  const averageProgress = (challenge.participants || []).reduce((acc: number, p: any) => acc + (p.progress || 0), 0) / totalParticipants || 0
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

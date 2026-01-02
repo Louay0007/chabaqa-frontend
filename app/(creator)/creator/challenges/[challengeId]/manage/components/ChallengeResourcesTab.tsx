@@ -1,4 +1,3 @@
-// app/manage-challenge/[challengeId]/_components/ChallengeResourcesTab.tsx
 "use client"
 
 import { useState } from "react"
@@ -20,28 +19,107 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Resource } from "@/lib/models"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
+interface Resource {
+  id: string
+  title: string
+  type: 'video' | 'article' | 'code' | 'tool' | 'pdf' | 'link'
+  url: string
+  description: string
+  order: number
+}
+
+interface Props {
+  resources: Resource[]
+  onAddResource: (resource: {
+    title: string
+    type: 'video' | 'article' | 'code' | 'tool' | 'pdf' | 'link'
+    url: string
+    description: string
+  }) => Promise<void>
+  onUpdateResource: (resourceId: string, resource: Partial<Resource>) => Promise<void>
+  onDeleteResource: (resourceId: string) => Promise<void>
+}
 
 export default function ChallengeResourcesTab({
   resources,
-}: {
-  resources: Resource[]
-}) {
+  onAddResource,
+  onUpdateResource,
+  onDeleteResource,
+}: Props) {
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editingResource, setEditingResource] = useState<Resource | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   const [newResource, setNewResource] = useState({
     title: "",
-    type: "pdf",
+    type: "pdf" as 'video' | 'article' | 'code' | 'tool' | 'pdf' | 'link',
     url: "",
     description: "",
   })
 
-  const handleAddResource = () => {
-    console.log("Adding resource:", newResource)
+  const resetNewResource = () => {
     setNewResource({
       title: "",
       type: "pdf",
       url: "",
       description: "",
     })
+  }
+
+  const handleAddResource = async () => {
+    if (!newResource.title || !newResource.url) return
+    setIsSubmitting(true)
+    try {
+      await onAddResource({
+        title: newResource.title,
+        type: newResource.type,
+        url: newResource.url,
+        description: newResource.description,
+      })
+      resetNewResource()
+      setIsAddOpen(false)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleEditResource = async () => {
+    if (!editingResource) return
+    setIsSubmitting(true)
+    try {
+      await onUpdateResource(editingResource.id, {
+        title: editingResource.title,
+        type: editingResource.type,
+        url: editingResource.url,
+        description: editingResource.description,
+      })
+      setEditingResource(null)
+      setIsEditOpen(false)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDeleteResource = async (resourceId: string) => {
+    await onDeleteResource(resourceId)
+  }
+
+  const openEditDialog = (resource: Resource) => {
+    setEditingResource({ ...resource })
+    setIsEditOpen(true)
   }
 
   return (
@@ -52,7 +130,7 @@ export default function ChallengeResourcesTab({
             <CardTitle>Challenge Resources</CardTitle>
             <CardDescription>Manage additional resources for your challenge</CardDescription>
           </div>
-          <Dialog>
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -78,7 +156,7 @@ export default function ChallengeResourcesTab({
                   <Label htmlFor="resourceType">Resource Type</Label>
                   <Select
                     value={newResource.type}
-                    onValueChange={(value) => setNewResource((prev) => ({ ...prev, type: value }))}
+                    onValueChange={(value: any) => setNewResource((prev) => ({ ...prev, type: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -113,7 +191,9 @@ export default function ChallengeResourcesTab({
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleAddResource}>Add Resource</Button>
+                <Button onClick={handleAddResource} disabled={isSubmitting}>
+                  {isSubmitting ? "Adding..." : "Add Resource"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -121,41 +201,123 @@ export default function ChallengeResourcesTab({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {resources.map((resource) => (
-            <div key={resource.id} className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center space-x-3">
-                <FileText className="h-5 w-5 text-blue-500" />
-                <div>
-                  <h4 className="font-medium">{resource.title}</h4>
-                  <p className="text-sm text-muted-foreground">{resource.description}</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Badge variant="outline" className="text-xs">
-                  {resource.type}
-                </Badge>
-                <Button variant="ghost" size="sm" asChild>
-                  <a href={resource.url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                </Button>
-                <Button variant="ghost" size="sm">
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" className="text-red-600">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-          {resources.length === 0 && (
+          {resources.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No resources added yet</p>
             </div>
+          ) : (
+            resources.map((resource) => (
+              <div key={resource.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <FileText className="h-5 w-5 text-blue-500" />
+                  <div>
+                    <h4 className="font-medium">{resource.title}</h4>
+                    <p className="text-sm text-muted-foreground">{resource.description}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Badge variant="outline" className="text-xs">
+                    {resource.type}
+                  </Badge>
+                  <Button variant="ghost" size="sm" asChild>
+                    <a href={resource.url} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => openEditDialog(resource)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-red-600">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Resource</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete "{resource.title}"? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteResource(resource.id)} className="bg-red-600">
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </CardContent>
+
+      {/* Edit Resource Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Resource</DialogTitle>
+            <DialogDescription>Update the resource details</DialogDescription>
+          </DialogHeader>
+          {editingResource && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="editResourceTitle">Resource Title</Label>
+                <Input
+                  id="editResourceTitle"
+                  value={editingResource.title}
+                  onChange={(e) => setEditingResource((prev) => prev ? { ...prev, title: e.target.value } : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editResourceType">Resource Type</Label>
+                <Select
+                  value={editingResource.type}
+                  onValueChange={(value: any) => setEditingResource((prev) => prev ? { ...prev, type: value } : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="video">Video</SelectItem>
+                    <SelectItem value="article">Article</SelectItem>
+                    <SelectItem value="code">Code</SelectItem>
+                    <SelectItem value="tool">Tool</SelectItem>
+                    <SelectItem value="pdf">PDF</SelectItem>
+                    <SelectItem value="link">Link</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editResourceUrl">URL</Label>
+                <Input
+                  id="editResourceUrl"
+                  value={editingResource.url}
+                  onChange={(e) => setEditingResource((prev) => prev ? { ...prev, url: e.target.value } : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editResourceDescription">Description</Label>
+                <Textarea
+                  id="editResourceDescription"
+                  value={editingResource.description}
+                  onChange={(e) => setEditingResource((prev) => prev ? { ...prev, description: e.target.value } : null)}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+            <Button onClick={handleEditResource} disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </EnhancedCard>
   )
 }

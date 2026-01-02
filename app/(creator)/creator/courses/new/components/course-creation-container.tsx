@@ -11,6 +11,7 @@ import { NavigationButtons } from "./navigation-buttons"
 import { PageHeader } from "./page-header"
 import { api, apiClient } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 
 interface CourseChapterForm {
   id: string
@@ -35,6 +36,9 @@ export function CourseCreationContainer() {
   const router = useRouter()
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
+  
+  // Use the selected community from context
+  const { selectedCommunity, selectedCommunityId, isLoading: communityLoading } = useCreatorCommunity()
 
   const [formData, setFormData] = useState({
     title: "",
@@ -168,19 +172,11 @@ export function CourseCreationContainer() {
   }
 
   useEffect(() => {
-    // Preload creator's first community slug to attach the course
-    const loadCommunity = async () => {
-      try {
-        const me = await api.auth.me().catch(() => null as any)
-        const user = me?.data || (me as any)?.user || null
-        if (!user) return
-        const myComms = await api.communities.getMyCreated().catch(() => null as any)
-        const first = (myComms?.data || [])[0]
-        if (first?.slug) setFormData(prev => ({ ...prev, communitySlug: first.slug }))
-      } catch { }
+    // Use the selected community from context
+    if (selectedCommunity?.slug) {
+      setFormData(prev => ({ ...prev, communitySlug: selectedCommunity.slug }))
     }
-    loadCommunity()
-  }, [])
+  }, [selectedCommunity])
 
   const handleSubmit = async () => {
     try {

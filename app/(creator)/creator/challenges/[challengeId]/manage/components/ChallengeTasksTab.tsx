@@ -18,15 +18,57 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ChallengeTask } from "@/lib/models"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
+interface ChallengeTask {
+  id: string
+  day: number
+  title: string
+  description: string
+  deliverable: string
+  isCompleted: boolean
+  isActive: boolean
+  points: number
+  instructions: string
+  notes?: string
+}
+
+interface Props {
+  challengeTasks: ChallengeTask[]
+  onAddTask: (task: {
+    day: number
+    title: string
+    description: string
+    deliverable: string
+    points: number
+    instructions: string
+    notes?: string
+  }) => Promise<void>
+  onUpdateTask: (taskId: string, task: Partial<ChallengeTask>) => Promise<void>
+  onDeleteTask: (taskId: string) => Promise<void>
+}
 
 export default function ChallengeTasksTab({
   challengeTasks,
-  challengeId,
-}: {
-  challengeTasks: ChallengeTask[]
-  challengeId: string
-}) {
+  onAddTask,
+  onUpdateTask,
+  onDeleteTask,
+}: Props) {
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editingTask, setEditingTask] = useState<ChallengeTask | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   const [newTask, setNewTask] = useState({
     day: "",
     title: "",
@@ -37,8 +79,7 @@ export default function ChallengeTasksTab({
     notes: "",
   })
 
-  const handleAddTask = () => {
-    console.log("Adding task:", newTask)
+  const resetNewTask = () => {
     setNewTask({
       day: "",
       title: "",
@@ -50,6 +91,55 @@ export default function ChallengeTasksTab({
     })
   }
 
+  const handleAddTask = async () => {
+    if (!newTask.title || !newTask.day) return
+    setIsSubmitting(true)
+    try {
+      await onAddTask({
+        day: Number(newTask.day),
+        title: newTask.title,
+        description: newTask.description,
+        deliverable: newTask.deliverable,
+        points: Number(newTask.points) || 0,
+        instructions: newTask.instructions,
+        notes: newTask.notes || undefined,
+      })
+      resetNewTask()
+      setIsAddOpen(false)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleEditTask = async () => {
+    if (!editingTask) return
+    setIsSubmitting(true)
+    try {
+      await onUpdateTask(editingTask.id, {
+        day: editingTask.day,
+        title: editingTask.title,
+        description: editingTask.description,
+        deliverable: editingTask.deliverable,
+        points: editingTask.points,
+        instructions: editingTask.instructions,
+        notes: editingTask.notes,
+      })
+      setEditingTask(null)
+      setIsEditOpen(false)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDeleteTask = async (taskId: string) => {
+    await onDeleteTask(taskId)
+  }
+
+  const openEditDialog = (task: ChallengeTask) => {
+    setEditingTask({ ...task })
+    setIsEditOpen(true)
+  }
+
   return (
     <EnhancedCard>
       <CardHeader>
@@ -58,7 +148,7 @@ export default function ChallengeTasksTab({
             <CardTitle>Daily Tasks</CardTitle>
             <CardDescription>Manage the daily tasks for your challenge</CardDescription>
           </div>
-          <Dialog>
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -144,7 +234,9 @@ export default function ChallengeTasksTab({
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleAddTask}>Add Task</Button>
+                <Button onClick={handleAddTask} disabled={isSubmitting}>
+                  {isSubmitting ? "Adding..." : "Add Task"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -152,39 +244,147 @@ export default function ChallengeTasksTab({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {challengeTasks.map((task) => (
-            <div key={task.id} className="border rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-3">
-                  <Badge variant="outline">Day {task.day}</Badge>
-                  <h3 className="font-semibold">{task.title}</h3>
-                  <Badge variant="secondary">{task.points} pts</Badge>
-                  {task.isActive && <Badge className="bg-green-500">Active</Badge>}
-                  {task.isCompleted && <Badge className="bg-blue-500">Completed</Badge>}
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm">
-                    <Edit className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
-                  <Button variant="outline" size="sm" className="text-red-600 bg-transparent">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <p className="text-muted-foreground text-sm mb-2">{task.description}</p>
-              <div className="text-sm">
-                <strong>Deliverable:</strong> {task.deliverable}
-              </div>
-              {task.notes && (
-                <div className="text-sm mt-2 p-2 bg-blue-50 rounded">
-                  <strong>Notes:</strong> {task.notes}
-                </div>
-              )}
+          {challengeTasks.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No tasks added yet. Click "Add Task" to create your first task.</p>
             </div>
-          ))}
+          ) : (
+            challengeTasks.map((task) => (
+              <div key={task.id} className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <Badge variant="outline">Day {task.day}</Badge>
+                    <h3 className="font-semibold">{task.title}</h3>
+                    <Badge variant="secondary">{task.points} pts</Badge>
+                    {task.isActive && <Badge className="bg-green-500">Active</Badge>}
+                    {task.isCompleted && <Badge className="bg-blue-500">Completed</Badge>}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button variant="outline" size="sm" onClick={() => openEditDialog(task)}>
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="text-red-600 bg-transparent">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Task</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{task.title}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteTask(task.id)} className="bg-red-600">
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+                <p className="text-muted-foreground text-sm mb-2">{task.description}</p>
+                <div className="text-sm">
+                  <strong>Deliverable:</strong> {task.deliverable}
+                </div>
+                {task.notes && (
+                  <div className="text-sm mt-2 p-2 bg-blue-50 rounded">
+                    <strong>Notes:</strong> {task.notes}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </CardContent>
+
+      {/* Edit Task Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+            <DialogDescription>Update the task details</DialogDescription>
+          </DialogHeader>
+          {editingTask && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="editTaskDay">Day</Label>
+                  <Input
+                    id="editTaskDay"
+                    type="number"
+                    value={editingTask.day}
+                    onChange={(e) => setEditingTask((prev) => prev ? { ...prev, day: Number(e.target.value) } : null)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editTaskPoints">Points</Label>
+                  <Input
+                    id="editTaskPoints"
+                    type="number"
+                    value={editingTask.points}
+                    onChange={(e) => setEditingTask((prev) => prev ? { ...prev, points: Number(e.target.value) } : null)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editTaskTitle">Task Title</Label>
+                <Input
+                  id="editTaskTitle"
+                  value={editingTask.title}
+                  onChange={(e) => setEditingTask((prev) => prev ? { ...prev, title: e.target.value } : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editTaskDescription">Description</Label>
+                <Textarea
+                  id="editTaskDescription"
+                  rows={3}
+                  value={editingTask.description}
+                  onChange={(e) => setEditingTask((prev) => prev ? { ...prev, description: e.target.value } : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editTaskDeliverable">Deliverable</Label>
+                <Textarea
+                  id="editTaskDeliverable"
+                  rows={2}
+                  value={editingTask.deliverable}
+                  onChange={(e) => setEditingTask((prev) => prev ? { ...prev, deliverable: e.target.value } : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editTaskInstructions">Instructions</Label>
+                <Textarea
+                  id="editTaskInstructions"
+                  rows={4}
+                  value={editingTask.instructions}
+                  onChange={(e) => setEditingTask((prev) => prev ? { ...prev, instructions: e.target.value } : null)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editTaskNotes">Notes</Label>
+                <Textarea
+                  id="editTaskNotes"
+                  rows={2}
+                  value={editingTask.notes || ""}
+                  onChange={(e) => setEditingTask((prev) => prev ? { ...prev, notes: e.target.value } : null)}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+            <Button onClick={handleEditTask} disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </EnhancedCard>
   )
 }

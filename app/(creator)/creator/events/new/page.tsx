@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { eventsApi, type CreateEventData } from "@/lib/api/events.api"
+import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 
 interface Step {
   id: number
@@ -56,7 +57,10 @@ export default function CreateEventPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [startDate, setStartDate] = useState<Date>()
   const [endDate, setEndDate] = useState<Date>()
-  const [communityId, setCommunityId] = useState<string>("")
+  
+  // Use the selected community from context
+  const { selectedCommunity, selectedCommunityId } = useCreatorCommunity()
+  const communityId = selectedCommunityId || ""
 
   const [formData, setFormData] = useState<EventFormData>({
     title: "",
@@ -152,20 +156,6 @@ export default function CreateEventPage() {
       tickets: prev.tickets.filter((_: any, i: number) => i !== index),
     }))
   }
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const me = await api.auth.me().catch(() => null as any)
-        const user = me?.data || (me as any)?.user || null
-        if (!user) return
-        const myComms = await api.communities.getMyCreated().catch(() => null as any)
-        const first = (myComms?.data || [])[0]
-        if (first?.id || first?._id) setCommunityId(first.id || first._id)
-      } catch {}
-    }
-    load()
-  }, [])
 
   const handleSubmit = async () => {
     try {
