@@ -42,12 +42,12 @@ export function FeaturedCommunities({ communities }: FeaturedCommunitiesProps) {
   }
 
   return (
-      <section className="py-3 bg-white">
+      <section className="py-1 bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Compact Header */}
         <div className="text-center mb-2">
 
-          <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-3">
+          <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-3">
             <span className="bg-gradient-to-r from-chabaqa-primary to-chabaqa-secondary1 bg-clip-text text-transparent">
               Dive Into What Moves You
             </span>

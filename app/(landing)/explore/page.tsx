@@ -89,7 +89,7 @@ export default async function CommunitiesPage() {
     <div className="min-h-screen bg-white">
       <Header />
 
-      <main className="pt-16">
+      <main className="pt-2">
         <ExplorePageClient communities={exploreCommunities} />
       </main>
 
