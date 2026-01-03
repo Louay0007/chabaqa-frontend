@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Users, Trophy, Clock } from "lucide-react"
 import { apiClient } from "@/lib/api"
+import { resolveImageUrl } from "@/lib/hooks/useUser"
 
 interface Participant {
   id: string
@@ -91,7 +92,7 @@ export default function ChallengeParticipantsTab({ participants, challengeId }: 
                   <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                     {participant.user?.avatar ? (
                       <img 
-                        src={participant.user.avatar} 
+                        src={resolveImageUrl(participant.user.avatar) || '/placeholder.svg'} 
                         alt={participant.user?.name || 'User'} 
                         className="w-full h-full object-cover"
                       />

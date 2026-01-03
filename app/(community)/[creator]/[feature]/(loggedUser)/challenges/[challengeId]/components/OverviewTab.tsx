@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Flame } from "lucide-react"
+import { Flame, ListTodo } from "lucide-react"
 import CurrentTask from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/[challengeId]/components/CurrentTask"
 import ChallengeInfo from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/[challengeId]/components/ChallengeInfo"
 import ChallengeResources from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/[challengeId]/components/ChallengeResources"
@@ -21,17 +21,37 @@ export default function OverviewTab({
   setSelectedTaskDay 
 }: OverviewTabProps) {
   const completedTasks = challengeTasks.filter((t) => t.isCompleted).length
-  const totalPoints = challengeTasks.filter((t) => t.isCompleted).reduce((acc, task) => acc + task.points, 0)
+  const totalPoints = challengeTasks.filter((t) => t.isCompleted).reduce((acc, task) => acc + (task.points || 0), 0)
+  const totalTasks = challengeTasks.length || 1 // Avoid division by zero
+  const progressPercent = Math.round((completedTasks / totalTasks) * 100)
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Current Challenge Task */}
       <div className="lg:col-span-2">
-        <CurrentTask 
-          challengeTasks={challengeTasks} 
-          selectedTaskDay={selectedTaskDay} 
-          setSelectedTaskDay={setSelectedTaskDay} 
-        />
+        {challengeTasks.length > 0 ? (
+          <CurrentTask 
+            challengeTasks={challengeTasks} 
+            selectedTaskDay={selectedTaskDay} 
+            setSelectedTaskDay={setSelectedTaskDay} 
+          />
+        ) : (
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <ListTodo className="h-5 w-5 mr-2 text-challenges-500" />
+                Challenge Tasks
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <ListTodo className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No tasks available yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Tasks will appear here once the creator adds them</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Progress & Stats */}
@@ -44,16 +64,16 @@ export default function OverviewTab({
           <CardContent className="space-y-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-challenges-600">
-                {Math.round((completedTasks / challengeTasks.length) * 100)}%
+                {progressPercent}%
               </div>
               <div className="text-sm text-muted-foreground">Challenge Complete</div>
             </div>
-            <Progress value={(completedTasks / challengeTasks.length) * 100} className="h-3" />
+            <Progress value={progressPercent} className="h-3" />
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span>Days Completed</span>
+                <span>Tasks Completed</span>
                 <span className="font-medium">
-                  {completedTasks}/{challengeTasks.length}
+                  {completedTasks}/{totalTasks}
                 </span>
               </div>
               <div className="flex justify-between">

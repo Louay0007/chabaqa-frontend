@@ -7,6 +7,7 @@ import ChallengeTabs from "@/app/(community)/[creator]/[feature]/(loggedUser)/ch
 
 interface ChallengeDetailPageContentProps {
   slug: string
+  creatorSlug?: string
   community: any
   challenge: any
   challengeTasks: any[]
@@ -14,6 +15,7 @@ interface ChallengeDetailPageContentProps {
 
 export default function ChallengeDetailPageContent({ 
   slug, 
+  creatorSlug,
   community, 
   challenge, 
   challengeTasks 
@@ -28,7 +30,7 @@ export default function ChallengeDetailPageContent({
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        <BackButton slug={slug} />
+        <BackButton slug={slug} creatorSlug={creatorSlug} />
         <ChallengeHeader challenge={challenge} challengeTasks={challengeTasks} />
         <ChallengeTabs
           activeTab={activeTab}

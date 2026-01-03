@@ -1,22 +1,82 @@
+"use client"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Trophy, Flame } from "lucide-react"
+import { Trophy, Flame, Users } from "lucide-react"
+import { tokenStorage } from "@/lib/token-storage"
+import { useEffect, useState } from "react"
+import { resolveImageUrl } from "@/lib/hooks/useUser"
 
-export default function LeaderboardTab() {
-  const leaderboard = [
-    { rank: 1, name: "Alex Thompson", avatar: "/placeholder.svg?height=32&width=32", points: 2850, streak: 19 },
-    { rank: 2, name: "Sarah Kim", avatar: "/placeholder.svg?height=32&width=32", points: 2720, streak: 18 },
-    { rank: 3, name: "David Chen", avatar: "/placeholder.svg?height=32&width=32", points: 2680, streak: 19 },
-    {
-      rank: 47,
-      name: "Mike Chen",
-      avatar: "/placeholder.svg?height=32&width=32",
-      points: 1850,
-      streak: 18,
-      isCurrentUser: true,
-    },
-  ]
+interface LeaderboardTabProps {
+  challenge: any
+}
+
+export default function LeaderboardTab({ challenge }: LeaderboardTabProps) {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const userInfo = tokenStorage.getUserInfo()
+    if (userInfo?.id) {
+      setCurrentUserId(userInfo.id)
+    }
+  }, [])
+
+  // Debug: Log participant data to see what we're receiving
+  useEffect(() => {
+    console.log('[LeaderboardTab] Challenge participants:', challenge.participants)
+    if (challenge.participants?.length > 0) {
+      console.log('[LeaderboardTab] First participant:', JSON.stringify(challenge.participants[0], null, 2))
+    }
+  }, [challenge.participants])
+
+  // Sort participants by score (descending)
+  const sortedParticipants = [...(challenge.participants || [])]
+    .sort((a, b) => (b.score || 0) - (a.score || 0))
+    .map((p, index) => {
+      // Debug: Log each participant's avatar field
+      const resolvedAvatar = resolveImageUrl(p.avatar)
+      console.log(`[LeaderboardTab] Participant ${p.name}: avatar="${p.avatar}", resolved="${resolvedAvatar}"`)
+      return {
+        ...p,
+        rank: index + 1,
+        resolvedAvatar, // Store resolved avatar
+        isCurrentUser: currentUserId && (
+          String(p.userId) === String(currentUserId) ||
+          String(p.userId?._id) === String(currentUserId)
+        ),
+      }
+    })
+
+  // Get top 10 and current user if not in top 10
+  const topParticipants = sortedParticipants.slice(0, 10)
+  const currentUserParticipant = sortedParticipants.find(p => p.isCurrentUser)
+  
+  // If current user is not in top 10, add them at the end
+  const displayParticipants = currentUserParticipant && currentUserParticipant.rank > 10
+    ? [...topParticipants, currentUserParticipant]
+    : topParticipants
+
+  if (sortedParticipants.length === 0) {
+    return (
+      <Card className="border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Trophy className="h-5 w-5 mr-2 text-yellow-500" />
+            Challenge Leaderboard
+          </CardTitle>
+          <CardDescription>See how you rank against other participants</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">No participants yet</p>
+            <p className="text-sm text-muted-foreground mt-1">Be the first to join this challenge!</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card className="border-0 shadow-sm">
@@ -25,13 +85,15 @@ export default function LeaderboardTab() {
           <Trophy className="h-5 w-5 mr-2 text-yellow-500" />
           Challenge Leaderboard
         </CardTitle>
-        <CardDescription>See how you rank against other participants</CardDescription>
+        <CardDescription>
+          {sortedParticipants.length} participant{sortedParticipants.length !== 1 ? 's' : ''} competing
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {leaderboard.map((participant) => (
+          {displayParticipants.map((participant) => (
             <div
-              key={participant.rank}
+              key={participant.id || participant.rank}
               className={`flex items-center space-x-4 p-4 rounded-lg ${
                 participant.isCurrentUser ? "bg-primary-50 border border-primary-200" : "bg-gray-50"
               }`}
@@ -50,17 +112,19 @@ export default function LeaderboardTab() {
                 {participant.rank}
               </div>
               <Avatar className="h-10 w-10">
-                <AvatarImage src={participant.avatar || "/placeholder.svg"} />
+                <AvatarImage src={participant.resolvedAvatar || "/placeholder.svg"} />
                 <AvatarFallback>
-                  {participant.name
+                  {(participant.name || 'U')
                     .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
+                    .map((n: string) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <div className="font-semibold flex items-center">
-                  {participant.name}
+                  {participant.name || 'Anonymous'}
                   {participant.isCurrentUser && (
                     <Badge variant="secondary" className="ml-2 text-xs">
                       You
@@ -68,14 +132,16 @@ export default function LeaderboardTab() {
                   )}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {participant.points} points • {participant.streak} day streak
+                  {participant.score || 0} points • {participant.completedTasks?.length || 0} tasks completed
                 </div>
               </div>
               <div className="text-right">
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Flame className="h-4 w-4 mr-1 text-orange-500" />
-                  {participant.streak}
-                </div>
+                {participant.streak > 0 && (
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Flame className="h-4 w-4 mr-1 text-orange-500" />
+                    {participant.streak}
+                  </div>
+                )}
               </div>
             </div>
           ))}

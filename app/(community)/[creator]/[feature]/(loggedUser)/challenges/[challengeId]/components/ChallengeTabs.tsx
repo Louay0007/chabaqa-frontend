@@ -51,7 +51,7 @@ export default function ChallengeTabs({
       </TabsContent>
 
       <TabsContent value="leaderboard" className="space-y-6">
-        <LeaderboardTab />
+        <LeaderboardTab challenge={challenge} />
       </TabsContent>
 
       <TabsContent value="submissions" className="space-y-6">
