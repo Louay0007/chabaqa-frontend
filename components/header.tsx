@@ -11,14 +11,19 @@ import { logoutAction } from "@/app/(auth)/signin/actions"
 import Image from "next/image"
 import { useAuth } from "@/hooks/use-auth"
 
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [error, setError] = useState("")
+  const [isFeaturesOpen, setIsFeaturesOpen] = useState(false)
+  let closeTimeout: NodeJS.Timeout
   const router = useRouter()
   const { user: authUser, loading, logout } = useAuth()
   const isAuthenticated = !!authUser
   const profileHandle = ((authUser?.email || "").split("@")[0]) || "user"
+  const featuresGroup = siteData.navigationGroups.find(group => group.title === "Features")
 
   const groups = siteData.navigationGroups
 
@@ -35,6 +40,17 @@ export function Header() {
       setIsLoggingOut(false)
     }
   }
+
+  const handleFeaturesMouseEnter = () => {
+    clearTimeout(closeTimeout);
+    setIsFeaturesOpen(true);
+  };
+
+  const handleFeaturesMouseLeave = () => {
+    closeTimeout = setTimeout(() => {
+      setIsFeaturesOpen(false);
+    }, 200); // 200ms delay
+  };
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(min-width: 1024px)")
@@ -66,10 +82,42 @@ export function Header() {
               <Link href="/explore" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Explore</Link>
               <Link href="/#pricing" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Pricing</Link>
               <Link href="/#about" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">About</Link>
-              <button className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors flex items-center gap-x-1" type="button">
-                Features
-                <ChevronDown className="w-4 h-4" />
-              </button>
+              
+              <Popover open={isFeaturesOpen} onOpenChange={setIsFeaturesOpen}>
+                <PopoverTrigger asChild>
+                  <div
+                    onMouseEnter={handleFeaturesMouseEnter}
+                    onMouseLeave={handleFeaturesMouseLeave}
+                  >
+                    <button
+                      className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors flex items-center gap-x-1"
+                      type="button"
+                    >
+                      Features
+                      <ChevronDown className={`w-4 h-4 transition-transform ${isFeaturesOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-56 p-2"
+                  onMouseEnter={handleFeaturesMouseEnter}
+                  onMouseLeave={handleFeaturesMouseLeave}
+                  align="start"
+                >
+                  <div className="flex flex-col space-y-1">
+                    {featuresGroup?.items.map((item) => (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 rounded transition-colors whitespace-normal break-words"
+                        onClick={() => setIsFeaturesOpen(false)}
+                      >
+                        {item.name}
+                      </Link>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Right: Desktop actions (auth-aware) */}
