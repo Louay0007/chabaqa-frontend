@@ -117,14 +117,14 @@ function IconBadge({
 }) {
   return (
     <div
-      className={`relative flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br ${gradient} text-white shadow-lg ring-1 ring-black/5 group-hover:shadow-xl group-hover:scale-105 transition-all duration-300`}
+      className={`relative flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br ${gradient} text-white shadow-md ring-1 ring-black/5 group-hover:shadow-lg group-hover:scale-110 transition-all duration-300`}
       style={style}
       aria-hidden="true"
     >
-      <div className="absolute inset-0 rounded-2xl pointer-events-none [mask-image:radial-gradient(circle_at_30%_20%,white,transparent_70%)] opacity-90" />
-      <div className="absolute inset-[2px] rounded-[14px] bg-white/5 backdrop-blur-[1px]" />
+      <div className="absolute inset-0 rounded-lg pointer-events-none [mask-image:radial-gradient(circle_at_30%_20%,white,transparent_70%)] opacity-90" />
+      <div className="absolute inset-[1px] rounded-[10px] bg-white/5 backdrop-blur-[1px]" />
       <div className="relative z-10 flex w-full h-full items-center justify-center">
-        <Icon className="w-8 h-8" strokeWidth={1.6} />
+        <Icon className="w-6 h-6" strokeWidth={1.6} />
       </div>
     </div>
   )
@@ -313,22 +313,49 @@ export function CommunityOverview({ community, overviewContent }: CommunityOverv
   const overviewItems = dynamicCards.length > 0 ? dynamicCards : getFallbackItems()
 
   return (
-    <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-5">
       {overviewItems.map((item, index) => {
         const IconComponent = item.iconComponent
+        const colorMap: Record<string, string> = {
+          "from-blue-500 to-blue-600": "from-blue-50 to-blue-100/50",
+          "from-purple-500 to-purple-600": "from-purple-50 to-purple-100/50",
+          "from-green-500 to-green-600": "from-green-50 to-green-100/50",
+          "from-pink-500 to-pink-600": "from-pink-50 to-pink-100/50",
+          "from-orange-500 to-orange-600": "from-orange-50 to-orange-100/50",
+          "from-yellow-500 to-yellow-600": "from-yellow-50 to-yellow-100/50",
+          "from-indigo-500 to-indigo-600": "from-indigo-50 to-indigo-100/50",
+          "from-cyan-500 to-cyan-600": "from-cyan-50 to-cyan-100/50",
+          "from-red-500 to-red-600": "from-red-50 to-red-100/50",
+          "from-[#8e78fb] to-[#f48fb1]": "from-purple-50 to-pink-50",
+        }
+        const bgGradient = colorMap[item.color] || "from-white to-gray-50/50"
+        const borderColorMap: Record<string, string> = {
+          "from-blue-500 to-blue-600": "border-blue-200 hover:border-blue-300",
+          "from-purple-500 to-purple-600": "border-purple-200 hover:border-purple-300",
+          "from-green-500 to-green-600": "border-green-200 hover:border-green-300",
+          "from-pink-500 to-pink-600": "border-pink-200 hover:border-pink-300",
+          "from-orange-500 to-orange-600": "border-orange-200 hover:border-orange-300",
+          "from-yellow-500 to-yellow-600": "border-yellow-200 hover:border-yellow-300",
+          "from-indigo-500 to-indigo-600": "border-indigo-200 hover:border-indigo-300",
+          "from-cyan-500 to-cyan-600": "border-cyan-200 hover:border-cyan-300",
+          "from-red-500 to-red-600": "border-red-200 hover:border-red-300",
+          "from-[#8e78fb] to-[#f48fb1]": "border-purple-200 hover:border-pink-300",
+        }
+        const borderColor = borderColorMap[item.color] || "border-gray-200 hover:border-purple-200"
+        
         return (
           <Card
             key={index}
-            className="group bg-white border border-gray-200 hover:border-gray-300 p-6 rounded-2xl transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+            className={`group bg-gradient-to-br ${bgGradient} border ${borderColor} p-5 rounded-xl transition-all duration-300 hover:shadow-md hover:-translate-y-0.5`}
           >
-            <div className="flex items-start gap-4">
+            <div className="flex items-start gap-3.5">
               {IconComponent && (
                 <IconBadge Icon={IconComponent} gradient={item.color} style={item.iconStyle} />
               )}
               <div className="flex-1">
-                <p className="font-semibold text-gray-900 leading-relaxed">{item.title}</p>
+                <p className="font-semibold text-sm text-gray-900 leading-relaxed">{item.title}</p>
                 {item.description && (
-                  <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                  <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">{item.description}</p>
                 )}
               </div>
             </div>

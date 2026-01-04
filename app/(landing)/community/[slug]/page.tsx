@@ -11,6 +11,8 @@ import {
   getCommunityPageContent,
   type PageContent,
 } from "@/lib/api/community-page-content"
+import Image from "next/image"
+import Link from "next/link"
 
 // Resolve image URLs from API or absolute paths
 function resolveImageUrl(raw?: string, apiBase?: string): string {
@@ -68,8 +70,8 @@ function normalizePageContent(
 }
 
 export default async function CommunityDetailsPage({ params }: CommunityDetailsPageProps) {
-  // Extract slug from params (server component props are sync)
-  const { slug } = params
+  // Extract slug from params (params must be awaited in Next.js 15)
+  const { slug } = await params
   
   let community = null
 
@@ -206,9 +208,7 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
 
   return (
     <div className="min-h-screen bg-white">
-      <Header />
-      
-      <main className="pt-16">
+      <main>
         <CommunityHero 
           community={{
             ...communityData,
@@ -220,12 +220,12 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
         />
 
         {shouldRenderOverview && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center max-w-3xl mx-auto">
-              <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-18">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-gray-900">
                 {overviewTitle}
               </h2>
-              <p className="mt-4 text-lg text-gray-600">{overviewSubtitle}</p>
+              <p className="mt-3 text-sm sm:text-base text-gray-600 font-light">{overviewSubtitle}</p>
           </div>
             <CommunityOverview community={communityData} overviewContent={overviewContent} />
         </section>

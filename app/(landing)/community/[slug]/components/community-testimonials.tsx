@@ -56,40 +56,40 @@ export function CommunityTestimonials({ community, testimonialsContent }: Commun
   const showRatings = testimonialsContent?.showRatings ?? true
 
   return (
-    <section className="py-24 bg-white min-h-screen">
+    <section className="py-16 sm:py-20 bg-gradient-to-b from-gray-50/50 via-white to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">{title}</h2>
-          <p className="mt-4 text-lg text-gray-600">{subtitle}</p>
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-gray-900">{title}</h2>
+          <p className="mt-3 text-sm sm:text-base text-gray-600 font-light">{subtitle}</p>
         </div>
 
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
           {testimonials.map((testimonial, index) => (
-            <Card key={index} className="bg-white border border-gray-200 p-8 rounded-2xl shadow-sm">
+            <Card key={index} className="bg-gradient-to-br from-white to-gray-50/50 border border-gray-200 hover:border-purple-200 p-5 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
               {showRatings && (
-                <div className="flex text-amber-400 mb-4">
+                <div className="flex text-amber-400 mb-3 gap-0.5">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-current" />
+                    <Star key={i} className="w-4 h-4 fill-current" />
                   ))}
                 </div>
               )}
 
-              <p className="text-gray-600 mb-6">"{testimonial.text}"</p>
+              <p className="text-gray-600 text-sm mb-4 leading-relaxed">"{testimonial.text}"</p>
 
               <div className="flex items-center">
-                <div className="relative h-10 w-10 rounded-full overflow-hidden mr-4">
+                <div className="relative h-9 w-9 rounded-full overflow-hidden mr-3 flex-shrink-0 ring-2 ring-purple-100">
                   <Image
                     src={testimonial.avatar}
                     alt={`Profile picture of ${testimonial.name}`}
                     fill
                     className="object-cover"
-                    sizes="40px"
+                    sizes="36px"
                   />
                 </div>
 
-                <div>
-                  <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                  <p className="text-sm text-gray-500">{testimonial.role}</p>
+                <div className="min-w-0">
+                  <p className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{testimonial.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{testimonial.role}</p>
                 </div>
               </div>
             </Card>
