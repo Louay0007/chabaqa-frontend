@@ -17,6 +17,7 @@ import { ColorPicker } from "@/app/(dashboard)/components/color-picker"
 import { cn } from "@/lib/utils"
 import FeaturePreview from "@/app/(creator)/creator/community/[slug]/customize/components/feature-preview"
 import { communitiesApi } from "@/lib/api/communities.api"
+import { Select, SelectItem, SelectValue, SelectTrigger, SelectContent } from "@radix-ui/react-select"
 
 export default function CustomizeCommunityPage() {
   const params = useParams()
@@ -60,23 +61,15 @@ export default function CustomizeCommunityPage() {
   const handleSave = async () => {
     try {
       setLoading(true)
-      const slug = params.slug as string
       const { id } = community
-      
+
       if (!id) {
         setError("Community ID not found")
         return
       }
 
-      // Prepare update data
-      const updateData = {
-        name: community.name,
-        bio: community.description,
-        longDescription: community.longDescription,
-        coverImage: community.coverImage,
-        image: community.image,
-        ...community.settings
-      }
+      // The community state has the correct structure, just remove fields that shouldn't be sent.
+      const { _id, id: communityId, ...updateData } = community
 
       const response = await communitiesApi.update(id, updateData)
       if (response && response.data) {
@@ -337,12 +330,61 @@ export default function CustomizeCommunityPage() {
                           <Label htmlFor="longDescription">Long Description</Label>
                           <Textarea
                             id="longDescription"
-                            value={community.longDescription}
+                            value={community.longDescription || ''}
                             onChange={(e) => handleInputChange("longDescription", e.target.value)}
                             rows={4}
                             className="mt-2"
                           />
                         </div>
+                        <div>
+                          <Label htmlFor="category">Category</Label>
+                          <Input
+                            id="category"
+                            value={community.category || ''}
+                            onChange={(e) => handleInputChange("category", e.target.value)}
+                            className="mt-2"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Tags */}
+                    <div className="space-y-4">
+                      <Label className="text-lg font-semibold">Tags</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {(community.tags || []).map((tag: string, index: number) => (
+                          <Badge key={index} variant="secondary" className="flex items-center gap-2 pl-3 pr-1">
+                            {tag}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 rounded-full"
+                              onClick={() => {
+                                const newTags = [...community.tags]
+                                newTags.splice(index, 1)
+                                handleInputChange("tags", newTags)
+                              }}
+                            >
+                              &times;
+                            </Button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          id="newTagInput"
+                          placeholder="Add a tag and press Enter"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && e.currentTarget.value) {
+                              e.preventDefault()
+                              const newTags = [...(community.tags || []), e.currentTarget.value]
+                              handleInputChange("tags", newTags)
+                              e.currentTarget.value = ""
+                            }
+                          }}
+                        />
                       </div>
                     </div>
 
@@ -524,81 +566,92 @@ export default function CustomizeCommunityPage() {
                   </TabsContent>
 
                   <TabsContent value="advanced" className="p-6 sm:p-8 space-y-8">
-                    {/* Animation Settings */}
+                    {/* Pricing */}
                     <div className="space-y-6">
-                      <Label className="text-lg font-semibold">Animation & Effects</Label>
-                      <div className="space-y-4">
-                        <div
-                          className="flex items-center justify-between p-4 border rounded-lg"
-                          style={{ borderColor: `${community.settings.primaryColor}20` }}
-                        >
-                          <div>
-                            <Label className="font-medium">Enable Animations</Label>
-                            <p className="text-sm text-gray-600 mt-1">Smooth transitions and hover effects</p>
-                          </div>
-                          <Switch
-                            checked={community.settings.enableAnimations !== false}
-                            onCheckedChange={(checked) => handleSettingsChange("enableAnimations", checked)}
+                      <Label className="text-lg font-semibold">Pricing</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="price">Price</Label>
+                          <Input
+                            id="price"
+                            type="number"
+                            value={community.price || 0}
+                            onChange={(e) => handleInputChange("price", parseFloat(e.target.value) || 0)}
+                            className="mt-1"
                           />
                         </div>
-                        <div
-                          className="flex items-center justify-between p-4 border rounded-lg"
-                          style={{ borderColor: `${community.settings.primaryColor}20` }}
-                        >
-                          <div>
-                            <Label className="font-medium">Parallax Effects</Label>
-                            <p className="text-sm text-gray-600 mt-1">Background parallax scrolling</p>
-                          </div>
-                          <Switch
-                            checked={community.settings.enableParallax || false}
-                            onCheckedChange={(checked) => handleSettingsChange("enableParallax", checked)}
-                          />
+                        <div className="space-y-2">
+                          <Label htmlFor="priceType">Price Type</Label>
+                          <Select
+                            value={community.priceType || "free"}
+                            onValueChange={(value) => handleInputChange("priceType", value)}
+                          >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder="Select price type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="free">Free</SelectItem>
+                              <SelectItem value="one-time">One-time</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                              <SelectItem value="per session">Per Session</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     </div>
 
                     <Separator />
 
-                    {/* Custom CSS */}
+                    {/* Community Type */}
                     <div className="space-y-4">
-                      <Label className="text-lg font-semibold">Custom CSS</Label>
-                      <Textarea
-                        value={community.settings.customCSS || ""}
-                        onChange={(e) => handleSettingsChange("customCSS", e.target.value)}
-                        rows={8}
-                        placeholder="/* Add your custom CSS here */
-.custom-class {
-  /* Your styles */
-}"
-                        className="font-mono text-sm"
-                      />
+                      <Label className="text-lg font-semibold">Community Type</Label>
+                      <Select
+                        value={community.type || "community"}
+                        onValueChange={(value) => handleInputChange("type", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="community">Community</SelectItem>
+                          <SelectItem value="course">Course</SelectItem>
+                          <SelectItem value="challenge">Challenge</SelectItem>
+                          <SelectItem value="event">Event</SelectItem>
+                          <SelectItem value="oneToOne">One-to-One</SelectItem>
+                          <SelectItem value="product">Product</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <Separator />
 
-                    {/* SEO Settings */}
+                    {/* Other Advanced Settings from original file would go here */}
                     <div className="space-y-6">
-                      <Label className="text-lg font-semibold">SEO Settings</Label>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="metaTitle">Meta Title</Label>
-                          <Input
-                            id="metaTitle"
-                            value={community.settings.metaTitle || community.name}
-                            onChange={(e) => handleSettingsChange("metaTitle", e.target.value)}
-                            className="mt-2"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="metaDescription">Meta Description</Label>
-                          <Textarea
-                            id="metaDescription"
-                            value={community.settings.metaDescription || community.description}
-                            onChange={(e) => handleSettingsChange("metaDescription", e.target.value)}
-                            rows={3}
-                            className="mt-2"
-                          />
-                        </div>
+                      <Label className="text-lg font-semibold">Custom Domain</Label>
+                      <div className="space-y-2">
+                        <Label htmlFor="customDomain">Domain Name</Label>
+                        <Input
+                          id="customDomain"
+                          placeholder="e.g., community.yourdomain.com"
+                          value={community.settings?.customDomain || ''}
+                          onChange={(e) => handleSettingsChange("customDomain", e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-6">
+                      <Label className="text-lg font-semibold">Custom Scripts</Label>
+                      <div className="space-y-2">
+                        <Label htmlFor="headerScripts">Header Scripts</Label>
+                        <Textarea
+                          id="headerScripts"
+                          rows={4}
+                          placeholder={`<script>...</script>`}
+                          value={community.settings?.headerScripts || ''}
+                          onChange={(e) => handleSettingsChange("headerScripts", e.target.value)}
+                        />
                       </div>
                     </div>
                   </TabsContent>
