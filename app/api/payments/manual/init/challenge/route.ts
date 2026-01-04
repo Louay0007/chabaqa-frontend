@@ -10,6 +10,10 @@ export async function POST(request: Request) {
         const promoCode = searchParams.get('promoCode');
         const formData = await request.formData();
 
+        // Log what we received
+        console.log('[Challenge Payment Route] challengeId:', formData.get('challengeId'));
+        console.log('[Challenge Payment Route] has proof:', formData.has('proof'));
+
         const authHeader = request.headers.get('Authorization');
         const cookieStore = await cookies();
         const tokenCookie = cookieStore.get('accessToken') || cookieStore.get('token');
@@ -23,6 +27,8 @@ export async function POST(request: Request) {
         let backendUrl = `${apiBaseUrl}/payments/manual/init/challenge`;
         if (promoCode) backendUrl += `?promoCode=${encodeURIComponent(promoCode)}`;
 
+        console.log('[Challenge Payment Route] Calling backend:', backendUrl);
+
         const backendResponse = await fetch(backendUrl, {
             method: 'POST',
             headers: { 'Authorization': token },
@@ -35,16 +41,22 @@ export async function POST(request: Request) {
             data = await backendResponse.json();
         } else {
             const text = await backendResponse.text();
-            data = { message: `Backend error: ${text.substring(0, 100)}` };
+            console.log('[Challenge Payment Route] Backend text response:', text);
+            data = { message: `Backend error: ${text.substring(0, 200)}` };
         }
 
+        console.log('[Challenge Payment Route] Backend response:', backendResponse.status, data);
+
         if (!backendResponse.ok) {
-            return NextResponse.json({ message: data?.message || 'Failed' }, { status: backendResponse.status });
+            return NextResponse.json({ 
+                message: data?.message || 'Failed', 
+                error: data 
+            }, { status: backendResponse.status });
         }
 
         return NextResponse.json(data);
     } catch (error: any) {
-        console.error('Manual payment init error:', error);
+        console.error('[Challenge Payment Route] Error:', error);
         return NextResponse.json({ message: error.message || 'Internal server error' }, { status: 500 });
     }
 }

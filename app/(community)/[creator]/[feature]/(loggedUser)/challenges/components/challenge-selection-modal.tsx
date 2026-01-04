@@ -54,12 +54,17 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
         return
       }
 
+      const challengeId = String(challenge.id || challenge._id)
+      console.log('[Join Challenge] Challenge ID:', challengeId)
+      console.log('[Join Challenge] Deposit Amount:', depositAmount)
+      console.log('[Join Challenge] Has Payment Proof:', !!paymentProof)
+
       const promoQuery = promoCode.trim()
         ? `?promoCode=${encodeURIComponent(promoCode.trim())}`
         : ""
 
       const formData = new FormData()
-      formData.append('challengeId', String(challenge.id || challenge._id))
+      formData.append('challengeId', challengeId)
       if (paymentProof) {
         formData.append('proof', paymentProof)
       }
@@ -74,9 +79,21 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
       })
 
       const initData = await initResponse.json().catch(() => null)
+      console.log('[Join Challenge] Response:', initResponse.status, initData)
+      
       if (!initResponse.ok) {
-        const message = initData?.message || initData?.error || 'Failed to join challenge'
-        throw new Error(message)
+        // Check if user is already participating
+        const errorMessage = initData?.error?.error?.message || initData?.message || initData?.error || 'Failed to join challenge'
+        if (errorMessage.includes('already participating')) {
+          toast({
+            title: "Already Joined!",
+            description: "You are already participating in this challenge. Redirecting...",
+          })
+          // Reload to show updated state
+          window.location.reload()
+          return
+        }
+        throw new Error(errorMessage)
       }
 
       toast({
@@ -89,6 +106,7 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
       // Reload the page to show updated participation status
       window.location.reload()
     } catch (error: any) {
+      console.error('[Join Challenge] Error:', error)
       toast({
         title: "Failed to join",
         description: error?.message || "Something went wrong. Please try again.",

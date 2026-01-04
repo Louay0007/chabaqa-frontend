@@ -30,14 +30,19 @@ export interface ChallengesPageData {
  * Transform backend challenge data to frontend format
  */
 function transformChallenge(backendChallenge: any): ChallengeWithProgress {
-  // Transform participants
+  // Transform participants - backend returns userName and userAvatar
   const participants = (backendChallenge.participants || []).map((p: any) => ({
     id: String(p._id || p.id || ''),
+    oderId: p.oderId || p.id,
     userId: String(p.userId?._id || p.userId || ''),
     challengeId: String(backendChallenge._id || backendChallenge.id || ''),
-    score: p.score || 0,
+    name: p.userName || p.userId?.name || p.name || 'Participant',
+    avatar: p.userAvatar || p.userId?.avatar || p.userId?.profile_picture || p.avatar,
+    score: p.totalPoints || p.score || 0,
+    progress: p.progress || 0,
     completedTasks: p.completedTasks?.map((t: any) => String(t)) || [],
     joinedAt: p.joinedAt || new Date().toISOString(),
+    isActive: p.isActive !== false,
   }));
 
   // Calculate participant count

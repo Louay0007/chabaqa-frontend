@@ -153,6 +153,10 @@ export default function ChallengeCard({ creatorSlug, slug, challenge, setSelecte
                 <Lock className="h-4 w-4 mr-1" />
                 Join Challenge
               </Button>
+            ) : status === "completed" ? (
+              <Button size="sm" variant="outline" disabled>
+                Completed
+              </Button>
             ) : (
               <Button size="sm" variant="outline" asChild>
                 <Link href={`/${creatorSlug}/${slug}/challenges/${challenge.id}`}>
