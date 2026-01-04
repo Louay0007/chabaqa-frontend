@@ -14,9 +14,9 @@ import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Save, Eye, Smartphone, Tablet, Monitor, Palette, Type, Layout, Zap } from "lucide-react"
 import { ImageUpload } from "@/app/(dashboard)/components/image-upload"
 import { ColorPicker } from "@/app/(dashboard)/components/color-picker"
-import { communitiesData } from "@/lib/data-communities"
 import { cn } from "@/lib/utils"
 import FeaturePreview from "@/app/(creator)/creator/community/[slug]/customize/components/feature-preview"
+import { communitiesApi } from "@/lib/api/communities.api"
 
 export default function CustomizeCommunityPage() {
   const params = useParams()
@@ -26,18 +26,71 @@ export default function CustomizeCommunityPage() {
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop")
   const [activeTab, setActiveTab] = useState("design")
   const [hasChanges, setHasChanges] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const foundCommunity = communitiesData.communities.find((c) => c.slug === params.slug)
-    if (foundCommunity) {
-      setCommunity(foundCommunity)
+    const fetchCommunity = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const slug = params.slug as string
+        if (!slug) {
+          setError("Community slug not found")
+          return
+        }
+        
+        const response = await communitiesApi.getBySlug(slug)
+        if (response && response.data) {
+          setCommunity(response.data)
+        } else {
+          setError("Community not found")
+        }
+      } catch (err) {
+        console.error("Error fetching community:", err)
+        setError("Failed to load community. Please try again.")
+      } finally {
+        setLoading(false)
+      }
     }
+
+    fetchCommunity()
   }, [params.slug])
 
-  const handleSave = () => {
-    // Save logic here
-    setHasChanges(false)
-    // Show success message
+  const handleSave = async () => {
+    try {
+      setLoading(true)
+      const slug = params.slug as string
+      const { id } = community
+      
+      if (!id) {
+        setError("Community ID not found")
+        return
+      }
+
+      // Prepare update data
+      const updateData = {
+        name: community.name,
+        bio: community.description,
+        longDescription: community.longDescription,
+        coverImage: community.coverImage,
+        image: community.image,
+        ...community.settings
+      }
+
+      const response = await communitiesApi.update(id, updateData)
+      if (response && response.data) {
+        setCommunity(response.data)
+        setHasChanges(false)
+        // Show success toast/notification
+        console.log("Community updated successfully")
+      }
+    } catch (err) {
+      console.error("Error saving community:", err)
+      setError("Failed to save changes. Please try again.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleInputChange = (field: string, value: any) => {
@@ -59,16 +112,25 @@ export default function CustomizeCommunityPage() {
     setHasChanges(true)
   }
 
-  if (!community) {
+  if (loading) {
     return (
-      
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading community...</p>
-          </div>
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading community...</p>
         </div>
-      
+      </div>
+    )
+  }
+
+  if (error || !community) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error || "Community not found"}</p>
+          <Button onClick={() => router.back()}>Go Back</Button>
+        </div>
+      </div>
     )
   }
 

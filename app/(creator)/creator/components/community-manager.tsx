@@ -61,7 +61,7 @@ export function CommunityManager({ communities }: CommunityManagerProps) {
               </div>
 
               <div className="flex items-center space-x-2">
-                <Link href={`/${community.slug}`}>
+                <Link href={`/community/${community.slug}`}>
                   <Button variant="outline" size="sm">
                     <ExternalLink className="w-4 h-4 mr-2" />
                     View
