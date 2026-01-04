@@ -663,8 +663,8 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                       <>
                         <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
                           {courses.map((course) => (
-                            <div key={course.id} className="flex flex-col gap-3 group">
-                              <div className="relative w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" style={{ backgroundImage: `url(${course.thumbnail})` }}>
+                            <div key={course.id} className="flex flex-col gap-3 group rounded-lg border border-border-color bg-white shadow-subtle overflow-hidden hover:shadow-md transition-shadow">
+                              <div className="relative w-full bg-center bg-no-repeat aspect-video bg-cover rounded-t-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" style={{ backgroundImage: `url(${course.thumbnail})` }}>
                                 <div className="absolute inset-0 bg-black/20" />
                                 <BookOpen className="absolute top-3 right-3 w-8 h-8" style={{ color: '#47c7ea' }} />
                                 {course.type === 'created' && (
@@ -673,24 +673,34 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                   </div>
                                 )}
                               </div>
-                              <div>
-                                <p className="text-base font-medium line-clamp-2">{course.titre}</p>
-                                {course.type === 'enrolled' && (
-                                  <>
-                                    <div className="w-full bg-border-color rounded-full h-2 mt-2">
-                                      <div className="h-2 rounded-full" style={{ width: `${course.progress}%`, background: '#47c7ea' }} />
-                                    </div>
+                              <div className="p-4 flex-1 flex flex-col justify-between">
+                                <div>
+                                  <p className="text-base font-medium line-clamp-2">{course.titre}</p>
+                                  {course.type === 'enrolled' && (
+                                    <>
+                                      <div className="w-full bg-border-color rounded-full h-2 mt-2">
+                                        <div className="h-2 rounded-full" style={{ width: `${course.progress}%`, background: '#47c7ea' }} />
+                                      </div>
+                                      <p className="text-text-secondary text-sm mt-1">
+                                        {course.status === 'completed' ? 'Completed' : 
+                                         course.status === 'in_progress' ? `${course.progress}% Complete` : 
+                                         'Not Started'}
+                                      </p>
+                                    </>
+                                  )}
+                                  {course.type === 'created' && (
                                     <p className="text-text-secondary text-sm mt-1">
-                                      {course.status === 'completed' ? 'Completed' : 
-                                       course.status === 'in_progress' ? `${course.progress}% Complete` : 
-                                       'Not Started'}
+                                      Status: {course.status === 'published' ? 'Published' : 'Draft'}
                                     </p>
-                                  </>
-                                )}
-                                {course.type === 'created' && (
-                                  <p className="text-text-secondary text-sm mt-1">
-                                    Status: {course.status === 'published' ? 'Published' : 'Draft'}
-                                  </p>
+                                  )}
+                                </div>
+                                {course.slug && (
+                                  <a 
+                                    href={`/community/${course.slug}/home`}
+                                    className="mt-4 pt-4 border-t border-border-color w-full text-center py-2 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-sm font-medium"
+                                  >
+                                    View Course
+                                  </a>
                                 )}
                               </div>
                             </div>
@@ -756,8 +766,8 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                       <>
                         <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
                           {challenges.map((challenge) => (
-                            <div key={challenge.id} className="flex flex-col gap-3 group">
-                              <div className="relative w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" style={{ backgroundImage: `url(${challenge.thumbnail})` }}>
+                            <div key={challenge.id} className="flex flex-col gap-3 group rounded-lg border border-border-color bg-white shadow-subtle overflow-hidden hover:shadow-md transition-shadow">
+                              <div className="relative w-full bg-center bg-no-repeat aspect-video bg-cover rounded-t-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" style={{ backgroundImage: `url(${challenge.thumbnail})` }}>
                                 <div className="absolute inset-0 bg-black/20" />
                                 <Trophy className="absolute top-3 right-3 w-8 h-8" style={{ color: '#ff9b28' }} />
                                 {challenge.type === 'created' && (
@@ -766,26 +776,36 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                   </div>
                                 )}
                               </div>
-                              <div>
-                                <p className="text-base font-medium line-clamp-2">{challenge.title}</p>
-                                {challenge.progress !== undefined && (
-                                  <>
-                                    <div className="w-full bg-border-color rounded-full h-2 mt-2">
-                                      <div className="h-2 rounded-full" style={{ width: `${challenge.progress}%`, background: '#ff9b28' }} />
+                              <div className="p-4 flex-1 flex flex-col justify-between">
+                                <div>
+                                  <p className="text-base font-medium line-clamp-2">{challenge.title}</p>
+                                  {challenge.progress !== undefined && (
+                                    <>
+                                      <div className="w-full bg-border-color rounded-full h-2 mt-2">
+                                        <div className="h-2 rounded-full" style={{ width: `${challenge.progress}%`, background: '#ff9b28' }} />
+                                      </div>
+                                      <div className="flex justify-between items-center text-text-secondary text-sm mt-1">
+                                        <span>{challenge.status}</span>
+                                        <span>{challenge.progress}%</span>
+                                      </div>
+                                    </>
+                                  )}
+                                  {challenge.difficulty && (
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full">{challenge.difficulty}</span>
+                                      {challenge.category && (
+                                        <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full">{challenge.category}</span>
+                                      )}
                                     </div>
-                                    <div className="flex justify-between items-center text-text-secondary text-sm mt-1">
-                                      <span>{challenge.status}</span>
-                                      <span>{challenge.progress}%</span>
-                                    </div>
-                                  </>
-                                )}
-                                {challenge.difficulty && (
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full">{challenge.difficulty}</span>
-                                    {challenge.category && (
-                                      <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full">{challenge.category}</span>
-                                    )}
-                                  </div>
+                                  )}
+                                </div>
+                                {challenge.slug && (
+                                  <a 
+                                    href={`/community/${challenge.slug}/challenges`}
+                                    className="mt-4 pt-4 border-t border-border-color w-full text-center py-2 rounded-md bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors text-sm font-medium"
+                                  >
+                                    View Challenge
+                                  </a>
                                 )}
                               </div>
                             </div>
@@ -863,8 +883,8 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                               startTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
                             
                             return (
-                              <div key={session.id} className="flex flex-col gap-3 group">
-                                <div className="relative w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" style={{ backgroundImage: `url(${session.thumbnail})` }}>
+                              <div key={session.id} className="flex flex-col gap-3 group rounded-lg border border-border-color bg-white shadow-subtle overflow-hidden hover:shadow-md transition-shadow">
+                                <div className="relative w-full bg-center bg-no-repeat aspect-video bg-cover rounded-t-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" style={{ backgroundImage: `url(${session.thumbnail})` }}>
                                   <div className="absolute inset-0 bg-black/20" />
                                   <Calendar className="absolute top-3 right-3 w-8 h-8" style={{ color }} />
                                   {session.type === 'created' && (
@@ -878,11 +898,21 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                     </div>
                                   )}
                                 </div>
-                                <div>
-                                  <p className="text-base font-medium line-clamp-2">{session.title}</p>
-                                  <p className="text-sm text-text-secondary mt-1">{timeStr}</p>
-                                  {session.duration && (
-                                    <p className="text-xs text-gray-400 mt-1">{session.duration} min • {session.creator?.name}</p>
+                                <div className="p-4 flex-1 flex flex-col justify-between">
+                                  <div>
+                                    <p className="text-base font-medium line-clamp-2">{session.title}</p>
+                                    <p className="text-sm text-text-secondary mt-1">{timeStr}</p>
+                                    {session.duration && (
+                                      <p className="text-xs text-gray-400 mt-1">{session.duration} min • {session.creator?.name}</p>
+                                    )}
+                                  </div>
+                                  {session.slug && (
+                                    <a 
+                                      href={`/community/${session.slug}/sessions`}
+                                      className="mt-4 pt-4 border-t border-border-color w-full text-center py-2 rounded-md bg-pink-50 text-pink-600 hover:bg-pink-100 transition-colors text-sm font-medium"
+                                    >
+                                      View Session
+                                    </a>
                                   )}
                                 </div>
                               </div>
@@ -948,8 +978,8 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                       <>
                         <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
                           {products.map((product) => (
-                            <div key={product.id || product._id} className="flex flex-col gap-3 group">
-                              <div className="relative w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" style={{ backgroundImage: `url(${(product.images && product.images[0]) || product.image || product.thumbnail || 'https://images.unsplash.com/photo-1579275542618-a1dfed5f54ba?q=80&w=1200&auto=format&fit=crop'})` }}>
+                            <div key={product.id || product._id} className="flex flex-col gap-3 group rounded-lg border border-border-color bg-white shadow-subtle overflow-hidden hover:shadow-md transition-shadow">
+                              <div className="relative w-full bg-center bg-no-repeat aspect-video bg-cover rounded-t-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" style={{ backgroundImage: `url(${(product.images && product.images[0]) || product.image || product.thumbnail || 'https://images.unsplash.com/photo-1579275542618-a1dfed5f54ba?q=80&w=1200&auto=format&fit=crop'})` }}>
                                 <div className="absolute inset-0 bg-black/10" />
                                 <ShoppingBag className="absolute top-3 right-3 w-8 h-8" style={{ color: '#8e78fb' }} />
                                 {product.type === 'created' && (
@@ -963,22 +993,32 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                   </div>
                                 )}
                               </div>
-                              <div>
-                                <p className="text-base font-medium line-clamp-2">{product.title || product.name || 'Untitled product'}</p>
-                                {typeof product.price === 'number' && (
-                                  <p className="text-sm text-text-secondary">{new Intl.NumberFormat('en-US', { style: 'currency', currency: product.currency || 'USD'}).format(product.price)}</p>
-                                )}
-                                {product.status && (
-                                  <div className="mt-1 flex items-center gap-2">
-                                    <span className={`text-xs px-2 py-0.5 rounded-full ${product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                                      {product.status === 'active' ? 'Active' : 'Draft'}
-                                    </span>
-                                    {product.category && (
-                                      <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full truncate max-w-[100px]">
-                                        {product.category}
+                              <div className="p-4 flex-1 flex flex-col justify-between">
+                                <div>
+                                  <p className="text-base font-medium line-clamp-2">{product.title || product.name || 'Untitled product'}</p>
+                                  {typeof product.price === 'number' && (
+                                    <p className="text-sm text-text-secondary">{new Intl.NumberFormat('en-US', { style: 'currency', currency: product.currency || 'USD'}).format(product.price)}</p>
+                                  )}
+                                  {product.status && (
+                                    <div className="mt-2 flex items-center gap-2">
+                                      <span className={`text-xs px-2 py-0.5 rounded-full ${product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                        {product.status === 'active' ? 'Active' : 'Draft'}
                                       </span>
-                                    )}
-                                  </div>
+                                      {product.category && (
+                                        <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full truncate max-w-[100px]">
+                                          {product.category}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                {product.slug && (
+                                  <a 
+                                    href={`/community/${product.slug}/home`}
+                                    className="mt-4 pt-4 border-t border-border-color w-full text-center py-2 rounded-md bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors text-sm font-medium"
+                                  >
+                                    View Product
+                                  </a>
                                 )}
                               </div>
                             </div>
@@ -1052,7 +1092,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                             const roleClass = roleColors[community.role?.toLowerCase() as keyof typeof roleColors] || roleColors.member
                             
                             return (
-                              <div key={community.id} className="group rounded-xl border border-border-color overflow-hidden bg-white shadow-subtle hover:shadow-md transition-shadow">
+                              <div key={community.id} className="group rounded-xl border border-border-color overflow-hidden bg-white shadow-subtle hover:shadow-md transition-shadow flex flex-col">
                                 <div className="relative aspect-[16/9] bg-center bg-cover" style={{ backgroundImage: `url(${community.coverImage || community.logo})` }}>
                                   <div className="absolute inset-0 bg-black/15" />
                                   {community.type === 'created' && (
@@ -1061,8 +1101,8 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                     </div>
                                   )}
                                 </div>
-                                <div className="p-4 flex items-center justify-between">
-                                  <div className="flex-1 min-w-0">
+                                <div className="p-4 flex-1 flex flex-col justify-between">
+                                  <div>
                                     <p className="font-semibold leading-tight truncate">{community.name}</p>
                                     <p className="text-xs text-text-secondary">
                                       {community.membersCount?.toLocaleString() || 0} members
@@ -1073,9 +1113,19 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                       </p>
                                     )}
                                   </div>
-                                  <span className={`text-xs px-2 py-1 rounded-full border ml-2 ${roleClass}`}>
-                                    {community.role || 'Member'}
-                                  </span>
+                                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-border-color">
+                                    <span className={`text-xs px-2 py-1 rounded-full border ${roleClass}`}>
+                                      {community.role || 'Member'}
+                                    </span>
+                                    {community.slug && (
+                                      <a 
+                                        href={`/community/${community.slug}/home`}
+                                        className="text-xs px-3 py-1 rounded-md bg-primary hover:bg-primary-dark text-white transition-colors"
+                                      >
+                                        Visit
+                                      </a>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             )
