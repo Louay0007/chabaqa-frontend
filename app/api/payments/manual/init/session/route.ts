@@ -1,50 +1,88 @@
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
+import { tokenStorage } from '@/lib/token-storage';
 
-// Use API_INTERNAL_URL for server-side (Docker), NEXT_PUBLIC_API_URL for browser
-const BACKEND_URL = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-
-export async function POST(request: Request) {
-    try {
-        const { searchParams } = new URL(request.url);
-        const promoCode = searchParams.get('promoCode');
-        const formData = await request.formData();
-
-        const authHeader = request.headers.get('Authorization');
-        const cookieStore = await cookies();
-        const tokenCookie = cookieStore.get('accessToken') || cookieStore.get('token');
-        const token = authHeader || (tokenCookie ? `Bearer ${tokenCookie.value}` : null);
-
-        if (!token) {
-            return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
-        }
-
-        const apiBaseUrl = BACKEND_URL.replace(/\/$/, '');
-        let backendUrl = `${apiBaseUrl}/payments/manual/init/session`;
-        if (promoCode) backendUrl += `?promoCode=${encodeURIComponent(promoCode)}`;
-
-        const backendResponse = await fetch(backendUrl, {
-            method: 'POST',
-            headers: { 'Authorization': token },
-            body: formData,
-        });
-
-        const contentType = backendResponse.headers.get('content-type');
-        let data;
-        if (contentType && contentType.includes('application/json')) {
-            data = await backendResponse.json();
-        } else {
-            const text = await backendResponse.text();
-            data = { message: `Backend error: ${text.substring(0, 100)}` };
-        }
-
-        if (!backendResponse.ok) {
-            return NextResponse.json({ message: data?.message || 'Failed' }, { status: backendResponse.status });
-        }
-
-        return NextResponse.json(data);
-    } catch (error: any) {
-        console.error('Manual payment init error:', error);
-        return NextResponse.json({ message: error.message || 'Internal server error' }, { status: 500 });
+export async function POST(request: NextRequest) {
+  try {
+    // Get auth token from headers
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      );
     }
+
+    // Get form data
+    const formData = await request.formData();
+    const sessionId = formData.get('sessionId') as string;
+    const proofFile = formData.get('proof') as File;
+    
+    if (!sessionId) {
+      return NextResponse.json(
+        { success: false, error: 'Session ID is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!proofFile) {
+      return NextResponse.json(
+        { success: false, error: 'Payment proof file is required' },
+        { status: 400 }
+      );
+    }
+
+    // Get promo code from query params
+    const url = new URL(request.url);
+    const promoCode = url.searchParams.get('promoCode');
+
+    // Create form data for backend
+    const backendFormData = new FormData();
+    backendFormData.append('contentType', 'session');
+    backendFormData.append('contentId', sessionId);
+    backendFormData.append('proof', proofFile);
+    if (promoCode) {
+      backendFormData.append('promoCode', promoCode);
+    }
+
+    // Forward to backend
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/payments/manual/init`;
+    
+    const response = await fetch(backendUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: backendFormData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: data.message || data.error || 'Payment submission failed' 
+        },
+        { status: response.status }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: data.message || 'Payment proof submitted successfully. Please wait for verification.',
+      data: data.data || data
+    });
+
+  } catch (error: any) {
+    console.error('Manual payment init error:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error.message || 'Internal server error' 
+      },
+      { status: 500 }
+    );
+  }
 }

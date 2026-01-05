@@ -25,6 +25,7 @@ import { sessionsApi, subscriptionApi } from "@/lib/api";
 import UpcomingSessionsCard from "./upcoming-sessions-card";
 import PendingRequestsCard from "./pending-requests-card";
 import MonthlyStatsCard from "./monthly-stats-card";
+import GoogleCalendarIntegration from "./google-calendar-integration";
 
 export default function ClientSessionsView({
   allSessions,
@@ -271,6 +272,7 @@ export default function ClientSessionsView({
 
         {/* SIDEBAR */}
         <div className="space-y-6">
+          <GoogleCalendarIntegration />
           <UpcomingSessionsCard bookings={bookings} />
           <PendingRequestsCard bookings={bookings} onUpdated={setBookings} />
           <MonthlyStatsCard completed={completedThisMonth.length} hours={hoursMentored} revenue={revenue ?? monthRevenueFallback} avgRating={4.8} />

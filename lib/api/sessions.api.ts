@@ -78,8 +78,9 @@ export const sessionsApi = {
   },
 
   // Book session
-  book: async (id: string, data: BookSessionData): Promise<ApiSuccessResponse<SessionBooking>> => {
-    return apiClient.post<ApiSuccessResponse<SessionBooking>>(`/sessions/${id}/book`, data);
+  book: async (id: string, data: BookSessionData, promoCode?: string): Promise<ApiSuccessResponse<SessionBooking>> => {
+    const url = promoCode ? `/sessions/${id}/book?promoCode=${encodeURIComponent(promoCode)}` : `/sessions/${id}/book`;
+    return apiClient.post<ApiSuccessResponse<SessionBooking>>(url, data);
   },
 
   // Get bookings
@@ -92,9 +93,49 @@ export const sessionsApi = {
     return apiClient.patch<ApiSuccessResponse<SessionBooking>>(`/sessions/${id}/bookings/${bookingId}`, data);
   },
 
-  // Get availability
-  getAvailability: async (id: string): Promise<ApiSuccessResponse<any>> => {
-    return apiClient.get<ApiSuccessResponse<any>>(`/sessions/${id}/availability`);
+  // Confirm booking
+  confirmBooking: async (bookingId: string, data: { meetingUrl?: string; notes?: string }): Promise<ApiSuccessResponse<Session>> => {
+    return apiClient.patch<ApiSuccessResponse<Session>>(`/sessions/bookings/${bookingId}/confirm`, data);
+  },
+
+  // Cancel booking
+  cancelBooking: async (bookingId: string, data: { reason?: string }): Promise<ApiSuccessResponse<Session>> => {
+    return apiClient.patch<ApiSuccessResponse<Session>>(`/sessions/bookings/${bookingId}/cancel`, data);
+  },
+
+  // Complete session
+  completeSession: async (bookingId: string, data: { notes?: string; rating?: number }): Promise<ApiSuccessResponse<Session>> => {
+    return apiClient.patch<ApiSuccessResponse<Session>>(`/sessions/bookings/${bookingId}/complete`, data);
+  },
+
+  // Set available hours
+  setAvailableHours: async (id: string, data: any): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.post<ApiSuccessResponse<any>>(`/sessions/${id}/available-hours`, data);
+  },
+
+  // Get available hours
+  getAvailableHours: async (id: string): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.get<ApiSuccessResponse<any>>(`/sessions/${id}/available-hours`);
+  },
+
+  // Generate slots
+  generateSlots: async (id: string, data: { startDate: string; endDate: string }): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.post<ApiSuccessResponse<any>>(`/sessions/${id}/generate-slots`, data);
+  },
+
+  // Get available slots
+  getAvailableSlots: async (id: string, params?: { startDate?: string; endDate?: string }): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.get<ApiSuccessResponse<any>>(`/sessions/${id}/available-slots`, params);
+  },
+
+  // Book specific slot
+  bookSlot: async (id: string, data: { slotId: string; notes?: string }): Promise<ApiSuccessResponse<Session>> => {
+    return apiClient.post<ApiSuccessResponse<Session>>(`/sessions/${id}/book-slot`, data);
+  },
+
+  // Cancel slot
+  cancelSlot: async (id: string, slotId: string): Promise<ApiSuccessResponse<Session>> => {
+    return apiClient.patch<ApiSuccessResponse<Session>>(`/sessions/${id}/cancel-slot/${slotId}`, {});
   },
 
   // Get creator bookings

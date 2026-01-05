@@ -117,15 +117,29 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
         return
       }
 
-      await sessionsApi.book(String(selectedSession || session?.id), {
+      // For free sessions, book directly with the backend
+      const bookingData = {
         scheduledAt,
         notes: bookingNotes.trim() || undefined,
-      })
+      }
+
+      const response = await sessionsApi.book(
+        String(selectedSession || session?.id), 
+        bookingData,
+        promoCode.trim() || undefined
+      )
 
       toast({
         title: "Booking requested",
-        description: "Your session booking was submitted.",
+        description: "Your session booking was submitted successfully.",
       })
+
+      // Reset form
+      setSelectedDate(new Date())
+      setSelectedTime("")
+      setBookingNotes("")
+      setPromoCode("")
+      
     } catch (error: any) {
       toast({
         title: isPaidSession ? "Payment submission failed" : "Booking failed",
