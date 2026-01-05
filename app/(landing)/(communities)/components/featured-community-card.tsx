@@ -83,8 +83,8 @@ export function FeaturedCommunityCard({ community, index, slug }: FeaturedCommun
         <div className="absolute top-2 right-2">
           <Badge
             className={`px-2 py-0.5 font-semibold text-[10px] border-0 shadow-md rounded-full ${community.priceType === "free"
-                ? "bg-gradient-to-r from-emerald-400 to-teal-500 text-white"
-                : "bg-gradient-to-r from-violet-500 to-purple-600 text-white"
+              ? "bg-gradient-to-r from-emerald-400 to-teal-500 text-white"
+              : "bg-gradient-to-r from-violet-500 to-purple-600 text-white"
               }`}
           >
             {formatPrice(community.price, community.priceType)}
@@ -126,7 +126,7 @@ export function FeaturedCommunityCard({ community, index, slug }: FeaturedCommun
           </div>
           <div className="flex items-center text-[11px] bg-chabaqa-primary/10 px-2 py-0.5 rounded-full font-medium text-chabaqa-primary">
             <Award className="w-3 h-3 mr-1 text-yellow-500" />
-            {community.rating}
+            {community.rating.toFixed(1)}
           </div>
           {/* Simple Type badge */}
           <Badge

@@ -271,7 +271,7 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
             <div className="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-chabaqa-primary/10 px-3">
               <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
               <p className="text-chabaqa-primary text-sm font-medium leading-normal">
-                {community.rating || 0}/5 Rating
+                {community.rating.toFixed(1) || 0}/5 Rating
               </p>
             </div>
           </div>

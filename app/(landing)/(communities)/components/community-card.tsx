@@ -29,7 +29,7 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
   // Get type-specific styling and CTA text
   const getTypeConfig = (type?: ItemType) => {
     const itemType = type || "community"
-    
+
     const typeConfigs = {
       community: {
         badgeColor: "border-blue-500/50 text-blue-600 bg-blue-50",
@@ -63,7 +63,7 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
       },
     }
 
-    
+
     return typeConfigs[itemType]
   }
 
@@ -89,11 +89,10 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
             {/* Price Badge */}
             <div className="absolute top-3 right-3">
               <Badge
-                className={`px-2.5 py-1 font-bold text-sm shadow-xl border-0 ${
-                  community.priceType === "free"
+                className={`px-2.5 py-1 font-bold text-sm shadow-xl border-0 ${community.priceType === "free"
                     ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white"
                     : "bg-gradient-to-r from-chabaqa-primary to-purple-600 text-white"
-                }`}
+                  }`}
               >
                 {formatPrice(community.price, community.priceType)}
               </Badge>
@@ -184,7 +183,7 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
                 </div>
                 <div className="flex items-center text-[11px] bg-chabaqa-primary/10 px-2 py-0.5 rounded-full font-medium text-chabaqa-primary">
                   <Award className="w-3 h-3 mr-1 text-yellow-500" />
-                  {community.rating}
+                  {community.rating.toFixed(1)}
                 </div>
                 {/* Type badge with custom styling */}
                 <Badge
@@ -200,13 +199,12 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
                 <button
                   className="px-8 py-1.5 text-sm font-semibold rounded-lg text-white shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300"
                   style={{
-                    background: `linear-gradient(to right, ${
-                      community.type === 'course' ? '#47c7ea, #86e4fd' :
-                      community.type === 'challenge' ? '#ff9b28, #fddab0' :
-                      community.type === 'oneToOne' ? '#f65887, #fddab0' :
-                      community.type === 'product' ? '#9333ea, #a855f7' :
-                      '#3b82f6, #2563eb' // community default
-                    })`
+                    background: `linear-gradient(to right, ${community.type === 'course' ? '#47c7ea, #86e4fd' :
+                        community.type === 'challenge' ? '#ff9b28, #fddab0' :
+                          community.type === 'oneToOne' ? '#f65887, #fddab0' :
+                            community.type === 'product' ? '#9333ea, #a855f7' :
+                              '#3b82f6, #2563eb' // community default
+                      })`
                   }}
                 >
                   {community.isMember ? typeConfig.ctaText : "Join"}
@@ -239,11 +237,10 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
         {/* Price Badge */}
         <div className="absolute top-2 right-3">
           <Badge
-            className={`px-2 py-0.5 font-semibold text-xs border-0 shadow-md ${
-              community.priceType === "free"
+            className={`px-2 py-0.5 font-semibold text-xs border-0 shadow-md ${community.priceType === "free"
                 ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white"
                 : "bg-gradient-to-r from-chabaqa-primary to-purple-600 text-white"
-            }`}
+              }`}
           >
             {formatPrice(community.price, community.priceType)}
           </Badge>
@@ -286,7 +283,7 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
           </div>
           <div className="flex items-center text-[11px] bg-chabaqa-primary/10 px-2 py-0.5 rounded-full font-medium text-chabaqa-primary">
             <Award className="w-3 h-3 mr-1 text-yellow-500" />
-            {community.rating}
+            {community.rating.toFixed(1)}
           </div>
           {/* Type badge with custom styling */}
           <Badge
