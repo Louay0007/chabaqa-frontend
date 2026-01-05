@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 import { Play, Sparkles, ArrowRight, Users, Zap } from "lucide-react"
 import { Rocket, Gem, LifeBuoy, Calendar, BookOpen, Trophy, ShoppingBag, Video } from "lucide-react"
 import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline"
@@ -79,17 +80,23 @@ export function Hero({ className }: HeroProps) {
                 size="lg"
                 className="bg-chabaqa-primary text-white px-6 py-3 text-base sm:text-lg font-bold shadow-md hover:scale-105 transition-all duration-300 rounded-lg"
               >
-                <Zap className="w-5 h-5 mr-2 animate-pulse" />
-                Start Free
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <Link href="/signin" className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 mr-2 animate-pulse" />
+                  Start Free
+                  <ArrowRight className="w-3 h-3 ml-1" />
+                </Link>
+ 
               </Button>
               <Button
+                asChild
                 size="lg"
                 variant="outline"
                 className="border-2 border-[#8e78fb] text-[#8e78fb] hover:bg-[#8e78fb] hover:text-white px-6 py-3 text-base sm:text-lg font-bold rounded-lg bg-transparent"
               >
-                <Play className="w-5 h-5 mr-2" />
-                Explore
+                <Link href="/explore">
+                  <Play className="w-5 h-5 mr-2" />
+                  Explore
+                </Link>
               </Button>
             </div>
 

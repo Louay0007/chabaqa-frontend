@@ -699,29 +699,29 @@ export const siteData = {
   footer: {
     description: "Empowering communities worldwide to learn, connect, and thrive together.",
     links: {
+      features: [
+        { name: "Community", href: "/#community" },
+        { name: "Courses", href: "/#courses" },
+        { name: "Challenges", href: "/#challenges" },
+        { name: "Products", href: "/#products" },
+        { name: "Coaching", href: "/#coaching" },
+        { name: "Events", href: "/#events" },
+      ],
       product: [
-        { name: "Features", href: "#features" },
-        { name: "Pricing", href: "#pricing" },
-        { name: "API", href: "#" },
-        { name: "Integrations", href: "#" },
+        { name: "Explore", href: "/explore" },
+        { name: "All Features", href: "/#features" },
+        { name: "Pricing", href: "/#pricing" },
       ],
       company: [
-        { name: "About", href: "#about" },
-        { name: "Blog", href: "#resources" },
-        { name: "Careers", href: "#" },
-        { name: "Contact", href: "#" },
+        { name: "About", href: "/#about" },
       ],
-      support: [
-        { name: "Help Center", href: "#" },
-        { name: "Documentation", href: "#" },
-        { name: "Community", href: "#" },
-        { name: "Status", href: "#" },
-      ],
+      support: [],
     },
     social: [
-      { name: "Twitter", href: "#", icon: "Twitter" },
+      { name: "Facebook", href: "#", icon: "Facebook" },
+      { name: "Instagram", href: "#", icon: "Instagram" },
       { name: "LinkedIn", href: "#", icon: "Linkedin" },
-      { name: "GitHub", href: "#", icon: "Github" },
+      { name: "Youtube", href: "#", icon: "Youtube" },
     ],
   },
 }
