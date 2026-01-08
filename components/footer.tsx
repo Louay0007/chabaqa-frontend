@@ -1,12 +1,13 @@
 import Link from "next/link"
 import Image from "next/image"
-import { Twitter, Linkedin, Github } from "lucide-react"
+import { Facebook, Instagram, Linkedin, Youtube } from "lucide-react"
 import { siteData } from "@/lib/data"
 
 const iconMap = {
-  Twitter,
+  Facebook,
+  Instagram,
   Linkedin,
-  Github,
+  Youtube,
 }
 
 export function Footer() {
@@ -45,9 +46,27 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Links Row (Product / Company / Support) */}
-          <div className="lg:col-span-3">
+          {/* Links Row (Features / Product / Company) */}
+          <div className="hidden lg:block lg:col-span-3">
             <div className="grid grid-cols-2 gap-8 lg:grid-cols-3 text-center lg:text-left">
+              {/* Features */}
+              <div>
+                <h3 className="text-sm font-semibold">Features</h3>
+                <ul className="mt-4 space-y-3" role="list">
+                  {/* @ts-ignore */}
+                  {siteData.footer.links.features && siteData.footer.links.features.map((link: any, index: number) => (
+                    <li key={index}>
+                      <Link
+                        href={link.href}
+                        className="text-base text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+                      >
+                        {link.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
               {/* Product */}
               <div>
                 <h3 className="text-sm font-semibold">Product</h3>
@@ -70,23 +89,6 @@ export function Footer() {
                 <h3 className="text-sm font-semibold">Company</h3>
                 <ul className="mt-4 space-y-3" role="list">
                   {siteData.footer.links.company.map((link, index) => (
-                    <li key={index}>
-                      <Link
-                        href={link.href}
-                        className="text-base text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
-                      >
-                        {link.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Support */}
-              <div>
-                <h3 className="text-sm font-semibold">Support</h3>
-                <ul className="mt-4 space-y-3" role="list">
-                  {siteData.footer.links.support.map((link, index) => (
                     <li key={index}>
                       <Link
                         href={link.href}

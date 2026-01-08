@@ -23,7 +23,7 @@ export function Features() {
   }
 
   return (
-    <div className="py-8 md:py-16 space-y-16 md:space-y-24">
+    <div id="features" className="py-8 md:py-16 space-y-16 md:space-y-24">
       {siteData.features.map((feature, featureIndex) => {
         const activeBadge = activeBadges[featureIndex] || 0
         const currentBadge = feature.badges[activeBadge]
@@ -173,11 +173,10 @@ export function Features() {
                           <button
                             key={badge.id}
                             onClick={() => setActiveBadge(featureIndex, badgeIndex)}
-                            className={`flex-shrink-0 px-3 py-2 md:px-4 md:py-2 rounded-lg text-sm font-medium transition-all duration-200 border touch-manipulation min-h-[44px] flex items-center ${
-                              badgeIndex === activeBadge
+                            className={`flex-shrink-0 px-3 py-2 md:px-4 md:py-2 rounded-lg text-sm font-medium transition-all duration-200 border touch-manipulation min-h-[44px] flex items-center ${badgeIndex === activeBadge
                                 ? getActiveBadgeStyle() + " shadow-md"
                                 : "bg-gray-100 text-gray-600 hover:bg-gray-200 border-gray-200"
-                            }`}
+                              }`}
                           >
                             {badge.label}
                           </button>
@@ -201,8 +200,7 @@ export function Features() {
                           {currentBadge.features.map((featureItem, index) => (
                             <div key={index} className="flex items-start gap-3">
                               <div
-                                className={`flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center mt-0.5 ${
-                                  feature.color === "community"
+                                className={`flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center mt-0.5 ${feature.color === "community"
                                     ? "bg-chabaqa-primary"
                                     : feature.color === "course"
                                       ? "bg-chabaqa-courses"
@@ -213,7 +211,7 @@ export function Features() {
                                           : feature.color === "oneToOne"
                                             ? "bg-chabaqa-sessions"
                                             : "bg-indigo-600"
-                                }`}
+                                  }`}
                               >
                                 <Check className="w-3 h-3 md:w-4 md:h-4 text-white" />
                               </div>
@@ -231,8 +229,7 @@ export function Features() {
                         </blockquote>
                         <div className="flex items-center gap-3">
                           <div
-                            className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center bg-gradient-to-br ${
-                              feature.color === "community"
+                            className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center bg-gradient-to-br ${feature.color === "community"
                                 ? "from-chabaqa-primary to-indigo-300"
                                 : feature.color === "course"
                                   ? "from-[#47c7ea] to-[#86e4fd]"
@@ -243,7 +240,7 @@ export function Features() {
                                       : feature.color === "oneToOne"
                                         ? "from-[#f65887] to-[#fddab0]"
                                         : "from-indigo-500 to-purple-600"
-                            }`}
+                              }`}
                           >
                             <span className="text-white font-semibold text-xs md:text-sm">
                               {currentBadge.testimonial.author
@@ -274,8 +271,7 @@ export function Features() {
                         />
                       </div>
                       <div
-                        className={`absolute -top-2 -right-2 md:-top-4 md:-right-4 w-12 h-12 md:w-20 md:h-20 rounded-full blur-xl ${
-                          feature.color === "community"
+                        className={`absolute -top-2 -right-2 md:-top-4 md:-right-4 w-12 h-12 md:w-20 md:h-20 rounded-full blur-xl ${feature.color === "community"
                             ? "bg-blue-500/20"
                             : feature.color === "course"
                               ? "bg-[#47c7ea]/20"
@@ -286,11 +282,10 @@ export function Features() {
                                   : feature.color === "oneToOne"
                                     ? "bg-[#f65887]/20"
                                     : "bg-indigo-500/20"
-                        }`}
+                          }`}
                       ></div>
                       <div
-                        className={`absolute -bottom-2 -left-2 md:-bottom-4 md:-left-4 w-16 h-16 md:w-24 md:h-24 rounded-full blur-xl ${
-                          feature.color === "community"
+                        className={`absolute -bottom-2 -left-2 md:-bottom-4 md:-left-4 w-16 h-16 md:w-24 md:h-24 rounded-full blur-xl ${feature.color === "community"
                             ? "bg-indigo-500/15"
                             : feature.color === "course"
                               ? "bg-blue-500/15"
@@ -301,7 +296,7 @@ export function Features() {
                                   : feature.color === "oneToOne"
                                     ? "bg-rose-500/15"
                                     : "bg-purple-500/15"
-                        }`}
+                          }`}
                       ></div>
                     </div>
                   </div>
