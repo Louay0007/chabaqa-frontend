@@ -1,4 +1,10 @@
-import { apiClient } from './client';
+import { apiClient, ApiSuccessResponse } from './client';
+
+export interface FeedbackUser {
+  _id: string;
+  name: string;
+  avatar?: string;
+}
 
 export interface Feedback {
   _id: string;
@@ -6,13 +12,9 @@ export interface Feedback {
   relatedModel: string;
   rating: number;
   comment?: string;
+  user: FeedbackUser;
   createdAt: string;
   updatedAt: string;
-  user: {
-    _id: string;
-    name: string;
-    avatar?: string;
-  };
 }
 
 export interface FeedbackStats {
@@ -21,36 +23,61 @@ export interface FeedbackStats {
   distribution: Record<number, number>;
 }
 
-export interface CreateFeedbackDto {
+export interface CreateFeedbackData {
   relatedTo: string;
-  relatedModel: 'Cours' | 'Community' | 'Challenge' | 'Event' | 'Product' | 'Session';
+  relatedModel: 'Community' | 'Cours' | 'Challenge' | 'Event' | 'Product' | 'Session';
   rating: number;
   comment?: string;
 }
 
+export interface UpdateFeedbackData {
+  rating: number;
+  comment?: string;
+}
+
+/**
+ * Feedback API Service
+ */
 export const feedbackApi = {
-  // Create new feedback
-  async create(data: CreateFeedbackDto): Promise<Feedback> {
-    return apiClient.post<Feedback>('/feedback', data);
+  /**
+   * Create new feedback
+   */
+  create: async (data: CreateFeedbackData): Promise<ApiSuccessResponse<Feedback>> => {
+    return apiClient.post<ApiSuccessResponse<Feedback>>('/feedback', data);
   },
 
-  // Update existing feedback
-  async update(feedbackId: string, rating: number, comment?: string): Promise<Feedback> {
-    return apiClient.put<Feedback>(`/feedback/${feedbackId}`, { rating, comment });
+  /**
+   * Update existing feedback
+   */
+  update: async (feedbackId: string, data: UpdateFeedbackData): Promise<ApiSuccessResponse<Feedback>> => {
+    return apiClient.put<ApiSuccessResponse<Feedback>>(`/feedback/${feedbackId}`, data);
   },
 
-  // Get all feedback for an item
-  async getByRelated(relatedModel: string, relatedTo: string): Promise<Feedback[]> {
-    return apiClient.get<Feedback[]>(`/feedback/${relatedModel}/${relatedTo}`);
+  /**
+   * Get all feedback for an item
+   */
+  getByRelated: async (relatedModel: string, relatedTo: string): Promise<Feedback[]> => {
+    const response = await apiClient.get<Feedback[]>(`/feedback/${relatedModel}/${relatedTo}`);
+    return response as unknown as Feedback[];
   },
 
-  // Get current user's feedback for an item
-  async getMyFeedback(relatedModel: string, relatedTo: string): Promise<Feedback | null> {
-    return apiClient.get<Feedback | null>(`/feedback/${relatedModel}/${relatedTo}/my`);
+  /**
+   * Get current user's feedback for an item
+   */
+  getMyFeedback: async (relatedModel: string, relatedTo: string): Promise<Feedback | null> => {
+    try {
+      const response = await apiClient.get<Feedback>(`/feedback/${relatedModel}/${relatedTo}/my`);
+      return response as unknown as Feedback;
+    } catch {
+      return null;
+    }
   },
 
-  // Get feedback statistics
-  async getStats(relatedModel: string, relatedTo: string): Promise<FeedbackStats> {
-    return apiClient.get<FeedbackStats>(`/feedback/${relatedModel}/${relatedTo}/stats`);
+  /**
+   * Get feedback statistics for an item
+   */
+  getStats: async (relatedModel: string, relatedTo: string): Promise<FeedbackStats> => {
+    const response = await apiClient.get<FeedbackStats>(`/feedback/${relatedModel}/${relatedTo}/stats`);
+    return response as unknown as FeedbackStats;
   },
 };

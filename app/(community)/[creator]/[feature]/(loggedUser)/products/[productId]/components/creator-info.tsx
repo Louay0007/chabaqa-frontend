@@ -1,19 +1,79 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { MessageSquare, Star, User, Award, Calendar } from "lucide-react"
+import { MessageSquare, Star, User, Award, Calendar, Loader2 } from "lucide-react"
+import { usersApi, CreatorProfile, CreatorStats } from "@/lib/api/users.api"
 
 interface CreatorInfoProps {
   product: any
 }
 
 export default function CreatorInfo({ product }: CreatorInfoProps) {
-  const creatorStats = {
-    rating: product.creator.rating || 4.9,
-    totalProducts: product.creator.totalProducts || 12,
-    totalSales: product.creator.totalSales || 2847,
-    joinDate: product.creator.joinDate || "2022-01-15"
+  const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null)
+  const [creatorStats, setCreatorStats] = useState<CreatorStats | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Get creator ID from product - check multiple possible locations
+  const creatorId = product?.creator?.id || product?.creator?._id || product?.creatorId
+
+  useEffect(() => {
+    if (!creatorId) {
+      setLoading(false)
+      return
+    }
+
+    const loadCreatorData = async () => {
+      setLoading(true)
+      try {
+        const [profile, stats] = await Promise.all([
+          usersApi.getProfile(creatorId),
+          usersApi.getCreatorStats(creatorId),
+        ])
+        setCreatorProfile(profile)
+        setCreatorStats(stats)
+      } catch (error) {
+        console.error('Failed to load creator data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadCreatorData()
+  }, [creatorId])
+
+  // Display values with fallbacks
+  const displayName = creatorProfile?.name || product?.creator?.name || "Unknown Creator"
+  const displayAvatar = creatorProfile?.profile_picture || creatorProfile?.photo_profil || creatorProfile?.avatar || product?.creator?.avatar
+  const displayBio = creatorProfile?.bio || product?.creator?.bio
+  const displayJoinDate = creatorProfile?.createdAt || product?.creator?.joinDate || product?.creator?.createdAt
+  
+  // Stats - use fetched stats, fallback to product.creator stats
+  const totalProducts = creatorStats?.totalProducts ?? product?.creator?.totalProducts ?? 0
+  const totalSales = creatorStats?.totalSales ?? product?.creator?.totalSales ?? 0
+  const rating = creatorStats?.rating ?? product?.creator?.rating ?? product?.rating ?? 0
+  const joinYear = displayJoinDate ? new Date(displayJoinDate).getFullYear() : new Date().getFullYear()
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
+  if (loading) {
+    return (
+      <Card className="border-0 shadow-sm">
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -29,23 +89,20 @@ export default function CreatorInfo({ product }: CreatorInfoProps) {
         <div className="flex items-start gap-3 sm:gap-4">
           <Avatar className="h-12 w-12 sm:h-16 sm:w-16 shrink-0">
             <AvatarImage 
-              src={product.creator.avatar || "/placeholder.svg"} 
+              src={displayAvatar || "/placeholder.svg"} 
               className="object-cover"
             />
             <AvatarFallback className="text-sm sm:text-base font-medium">
-              {product.creator.name
-                .split(" ")
-                .map((n: string) => n[0])
-                .join("")}
+              {getInitials(displayName)}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0 space-y-1 sm:space-y-2">
             <div>
               <h3 className="font-semibold text-sm sm:text-base truncate">
-                {product.creator.name}
+                {displayName}
               </h3>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                {product.category} Specialist
+                {product?.category || "Digital"} Specialist
               </p>
             </div>
             
@@ -64,7 +121,7 @@ export default function CreatorInfo({ product }: CreatorInfoProps) {
                   <Star
                     key={star}
                     className={`h-3 w-3 ${
-                      star <= Math.floor(creatorStats.rating)
+                      star <= Math.floor(rating)
                         ? "text-yellow-500 fill-current"
                         : "text-gray-300"
                     }`}
@@ -72,42 +129,42 @@ export default function CreatorInfo({ product }: CreatorInfoProps) {
                 ))}
               </div>
               <span className="text-xs text-muted-foreground ml-1">
-                {creatorStats.rating} rating
+                {rating > 0 ? `${rating.toFixed(1)} rating` : "No ratings yet"}
               </span>
             </div>
           </div>
         </div>
 
         {/* Creator Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50/50 rounded-lg">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50/50 rounded-lg">
           <div className="text-center">
             <div className="text-base sm:text-lg font-semibold text-primary">
-              {creatorStats.totalProducts}
+              {totalProducts}
             </div>
             <div className="text-xs text-muted-foreground">Products</div>
           </div>
           <div className="text-center">
             <div className="text-base sm:text-lg font-semibold text-primary">
-              {creatorStats.totalSales.toLocaleString()}
+              {totalSales.toLocaleString()}
             </div>
             <div className="text-xs text-muted-foreground">Sales</div>
           </div>
-          <div className="text-center col-span-2 sm:col-span-1">
+          <div className="text-center">
             <div className="text-base sm:text-lg font-semibold text-primary">
-              {new Date(creatorStats.joinDate).getFullYear()}
+              {joinYear}
             </div>
             <div className="text-xs text-muted-foreground">Joined</div>
           </div>
         </div>
 
         {/* Creator Description */}
-        <div className="space-y-2">
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            {product.creator.bio || 
-             `Experienced ${product.category.toLowerCase()} creator with a passion for quality design and user experience. Committed to delivering premium digital products.`
-            }
-          </p>
-        </div>
+        {displayBio && (
+          <div className="space-y-2">
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              {displayBio}
+            </p>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">

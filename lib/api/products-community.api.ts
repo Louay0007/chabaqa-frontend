@@ -2,47 +2,72 @@ import { apiClient, ApiSuccessResponse } from './client';
 import { productsApi } from './products.api';
 import { communitiesApi } from './communities.api';
 import { getMe } from './user.api';
-import type { Product, ProductVariant, ProductFile } from './types';
+
+export interface ProductFileDetail {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  size?: string;
+  description?: string;
+  order: number;
+  downloadCount: number;
+  isActive: boolean;
+  uploadedAt: string;
+}
+
+export interface ProductCreator {
+  id: string;
+  name: string;
+  email?: string;
+  avatar?: string;
+  bio?: string;
+  rating?: number;
+  totalProducts?: number;
+  totalSales?: number;
+  joinDate?: string;
+}
+
+export interface ProductCommunity {
+  id: string;
+  name: string;
+  slug: string;
+}
 
 export interface ProductWithDetails {
   id: string;
+  _id?: string; // MongoDB ObjectId for APIs that need it
   title: string;
-  slug: string;
   description: string;
-  communityId: string;
-  creatorId: string;
-  thumbnail?: string;
   price: number;
-  type: string;
-  isPublished: boolean;
-  createdAt: string;
-  updatedAt: string;
-  images: string[];
+  currency: string;
   category: string;
+  type: 'digital' | 'physical';
+  images: string[];
+  files: ProductFileDetail[];
+  variants?: any[];
+  features: string[];
+  licenseTerms?: string;
   sales: number;
   rating: number;
+  ratingCount?: number;
+  isPublished: boolean;
   inventory?: number;
-  features?: string[];
-  licenseTerms?: string;
-  variants?: ProductVariant[];
-  files?: ProductFile[];
-  creator?: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
-  isPurchased?: boolean;
-  purchaseDate?: string;
+  isRecurring?: boolean;
+  recurringInterval?: string;
+  creator: ProductCreator;
+  community: ProductCommunity;
+  createdAt: string;
+  updatedAt: string;
+  version?: string;
 }
 
 export interface ProductPurchase {
-  userId: string;
-  downloadCount: number;
-  id: string;
   productId: string;
-  product: ProductWithDetails;
   purchasedAt: string;
-  price: number;
+  downloadCount: number;
+  orderId?: string;
+  amountPaid?: number;
 }
 
 export interface ProductsPageData {
@@ -56,67 +81,76 @@ export interface ProductsPageData {
  * Transform backend product data to frontend format
  */
 function transformProduct(backendProduct: any): ProductWithDetails {
-  // Transform variants
-  const variants = (backendProduct.variants || []).map((variant: any) => ({
-    id: String(variant._id || variant.id || ''),
-    name: variant.name || '',
-    price: variant.price || 0,
-    description: variant.description || undefined,
-    stock: variant.inventory || variant.stock || undefined,
-  }));
+  // Transform creator info - preserve _id for API calls
+  const creator: ProductCreator = backendProduct.creator ? {
+    id: backendProduct.creator._id || backendProduct.creator.id || backendProduct.creatorId,
+    name: backendProduct.creator.name || 'Unknown Creator',
+    email: backendProduct.creator.email,
+    avatar: backendProduct.creator.avatar || backendProduct.creator.profile_picture || backendProduct.creator.photo_profil,
+    bio: backendProduct.creator.bio,
+    rating: backendProduct.creator.rating || 0,
+    totalProducts: backendProduct.creator.totalProducts || 0,
+    totalSales: backendProduct.creator.totalSales || 0,
+    joinDate: backendProduct.creator.joinDate || backendProduct.creator.createdAt,
+  } : {
+    id: backendProduct.creatorId || '',
+    name: 'Unknown Creator',
+    rating: 0,
+    totalProducts: 0,
+    totalSales: 0,
+  };
+
+  // Transform community info
+  const community: ProductCommunity = backendProduct.community ? {
+    id: backendProduct.community.id || backendProduct.communityId,
+    name: backendProduct.community.name || 'Unknown Community',
+    slug: backendProduct.community.slug || 'unknown',
+  } : {
+    id: backendProduct.communityId || '',
+    name: 'Unknown Community',
+    slug: 'unknown',
+  };
 
   // Transform files
-  const files = (backendProduct.files || []).map((file: any) => ({
-    id: String(file._id || file.id || ''),
-    name: file.name || '',
-    url: file.url || '',
-    type: file.type || 'file',
-    size: file.size || 0,
-    description: file.description || undefined,
+  const files: ProductFileDetail[] = (backendProduct.files || []).map((file: any) => ({
+    id: file.id,
+    name: file.name,
+    url: file.url,
+    type: file.type,
+    size: file.size,
+    description: file.description,
     order: file.order || 0,
     downloadCount: file.downloadCount || 0,
     isActive: file.isActive !== false,
     uploadedAt: file.uploadedAt || new Date().toISOString(),
   }));
 
-  // Transform creator
-  const creator = backendProduct.creatorId ? {
-    id: String(backendProduct.creatorId._id || backendProduct.creatorId.id || backendProduct.creatorId || ''),
-    name: backendProduct.creatorId.name || backendProduct.creator?.name || 'Unknown',
-    avatar: backendProduct.creatorId.profile_picture || backendProduct.creatorId.avatar || backendProduct.creator?.avatar || undefined,
-  } : {
-    id: String(backendProduct.creatorId || backendProduct.creator?.id || ''),
-    name: backendProduct.creator?.name || 'Unknown',
-    avatar: backendProduct.creator?.avatar || undefined,
-  };
-
-  // Get images
-  const images = backendProduct.images || (backendProduct.thumbnail ? [backendProduct.thumbnail] : []);
-
   return {
-    id: String(backendProduct._id || backendProduct.id || ''),
+    id: backendProduct.id || backendProduct._id,
+    _id: backendProduct._id, // Preserve MongoDB ObjectId for feedback API
     title: backendProduct.title || '',
-    slug: backendProduct.slug || '',
     description: backendProduct.description || '',
-    communityId: String(backendProduct.communityId?._id || backendProduct.communityId?.id || backendProduct.communityId || backendProduct.community?.id || ''),
-    creatorId: String(backendProduct.creatorId?._id || backendProduct.creatorId?.id || backendProduct.creatorId || ''),
-    thumbnail: backendProduct.thumbnail || backendProduct.images?.[0] || undefined,
     price: backendProduct.price || 0,
+    currency: backendProduct.currency || 'TND',
+    category: backendProduct.category || 'General',
     type: backendProduct.type || 'digital',
+    images: backendProduct.images || [],
+    files,
+    variants: backendProduct.variants || [],
+    features: backendProduct.features || [],
+    licenseTerms: backendProduct.licenseTerms,
+    sales: backendProduct.sales || 0,
+    rating: backendProduct.averageRating || backendProduct.rating || 0,
+    ratingCount: backendProduct.ratingCount || 0,
     isPublished: backendProduct.isPublished !== false,
+    inventory: backendProduct.inventory,
+    isRecurring: backendProduct.isRecurring,
+    recurringInterval: backendProduct.recurringInterval,
+    creator,
+    community,
     createdAt: backendProduct.createdAt || new Date().toISOString(),
     updatedAt: backendProduct.updatedAt || new Date().toISOString(),
-    // Additional fields for component compatibility
-    variants,
-    files,
-    creator,
-    images,
-    category: backendProduct.category || 'General',
-    sales: backendProduct.sales || 0,
-    rating: backendProduct.rating || 0,
-    inventory: backendProduct.inventory || undefined,
-    features: backendProduct.features || [],
-    licenseTerms: backendProduct.licenseTerms || undefined,
+    version: backendProduct.version || '1.0.0',
   };
 }
 
@@ -124,16 +158,12 @@ function transformProduct(backendProduct: any): ProductWithDetails {
  * Transform backend purchase data to frontend format
  */
 function transformPurchase(backendPurchase: any): ProductPurchase {
-  const product = backendPurchase.product || backendPurchase;
-  
   return {
-    id: String(backendPurchase._id || backendPurchase.id || ''),
-    productId: String(product._id || product.id || ''),
-    product: transformProduct(product),
+    productId: backendPurchase.productId || backendPurchase.contentId || backendPurchase.product?.id,
     purchasedAt: backendPurchase.purchasedAt || backendPurchase.createdAt || new Date().toISOString(),
-    price: backendPurchase.price || product.price || 0,
-    userId: String(backendPurchase.userId || ''),
     downloadCount: backendPurchase.downloadCount || 0,
+    orderId: backendPurchase.orderId || backendPurchase._id,
+    amountPaid: backendPurchase.amountPaid || backendPurchase.amountDT,
   };
 }
 
@@ -142,41 +172,29 @@ function transformPurchase(backendPurchase: any): ProductPurchase {
  */
 export const productsCommunityApi = {
   /**
-   * Fetch all data needed for products page
+   * Fetch all data needed for products listing page
    */
   async getProductsPageData(slug: string): Promise<ProductsPageData> {
     try {
-      const normalisedSlug = decodeURIComponent(slug).trim();
-
-      // First, get the community to get its ID
-      const communityResponse = await communitiesApi.getBySlug(normalisedSlug);
-      const communityPayload = (communityResponse as any)?.data?.data ?? communityResponse?.data;
-      const community = Array.isArray(communityPayload) ? communityPayload[0] : communityPayload;
-      const communityId = community?.id ?? community?._id ?? community?.communityId;
-
-      if (!community || !communityId) {
-        throw new Error('Community not found');
-      }
-
       // Fetch in parallel
-      const [productsResponse, userPurchasesResponse, currentUser] = await Promise.allSettled([
-        // Get products by community ID - backend endpoint: GET /products/community/:communityId
-        apiClient
-          .get<ApiSuccessResponse<{ products: any[] }>>(`/products/community/${communityId}`, { page: 1, limit: 100 })
-          .catch(() => null),
-        // Get user purchases - backend endpoint: GET /products/my-purchases
-        apiClient
-          .get<ApiSuccessResponse<{ products: any[] }>>('/products/my-purchases')
-          .catch(() => null),
+      const [communityResponse, productsResponse, purchasesResponse, currentUser] = await Promise.allSettled([
+        communitiesApi.getBySlug(slug),
+        productsApi.getByCommunity(slug),
+        productsApi.getMyPurchases().catch(() => ({ data: { products: [] } })),
         getMe().catch(() => null),
       ]);
 
+      // Handle community
+      if (communityResponse.status === 'rejected') {
+        throw new Error(`Failed to fetch community: ${communityResponse.reason}`);
+      }
+      const community = communityResponse.value.data;
+
       // Handle products
       let products: ProductWithDetails[] = [];
-      if (productsResponse.status === 'fulfilled' && productsResponse.value) {
+      if (productsResponse.status === 'fulfilled') {
         const productsData = productsResponse.value;
-        // Backend returns { success: true, data: { products: [...], pagination: {...} } }
-        const productsList = productsData?.data?.products ?? [];
+        const productsList = productsData?.data?.products || productsData?.products || productsData?.data || [];
         products = Array.isArray(productsList)
           ? productsList.map(transformProduct)
           : [];
@@ -184,12 +202,9 @@ export const productsCommunityApi = {
 
       // Handle user purchases
       let userPurchases: ProductPurchase[] = [];
-      if (userPurchasesResponse.status === 'fulfilled' && userPurchasesResponse.value) {
-        const purchasesData = userPurchasesResponse.value;
-        // Backend returns { success: true, products: [...] }
-        const purchasesList = purchasesData?.data?.products ?? [];
-
-        // Transform purchases
+      if (purchasesResponse.status === 'fulfilled') {
+        const purchasesData = purchasesResponse.value as any;
+        const purchasesList = purchasesData?.data?.products || purchasesData?.products || purchasesData?.data || [];
         userPurchases = Array.isArray(purchasesList)
           ? purchasesList.map(transformPurchase)
           : [];
@@ -198,26 +213,12 @@ export const productsCommunityApi = {
       // Transform current user
       const user = currentUser.status === 'fulfilled' && currentUser.value
         ? {
-            id: String(currentUser.value._id || currentUser.value.id || ''),
-            email: currentUser.value.email || '',
-            username: currentUser.value.username || currentUser.value.name || '',
-            firstName: currentUser.value.firstName || currentUser.value.name?.split(' ')[0] || undefined,
-            lastName: currentUser.value.lastName || currentUser.value.name?.split(' ').slice(1).join(' ') || undefined,
-            avatar: currentUser.value.avatar || currentUser.value.profile_picture || undefined,
-            bio: currentUser.value.bio || undefined,
-            role: currentUser.value.role || 'member',
-            verified: currentUser.value.verified || false,
-            createdAt: currentUser.value.createdAt || new Date().toISOString(),
-            updatedAt: currentUser.value.updatedAt || new Date().toISOString(),
-          }
+          id: String(currentUser.value._id || currentUser.value.id || ''),
+          email: currentUser.value.email || '',
+          username: currentUser.value.username || currentUser.value.name || '',
+          avatar: currentUser.value.avatar || currentUser.value.profile_picture,
+        }
         : null;
-
-      // Mark products as purchased if user has purchases
-      const purchasedProductIds = new Set(userPurchases.map(p => p.productId));
-      products = products.map(product => ({
-        ...product,
-        isPurchased: purchasedProductIds.has(product.id),
-      }));
 
       return {
         community,
@@ -230,6 +231,60 @@ export const productsCommunityApi = {
       throw error;
     }
   },
+
+  /**
+   * Fetch single product with all details
+   */
+  async getProductDetail(productId: string): Promise<ProductWithDetails | null> {
+    try {
+      const response = await productsApi.getById(productId);
+      const productData = (response as any)?.data?.data ?? (response as any)?.data ?? response;
+      
+      if (!productData) {
+        return null;
+      }
+
+      return transformProduct(productData);
+    } catch (error) {
+      console.error('Error fetching product detail:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Check if user has purchased a product
+   */
+  async getUserPurchaseStatus(productId: string): Promise<ProductPurchase | null> {
+    try {
+      const response = await productsApi.checkPurchase(productId);
+      const data = (response as any)?.data ?? response;
+      
+      if (data?.purchased && data?.purchase) {
+        return transformPurchase(data.purchase);
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error checking purchase status:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Get user's all purchased products
+   */
+  async getUserPurchases(): Promise<ProductPurchase[]> {
+    try {
+      const response = await productsApi.getMyPurchases();
+      const data = (response as any)?.data ?? response;
+      const purchasesList = data?.products || data || [];
+      
+      return Array.isArray(purchasesList)
+        ? purchasesList.map(transformPurchase)
+        : [];
+    } catch (error) {
+      console.error('Error fetching user purchases:', error);
+      return [];
+    }
+  },
 };
-
-

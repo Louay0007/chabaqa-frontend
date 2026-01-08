@@ -2,6 +2,7 @@ import { api } from "@/lib/api"
 import { notFound } from "next/navigation"
 import { SessionEditForm } from "./components/session-edit-form"
 import { SessionBookings } from "./components/session-bookings"
+import { SessionAvailabilityWrapper } from "./components/session-availability-wrapper"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Trash2 } from "lucide-react"
 import Link from "next/link"
@@ -128,6 +129,9 @@ export default async function EditSessionPage({
             </div>
           </div>
         </div>
+
+        {/* Availability Configuration */}
+        <SessionAvailabilityWrapper sessionId={sessionId} duration={apiSession.duration || 60} />
 
         {/* Bookings Section */}
         {apiSession?.bookings && Array.isArray(apiSession.bookings) && apiSession.bookings.length > 0 && (

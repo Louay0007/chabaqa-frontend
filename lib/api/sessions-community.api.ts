@@ -1,4 +1,4 @@
-import { apiClient, ApiSuccessResponse } from './client';
+import { apiClient } from './client';
 import { sessionsApi } from './sessions.api';
 import { communitiesApi } from './communities.api';
 import { getMe } from './user.api';
@@ -43,7 +43,7 @@ function transformSession(backendSession: any): SessionWithMentor {
     name: backendSession.creatorId.name || backendSession.creatorName || 'Unknown',
     avatar: backendSession.creatorId.avatar || backendSession.creatorId.profile_picture || backendSession.creatorAvatar || undefined,
     role: backendSession.creatorId.role || 'Mentor',
-    rating: 4.9, // Default rating, can be enhanced later
+    rating: 4.9,
     reviews: backendSession.bookingsCount || 0,
   } : {
     name: backendSession.creatorName || 'Unknown',
@@ -59,7 +59,6 @@ function transformSession(backendSession: any): SessionWithMentor {
     tags.push(backendSession.category);
   }
   if (backendSession.description) {
-    // Extract common tech tags from description
     const techKeywords = ['JavaScript', 'React', 'Node.js', 'TypeScript', 'Python', 'Career', 'Architecture', 'Code Review'];
     techKeywords.forEach(keyword => {
       if (backendSession.description.toLowerCase().includes(keyword.toLowerCase()) && !tags.includes(keyword)) {
@@ -67,7 +66,6 @@ function transformSession(backendSession: any): SessionWithMentor {
       }
     });
   }
-  // Add default tags if none found
   if (tags.length === 0) {
     tags.push('Mentorship', '1-on-1');
   }
@@ -86,7 +84,6 @@ function transformSession(backendSession: any): SessionWithMentor {
     bookedSlots: backendSession.bookedSlots || 0,
     createdAt: backendSession.createdAt || new Date().toISOString(),
     updatedAt: backendSession.updatedAt || new Date().toISOString(),
-    // Additional fields for component compatibility
     mentor,
     tags,
     category: backendSession.category || 'General',
@@ -124,17 +121,14 @@ function transformBooking(backendBooking: any, session?: any): BookingWithSessio
  */
 export const sessionsCommunityApi = {
   /**
-   * Fetch all data needed for sessions page
+   * Fetch all data needed for sessions page (public data only - no auth required)
    */
   async getSessionsPageData(slug: string): Promise<SessionsPageData> {
     try {
-      // Fetch in parallel
-      const [communityResponse, sessionsResponse, userBookingsResponse, currentUser] = await Promise.allSettled([
+      // Fetch public data only (community and sessions)
+      const [communityResponse, sessionsResponse] = await Promise.allSettled([
         communitiesApi.getBySlug(slug),
         sessionsApi.getByCommunity(slug),
-        // Get user bookings - backend endpoint: GET /sessions/bookings/user
-        apiClient.get('/sessions/bookings/user').catch(() => ({ data: { bookings: [] } })),
-        getMe().catch(() => null),
       ]);
 
       // Handle community
@@ -143,73 +137,99 @@ export const sessionsCommunityApi = {
       }
       const community = communityResponse.value.data;
 
-      // Handle sessions
+      // Handle sessions - filter to only active sessions
       let sessions: SessionWithMentor[] = [];
       if (sessionsResponse.status === 'fulfilled') {
         const sessionsData = sessionsResponse.value;
-        // Backend returns array of sessions
         const sessionsList = sessionsData?.data || sessionsData || [];
         sessions = Array.isArray(sessionsList)
-          ? sessionsList.map(transformSession)
+          ? sessionsList.filter((s: any) => s.isActive !== false).map(transformSession)
           : [];
       }
 
-      // Handle user bookings
-      let userBookings: BookingWithSession[] = [];
-      if (userBookingsResponse.status === 'fulfilled') {
-        const bookingsData = userBookingsResponse.value as any;
-        const bookingsList = bookingsData?.data?.bookings || bookingsData?.bookings || [];
-
-        // Transform bookings with session data
-        userBookings = Array.isArray(bookingsList)
-          ? bookingsList.map((booking: any) => {
-            // The backend returns bookings with session info embedded
-            const sessionInfo = booking.sessionId ? {
-              id: booking.sessionId,
-              title: booking.sessionTitle || '',
-              description: '',
-              duration: 60,
-              price: 0,
-              creatorId: booking.creatorId || '',
-              creatorName: booking.creatorName || '',
-              creatorAvatar: booking.creatorAvatar || undefined,
-              isActive: true,
-              category: '',
-            } : undefined;
-
-            return transformBooking(booking, sessionInfo);
-          })
-          : [];
-      }
-
-      // Transform current user
-      const user = currentUser.status === 'fulfilled' && currentUser.value
-        ? {
-          id: String(currentUser.value._id || currentUser.value.id || ''),
-          email: currentUser.value.email || '',
-          username: currentUser.value.username || currentUser.value.name || '',
-          firstName: currentUser.value.firstName || currentUser.value.name?.split(' ')[0] || undefined,
-          lastName: currentUser.value.lastName || currentUser.value.name?.split(' ').slice(1).join(' ') || undefined,
-          avatar: currentUser.value.avatar || currentUser.value.profile_picture || undefined,
-          bio: currentUser.value.bio || undefined,
-          role: currentUser.value.role || 'member',
-          verified: currentUser.value.verified || false,
-          createdAt: currentUser.value.createdAt || new Date().toISOString(),
-          updatedAt: currentUser.value.updatedAt || new Date().toISOString(),
-        }
-        : null;
-
+      // User bookings will be fetched client-side with proper auth
       return {
         community,
         sessions,
-        userBookings,
-        currentUser: user,
+        userBookings: [],
+        currentUser: null,
       };
     } catch (error) {
       console.error('Error fetching sessions page data:', error);
       throw error;
     }
   },
+
+  /**
+   * Fetch user bookings (requires authentication - call from client-side only)
+   */
+  async getUserBookings(): Promise<BookingWithSession[]> {
+    try {
+      const response = await apiClient.get<any>('/sessions/bookings/user');
+      console.log('[getUserBookings] Raw response:', response);
+      
+      const bookingsList = response?.data?.bookings || response?.bookings || [];
+
+      return Array.isArray(bookingsList)
+        ? bookingsList.map((booking: any) => {
+            // Build session info from the booking data
+            const sessionInfo = {
+              id: booking.sessionId || '',
+              title: booking.sessionTitle || 'Session',
+              description: '',
+              duration: 60,
+              price: 0,
+              creatorId: '',
+              creatorName: booking.creatorName || 'Unknown',
+              creatorAvatar: booking.creatorAvatar || undefined,
+              isActive: true,
+              category: '',
+            };
+
+            return {
+              id: booking.id || '',
+              sessionId: booking.sessionId || '',
+              userId: booking.userId || '',
+              scheduledAt: booking.scheduledAt || new Date().toISOString(),
+              status: booking.status || 'pending',
+              meetingUrl: booking.meetingUrl || undefined,
+              notes: booking.notes || undefined,
+              createdAt: booking.createdAt || new Date().toISOString(),
+              updatedAt: booking.updatedAt || new Date().toISOString(),
+              session: transformSession(sessionInfo),
+            };
+          })
+        : [];
+    } catch (error) {
+      console.error('Error fetching user bookings:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Get current user (requires authentication - call from client-side only)
+   */
+  async getCurrentUser(): Promise<any> {
+    try {
+      const user = await getMe();
+      if (!user) return null;
+      
+      return {
+        id: String(user._id || user.id || ''),
+        email: user.email || '',
+        username: user.username || user.name || '',
+        firstName: user.firstName || user.name?.split(' ')[0] || undefined,
+        lastName: user.lastName || user.name?.split(' ').slice(1).join(' ') || undefined,
+        avatar: user.avatar || user.profile_picture || undefined,
+        bio: user.bio || undefined,
+        role: user.role || 'member',
+        verified: user.verified || false,
+        createdAt: user.createdAt || new Date().toISOString(),
+        updatedAt: user.updatedAt || new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+      return null;
+    }
+  },
 };
-
-

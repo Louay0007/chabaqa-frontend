@@ -91,7 +91,10 @@ export default function ProductPageContent({ creatorSlug, slug, product, purchas
               </TabsContent>
 
               <TabsContent value="community" className="mt-6">
-                <ProductCommunity />
+                <ProductCommunity 
+                  productId={String(product?.id || '')}
+                  productMongoId={String(product?._id || '')}
+                />
               </TabsContent>
             </Tabs>
           </div>

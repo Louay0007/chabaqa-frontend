@@ -1,15 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { SessionHeader } from "./session-header"
 import { SessionProgress } from "./session-progress"
 import { BasicInfoStep } from "./basic-info-step"
 import { PricingDurationStep } from "./pricing-duration-step"
 import { SessionDetailsStep } from "./session-details-step"
+import { AvailabilityStep } from "./availability-step"
 import { ReviewPublishStep } from "./review-publish-step"
 import { NavigationButtons } from "./navigation-buttons"
-import { api } from "@/lib/api"
 import { sessionsApi, type CreateSessionData } from "@/lib/api/sessions.api"
 import { useToast } from "@/hooks/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
@@ -41,13 +41,18 @@ export function SessionCreationContainer() {
     preparationMaterials: "",
     sessionFormat: "",
     targetAudience: "",
+    // Availability settings
+    recurringAvailability: [] as { dayOfWeek: number; startTime: string; endTime: string; isActive: boolean }[],
+    autoGenerateSlots: true,
+    advanceBookingDays: 30,
   })
 
   const steps = [
     { id: 1, title: "Basic Info", description: "Session title, description, and category" },
     { id: 2, title: "Pricing & Duration", description: "Set price, duration, and availability" },
     { id: 3, title: "Session Details", description: "Format, requirements, and what participants get" },
-    { id: 4, title: "Review & Publish", description: "Review and publish your session" },
+    { id: 4, title: "Availability", description: "Set your weekly availability for bookings" },
+    { id: 5, title: "Review & Publish", description: "Review and publish your session" },
   ]
 
   const handleInputChange = (field: string, value: any) => {
@@ -122,10 +127,46 @@ export function SessionCreationContainer() {
 
       const res = await sessionsApi.create(payload)
       const created = (res as any)?.data || res
+      const sessionId = created?.id || created?._id || created?.session?.id || created?.session?._id
+
+      // Save availability settings if configured
+      if (sessionId && formData.recurringAvailability && formData.recurringAvailability.length > 0) {
+        try {
+          await sessionsApi.setAvailableHours(sessionId, {
+            recurringAvailability: formData.recurringAvailability.map(slot => ({
+              dayOfWeek: slot.dayOfWeek,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              slotDuration: Number(formData.duration) || 60,
+              isActive: slot.isActive,
+            })),
+            autoGenerateSlots: formData.autoGenerateSlots,
+            advanceBookingDays: formData.advanceBookingDays,
+          })
+
+          // Auto-generate slots if enabled
+          if (formData.autoGenerateSlots) {
+            const startDate = new Date()
+            const endDate = new Date()
+            endDate.setDate(endDate.getDate() + (formData.advanceBookingDays || 30))
+            
+            await sessionsApi.generateSlots(sessionId, {
+              startDate: startDate.toISOString(),
+              endDate: endDate.toISOString(),
+            })
+          }
+        } catch (availabilityError) {
+          console.error('Failed to save availability:', availabilityError)
+          // Don't fail the whole creation, just warn
+          toast({ 
+            title: 'Session created', 
+            description: 'Session created but availability settings could not be saved. You can configure them from the edit page.',
+          })
+        }
+      }
+
       toast({ title: 'Session created as draft', description: `${payload.title} - Publish it from the sessions page once you have an active subscription.` })
-      const id = created?.id || created?._id || created?.session?.id || created?.session?._id
-      if (id) router.push(`/creator/sessions`)
-      else router.push('/creator/sessions')
+      router.push('/creator/sessions')
     } catch (e: any) {
       toast({ title: 'Failed to create session', description: e?.message || 'Please review required fields.', variant: 'destructive' as any })
     }
@@ -159,6 +200,13 @@ export function SessionCreationContainer() {
       )}
 
       {currentStep === 4 && (
+        <AvailabilityStep
+          formData={formData}
+          handleInputChange={handleInputChange}
+        />
+      )}
+
+      {currentStep === 5 && (
         <ReviewPublishStep
           formData={formData}
           handleInputChange={handleInputChange}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,12 +18,18 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { CalendarIcon, Clock, Video, Star } from "lucide-react"
-import { format } from "date-fns"
+import { CalendarIcon, Clock, Video, Star, Loader2 } from "lucide-react"
+import { format, isSameDay } from "date-fns"
 import { tokenStorage } from "@/lib/token-storage"
 import { sessionsApi } from "@/lib/api/sessions.api"
 
-const timeSlots = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"]
+interface AvailableSlot {
+  id: string
+  startTime: string
+  endTime: string
+  isAvailable: boolean
+  bookedBy?: string
+}
 
 interface SessionCardProps {
   session: any
@@ -35,13 +41,120 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
   const { toast } = useToast()
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [selectedTime, setSelectedTime] = useState<string>("")
+  const [selectedSlotId, setSelectedSlotId] = useState<string>("")
   const [bookingNotes, setBookingNotes] = useState("")
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   const [promoCode, setPromoCode] = useState("")
   const [paymentProof, setPaymentProof] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Available slots from backend
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
 
   const isPaidSession = useMemo(() => Number(session?.price ?? 0) > 0, [session])
+
+  // Fetch available slots when dialog opens
+  useEffect(() => {
+    if (dialogOpen && session?.id) {
+      console.log('[SessionCard] Dialog opened, fetching slots for session:', session.id)
+      fetchAvailableSlots()
+    }
+  }, [dialogOpen, session?.id])
+
+  const fetchAvailableSlots = async () => {
+    setLoadingSlots(true)
+    try {
+      const sessionId = session?.id || session?._id
+      console.log('[SessionCard] Session object:', JSON.stringify(session, null, 2))
+      console.log('[SessionCard] Fetching available slots for session ID:', sessionId)
+      
+      const response: any = await sessionsApi.getAvailableSlots(sessionId)
+      console.log('[SessionCard] Raw API response:', JSON.stringify(response, null, 2))
+      
+      // Handle different response structures
+      // Backend returns: { slots: [...], total, available, booked }
+      const slotsData = response?.slots || response?.data?.slots || response?.data || []
+      const slots = Array.isArray(slotsData) ? slotsData : []
+      
+      console.log('[SessionCard] Parsed slots count:', slots.length)
+      console.log('[SessionCard] Available slots:', slots.filter((s: AvailableSlot) => s.isAvailable).length)
+      
+      // Set all slots (not just available ones) so we can show booked status too
+      setAvailableSlots(slots)
+    } catch (error) {
+      console.error('[SessionCard] Failed to fetch available slots:', error)
+      // If no slots configured, we'll show a message
+      setAvailableSlots([])
+    } finally {
+      setLoadingSlots(false)
+    }
+  }
+
+  // Get dates that have available slots
+  const datesWithSlots = useMemo(() => {
+    const dates = availableSlots
+      .filter(slot => slot.isAvailable)
+      .map(slot => new Date(slot.startTime))
+    
+    // Remove duplicates by converting to date strings and back
+    const uniqueDates = [...new Set(dates.map(d => d.toDateString()))].map(ds => new Date(ds))
+    
+    console.log('[SessionCard] Dates with available slots:', uniqueDates.length, 'unique dates')
+    if (uniqueDates.length > 0) {
+      console.log('[SessionCard] First few dates:', uniqueDates.slice(0, 5).map(d => d.toDateString()))
+    }
+    
+    return dates
+  }, [availableSlots])
+
+  // Auto-select the first available date when slots are loaded
+  useEffect(() => {
+    if (availableSlots.length > 0 && datesWithSlots.length > 0) {
+      // Find the first available date that's not in the past
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      
+      const firstAvailableDate = datesWithSlots.find(d => d >= today)
+      if (firstAvailableDate && (!selectedDate || !datesWithSlots.some(d => isSameDay(d, selectedDate)))) {
+        console.log('[SessionCard] Auto-selecting first available date:', firstAvailableDate.toISOString())
+        setSelectedDate(firstAvailableDate)
+      }
+    }
+  }, [availableSlots, datesWithSlots])
+
+  // Get time slots for the selected date
+  const timeSlotsForDate = useMemo(() => {
+    if (!selectedDate || availableSlots.length === 0) {
+      console.log('[SessionCard] No date selected or no slots available')
+      return []
+    }
+    
+    console.log('[SessionCard] Filtering slots for date:', selectedDate.toDateString())
+    console.log('[SessionCard] Total slots in state:', availableSlots.length)
+    
+    const filtered = availableSlots
+      .filter(slot => {
+        const slotDate = new Date(slot.startTime)
+        const sameDay = isSameDay(slotDate, selectedDate)
+        const isAvail = slot.isAvailable
+        console.log(`[SessionCard] Slot ${slot.id}: ${slotDate.toDateString()} sameDay=${sameDay} isAvailable=${isAvail}`)
+        return sameDay && isAvail
+      })
+      .map(slot => {
+        const slotDate = new Date(slot.startTime)
+        return {
+          id: slot.id,
+          time: format(slotDate, 'HH:mm'),
+          startTime: slot.startTime,
+        }
+      })
+      .sort((a, b) => a.time.localeCompare(b.time))
+    
+    console.log('[SessionCard] Filtered slots for selected date:', filtered.length)
+    return filtered
+  }, [selectedDate, availableSlots])
 
   const scheduledAt = useMemo(() => {
     if (!selectedDate || !selectedTime) return null
@@ -51,6 +164,11 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
     next.setHours(hh, mm, 0, 0)
     return next.toISOString()
   }, [selectedDate, selectedTime])
+
+  const handleTimeSelect = (slotId: string, time: string) => {
+    setSelectedSlotId(slotId)
+    setSelectedTime(time)
+  }
 
   const handleConfirm = async () => {
     setIsSubmitting(true)
@@ -81,7 +199,11 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
 
         const formData = new FormData()
         formData.append('sessionId', String(selectedSession || session?.id))
+        formData.append('slotId', selectedSlotId)
         formData.append('proof', paymentProof)
+        if (bookingNotes.trim()) {
+          formData.append('notes', bookingNotes.trim())
+        }
 
         const initResponse = await fetch(`/api/payments/manual/init/session${promoQuery}`, {
           method: 'POST',
@@ -105,40 +227,55 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
 
         setPromoCode("")
         setPaymentProof(null)
+        setDialogOpen(false)
         return
       }
 
-      if (!scheduledAt) {
+      // For free sessions or sessions with available slots, book the slot
+      if (selectedSlotId) {
+        // Book using slot ID
+        const response = await sessionsApi.bookSlot(
+          String(session?.id),
+          { slotId: selectedSlotId, notes: bookingNotes.trim() || undefined }
+        )
+
+        toast({
+          title: "Session booked!",
+          description: "Your session has been booked successfully. Check your email for details.",
+        })
+      } else if (scheduledAt) {
+        // Fallback to traditional booking if no slot system
+        const bookingData = {
+          scheduledAt,
+          notes: bookingNotes.trim() || undefined,
+        }
+
+        const response = await sessionsApi.book(
+          String(session?.id), 
+          bookingData,
+          promoCode.trim() || undefined
+        )
+
+        toast({
+          title: "Booking requested",
+          description: "Your session booking was submitted successfully.",
+        })
+      } else {
         toast({
           title: "Missing date/time",
-          description: "Please select a date and time.",
+          description: "Please select a date and time slot.",
           variant: "destructive",
         })
         return
       }
 
-      // For free sessions, book directly with the backend
-      const bookingData = {
-        scheduledAt,
-        notes: bookingNotes.trim() || undefined,
-      }
-
-      const response = await sessionsApi.book(
-        String(selectedSession || session?.id), 
-        bookingData,
-        promoCode.trim() || undefined
-      )
-
-      toast({
-        title: "Booking requested",
-        description: "Your session booking was submitted successfully.",
-      })
-
-      // Reset form
+      // Reset form and close dialog
       setSelectedDate(new Date())
       setSelectedTime("")
+      setSelectedSlotId("")
       setBookingNotes("")
       setPromoCode("")
+      setDialogOpen(false)
       
     } catch (error: any) {
       toast({
@@ -165,7 +302,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Mentor Info - Mobile optimized */}
+        {/* Mentor Info */}
         <div className="flex items-center space-x-3">
           <Avatar className="h-10 w-10 shrink-0">
             <AvatarImage src={session.mentor?.avatar || "/placeholder.svg"} />
@@ -189,7 +326,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
           </div>
         </div>
 
-        {/* Session Details - Stack on mobile */}
+        {/* Session Details */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm">
           <div className="flex items-center text-muted-foreground">
             <Clock className="h-4 w-4 mr-1 shrink-0" />
@@ -201,7 +338,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
           </div>
         </div>
 
-        {/* Tags - Responsive wrapping */}
+        {/* Tags */}
         {session.tags && session.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {session.tags.map((tag: any) => (
@@ -212,10 +349,12 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
           </div>
         )}
 
-        {/* Price and Book Button - Stack on mobile */}
+        {/* Price and Book Button */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t">
-          <div className="text-2xl font-bold text-sessions-600">${session.price}</div>
-          <Dialog>
+          <div className="text-2xl font-bold text-sessions-600">
+            {session.price > 0 ? `$${session.price}` : 'Free'}
+          </div>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button
                 className="bg-sessions-500 hover:bg-sessions-600 w-full sm:w-auto"
@@ -233,7 +372,6 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                 </DialogDescription>
               </DialogHeader>
 
-              {/* Mobile-first responsive grid */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 py-4">
                 {/* Calendar Section */}
                 <div className="space-y-4 order-1">
@@ -243,8 +381,20 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                       <Calendar
                         mode="single"
                         selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        disabled={(date) => date < new Date()}
+                        onSelect={(date) => {
+                          setSelectedDate(date)
+                          setSelectedTime("")
+                          setSelectedSlotId("")
+                        }}
+                        disabled={(date) => {
+                          // Disable past dates
+                          if (date < new Date(new Date().setHours(0, 0, 0, 0))) return true
+                          // If we have slots, only enable dates with available slots
+                          if (availableSlots.length > 0) {
+                            return !datesWithSlots.some(d => isSameDay(d, date))
+                          }
+                          return false
+                        }}
                         className="rounded-md border w-fit"
                         classNames={{
                           months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
@@ -277,19 +427,40 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                 <div className="space-y-4 order-2">
                   <div>
                     <Label className="text-sm font-medium">Available Times</Label>
-                    <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
-                      {timeSlots.map((time) => (
-                        <Button
-                          key={time}
-                          variant={selectedTime === time ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedTime(time)}
-                          className="justify-center text-xs h-8"
-                        >
-                          {time}
-                        </Button>
-                      ))}
-                    </div>
+                    {loadingSlots ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : timeSlotsForDate.length > 0 ? (
+                      <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+                        {timeSlotsForDate.map((slot) => (
+                          <Button
+                            key={slot.id}
+                            variant={selectedSlotId === slot.id ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handleTimeSelect(slot.id, slot.time)}
+                            className="justify-center text-xs h-8"
+                          >
+                            {slot.time}
+                          </Button>
+                        ))}
+                      </div>
+                    ) : availableSlots.length === 0 ? (
+                      <div className="text-center py-6 text-muted-foreground text-sm">
+                        <p>No time slots configured yet.</p>
+                        <p className="text-xs mt-1">The creator hasn't set up their availability.</p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-muted-foreground text-sm">
+                        <p>No available times for this date.</p>
+                        <p className="text-xs mt-1">Please select a highlighted date on the calendar.</p>
+                        {datesWithSlots.length > 0 && (
+                          <p className="text-xs mt-2 text-sessions-600">
+                            Next available: {format(datesWithSlots[0], 'EEE, MMM d')}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -332,7 +503,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                     </div>
                   )}
 
-                  {/* Session Summary - Always visible on mobile */}
+                  {/* Session Summary */}
                   <div className="bg-sessions-50 p-3 sm:p-4 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium text-sm">Session Summary</span>
@@ -344,7 +515,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                       </div>
                       <div className="flex justify-between">
                         <span>Price:</span>
-                        <span>${session.price}</span>
+                        <span>{session.price > 0 ? `$${session.price}` : 'Free'}</span>
                       </div>
                       {selectedDate && selectedTime && (
                         <div className="flex justify-between">
@@ -359,12 +530,19 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
 
                   <Button
                     onClick={handleConfirm}
-                    disabled={isSubmitting || (isPaidSession ? false : !scheduledAt)}
+                    disabled={isSubmitting || (!selectedSlotId && !scheduledAt) || (isPaidSession && !paymentProof)}
                     className="w-full bg-sessions-500 hover:bg-sessions-600 h-10 text-sm font-medium"
                   >
-                    {isPaidSession
-                      ? (isSubmitting ? "Submitting..." : `Submit payment proof - $${session.price}`)
-                      : (isSubmitting ? "Submitting..." : `Confirm Booking - $${session.price}`)}
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : isPaidSession ? (
+                      `Submit payment proof - $${session.price}`
+                    ) : (
+                      `Confirm Booking${session.price > 0 ? ` - $${session.price}` : ''}`
+                    )}
                   </Button>
                 </div>
               </div>

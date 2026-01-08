@@ -113,4 +113,29 @@ export const productsApi = {
   getByCreator: async (creatorId: string, params?: PaginationParams & { communityId?: string }): Promise<ApiSuccessResponse<any>> => {
     return apiClient.get<ApiSuccessResponse<any>>(`/products/creator/${creatorId}`, params);
   },
+
+  // Get user's purchased products
+  getMyPurchases: async (): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.get<ApiSuccessResponse<any>>('/products/my-purchases');
+  },
+
+  // Check if user has purchased a product
+  checkPurchase: async (productId: string): Promise<ApiSuccessResponse<{ purchased: boolean; purchase?: any }>> => {
+    return apiClient.get<ApiSuccessResponse<any>>(`/products/${productId}/check-purchase`);
+  },
+
+  // Download specific file from product
+  downloadFile: async (productId: string, fileId: string): Promise<ApiSuccessResponse<{ url: string }>> => {
+    return apiClient.get<ApiSuccessResponse<{ url: string }>>(`/products/${productId}/files/${fileId}/download`);
+  },
+
+  // Get product reviews
+  getReviews: async (productId: string, params?: PaginationParams): Promise<any> => {
+    return apiClient.get(`/products/${productId}/reviews`, params);
+  },
+
+  // Submit product review
+  submitReview: async (productId: string, data: { rating: number; comment?: string }): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.post<ApiSuccessResponse<any>>(`/products/${productId}/reviews`, data);
+  },
 };

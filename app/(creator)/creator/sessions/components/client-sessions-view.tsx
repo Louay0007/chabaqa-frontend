@@ -47,23 +47,24 @@ export default function ClientSessionsView({
   useEffect(() => { setBookings(allBookings) }, [allBookings]);
 
   const handleToggleSessionStatus = async (sessionId: string, currentStatus: boolean) => {
+    // DISABLED FOR TESTING - Subscription check
     // If trying to publish (activate) a session, check subscription first
-    if (!currentStatus) {
-      try {
-        const hasSubscription = await subscriptionApi.hasActiveSubscription();
-        if (!hasSubscription) {
-          toast({
-            title: 'Active subscription required',
-            description: 'You need an active subscription to publish sessions. Please upgrade your plan to publish this session.',
-            variant: 'destructive'
-          });
-          return;
-        }
-      } catch (subscriptionError) {
-        console.error('Failed to check subscription status:', subscriptionError);
-        // Continue with the API call even if subscription check fails
-      }
-    }
+    // if (!currentStatus) {
+    //   try {
+    //     const hasSubscription = await subscriptionApi.hasActiveSubscription();
+    //     if (!hasSubscription) {
+    //       toast({
+    //         title: 'Active subscription required',
+    //         description: 'You need an active subscription to publish sessions. Please upgrade your plan to publish this session.',
+    //         variant: 'destructive'
+    //       });
+    //       return;
+    //     }
+    //   } catch (subscriptionError) {
+    //     console.error('Failed to check subscription status:', subscriptionError);
+    //     // Continue with the API call even if subscription check fails
+    //   }
+    // }
 
     try {
       setUpdatingSession(sessionId);
