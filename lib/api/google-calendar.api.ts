@@ -1,4 +1,4 @@
-import { apiClient, ApiSuccessResponse } from './client';
+import { apiClient } from './client';
 
 export interface GoogleCalendarStatus {
   connected: boolean;
@@ -16,33 +16,38 @@ export interface GoogleCalendarResponse {
 
 /**
  * Google Calendar API Service
+ * Note: Backend returns data directly (not wrapped in { success, data })
  */
 export const googleCalendarApi = {
   /**
    * Get Google OAuth authorization URL
    */
-  getAuthUrl: async (): Promise<ApiSuccessResponse<GoogleAuthUrl>> => {
-    return apiClient.get<ApiSuccessResponse<GoogleAuthUrl>>('/google-calendar/auth-url');
+  getAuthUrl: async (): Promise<{ data: GoogleAuthUrl }> => {
+    const response = await apiClient.get<GoogleAuthUrl>('/google-calendar/auth-url');
+    return { data: response };
   },
 
   /**
    * Handle OAuth callback (exchange code for tokens)
    */
-  handleCallback: async (code: string): Promise<ApiSuccessResponse<GoogleCalendarResponse>> => {
-    return apiClient.post<ApiSuccessResponse<GoogleCalendarResponse>>('/google-calendar/callback', { code });
+  handleCallback: async (code: string): Promise<{ data: GoogleCalendarResponse }> => {
+    const response = await apiClient.post<GoogleCalendarResponse>('/google-calendar/callback', { code });
+    return { data: response };
   },
 
   /**
    * Get Google Calendar connection status
    */
-  getConnectionStatus: async (): Promise<ApiSuccessResponse<GoogleCalendarStatus>> => {
-    return apiClient.get<ApiSuccessResponse<GoogleCalendarStatus>>('/google-calendar/status');
+  getConnectionStatus: async (): Promise<{ data: GoogleCalendarStatus }> => {
+    const response = await apiClient.get<GoogleCalendarStatus>('/google-calendar/status');
+    return { data: response };
   },
 
   /**
    * Disconnect Google Calendar
    */
-  disconnect: async (): Promise<ApiSuccessResponse<GoogleCalendarResponse>> => {
-    return apiClient.post<ApiSuccessResponse<GoogleCalendarResponse>>('/google-calendar/disconnect');
+  disconnect: async (): Promise<{ data: GoogleCalendarResponse }> => {
+    const response = await apiClient.post<GoogleCalendarResponse>('/google-calendar/disconnect');
+    return { data: response };
   },
 };

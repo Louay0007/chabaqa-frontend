@@ -20,16 +20,21 @@ export default function SessionsPageContent({
 }: SessionsPageContentProps) {
   const [activeTab, setActiveTab] = useState("available")
   const [userBookings, setUserBookings] = useState<any[]>(initialBookings)
+  const [loading, setLoading] = useState(true)
 
   // Fetch user bookings client-side (requires auth)
   useEffect(() => {
     const fetchUserBookings = async () => {
       try {
+        console.log('[SessionsPageContent] Fetching user bookings...')
         const bookings = await sessionsCommunityApi.getUserBookings()
+        console.log('[SessionsPageContent] Received bookings:', bookings)
         setUserBookings(bookings)
       } catch (error) {
         // User might not be logged in, that's okay
-        console.log('Could not fetch user bookings:', error)
+        console.log('[SessionsPageContent] Could not fetch user bookings:', error)
+      } finally {
+        setLoading(false)
       }
     }
     

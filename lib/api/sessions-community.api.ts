@@ -39,15 +39,32 @@ export interface SessionsPageData {
  */
 function transformSession(backendSession: any): SessionWithMentor {
   // Transform creator to mentor format
-  const mentor = backendSession.creatorId ? {
-    name: backendSession.creatorId.name || backendSession.creatorName || 'Unknown',
-    avatar: backendSession.creatorId.avatar || backendSession.creatorId.profile_picture || backendSession.creatorAvatar || undefined,
-    role: backendSession.creatorId.role || 'Mentor',
-    rating: 4.9,
-    reviews: backendSession.bookingsCount || 0,
-  } : {
-    name: backendSession.creatorName || 'Unknown',
-    avatar: backendSession.creatorAvatar || undefined,
+  // Backend can return creator data in two ways:
+  // 1. Populated: creatorId is an object with { name, email, photo_profil, profile_picture, avatar }
+  // 2. DTO transformed: creatorId is a string, creatorName and creatorAvatar are separate fields
+  
+  const isPopulated = typeof backendSession.creatorId === 'object' && backendSession.creatorId !== null;
+  
+  let creatorAvatar: string | undefined;
+  let creatorName: string;
+  
+  if (isPopulated) {
+    // Populated format - check all possible avatar fields
+    const creatorData = backendSession.creatorId;
+    creatorAvatar = creatorData.photo_profil || 
+                    creatorData.profile_picture || 
+                    creatorData.avatar || 
+                    undefined;
+    creatorName = creatorData.name || 'Unknown';
+  } else {
+    // DTO format - use direct fields
+    creatorAvatar = backendSession.creatorAvatar || undefined;
+    creatorName = backendSession.creatorName || 'Unknown';
+  }
+  
+  const mentor = {
+    name: creatorName,
+    avatar: creatorAvatar,
     role: 'Mentor',
     rating: 4.9,
     reviews: backendSession.bookingsCount || 0,
@@ -78,7 +95,9 @@ function transformSession(backendSession: any): SessionWithMentor {
     price: backendSession.price || 0,
     currency: backendSession.currency || 'USD',
     communityId: String(backendSession.communityId || ''),
-    creatorId: String(backendSession.creatorId?._id || backendSession.creatorId?.id || backendSession.creatorId || ''),
+    creatorId: isPopulated 
+      ? String(backendSession.creatorId?._id || backendSession.creatorId?.id || '') 
+      : String(backendSession.creatorId || ''),
     isActive: backendSession.isActive !== false,
     availableSlots: backendSession.availableSlots || 0,
     bookedSlots: backendSession.bookedSlots || 0,
@@ -166,42 +185,49 @@ export const sessionsCommunityApi = {
   async getUserBookings(): Promise<BookingWithSession[]> {
     try {
       const response = await apiClient.get<any>('/sessions/bookings/user');
-      console.log('[getUserBookings] Raw response:', response);
+      console.log('[getUserBookings] Raw response:', JSON.stringify(response, null, 2));
       
-      const bookingsList = response?.data?.bookings || response?.bookings || [];
+      // Backend returns { bookings: [...], total: number }
+      const bookingsList = response?.bookings || response?.data?.bookings || [];
+      console.log('[getUserBookings] Bookings list length:', bookingsList.length);
 
-      return Array.isArray(bookingsList)
-        ? bookingsList.map((booking: any) => {
-            // Build session info from the booking data
-            const sessionInfo = {
-              id: booking.sessionId || '',
-              title: booking.sessionTitle || 'Session',
-              description: '',
-              duration: 60,
-              price: 0,
-              creatorId: '',
-              creatorName: booking.creatorName || 'Unknown',
-              creatorAvatar: booking.creatorAvatar || undefined,
-              isActive: true,
-              category: '',
-            };
+      if (!Array.isArray(bookingsList)) {
+        console.error('[getUserBookings] bookingsList is not an array:', typeof bookingsList);
+        return [];
+      }
 
-            return {
-              id: booking.id || '',
-              sessionId: booking.sessionId || '',
-              userId: booking.userId || '',
-              scheduledAt: booking.scheduledAt || new Date().toISOString(),
-              status: booking.status || 'pending',
-              meetingUrl: booking.meetingUrl || undefined,
-              notes: booking.notes || undefined,
-              createdAt: booking.createdAt || new Date().toISOString(),
-              updatedAt: booking.updatedAt || new Date().toISOString(),
-              session: transformSession(sessionInfo),
-            };
-          })
-        : [];
+      return bookingsList.map((booking: any) => {
+        console.log('[getUserBookings] Processing booking:', booking.id, 'sessionId:', booking.sessionId);
+        
+        // Build session info from the booking data
+        const sessionInfo = {
+          id: booking.sessionId || '',
+          title: booking.sessionTitle || 'Session',
+          description: '',
+          duration: 60,
+          price: 0,
+          creatorId: '',
+          creatorName: booking.creatorName || 'Unknown',
+          creatorAvatar: booking.creatorAvatar || undefined,
+          isActive: true,
+          category: '',
+        };
+
+        return {
+          id: booking.id || '',
+          sessionId: booking.sessionId || '',
+          userId: booking.userId || '',
+          scheduledAt: booking.scheduledAt || new Date().toISOString(),
+          status: booking.status || 'pending',
+          meetingUrl: booking.meetingUrl || undefined,
+          notes: booking.notes || undefined,
+          createdAt: booking.createdAt || new Date().toISOString(),
+          updatedAt: booking.updatedAt || new Date().toISOString(),
+          session: transformSession(sessionInfo),
+        };
+      });
     } catch (error) {
-      console.error('Error fetching user bookings:', error);
+      console.error('[getUserBookings] Error fetching user bookings:', error);
       return [];
     }
   },
