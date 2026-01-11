@@ -108,6 +108,11 @@ export const sessionsApi = {
     return apiClient.patch<ApiSuccessResponse<Session>>(`/sessions/bookings/${bookingId}/complete`, data);
   },
 
+  // Create Meet link for booking
+  createMeetLink: async (bookingId: string): Promise<ApiSuccessResponse<{ meetingUrl: string; googleEventId: string }>> => {
+    return apiClient.post<ApiSuccessResponse<{ meetingUrl: string; googleEventId: string }>>(`/sessions/bookings/${bookingId}/create-meet`, {});
+  },
+
   // Set available hours
   setAvailableHours: async (id: string, data: any): Promise<ApiSuccessResponse<any>> => {
     return apiClient.post<ApiSuccessResponse<any>>(`/sessions/${id}/available-hours`, data);
@@ -138,9 +143,16 @@ export const sessionsApi = {
     return apiClient.patch<ApiSuccessResponse<Session>>(`/sessions/${id}/cancel-slot/${slotId}`, {});
   },
 
-  // Get creator bookings
-  getCreatorBookings: async (): Promise<ApiSuccessResponse<any>> => {
-    return apiClient.get<ApiSuccessResponse<any>>('/sessions/bookings/creator');
+  // Get creator bookings with filters
+  getCreatorBookings: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    timeFilter?: string;
+    sessionId?: string;
+    search?: string;
+  }): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.get<ApiSuccessResponse<any>>('/sessions/bookings/creator', params);
   },
 
   // Get user bookings

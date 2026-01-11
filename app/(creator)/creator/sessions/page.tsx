@@ -43,21 +43,28 @@ export default function CreatorSessionsPage() {
       // Creator bookings
       const bookRes = await apiClient.get<any>(`/sessions/bookings/creator`).catch(() => null as any)
       const rawBookings = bookRes?.data?.bookings || bookRes?.bookings || []
-      const normBookings = (Array.isArray(rawBookings) ? rawBookings : []).map((b: any) => ({
-        id: b.id || b._id,
-        status: b.status || 'pending',
-        scheduledAt: b.scheduledAt || b.startTime || new Date().toISOString(),
-        amount: Number(b.amount ?? b.price ?? 0),
-        user: {
-          name: b.user?.name || b.participant?.name || 'Member',
-          avatar: b.user?.avatar || b.participant?.avatar || '',
-        },
-        session: {
-          id: b.session?.id || b.session?._id || b.sessionId,
-          title: b.session?.title || b.sessionTitle || 'Session',
-          duration: Number(b.session?.duration ?? b.duration ?? 0),
-        },
-      }))
+      console.log('[CreatorSessionsPage] Raw bookings response:', JSON.stringify(bookRes, null, 2))
+      console.log('[CreatorSessionsPage] Raw bookings array:', rawBookings)
+      const normBookings = (Array.isArray(rawBookings) ? rawBookings : []).map((b: any) => {
+        console.log('[CreatorSessionsPage] Processing booking:', b)
+        return {
+          id: b.id || b._id,
+          status: b.status || 'pending',
+          scheduledAt: b.scheduledAt || b.startTime || new Date().toISOString(),
+          amount: Number(b.amount ?? b.price ?? 0),
+          meetingUrl: b.meetingUrl || null,
+          user: {
+            name: b.userName || b.user?.name || b.participant?.name || 'Member',
+            avatar: b.userAvatar || b.user?.avatar || b.participant?.avatar || '',
+          },
+          session: {
+            id: b.sessionId || b.session?.id || b.session?._id,
+            title: b.sessionTitle || b.session?.title || 'Session',
+            duration: Number(b.session?.duration ?? b.duration ?? 0),
+          },
+        }
+      })
+      console.log('[CreatorSessionsPage] Normalized bookings:', normBookings)
       setBookings(normBookings)
 
       // Analytics revenue (last 30 days)

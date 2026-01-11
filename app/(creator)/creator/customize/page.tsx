@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,10 +14,11 @@ import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Save, Eye, Smartphone, Tablet, Monitor, Palette, Type, Layout, Zap } from "lucide-react"
 import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { useCreatorCommunity } from "../context/creator-community-context"
 
 export default function CustomizeCommunityPage() {
-  const params = useParams()
   const router = useRouter()
+  const { selectedCommunity: contextCommunity, isLoading: contextLoading } = useCreatorCommunity()
   const [community, setCommunity] = useState<any>(null)
   const [showPreview, setShowPreview] = useState(false)
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop")
@@ -26,9 +27,12 @@ export default function CustomizeCommunityPage() {
 
   useEffect(() => {
     const loadCommunity = async () => {
+      // Wait for context to load
+      if (contextLoading || !contextCommunity) return
+      
       try {
-        const response = await api.communities.getBySlug(params.slug as string)
-        const foundCommunity = response.data
+        // Use the community from context instead of params.slug
+        const foundCommunity = contextCommunity
         
         if (foundCommunity) {
           // Get community settings
@@ -116,7 +120,7 @@ export default function CustomizeCommunityPage() {
     }
 
     loadCommunity()
-  }, [params.slug])
+  }, [contextCommunity, contextLoading])
 
   const handleSave = async () => {
     try {
@@ -149,12 +153,36 @@ export default function CustomizeCommunityPage() {
     setHasChanges(true)
   }
 
-  if (!community) {
+  if (contextLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading community...</p>
+        </div>
+      </div>
+    )
+  }
+ 
+  if (!contextCommunity) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-gray-600">No community selected. Please select a community first.</p>
+          <Button variant="outline" className="mt-4" onClick={() => router.push('/creator')}>
+            Go to Dashboard
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!community) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading customization settings...</p>
         </div>
       </div>
     )

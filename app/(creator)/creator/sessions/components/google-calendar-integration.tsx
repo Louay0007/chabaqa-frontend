@@ -47,6 +47,17 @@ export default function GoogleCalendarIntegration({ className }: GoogleCalendarI
       setConnecting(true)
       const response = await googleCalendarApi.getAuthUrl()
       
+      // Store a flag to indicate we're in the middle of Google Calendar OAuth
+      // This helps the callback know to use the JWT token instead of state
+      localStorage.setItem('google_calendar_oauth_pending', 'true')
+      
+      // Store the token in localStorage for the callback to use
+      // This is needed because popup windows may not share cookies
+      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1]
+      if (token) {
+        localStorage.setItem('google_calendar_oauth_token', token)
+      }
+      
       // Open Google OAuth in new window
       const authWindow = window.open(
         response.data.authUrl,
@@ -222,6 +233,18 @@ export default function GoogleCalendarIntegration({ className }: GoogleCalendarI
                 }
               </AlertDescription>
             </Alert>
+
+            {status.hasValidAccess && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => window.open('https://calendar.google.com', '_blank')}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Open Google Calendar
+                <ExternalLink className="h-3 w-3 ml-2" />
+              </Button>
+            )}
 
             <div className="flex gap-2">
               {!status.hasValidAccess && (

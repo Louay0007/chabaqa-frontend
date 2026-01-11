@@ -17,6 +17,7 @@ import {
   Trash2,
   Power,
   PowerOff,
+  ClipboardList,
 } from "lucide-react";
 
 import Link from "next/link";
@@ -167,6 +168,11 @@ export default function ClientSessionsView({
           <p className="text-muted-foreground mt-2 text-lg">Manage your 1-on-1 mentoring sessions</p>
         </div>
         <div className="flex items-center space-x-3 mt-4 sm:mt-0">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/creator/sessions/bookings">
+              <ClipboardList className="h-4 w-4 mr-2" /> All Bookings
+            </Link>
+          </Button>
           <Button variant="outline" size="sm"><Search className="h-4 w-4 mr-2" /> Filters</Button>
           <Button size="sm" className="bg-sessions-500 hover:bg-sessions-600" asChild>
             <Link href="/creator/sessions/new"><Search className="h-4 w-4 mr-2" /> Create Session</Link>
@@ -274,7 +280,7 @@ export default function ClientSessionsView({
         {/* SIDEBAR */}
         <div className="space-y-6">
           <GoogleCalendarIntegration />
-          <UpcomingSessionsCard bookings={bookings} />
+          <UpcomingSessionsCard bookings={bookings} onBookingUpdated={onSessionsUpdate} />
           <PendingRequestsCard bookings={bookings} onUpdated={setBookings} />
           <MonthlyStatsCard completed={completedThisMonth.length} hours={hoursMentored} revenue={revenue ?? monthRevenueFallback} avgRating={4.8} />
         </div>
