@@ -1,5 +1,8 @@
 import "@/app/globals.css"
 import { AuthProvider } from "@/app/providers/auth-provider"
+import { Inter } from "next/font/google"
+
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
   title: 'Next.js',
@@ -13,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className={inter.className}>
         <AuthProvider>
           {children}
         </AuthProvider>

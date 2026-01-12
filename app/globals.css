@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import "@fontsource/inter/latin.css";
-
 
 @layer base {
   :root {
