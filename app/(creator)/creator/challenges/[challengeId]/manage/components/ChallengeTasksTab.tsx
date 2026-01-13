@@ -92,7 +92,20 @@ export default function ChallengeTasksTab({
   }
 
   const handleAddTask = async () => {
-    if (!newTask.title || !newTask.day) return
+    // Validate all required fields
+    if (!newTask.title || !newTask.day) {
+      return
+    }
+    if (!newTask.description) {
+      return
+    }
+    if (!newTask.deliverable) {
+      return
+    }
+    if (!newTask.instructions) {
+      return
+    }
+    
     setIsSubmitting(true)
     try {
       await onAddTask({
@@ -155,21 +168,23 @@ export default function ChallengeTasksTab({
                 Add Task
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Task</DialogTitle>
-                <DialogDescription>Create a new daily task for the challenge</DialogDescription>
+                <DialogDescription>Create a new daily task for the challenge. Fields marked with * are required.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="taskDay">Day</Label>
+                    <Label htmlFor="taskDay">Day <span className="text-red-500">*</span></Label>
                     <Input
                       id="taskDay"
                       type="number"
                       placeholder="1"
+                      min={1}
                       value={newTask.day}
                       onChange={(e) => setNewTask((prev) => ({ ...prev, day: e.target.value }))}
+                      className={!newTask.day ? "border-red-200" : ""}
                     />
                   </div>
                   <div className="space-y-2">
@@ -178,52 +193,57 @@ export default function ChallengeTasksTab({
                       id="taskPoints"
                       type="number"
                       placeholder="100"
+                      min={0}
                       value={newTask.points}
                       onChange={(e) => setNewTask((prev) => ({ ...prev, points: e.target.value }))}
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="taskTitle">Task Title</Label>
+                  <Label htmlFor="taskTitle">Task Title <span className="text-red-500">*</span></Label>
                   <Input
                     id="taskTitle"
                     placeholder="e.g., HTML Basics"
                     value={newTask.title}
                     onChange={(e) => setNewTask((prev) => ({ ...prev, title: e.target.value }))}
+                    className={!newTask.title ? "border-red-200" : ""}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="taskDescription">Description</Label>
+                  <Label htmlFor="taskDescription">Description <span className="text-red-500">*</span></Label>
                   <Textarea
                     id="taskDescription"
                     rows={3}
                     placeholder="Brief description of the task..."
                     value={newTask.description}
                     onChange={(e) => setNewTask((prev) => ({ ...prev, description: e.target.value }))}
+                    className={!newTask.description ? "border-red-200" : ""}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="taskDeliverable">Deliverable</Label>
+                  <Label htmlFor="taskDeliverable">Deliverable <span className="text-red-500">*</span></Label>
                   <Textarea
                     id="taskDeliverable"
                     rows={2}
                     placeholder="What should participants submit?"
                     value={newTask.deliverable}
                     onChange={(e) => setNewTask((prev) => ({ ...prev, deliverable: e.target.value }))}
+                    className={!newTask.deliverable ? "border-red-200" : ""}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="taskInstructions">Instructions</Label>
+                  <Label htmlFor="taskInstructions">Instructions <span className="text-red-500">*</span></Label>
                   <Textarea
                     id="taskInstructions"
                     rows={4}
                     placeholder="Detailed instructions for completing the task..."
                     value={newTask.instructions}
                     onChange={(e) => setNewTask((prev) => ({ ...prev, instructions: e.target.value }))}
+                    className={!newTask.instructions ? "border-red-200" : ""}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="taskNotes">Notes</Label>
+                  <Label htmlFor="taskNotes">Notes (optional)</Label>
                   <Textarea
                     id="taskNotes"
                     rows={2}
@@ -234,7 +254,10 @@ export default function ChallengeTasksTab({
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleAddTask} disabled={isSubmitting}>
+                <Button 
+                  onClick={handleAddTask} 
+                  disabled={isSubmitting || !newTask.day || !newTask.title || !newTask.description || !newTask.deliverable || !newTask.instructions}
+                >
                   {isSubmitting ? "Adding..." : "Add Task"}
                 </Button>
               </DialogFooter>
@@ -288,14 +311,21 @@ export default function ChallengeTasksTab({
                   </div>
                 </div>
                 <p className="text-muted-foreground text-sm mb-2">{task.description}</p>
-                <div className="text-sm">
-                  <strong>Deliverable:</strong> {task.deliverable}
-                </div>
-                {task.notes && (
-                  <div className="text-sm mt-2 p-2 bg-blue-50 rounded">
-                    <strong>Notes:</strong> {task.notes}
+                <div className="text-sm space-y-2">
+                  <div className="p-2 bg-green-50 rounded">
+                    <strong className="text-green-700">📦 Deliverable:</strong> <span className="text-gray-700">{task.deliverable}</span>
                   </div>
-                )}
+                  {task.instructions && (
+                    <div className="p-2 bg-blue-50 rounded">
+                      <strong className="text-blue-700">📋 Instructions:</strong> <span className="text-gray-700">{task.instructions}</span>
+                    </div>
+                  )}
+                  {task.notes && (
+                    <div className="p-2 bg-yellow-50 rounded">
+                      <strong className="text-yellow-700">📝 Notes:</strong> <span className="text-gray-700">{task.notes}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             ))
           )}
@@ -304,19 +334,20 @@ export default function ChallengeTasksTab({
 
       {/* Edit Task Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Task</DialogTitle>
-            <DialogDescription>Update the task details</DialogDescription>
+            <DialogDescription>Update the task details. Fields marked with * are required.</DialogDescription>
           </DialogHeader>
           {editingTask && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="editTaskDay">Day</Label>
+                  <Label htmlFor="editTaskDay">Day <span className="text-red-500">*</span></Label>
                   <Input
                     id="editTaskDay"
                     type="number"
+                    min={1}
                     value={editingTask.day}
                     onChange={(e) => setEditingTask((prev) => prev ? { ...prev, day: Number(e.target.value) } : null)}
                   />
@@ -326,13 +357,14 @@ export default function ChallengeTasksTab({
                   <Input
                     id="editTaskPoints"
                     type="number"
+                    min={0}
                     value={editingTask.points}
                     onChange={(e) => setEditingTask((prev) => prev ? { ...prev, points: Number(e.target.value) } : null)}
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editTaskTitle">Task Title</Label>
+                <Label htmlFor="editTaskTitle">Task Title <span className="text-red-500">*</span></Label>
                 <Input
                   id="editTaskTitle"
                   value={editingTask.title}
@@ -340,7 +372,7 @@ export default function ChallengeTasksTab({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editTaskDescription">Description</Label>
+                <Label htmlFor="editTaskDescription">Description <span className="text-red-500">*</span></Label>
                 <Textarea
                   id="editTaskDescription"
                   rows={3}
@@ -349,7 +381,7 @@ export default function ChallengeTasksTab({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editTaskDeliverable">Deliverable</Label>
+                <Label htmlFor="editTaskDeliverable">Deliverable <span className="text-red-500">*</span></Label>
                 <Textarea
                   id="editTaskDeliverable"
                   rows={2}
@@ -358,7 +390,7 @@ export default function ChallengeTasksTab({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editTaskInstructions">Instructions</Label>
+                <Label htmlFor="editTaskInstructions">Instructions <span className="text-red-500">*</span></Label>
                 <Textarea
                   id="editTaskInstructions"
                   rows={4}
@@ -367,7 +399,7 @@ export default function ChallengeTasksTab({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editTaskNotes">Notes</Label>
+                <Label htmlFor="editTaskNotes">Notes (optional)</Label>
                 <Textarea
                   id="editTaskNotes"
                   rows={2}
@@ -379,7 +411,10 @@ export default function ChallengeTasksTab({
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleEditTask} disabled={isSubmitting}>
+            <Button 
+              onClick={handleEditTask} 
+              disabled={isSubmitting || !editingTask?.day || !editingTask?.title || !editingTask?.description || !editingTask?.deliverable || !editingTask?.instructions}
+            >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
