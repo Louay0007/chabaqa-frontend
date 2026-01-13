@@ -3,7 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import ChallengeCard from "./ChallengeCard"
 import NoChallengesCard from "./NoChallengesCard"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 
 interface ChallengesTabsProps {
   allChallenges: any[]
@@ -19,7 +19,25 @@ export default function ChallengesTabs({ allChallenges }: ChallengesTabsProps) {
     return "active"
   }
 
-  const filteredChallenges = allChallenges.filter((challenge) => {
+  // Sort challenges: active first, then upcoming, then completed
+  const sortedChallenges = useMemo(() => {
+    const statusOrder = { active: 0, upcoming: 1, completed: 2 }
+    return [...allChallenges].sort((a, b) => {
+      const statusA = getChallengeStatus(a)
+      const statusB = getChallengeStatus(b)
+      // First sort by status
+      if (statusOrder[statusA] !== statusOrder[statusB]) {
+        return statusOrder[statusA] - statusOrder[statusB]
+      }
+      // Then sort by start date (most recent first for active/upcoming, oldest first for completed)
+      if (statusA === 'completed') {
+        return new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
+      }
+      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+    })
+  }, [allChallenges])
+
+  const filteredChallenges = sortedChallenges.filter((challenge) => {
     const now = new Date()
     if (activeTab === "active")
       return challenge.startDate <= now && challenge.endDate >= now

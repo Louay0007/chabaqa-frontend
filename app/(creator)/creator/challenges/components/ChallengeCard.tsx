@@ -52,7 +52,7 @@ export default function ChallengeCard({ challenge }: ChallengeCardProps) {
                   ? "bg-green-500"
                   : status === "upcoming"
                     ? "bg-blue-500"
-                    : "bg-gray-500"
+                    : "bg-purple-500"
               }
             />
           </div>

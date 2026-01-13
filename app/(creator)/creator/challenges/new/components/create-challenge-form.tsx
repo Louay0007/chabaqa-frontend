@@ -71,6 +71,8 @@ export function CreateChallengeForm() {
         communitySlug,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
+        participationFee: formData.participationFee ? Number(formData.participationFee) : 0,
+        currency: (formData.currency || 'TND') as 'TND' | 'USD' | 'EUR',
         depositAmount: formData.depositAmount ? Number(formData.depositAmount) : undefined,
         maxParticipants: formData.maxParticipants ? Number(formData.maxParticipants) : undefined,
         completionReward: formData.rewards?.completionReward ? Number(formData.rewards.completionReward) : undefined,
@@ -85,8 +87,6 @@ export function CreateChallengeForm() {
         isActive: false,
         resources: [],
         tasks,
-        // Optional pricing fields left out unless you extend UI:
-        // participationFee, currency, depositRequired, isPremium, premiumFeatures, paymentOptions, freeTrialDays, trialFeatures
       }
 
       const res = await challengesApi.create(payload)
@@ -159,8 +159,9 @@ const initialFormData = {
   title: "",
   description: "",
   thumbnail: "",
-  currency: "USD",
+  currency: "TND",
   depositAmount: "",
+  participationFee: "",
   maxParticipants: "",
   category: "",
   difficulty: "",

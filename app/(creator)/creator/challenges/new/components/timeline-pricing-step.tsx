@@ -15,6 +15,7 @@ interface TimelinePricingStepProps {
   formData: {
     currency?: string
     depositAmount: string
+    participationFee?: string
     maxParticipants: string
     rewards: {
       completionReward: string
@@ -115,30 +116,57 @@ export function TimelinePricingStep({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label htmlFor="depositAmount">Deposit Amount *</Label>
+            <Label htmlFor="participationFee">Participation Fee (Price to Join)</Label>
             <div className="flex">
-              <Select value={formData.currency || 'USD'} onValueChange={(value) => handleInputChange('currency', value)}>
+              <Select value={formData.currency || 'TND'} onValueChange={(value) => handleInputChange('currency', value)}>
                 <SelectTrigger className="w-20">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="TND">TND</SelectItem>
                   <SelectItem value="USD">USD</SelectItem>
                   <SelectItem value="EUR">EUR</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                id="participationFee"
+                type="number"
+                placeholder="0 (Free)"
+                className="rounded-l-none"
+                value={formData.participationFee || ''}
+                onChange={(e) => handleInputChange("participationFee", e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">Set to 0 or leave empty for free challenges</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="depositAmount">Deposit Amount (Refundable)</Label>
+            <div className="flex">
+              <Select value={formData.currency || 'TND'} onValueChange={(value) => handleInputChange('currency', value)}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
                   <SelectItem value="TND">TND</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
                 </SelectContent>
               </Select>
               <Input
                 id="depositAmount"
                 type="number"
-                placeholder="50"
+                placeholder="0"
                 className="rounded-l-none"
                 value={formData.depositAmount}
                 onChange={(e) => handleInputChange("depositAmount", e.target.value)}
               />
             </div>
+            <p className="text-xs text-muted-foreground">Optional deposit returned on completion</p>
           </div>
+        </div>
 
-          <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Label htmlFor="maxParticipants">Max Participants</Label>
             <div className="relative">
               <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
