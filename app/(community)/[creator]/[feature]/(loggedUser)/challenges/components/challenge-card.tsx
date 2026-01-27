@@ -31,42 +31,20 @@ export default function ChallengeCard({ creatorSlug, slug, challenge, setSelecte
       className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer group overflow-hidden"
     >
       <div className="relative">
-        <div className="bg-gradient-to-r from-challenges-500 to-orange-500 p-6 text-white">
-          <div className="absolute top-3 right-3">
-            <Badge
-              className={
-                status === "active"
-                  ? "bg-green-500"
-                  : status === "upcoming"
-                    ? "bg-blue-500"
-                    : "bg-gray-500"
-              }
-            >
-              {status}
-            </Badge>
-          </div>
-          {isParticipating && (
-            <div className="absolute top-3 left-3">
-              <Badge className="bg-white/20 text-white border-white/30">
-                <Star className="h-3 w-3 mr-1" />
-                Joined
-              </Badge>
+        {challenge.thumbnail ? (
+          <>
+            <div className="absolute inset-0">
+              <Image
+                src={challenge.thumbnail}
+                alt={challenge.title}
+                fill
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/30" />
             </div>
-          )}
-          <div className="mt-8">
-            <h3 className="text-xl font-bold mb-2">{challenge.title}</h3>
-            <p className="text-challenges-100 text-sm line-clamp-2">{challenge.description}</p>
-          </div>
-        </div>
-        {challenge.thumbnail && (
-          <div className="absolute inset-0 opacity-20">
-            <Image
-              src={challenge.thumbnail || "/placeholder.svg"}
-              alt={challenge.title}
-              fill
-              className="object-cover"
-            />
-          </div>
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-r from-challenges-500 to-orange-500" />
         )}
       </div>
 

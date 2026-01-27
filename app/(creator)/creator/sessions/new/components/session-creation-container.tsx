@@ -103,10 +103,55 @@ export function SessionCreationContainer() {
     }))
   }
 
+  const validateForm = () => {
+    const trimmedTitle = formData.title.trim()
+    if (trimmedTitle.length < 2) {
+      return 'Session title must be at least 2 characters.'
+    }
+    if (!formData.description.trim()) {
+      return 'Session description is required.'
+    }
+    const duration = Number(formData.duration || 0)
+    if (!Number.isFinite(duration) || duration < 15 || duration > 480) {
+      return 'Session duration must be between 15 and 480 minutes.'
+    }
+
+    const price = Number(formData.price || 0)
+    if (!Number.isFinite(price) || price < 0) {
+      return 'Session price must be zero or greater.'
+    }
+    if (!formData.currency) {
+      return 'Session currency is required.'
+    }
+    if (!formData.category) {
+      return 'Session category is required.'
+    }
+    if (formData.maxBookingsPerWeek) {
+      const maxBookings = Number(formData.maxBookingsPerWeek)
+      if (!Number.isFinite(maxBookings) || maxBookings < 1 || maxBookings > 50) {
+        return 'Max bookings per week must be between 1 and 50.'
+      }
+    }
+
+    if (formData.recurringAvailability?.length) {
+      const invalidSlot = formData.recurringAvailability.find((slot) => !slot.startTime || !slot.endTime)
+      if (invalidSlot) {
+        return 'Each availability slot needs a start and end time.'
+      }
+    }
+    return null
+  }
+
   const handleSubmit = async () => {
     try {
       if (!communitySlug) {
         toast({ title: 'Missing community', description: 'No community found for this creator.', variant: 'destructive' as any })
+        return
+      }
+
+      const validationError = validateForm()
+      if (validationError) {
+        toast({ title: 'Please review required fields', description: validationError, variant: 'destructive' as any })
         return
       }
       // Map UI form to CreateSessionDto

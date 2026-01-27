@@ -196,7 +196,17 @@ export interface SessionBooking {
 }
 
 // Event types
+/**
+ * Event interface for frontend
+ * 
+ * **Dual ID System:**
+ * - `_id`: MongoDB ObjectId (optional) - Used internally by backend
+ * - `id`: Custom string ID (required) - Primary identifier for API operations
+ */
 export interface Event {
+  /** MongoDB ObjectId - Optional field for backend compatibility */
+  _id?: string;
+  /** Custom event ID - Primary identifier */
   id: string;
   title: string;
   slug: string;

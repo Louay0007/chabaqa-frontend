@@ -102,9 +102,9 @@ export function transformCourse(backendCourse: any): any {
     isPublished: backendCourse.isPublished !== false,
     enrollmentCount,
     enrollments: backendCourse.inscriptions || backendCourse.enrollments || [],
-    rating: backendCourse.rating || 0,
-    averageRating: backendCourse.averageRating || 0,
-    ratingCount: backendCourse.ratingCount || 0,
+    rating: Number(backendCourse.rating || backendCourse.averageRating || 0),
+    averageRating: Number(backendCourse.averageRating || backendCourse.rating || 0),
+    ratingCount: Number(backendCourse.ratingCount || backendCourse.totalRatings || backendCourse.reviews_count || 0),
     sections, // Include sections with chapters
     createdAt: backendCourse.createdAt || new Date().toISOString(),
     updatedAt: backendCourse.updatedAt || new Date().toISOString(),

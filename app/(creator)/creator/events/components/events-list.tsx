@@ -22,25 +22,38 @@ import {
   Plus
 } from "lucide-react"
 import Image from "next/image"
-import { getEventSessions } from "@/lib/mock-data"
-import { Event } from "@/lib/models" // Assuming you have an Event type defined
+import { Event } from "@/lib/models"
 
 interface EventsListProps {
+  activeTab: string
   upcomingEvents: Event[]
   pastEvents: Event[]
+  loading?: boolean
 }
 
-export function EventsList({ upcomingEvents, pastEvents }: EventsListProps) {
-  const [activeTab, setActiveTab] = useState("upcoming")
+export function EventsList({ activeTab, upcomingEvents, pastEvents, loading }: EventsListProps) {
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null)
 
   const toggleExpandEvent = (eventId: string) => {
     setExpandedEvent(expandedEvent === eventId ? null : eventId)
   }
 
+  const displayEvents = activeTab === "upcoming" ? upcomingEvents : pastEvents
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading events...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
-      {(activeTab === "upcoming" ? upcomingEvents : pastEvents).map((event) => (
+      {displayEvents.map((event) => (
         <EventCard
           key={event.id}
           event={event}
@@ -49,8 +62,7 @@ export function EventsList({ upcomingEvents, pastEvents }: EventsListProps) {
         />
       ))}
 
-      {activeTab === "upcoming" && upcomingEvents.length === 0 && <EmptyState type="upcoming" />}
-      {activeTab === "past" && pastEvents.length === 0 && <EmptyState type="past" />}
+      {displayEvents.length === 0 && <EmptyState type={activeTab as 'upcoming' | 'past'} />}
     </div>
   )
 }
@@ -62,11 +74,9 @@ interface EventCardProps {
 }
 
 function EventCard({ event, isExpanded, onToggleExpand }: EventCardProps) {
-  const sessions = getEventSessions(event.id)
-  const totalSessions = sessions.length
-  const totalTicketsSold = event.tickets.reduce((acc, ticket) => acc + ticket.sold, 0)
-  const revenue = event.tickets.reduce((acc, ticket) => acc + (ticket.price * ticket.sold), 0)
-  const avgAttendance = sessions.reduce((acc, session) => acc + (session.attendance || 0), 0) / totalSessions || 0
+  const totalSessions = event.sessions?.length || 0
+  const totalTicketsSold = (event.tickets || []).reduce((acc, ticket) => acc + (ticket.sold || 0), 0)
+  const revenue = (event.tickets || []).reduce((acc, ticket) => acc + ((ticket.price || 0) * (ticket.sold || 0)), 0)
 
   return (
     <EnhancedCard key={event.id} className="overflow-hidden">
@@ -80,7 +90,7 @@ function EventCard({ event, isExpanded, onToggleExpand }: EventCardProps) {
         {isExpanded && (
           <div className="mt-6 pt-6 border-t">
             <EventStats
-              attendees={event.attendees.length}
+              attendees={event.attendees?.length || 0}
               ticketsSold={totalTicketsSold}
               sessions={totalSessions}
               revenue={revenue}
@@ -169,6 +179,9 @@ function EventBadges({ event }: { event: Event }) {
   return (
     <div className="mt-2 flex flex-wrap gap-2">
       <Badge variant="outline">{event.category}</Badge>
+      <Badge variant={event.isPublished ? "default" : "secondary"}>
+        {event.isPublished ? "Published" : "Draft"}
+      </Badge>
       <Badge variant={event.isActive ? "default" : "secondary"}>
         {event.isActive ? "Active" : "Inactive"}
       </Badge>
@@ -262,7 +275,7 @@ function EventStats({
           <div className="flex items-center space-x-2">
             <DollarSign className="h-5 w-5 text-purple-500" />
             <div>
-              <p className="text-xl font-bold">${revenue}</p>
+              <p className="text-xl font-bold">${revenue.toFixed(2)}</p>
               <p className="text-sm text-muted-foreground">Revenue</p>
             </div>
           </div>
@@ -281,19 +294,19 @@ function QuickActions({ eventId }: { eventId: string }) {
       <CardContent>
         <div className="space-y-2">
           <Button variant="outline" className="w-full" asChild>
-            <Link href={`/events/manage/${eventId}/attendees`}>
+            <Link href={`/creator/events/${eventId}`}>
               <Users className="h-4 w-4 mr-2" />
               Manage Attendees
             </Link>
           </Button>
           <Button variant="outline" className="w-full" asChild>
-            <Link href={`/events/manage/${eventId}/tickets`}>
+            <Link href={`/creator/events/${eventId}`}>
               <Ticket className="h-4 w-4 mr-2" />
               Manage Tickets
             </Link>
           </Button>
           <Button variant="outline" className="w-full" asChild>
-            <Link href={`/events/manage/${eventId}/sessions`}>
+            <Link href={`/creator/events/${eventId}`}>
               <CalendarIcon className="h-4 w-4 mr-2" />
               Manage Sessions
             </Link>
@@ -315,8 +328,8 @@ function EventDetails({ event }: { event: Event }) {
           <div className="flex justify-between">
             <span className="text-muted-foreground">Status:</span>
             <span>
-              <Badge variant={event.isActive ? "default" : "secondary"}>
-                {event.isActive ? "Active" : "Inactive"}
+              <Badge variant={event.isPublished ? "default" : "secondary"}>
+                {event.isPublished ? "Published" : "Draft"}
               </Badge>
             </span>
           </div>
@@ -365,9 +378,11 @@ function EmptyState({ type }: { type: 'upcoming' | 'past' }) {
           : 'Your past events will appear here'}
       </p>
       {type === 'upcoming' && (
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Event
+        <Button asChild>
+          <Link href="/creator/events/new">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Event
+          </Link>
         </Button>
       )}
     </EnhancedCard>

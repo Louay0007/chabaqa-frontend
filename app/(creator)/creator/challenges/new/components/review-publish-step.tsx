@@ -15,6 +15,7 @@ interface ReviewPublishStepProps {
     duration: string
     depositAmount: string
     maxParticipants: string
+    thumbnail: string
     rewards: {
       completionReward: string
       topPerformerBonus: string
@@ -101,9 +102,19 @@ export function ReviewPublishStep({ formData, setFormData, startDate, endDate }:
             <div>
               <h3 className="font-semibold mb-3">Challenge Preview</h3>
               <div className="border rounded-lg p-4 bg-gradient-to-r from-challenges-50 to-orange-50">
-                <div className="w-full h-32 bg-gray-200 rounded mb-3 flex items-center justify-center">
-                  <span className="text-gray-500">Challenge Thumbnail</span>
-                </div>
+                {formData.thumbnail ? (
+                  <div className="w-full h-40 rounded mb-3 overflow-hidden relative group">
+                    <img
+                      src={formData.thumbnail}
+                      alt="Challenge Cover"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-32 bg-gray-200 rounded mb-3 flex items-center justify-center">
+                    <span className="text-gray-500">No Thumbnail</span>
+                  </div>
+                )}
                 <h4 className="font-semibold text-lg">{formData.title || "Challenge Title"}</h4>
                 <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                   {formData.description || "Challenge description will appear here..."}

@@ -8,6 +8,11 @@ export const storageApi = {
     return apiClient.uploadFile<UploadedFile>('/upload/single', file);
   },
 
+  // Upload image (uses /upload/image endpoint with 'image' field name)
+  uploadImage: async (file: File): Promise<UploadedFile> => {
+    return apiClient.uploadFile<UploadedFile>('/upload/image', file, 'image');
+  },
+
   // Upload multiple files
   uploadMultiple: async (files: File[]): Promise<{ files: UploadedFile[]; totalFiles: number; successCount: number; errorCount: number }> => {
     return apiClient.uploadFiles<{ files: UploadedFile[]; totalFiles: number; successCount: number; errorCount: number }>('/upload/multiple', files);

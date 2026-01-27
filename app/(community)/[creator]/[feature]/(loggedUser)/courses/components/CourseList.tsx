@@ -128,8 +128,12 @@ return (
             </p>
           </div>
           <div className="flex items-center text-sm text-muted-foreground mt-2 sm:mt-0 sm:ml-4 shrink-0">
-            <Star className="h-4 w-4 text-yellow-500 mr-1" />
-            <span>{(course.averageRating || 0) > 0 ? `${Number(course.averageRating).toFixed(1)} (${course.ratingCount || 0})` : "No reviews"}</span>
+            <Star className={`h-4 w-4 mr-1 ${(course.averageRating || 0) > 0 && (course.ratingCount || 0) > 0 ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
+            <span>
+              {(course.averageRating || 0) > 0 && (course.ratingCount || 0) > 0 
+                ? `${Number(course.averageRating).toFixed(1)} (${course.ratingCount})` 
+                : "No ratings"}
+            </span>
           </div>
         </div>
 

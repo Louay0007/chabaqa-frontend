@@ -24,7 +24,7 @@ interface ChallengeResource {
 }
 
 interface ChallengeTaskResource {
-  id: string
+  id?: string
   title: string
   type: 'video' | 'article' | 'code' | 'tool'
   url: string
@@ -269,6 +269,8 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     points: number
     instructions: string
     notes?: string
+    isActive: boolean
+    resources: ChallengeTaskResource[]
   }) => {
     if (!challenge) return
     const targetId = challenge.mongoId || challenge.id
@@ -282,7 +284,8 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         points: taskData.points,
         instructions: taskData.instructions,
         notes: taskData.notes,
-        resources: [],
+        isActive: taskData.isActive,
+        resources: (taskData.resources || []).map(r => ({ ...r, id: r.id || crypto.randomUUID() })),
       }
       // Map existing tasks to DTO format
       const existingTasks = (challenge.tasks || []).map(t => ({
@@ -322,7 +325,8 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
           points: task.points,
           instructions: task.instructions,
           notes: task.notes,
-          resources: task.resources || [],
+          isActive: task.isActive,
+          resources: (task.resources || []).map(r => ({ ...r, id: r.id || crypto.randomUUID() })),
         }
       })
       await apiClient.patch(`/challenges/${targetId}`, { tasks: updatedTasks })
@@ -479,10 +483,10 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
 
   return (
     <div className="space-y-8 p-5">
-      <ChallengeHeader 
-        challenge={challenge} 
-        isLoading={isLoading} 
-        onSave={handleSave} 
+      <ChallengeHeader
+        challenge={challenge}
+        isLoading={isLoading}
+        onSave={handleSave}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -497,16 +501,16 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         </TabsList>
 
         <TabsContent value="details" className="space-y-6">
-          <ChallengeDetailsTab 
-            challenge={challenge} 
-            formData={formData} 
-            onInputChange={handleInputChange} 
+          <ChallengeDetailsTab
+            challenge={challenge}
+            formData={formData}
+            onInputChange={handleInputChange}
           />
         </TabsContent>
 
         <TabsContent value="tasks" className="space-y-6">
-          <ChallengeTasksTab 
-            challengeTasks={challenge.tasks || []} 
+          <ChallengeTasksTab
+            challengeTasks={challenge.tasks || []}
             onAddTask={handleAddTask}
             onUpdateTask={handleUpdateTask}
             onDeleteTask={handleDeleteTask}
@@ -514,22 +518,22 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         </TabsContent>
 
         <TabsContent value="participants" className="space-y-6">
-          <ChallengeParticipantsTab 
+          <ChallengeParticipantsTab
             participants={challenge.participants || []}
             challengeId={challengeId}
           />
         </TabsContent>
 
         <TabsContent value="rewards" className="space-y-6">
-          <ChallengeRewardsTab 
-            formData={formData} 
-            onInputChange={handleInputChange} 
-            totalParticipants={challenge.participants?.length || 0} 
+          <ChallengeRewardsTab
+            formData={formData}
+            onInputChange={handleInputChange}
+            totalParticipants={challenge.participants?.length || 0}
           />
         </TabsContent>
 
         <TabsContent value="resources" className="space-y-6">
-          <ChallengeResourcesTab 
+          <ChallengeResourcesTab
             resources={challenge.resources || []}
             onAddResource={handleAddResource}
             onUpdateResource={handleUpdateResource}
@@ -538,14 +542,14 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
-          <ChallengeAnalyticsTab 
-            challenge={challenge} 
-            challengeTasks={challenge.tasks || []} 
+          <ChallengeAnalyticsTab
+            challenge={challenge}
+            challengeTasks={challenge.tasks || []}
           />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
-          <ChallengeSettingsTab 
+          <ChallengeSettingsTab
             challengeId={challengeId}
             onDeleteChallenge={handleDeleteChallenge}
           />

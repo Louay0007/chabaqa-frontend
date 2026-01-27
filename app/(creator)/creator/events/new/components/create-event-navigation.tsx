@@ -7,6 +7,7 @@ interface CreateEventNavigationProps {
   steps: any[]
   setCurrentStep: (step: number) => void
   handleSubmit: () => void
+  onNextStep?: () => void
 }
 
 export function CreateEventNavigation({
@@ -14,7 +15,16 @@ export function CreateEventNavigation({
   steps,
   setCurrentStep,
   handleSubmit,
+  onNextStep,
 }: CreateEventNavigationProps) {
+  const handleNext = () => {
+    if (onNextStep) {
+      onNextStep()
+    } else {
+      setCurrentStep(Math.min(steps.length, currentStep + 1))
+    }
+  }
+
   return (
     <div className="flex items-center justify-between">
       <Button
@@ -28,7 +38,7 @@ export function CreateEventNavigation({
       <div className="flex items-center space-x-2">
         {currentStep < steps.length ? (
           <Button
-            onClick={() => setCurrentStep(Math.min(steps.length, currentStep + 1))}
+            onClick={handleNext}
             className="bg-events-500 hover:bg-events-600"
           >
             Next Step

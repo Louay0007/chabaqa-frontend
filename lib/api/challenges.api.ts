@@ -5,7 +5,7 @@ export interface CreateChallengeResourceData {
   title: string;
   type: 'video' | 'article' | 'code' | 'tool' | 'pdf' | 'link';
   url: string;
-  description: string;
+  description?: string;
   order: number;
 }
 
@@ -13,7 +13,7 @@ export interface CreateChallengeTaskResourceData {
   title: string;
   type: 'video' | 'article' | 'code' | 'tool';
   url: string;
-  description: string;
+  description?: string;
 }
 
 export interface CreateChallengeTaskData {
@@ -23,7 +23,7 @@ export interface CreateChallengeTaskData {
   description: string;
   deliverable: string;
   points: number;
-  instructions: string;
+  instructions?: string;
   notes?: string;
   resources: CreateChallengeTaskResourceData[];
 }

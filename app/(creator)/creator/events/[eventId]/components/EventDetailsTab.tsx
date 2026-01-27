@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect } from "react"
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,30 +13,19 @@ import { Upload } from "lucide-react"
 import Image from "next/image"
 import { Event } from "@/lib/models"
 
-export default function EventDetailsTab({ event }: { event: Event }) {
-  const [formData, setFormData] = useState({
-    title: event?.title || "",
-    description: event?.description || "",
-    startDate: event?.startDate?.toISOString().split("T")[0] || "",
-    endDate: event?.endDate?.toISOString().split("T")[0] || "",
-    startTime: event?.startTime || "",
-    endTime: event?.endTime || "",
-    timezone: event?.timezone || "UTC",
-    location: event?.location || "",
-    onlineUrl: event?.onlineUrl || "",
-    category: event?.category || "",
-    type: event?.type || "",
-    isActive: event?.isActive || false,
-    notes: event?.notes || "",
-  })
+interface EventDetailsTabProps {
+  event: Event
+  onUpdateEvent: (updates: Partial<Event>) => void
+}
 
+export default function EventDetailsTab({ event, onUpdateEvent }: EventDetailsTabProps) {
   const handleInputChange = (field: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    onUpdateEvent({ [field]: value })
   }
 
-  const totalAttendees = event.attendees.length
-  const totalRevenue = event.tickets.reduce((acc, ticket) => acc + (ticket.price * ticket.sold), 0)
-  const averageAttendance = event.sessions.reduce((acc, s) => acc + (s.attendance || 0), 0) / event.sessions.length || 0
+  const totalAttendees = event.attendees?.length || 0
+  const totalRevenue = (event.tickets || []).reduce((acc, ticket) => acc + ((ticket.price || 0) * (ticket.sold || 0)), 0)
+  const averageAttendance = (event.sessions || []).reduce((acc, s) => acc + (s.attendance || 0), 0) / (event.sessions?.length || 1) || 0
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -51,7 +40,7 @@ export default function EventDetailsTab({ event }: { event: Event }) {
               <Label htmlFor="title">Event Title</Label>
               <Input
                 id="title"
-                value={formData.title}
+                value={event.title}
                 onChange={(e) => handleInputChange("title", e.target.value)}
               />
             </div>
@@ -61,7 +50,7 @@ export default function EventDetailsTab({ event }: { event: Event }) {
               <Textarea
                 id="description"
                 rows={4}
-                value={formData.description}
+                value={event.description}
                 onChange={(e) => handleInputChange("description", e.target.value)}
               />
             </div>
@@ -69,7 +58,7 @@ export default function EventDetailsTab({ event }: { event: Event }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
+                <Select value={event.category} onValueChange={(value) => handleInputChange("category", value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -85,7 +74,7 @@ export default function EventDetailsTab({ event }: { event: Event }) {
 
               <div className="space-y-2">
                 <Label htmlFor="type">Event Type</Label>
-                <Select value={formData.type} onValueChange={(value) => handleInputChange("type", value)}>
+                <Select value={event.type} onValueChange={(value) => handleInputChange("type", value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -99,7 +88,7 @@ export default function EventDetailsTab({ event }: { event: Event }) {
 
               <div className="space-y-2">
                 <Label htmlFor="timezone">Timezone</Label>
-                <Select value={formData.timezone} onValueChange={(value) => handleInputChange("timezone", value)}>
+                <Select value={event.timezone} onValueChange={(value) => handleInputChange("timezone", value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -119,8 +108,8 @@ export default function EventDetailsTab({ event }: { event: Event }) {
                 <Input
                   id="startDate"
                   type="date"
-                  value={formData.startDate}
-                  onChange={(e) => handleInputChange("startDate", e.target.value)}
+                  value={event.startDate?.toISOString().split("T")[0] || ""}
+                  onChange={(e) => handleInputChange("startDate", new Date(e.target.value))}
                 />
               </div>
               <div className="space-y-2">
@@ -128,8 +117,8 @@ export default function EventDetailsTab({ event }: { event: Event }) {
                 <Input
                   id="endDate"
                   type="date"
-                  value={formData.endDate}
-                  onChange={(e) => handleInputChange("endDate", e.target.value)}
+                  value={event.endDate?.toISOString().split("T")[0] || ""}
+                  onChange={(e) => handleInputChange("endDate", e.target.value ? new Date(e.target.value) : undefined)}
                 />
               </div>
             </div>
@@ -140,7 +129,7 @@ export default function EventDetailsTab({ event }: { event: Event }) {
                 <Input
                   id="startTime"
                   type="time"
-                  value={formData.startTime}
+                  value={event.startTime}
                   onChange={(e) => handleInputChange("startTime", e.target.value)}
                 />
               </div>
@@ -149,31 +138,31 @@ export default function EventDetailsTab({ event }: { event: Event }) {
                 <Input
                   id="endTime"
                   type="time"
-                  value={formData.endTime}
+                  value={event.endTime}
                   onChange={(e) => handleInputChange("endTime", e.target.value)}
                 />
               </div>
             </div>
 
-            {formData.type !== "Online" && (
+            {event.type !== "Online" && (
               <div className="space-y-2">
                 <Label htmlFor="location">Location</Label>
                 <Input
                   id="location"
                   placeholder="Venue address"
-                  value={formData.location}
+                  value={event.location}
                   onChange={(e) => handleInputChange("location", e.target.value)}
                 />
               </div>
             )}
 
-            {formData.type !== "In-person" && (
+            {event.type !== "In-person" && (
               <div className="space-y-2">
                 <Label htmlFor="onlineUrl">Online URL</Label>
                 <Input
                   id="onlineUrl"
                   placeholder="https://example.com/event"
-                  value={formData.onlineUrl}
+                  value={event.onlineUrl}
                   onChange={(e) => handleInputChange("onlineUrl", e.target.value)}
                 />
               </div>
@@ -185,7 +174,7 @@ export default function EventDetailsTab({ event }: { event: Event }) {
                 id="notes"
                 rows={4}
                 placeholder="Add any notes or instructions for attendees..."
-                value={formData.notes}
+                value={event.notes || ""}
                 onChange={(e) => handleInputChange("notes", e.target.value)}
               />
             </div>
@@ -235,7 +224,7 @@ export default function EventDetailsTab({ event }: { event: Event }) {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Sessions</span>
-              <span className="font-semibold">{event.sessions.length}</span>
+              <span className="font-semibold">{event.sessions?.length || 0}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Avg Attendance</span>
@@ -243,29 +232,52 @@ export default function EventDetailsTab({ event }: { event: Event }) {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Total Revenue</span>
-              <span className="font-semibold text-green-600">${totalRevenue}</span>
+              <span className="font-semibold text-green-600">${totalRevenue.toFixed(2)}</span>
             </div>
           </CardContent>
         </EnhancedCard>
 
         <EnhancedCard>
           <CardHeader>
-            <CardTitle>Status</CardTitle>
+            <CardTitle>Event Status</CardTitle>
+            <CardDescription>Control event visibility and availability</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center space-x-2">
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Active</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {event.isActive 
+                    ? "Event is active and accepting registrations"
+                    : "Event is inactive"}
+                </p>
+              </div>
               <Switch
                 id="active"
-                checked={formData.isActive}
+                checked={event.isActive}
                 onCheckedChange={(checked) => handleInputChange("isActive", checked)}
               />
-              <Label htmlFor="active">Event is active</Label>
             </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              {formData.isActive
-                ? "Event is live and accepting attendees"
-                : "Event is inactive and not visible to users"}
-            </p>
+
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Published</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {event.isPublished 
+                    ? "Event is visible to users"
+                    : "Event is hidden (draft mode)"}
+                </p>
+              </div>
+              <Switch
+                id="published"
+                checked={event.isPublished}
+                onCheckedChange={(checked) => handleInputChange("isPublished", checked)}
+              />
+            </div>
           </CardContent>
         </EnhancedCard>
       </div>

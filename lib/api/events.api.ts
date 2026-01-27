@@ -21,8 +21,8 @@ export interface CreateEventTicketData {
 
 export interface CreateEventSpeakerData {
   name: string;
-  title?: string;
-  bio?: string;
+  title: string;
+  bio: string;
   photo?: string;
 }
 
@@ -39,7 +39,7 @@ export interface CreateEventData {
   endTime: string;
 
   timezone: string;
-  location: string;
+  location?: string;
   onlineUrl?: string;
 
   category: string;
@@ -111,8 +111,16 @@ export const eventsApi = {
   },
 
   // Register for event
-  register: async (id: string, ticketId?: string): Promise<ApiSuccessResponse<void>> => {
-    return apiClient.post<ApiSuccessResponse<void>>(`/events/${id}/register`, { ticketId });
+  register: async (id: string, ticketType: string, promoCode?: string): Promise<ApiSuccessResponse<void>> => {
+    const endpoint = promoCode 
+      ? `/events/${id}/register?promoCode=${encodeURIComponent(promoCode)}`
+      : `/events/${id}/register`;
+    return apiClient.post<ApiSuccessResponse<void>>(endpoint, { ticketType });
+  },
+
+  // Unregister from event
+  unregister: async (id: string): Promise<ApiSuccessResponse<void>> => {
+    return apiClient.post<ApiSuccessResponse<void>>(`/events/${id}/unregister`, {});
   },
 
   // Get attendees
@@ -143,5 +151,45 @@ export const eventsApi = {
   // Get event stats
   getStats: async (communityId?: string): Promise<ApiSuccessResponse<any>> => {
     return apiClient.get<ApiSuccessResponse<any>>('/events/stats', communityId ? { communityId } : undefined);
+  },
+
+  // Get my registrations
+  getMyRegistrations: async (): Promise<ApiSuccessResponse<Event[]>> => {
+    return apiClient.get<ApiSuccessResponse<Event[]>>('/events/my-registrations');
+  },
+
+  // Toggle published status
+  togglePublished: async (id: string): Promise<ApiSuccessResponse<{ isPublished: boolean; message: string }>> => {
+    return apiClient.patch<ApiSuccessResponse<{ isPublished: boolean; message: string }>>(`/events/${id}/toggle-published`, {});
+  },
+
+  // Add session to event
+  addSession: async (id: string, data: CreateEventSessionData): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.post<ApiSuccessResponse<any>>(`/events/${id}/sessions`, data);
+  },
+
+  // Remove session from event
+  removeSession: async (id: string, sessionId: string): Promise<ApiSuccessResponse<void>> => {
+    return apiClient.delete<ApiSuccessResponse<void>>(`/events/${id}/sessions/${sessionId}`);
+  },
+
+  // Add ticket to event
+  addTicket: async (id: string, data: CreateEventTicketData): Promise<ApiSuccessResponse<EventTicket>> => {
+    return apiClient.post<ApiSuccessResponse<EventTicket>>(`/events/${id}/tickets`, data);
+  },
+
+  // Remove ticket from event
+  removeTicket: async (id: string, ticketId: string): Promise<ApiSuccessResponse<void>> => {
+    return apiClient.delete<ApiSuccessResponse<void>>(`/events/${id}/tickets/${ticketId}`);
+  },
+
+  // Add speaker to event
+  addSpeaker: async (id: string, data: CreateEventSpeakerData): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.post<ApiSuccessResponse<any>>(`/events/${id}/speakers`, data);
+  },
+
+  // Remove speaker from event
+  removeSpeaker: async (id: string, speakerId: string): Promise<ApiSuccessResponse<void>> => {
+    return apiClient.delete<ApiSuccessResponse<void>>(`/events/${id}/speakers/${speakerId}`);
   },
 };

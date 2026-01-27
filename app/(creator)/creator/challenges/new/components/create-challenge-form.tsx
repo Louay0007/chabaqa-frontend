@@ -55,13 +55,13 @@ export function CreateChallengeForm() {
         description: s.description,
         deliverable: s.deliverable,
         points: Number(s.points || 0),
-        instructions: s.instructions || '',
+        instructions: s.instructions || undefined,
         notes: undefined,
         resources: (s.resources || []).map((r) => ({
           title: r.title,
           type: r.type,
           url: r.url,
-          description: r.description,
+          description: r.description || undefined,
         }))
       }))
 
@@ -79,14 +79,14 @@ export function CreateChallengeForm() {
         topPerformerBonus: formData.rewards?.topPerformerBonus ? Number(formData.rewards.topPerformerBonus) : undefined,
         streakBonus: formData.rewards?.streakBonus ? Number(formData.rewards.streakBonus) : undefined,
         category: formData.category || undefined,
-        difficulty: (formData.difficulty || '').toLowerCase().replace('all levels','beginner') as any,
+        difficulty: formData.difficulty ? (formData.difficulty.toLowerCase().replace('all levels','beginner') as any) : undefined,
         duration: formData.duration || undefined,
         thumbnail: formData.thumbnail || undefined,
         // Always create as inactive (draft) - users need active subscription to publish
         // They can publish later from the challenge management page once they have a subscription
         isActive: false,
         resources: [],
-        tasks,
+        tasks: tasks || [],
       }
 
       const res = await challengesApi.create(payload)

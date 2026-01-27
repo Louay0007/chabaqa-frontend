@@ -59,6 +59,24 @@ class ApiClient {
         statusCode: response.status,
       }));
 
+      // Transform error using error message mapping
+      try {
+        const { mapErrorMessage } = await import('../utils/error-messages');
+        const mapped = mapErrorMessage(error);
+        const transformedError = {
+          ...error,
+          message: mapped.message,
+          guidance: mapped.guidance,
+          originalMessage: error.message || error.error || 'An error occurred',
+          statusCode: response.status,
+        };
+        error.message = mapped.message;
+        error.guidance = mapped.guidance;
+      } catch (importError) {
+        // If error-messages module fails to load, use original error
+        console.warn('Failed to load error message mapping:', importError);
+      }
+
       // For 401 errors on /auth/me, don't redirect - allow graceful handling
       // Only redirect for other 401 errors on protected resources
       if (response.status === 401 && typeof window !== 'undefined') {

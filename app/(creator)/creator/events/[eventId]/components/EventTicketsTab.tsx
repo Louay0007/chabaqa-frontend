@@ -20,12 +20,22 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Event } from "@/lib/models"
+import { eventsApi } from "@/lib/api/events.api"
+import { useToast } from "@/hooks/use-toast"
+import { getErrorMessage, formatErrorForToast } from "@/lib/utils/error-messages"
+import { useRouter } from "next/navigation"
 
 interface EventTicketsTabProps {
   event: Event
 }
 
 export default function EventTicketsTab({ event }: EventTicketsTabProps) {
+  const { toast } = useToast()
+  const router = useRouter()
+  const [tickets, setTickets] = useState(event.tickets || [])
+  const [editingTicket, setEditingTicket] = useState<any>(null)
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [newTicket, setNewTicket] = useState({
     type: "regular",
     name: "",
@@ -34,15 +44,79 @@ export default function EventTicketsTab({ event }: EventTicketsTabProps) {
     quantity: "",
   })
 
-  const handleAddTicket = () => {
-    console.log("Adding ticket:", newTicket)
-    setNewTicket({
-      type: "regular",
-      name: "",
-      price: "",
-      description: "",
-      quantity: "",
-    })
+  const handleAddTicket = async () => {
+    try {
+      const ticketData = {
+        type: newTicket.type,
+        name: newTicket.name,
+        price: Number(newTicket.price) || 0,
+        description: newTicket.description,
+        quantity: newTicket.quantity ? Number(newTicket.quantity) : 0,
+      }
+
+      const response = await eventsApi.addTicket(event.id, ticketData)
+      const addedTicket = response.data
+
+      // Add new ticket with ID from backend
+      setTickets([...tickets, {
+        id: addedTicket.id,
+        type: addedTicket.type,
+        name: addedTicket.name,
+        price: addedTicket.price,
+        description: addedTicket.description || '',
+        quantity: addedTicket.quantity,
+        sold: 0, // New tickets have 0 sold
+      }])
+
+      setNewTicket({
+        type: "regular",
+        name: "",
+        price: "",
+        description: "",
+        quantity: "",
+      })
+      setIsAddDialogOpen(false)
+      toast({ title: 'Success', description: 'Ticket added successfully' })
+      router.refresh()
+    } catch (error: any) {
+      const errorToast = formatErrorForToast(error)
+      toast({
+        title: errorToast.title,
+        description: errorToast.description,
+        variant: 'destructive' as any
+      })
+    }
+  }
+
+  const handleDeleteTicket = async (ticketId: string, sold: number) => {
+    // Prevent deleting tickets with sales
+    if (sold > 0) {
+      toast({
+        title: 'Cannot delete ticket',
+        description: 'This ticket has been sold and cannot be deleted. You can disable it instead.',
+        variant: 'destructive' as any
+      })
+      return
+    }
+
+    try {
+      await eventsApi.removeTicket(event.id, ticketId)
+      setTickets(tickets.filter(t => t.id !== ticketId))
+      toast({ title: 'Success', description: 'Ticket removed successfully' })
+      router.refresh()
+    } catch (error: any) {
+      const errorToast = formatErrorForToast(error)
+      toast({
+        title: errorToast.title,
+        description: errorToast.description,
+        variant: 'destructive' as any
+      })
+    }
+  }
+
+  const handleEditTicket = (ticket: any) => {
+    setEditingTicket(ticket)
+    setIsEditDialogOpen(true)
   }
 
   return (
@@ -53,7 +127,7 @@ export default function EventTicketsTab({ event }: EventTicketsTabProps) {
             <CardTitle>Ticket Options</CardTitle>
             <CardDescription>Manage ticket types and pricing</CardDescription>
           </div>
-          <Dialog>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -131,35 +205,49 @@ export default function EventTicketsTab({ event }: EventTicketsTabProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {event.tickets.map((ticket) => (
-            <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center space-x-3">
-                <Ticket className="h-5 w-5 text-blue-500" />
-                <div>
-                  <h4 className="font-medium">{ticket.name}</h4>
-                  <p className="text-sm text-muted-foreground">{ticket.description}</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4">
-                <Badge variant="outline" className="text-xs capitalize">
-                  {ticket.type}
-                </Badge>
-                <div className="text-right">
-                  <div className="font-semibold">${ticket.price}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {ticket.sold} sold{ticket.quantity ? ` of ${ticket.quantity}` : ''}
+          {tickets.map((ticket) => {
+            const hasSales = (ticket.sold || 0) > 0
+            return (
+              <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <Ticket className="h-5 w-5 text-blue-500" />
+                  <div>
+                    <h4 className="font-medium">{ticket.name}</h4>
+                    <p className="text-sm text-muted-foreground">{ticket.description}</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm">
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" className="text-red-600">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center space-x-4">
+                  <Badge variant="outline" className="text-xs capitalize">
+                    {ticket.type}
+                  </Badge>
+                  <div className="text-right">
+                    <div className="font-semibold">${ticket.price}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {ticket.sold || 0} sold{ticket.quantity ? ` of ${ticket.quantity}` : ''}
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handleEditTicket(ticket)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={hasSales ? "text-gray-400 cursor-not-allowed" : "text-red-600"}
+                    disabled={hasSales}
+                    onClick={() => handleDeleteTicket(ticket.id, ticket.sold || 0)}
+                    title={hasSales ? "Cannot delete ticket with sales" : "Delete ticket"}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
-          {event.tickets.length === 0 && (
+            )
+          })}
+          {tickets.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Ticket className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No tickets added yet</p>

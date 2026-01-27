@@ -19,13 +19,21 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Event, EventSession } from "@/lib/models"
+import { eventsApi } from "@/lib/api/events.api"
+import { useToast } from "@/hooks/use-toast"
+import { formatErrorForToast } from "@/lib/utils/error-messages"
+import { useRouter } from "next/navigation"
 
 interface EventSessionsTabProps {
   event: Event
   sessions: EventSession[]
 }
 
-export default function EventSessionsTab({ event, sessions }: EventSessionsTabProps) {
+export default function EventSessionsTab({ event, sessions: initialSessions }: EventSessionsTabProps) {
+  const { toast } = useToast()
+  const router = useRouter()
+  const [sessions, setSessions] = useState(initialSessions || [])
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newSession, setNewSession] = useState({
     title: "",
     description: "",
@@ -35,16 +43,69 @@ export default function EventSessionsTab({ event, sessions }: EventSessionsTabPr
     notes: "",
   })
 
-  const handleAddSession = () => {
-    console.log("Adding session:", newSession)
-    setNewSession({
-      title: "",
-      description: "",
-      startTime: "",
-      endTime: "",
-      speaker: "",
-      notes: "",
-    })
+  const handleAddSession = async () => {
+    try {
+      const sessionData = {
+        title: newSession.title,
+        description: newSession.description,
+        startTime: newSession.startTime,
+        endTime: newSession.endTime,
+        speaker: newSession.speaker || undefined,
+        notes: newSession.notes || undefined,
+        isActive: true,
+      }
+
+      const response = await eventsApi.addSession(event.id, sessionData)
+      const addedSession = response.data
+
+      // Add new session with ID from backend, preserving attendance
+      setSessions([...sessions, {
+        id: addedSession.id,
+        title: addedSession.title,
+        description: addedSession.description,
+        startTime: addedSession.startTime,
+        endTime: addedSession.endTime,
+        speaker: addedSession.speaker,
+        notes: addedSession.notes,
+        isActive: addedSession.isActive,
+        attendance: 0, // New sessions have 0 attendance
+      }])
+
+      setNewSession({
+        title: "",
+        description: "",
+        startTime: "",
+        endTime: "",
+        speaker: "",
+        notes: "",
+      })
+      setIsAddDialogOpen(false)
+      toast({ title: 'Success', description: 'Session added successfully' })
+      router.refresh()
+    } catch (error: any) {
+      const errorToast = formatErrorForToast(error)
+      toast({
+        title: errorToast.title,
+        description: errorToast.description,
+        variant: 'destructive' as any
+      })
+    }
+  }
+
+  const handleDeleteSession = async (sessionId: string) => {
+    try {
+      await eventsApi.removeSession(event.id, sessionId)
+      setSessions(sessions.filter(s => s.id !== sessionId))
+      toast({ title: 'Success', description: 'Session removed successfully' })
+      router.refresh()
+    } catch (error: any) {
+      const errorToast = formatErrorForToast(error)
+      toast({
+        title: errorToast.title,
+        description: errorToast.description,
+        variant: 'destructive' as any
+      })
+    }
   }
 
   return (
@@ -55,7 +116,7 @@ export default function EventSessionsTab({ event, sessions }: EventSessionsTabPr
             <CardTitle>Event Sessions</CardTitle>
             <CardDescription>Manage the sessions for your event</CardDescription>
           </div>
-          <Dialog>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -143,13 +204,21 @@ export default function EventSessionsTab({ event, sessions }: EventSessionsTabPr
                   <h3 className="font-semibold">{session.title}</h3>
                   <Badge variant="secondary">{session.startTime} - {session.endTime}</Badge>
                   {session.isActive && <Badge className="bg-green-500">Active</Badge>}
+                  {session.attendance !== undefined && (
+                    <Badge variant="outline">Attendance: {session.attendance}</Badge>
+                  )}
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button variant="outline" size="sm">
                     <Edit className="h-4 w-4 mr-1" />
                     Edit
                   </Button>
-                  <Button variant="outline" size="sm" className="text-red-600 bg-transparent">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-red-600 bg-transparent"
+                    onClick={() => handleDeleteSession(session.id)}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -167,6 +236,11 @@ export default function EventSessionsTab({ event, sessions }: EventSessionsTabPr
               )}
             </div>
           ))}
+          {sessions.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No sessions added yet</p>
+            </div>
+          )}
         </div>
       </CardContent>
     </EnhancedCard>

@@ -14,9 +14,10 @@ import EventSettingsTab from "./EventSettingsTab"
 interface EventTabsProps {
   event: Event
   sessions: EventSession[]
+  onUpdateEvent: (updates: Partial<Event>) => void
 }
 
-export default function EventTabs({ event, sessions }: EventTabsProps) {
+export default function EventTabs({ event, sessions, onUpdateEvent }: EventTabsProps) {
   const [activeTab, setActiveTab] = useState("details")
 
   return (
@@ -32,7 +33,7 @@ export default function EventTabs({ event, sessions }: EventTabsProps) {
       </TabsList>
 
       <TabsContent value="details" className="space-y-6">
-        <EventDetailsTab event={event} />
+        <EventDetailsTab event={event} onUpdateEvent={onUpdateEvent} />
       </TabsContent>
 
       <TabsContent value="sessions" className="space-y-6">
@@ -56,7 +57,7 @@ export default function EventTabs({ event, sessions }: EventTabsProps) {
       </TabsContent>
 
       <TabsContent value="settings" className="space-y-6">
-        <EventSettingsTab event={event} />
+        <EventSettingsTab event={event} onUpdateEvent={onUpdateEvent} />
       </TabsContent>
     </Tabs>
   )

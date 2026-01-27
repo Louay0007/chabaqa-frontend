@@ -6,7 +6,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarIcon, DollarSign, Users } from "lucide-react"
+import { CalendarIcon, Users } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Dispatch, SetStateAction } from "react"
@@ -167,6 +167,7 @@ export function TimelinePricingStep({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
             <Label htmlFor="maxParticipants">Max Participants</Label>
             <div className="relative">
               <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
