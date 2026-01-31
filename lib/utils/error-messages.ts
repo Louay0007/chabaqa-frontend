@@ -161,19 +161,23 @@ export function mapErrorMessage(error: any): { message: string; guidance?: strin
   if (typeof error === 'string') {
     errorMessage = error;
   } else if (error?.message) {
-    errorMessage = error.message;
+    errorMessage = Array.isArray(error.message) ? error.message.join(', ') : error.message;
   } else if (error?.error) {
-    errorMessage = error.error;
+    errorMessage = Array.isArray(error.error) ? error.error.join(', ') : error.error;
   } else if (error?.data?.message) {
-    errorMessage = error.data.message;
+    errorMessage = Array.isArray(error.data.message)
+      ? error.data.message.join(', ')
+      : error.data.message;
   } else if (error?.response?.data?.message) {
-    errorMessage = error.response.data.message;
+    errorMessage = Array.isArray(error.response.data.message)
+      ? error.response.data.message.join(', ')
+      : error.response.data.message;
   } else {
     errorMessage = 'An unexpected error occurred';
   }
 
   // Normalize the error message (lowercase for matching)
-  const normalizedMessage = errorMessage.toLowerCase();
+  const normalizedMessage = String(errorMessage).toLowerCase();
 
   // Find matching error pattern
   for (const mapping of errorMappings) {
