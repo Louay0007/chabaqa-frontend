@@ -76,7 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (payload: { email: string; password: string }) => {
     try {
       setError(null)
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+      // Use configured API URL or fallback to APP_URL/api, then localhost
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 
+                     (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api` : "http://localhost:3000/api")
+      
+      console.log(`Attempting login to: ${apiBase}/auth/login`);
+
       const res = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -89,7 +94,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.message || 'Login failed')
       }
 
-      const { accessToken, user } = data
+      // Handle potential data wrapping (e.g. { data: { user, accessToken } })
+      const responseData = data.data || data;
+      const { accessToken, user } = responseData;
+
+      if (!user) {
+        console.error("Login response missing user data:", data);
+        throw new Error("Invalid server response: User data missing");
+      }
+
       localStorage.setItem('accessToken', accessToken)
       localStorage.setItem('user', JSON.stringify(user))
       const normalizedUser = normalizeUser(user)
@@ -106,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
     } catch (e: any) {
+      console.error("Login error:", e);
       setError(e?.message || 'Login failed')
       throw e
     }
@@ -162,7 +176,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // 2. Call the backend logout to clear cookies
       // We use fetch instead of server action directly to avoid re-renders before navigation
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 
+                     (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api` : "http://localhost:3000/api")
       await fetch(`${apiBase}/auth/logout`, {
         method: 'POST',
         credentials: 'include'

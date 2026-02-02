@@ -79,11 +79,6 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       title: "Communities",
       href: "/admin/communities",
       icon: Building2,
-      badge: pendingCounts.communities,
-      children: [
-        { title: "All Communities", href: "/admin/communities" },
-        { title: "Pending Approvals", href: "/admin/communities/pending" },
-      ],
     },
     {
       title: "Content Moderation",

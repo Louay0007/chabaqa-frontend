@@ -103,7 +103,7 @@ export default function FinancialDashboardPage() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const [dashboardRes, revenueByTypeRes, topCreatorsRes, growthRes] = await Promise.all([
+        const [dashboardRes, revenueByTypeRes, topCreatorsRes, growthRes] = await Promise.allSettled([
           adminApi.financial.getRevenueDashboard({ period: dateRange }),
           adminApi.financial.getRevenueByContentType({ period: dateRange }),
           adminApi.financial.getTopCreators({ period: dateRange }, 10),
@@ -111,30 +111,47 @@ export default function FinancialDashboardPage() {
         ])
 
         // Parse dashboard metrics
-        const dashboardData = dashboardRes?.data || dashboardRes
-        setMetrics({
-          totalRevenue: dashboardData?.totalRevenue || 0,
-          monthlyRevenue: dashboardData?.monthlyRevenue || 0,
-          revenueGrowth: dashboardData?.revenueGrowth || 0,
-          averageTransactionValue: dashboardData?.averageTransactionValue || 0,
-          totalTransactions: dashboardData?.totalTransactions || 0,
-          activeSubscriptions: dashboardData?.activeSubscriptions || 0
-        })
+        if (dashboardRes.status === 'fulfilled') {
+          const dashboardData = dashboardRes.value?.data || dashboardRes.value
+          setMetrics({
+            totalRevenue: dashboardData?.totalRevenue || 0,
+            monthlyRevenue: dashboardData?.monthlyRevenue || 0,
+            revenueGrowth: dashboardData?.revenueGrowth || 0,
+            averageTransactionValue: dashboardData?.averageTransactionValue || 0,
+            totalTransactions: dashboardData?.totalTransactions || 0,
+            activeSubscriptions: dashboardData?.activeSubscriptions || 0
+          })
+        } else {
+          console.error('[Financial Dashboard] Metrics failed:', dashboardRes.reason)
+          toast.error('Failed to load revenue metrics')
+        }
 
         // Parse revenue by content type
-        const revenueData = revenueByTypeRes?.data || revenueByTypeRes || []
-        setRevenueByType(Array.isArray(revenueData) ? revenueData : [])
+        if (revenueByTypeRes.status === 'fulfilled') {
+          const revenueData = revenueByTypeRes.value?.data || revenueByTypeRes.value || []
+          setRevenueByType(Array.isArray(revenueData) ? revenueData : [])
+        } else {
+          console.error('[Financial Dashboard] Revenue by type failed:', revenueByTypeRes.reason)
+        }
 
         // Parse top creators
-        const creatorsData = topCreatorsRes?.data || topCreatorsRes || []
-        setTopCreators(Array.isArray(creatorsData) ? creatorsData : [])
+        if (topCreatorsRes.status === 'fulfilled') {
+          const creatorsData = topCreatorsRes.value?.data || topCreatorsRes.value || []
+          setTopCreators(Array.isArray(creatorsData) ? creatorsData : [])
+        } else {
+          console.error('[Financial Dashboard] Top creators failed:', topCreatorsRes.reason)
+        }
 
         // Parse revenue growth
-        const growthData = growthRes?.data || growthRes || []
-        setRevenueGrowth(Array.isArray(growthData) ? growthData : [])
+        if (growthRes.status === 'fulfilled') {
+          const growthData = growthRes.value?.data || growthRes.value || []
+          setRevenueGrowth(Array.isArray(growthData) ? growthData : [])
+        } else {
+          console.error('[Financial Dashboard] Growth data failed:', growthRes.reason)
+        }
 
       } catch (error) {
-        console.error('[Financial Dashboard] Error:', error)
+        console.error('[Financial Dashboard] Critical Error:', error)
         toast.error('Failed to load financial data')
       } finally {
         setLoading(false)

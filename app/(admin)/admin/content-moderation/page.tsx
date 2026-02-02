@@ -23,32 +23,43 @@ import { cn } from "@/lib/utils"
 
 interface ModerationItem {
   _id: string
-  contentType: 'post' | 'comment' | 'course' | 'event' | 'product'
+  contentType: 'post' | 'comment' | 'course' | 'event' | 'product' | 'community' | 'user_profile'
   contentId: string
-  status: 'pending' | 'approved' | 'rejected' | 'flagged'
-  priority: 'low' | 'medium' | 'high' | 'urgent'
-  reportedBy?: {
-    _id: string
-    username: string
-  }
-  reportReason?: string
-  assignedTo?: {
+  status: 'pending' | 'approved' | 'rejected' | 'flagged' | 'under_review' | 'escalated'
+  priority: 'low' | 'normal' | 'high' | 'urgent'
+  creator: {
     _id: string
     name: string
+    email: string
+    avatar?: string
   }
-  createdAt: string
+  community?: {
+    _id: string
+    name: string
+    slug: string
+  }
+  reportCount: number
+  reviewer?: {
+    _id: string
+    name: string
+    email: string
+  }
+  submittedAt: string
   reviewedAt?: string
-  reviewedBy?: {
-    _id: string
-    name: string
-  }
+  reviewNotes?: string
+  createdAt: string
 }
 
 interface ModerationQueueResponse {
-  items: ModerationItem[]
-  total: number
-  page: number
-  limit: number
+  success: boolean
+  message: string
+  data: ModerationItem[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
 }
 
 export default function ContentModerationPage() {
@@ -102,10 +113,10 @@ export default function ContentModerationPage() {
       if (filterValues.dateRange?.to) filters.reportedTo = filterValues.dateRange.to
 
       const response = await adminApi.contentModeration.getQueue(filters)
-      const data = response.data as ModerationQueueResponse
+      const result = response as unknown as ModerationQueueResponse
 
-      setItems(data.items || [])
-      setTotal(data.total || 0)
+      setItems(result.data || [])
+      setTotal(result.pagination?.total || 0)
     } catch (error) {
       console.error('[ContentModeration] Fetch error:', error)
       toast({
@@ -317,46 +328,48 @@ export default function ContentModerationPage() {
       width: '120px'
     },
     {
-      id: 'reportedBy',
-      header: 'Reported By',
+      id: 'creator',
+      header: 'Creator',
       cell: (row) => (
         <div className="flex items-center gap-2">
           <User className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm">
-            {row.reportedBy?.username || 'System'}
+            {row.creator?.name || 'Unknown'}
           </span>
         </div>
       ),
       width: '150px'
     },
     {
-      id: 'reportReason',
-      header: 'Reason',
+      id: 'reportCount',
+      header: 'Reports',
+      accessorKey: 'reportCount',
       cell: (row) => (
-        <span className="text-sm text-muted-foreground truncate max-w-[200px] block">
-          {row.reportReason || 'No reason provided'}
+        <span className="text-sm font-medium">
+          {row.reportCount || 0}
         </span>
       ),
-      width: '200px'
+      sortable: true,
+      width: '100px'
     },
     {
-      id: 'assignedTo',
-      header: 'Assigned To',
+      id: 'reviewer',
+      header: 'Reviewer',
       cell: (row) => (
         <span className="text-sm">
-          {row.assignedTo?.name || 'Unassigned'}
+          {row.reviewer?.name || 'Unassigned'}
         </span>
       ),
       width: '150px'
     },
     {
-      id: 'createdAt',
-      header: 'Reported',
+      id: 'submittedAt',
+      header: 'Submitted',
       cell: (row) => (
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm">
-            {new Date(row.createdAt).toLocaleDateString()}
+            {new Date(row.submittedAt).toLocaleDateString()}
           </span>
         </div>
       ),

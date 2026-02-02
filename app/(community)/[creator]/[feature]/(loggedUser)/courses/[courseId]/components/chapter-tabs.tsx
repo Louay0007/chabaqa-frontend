@@ -3,8 +3,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText as FileTextIcon, Download as DownloadIcon, Video, Code, Link as LinkIcon, FileType, Wrench, MessageSquare, Star } from "lucide-react"
+import { FileText as FileTextIcon, Download as DownloadIcon, Video, Code, Link as LinkIcon, FileType, Wrench, MessageSquare, Star, Sparkles } from "lucide-react"
 import { CourseReviewsSection } from "@/components/reviews/course-reviews-section"
+import AiTutorWidget from "./ai-tutor-widget"
 
 interface ChapterTabsProps {
   activeTab: string
@@ -102,6 +103,19 @@ export default function ChapterTabs({
             </div>
           </CardContent>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="ai-tutor" className="mt-6">
+        {courseId && currentChapter?.id ? (
+          <AiTutorWidget courseId={courseId} chapterId={String(currentChapter.id)} />
+        ) : (
+          <Card className="border-0 shadow-sm">
+            <CardContent className="py-8 text-center text-muted-foreground">
+              <Sparkles className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Please select a chapter to use the AI Tutor.</p>
+            </CardContent>
+          </Card>
+        )}
       </TabsContent>
 
       <TabsContent value="notes" className="mt-6">

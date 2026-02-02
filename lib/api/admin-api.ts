@@ -39,8 +39,8 @@ export interface UserFilters {
   page?: number;
   limit?: number;
   status?: 'active' | 'suspended' | 'deleted';
-  role?: string;
-  search?: string;
+  roles?: string;
+  searchTerm?: string;
   registeredFrom?: string;
   registeredTo?: string;
   sortBy?: string;
@@ -81,9 +81,9 @@ export interface CommunityFilters {
   page?: number;
   limit?: number;
   status?: 'pending' | 'approved' | 'rejected' | 'active' | 'inactive';
-  search?: string;
-  createdFrom?: string;
-  createdTo?: string;
+  searchTerm?: string;
+  createdAfter?: string;
+  createdBefore?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
@@ -109,8 +109,8 @@ export interface BulkCommunityApprovalDto {
 export interface CommunityModerationDto {
   featured?: boolean;
   verified?: boolean;
-  active?: boolean;
-  moderationNotes?: string;
+  isActive?: boolean;
+  adminNotes?: string;
 }
 
 // Content Moderation Types
@@ -294,14 +294,23 @@ export const adminApi = {
     getUsers: (filters: UserFilters) =>
       apiClient.get('/admin/users', filters),
 
+    createUser: (data: any) =>
+      apiClient.post('/admin/users', data),
+
+    updateUser: (userId: string, data: any) =>
+      apiClient.put(`/admin/users/${userId}`, data),
+
+    deleteUser: (userId: string) =>
+      apiClient.delete(`/admin/users/${userId}`),
+
     getUserDetails: (userId: string) =>
       apiClient.get<UserDetails>(`/admin/users/${userId}`),
 
     suspendUser: (userId: string, data: SuspendUserDto) =>
-      apiClient.post(`/admin/users/${userId}/suspend`, data),
+      apiClient.put(`/admin/users/${userId}/suspend`, data),
 
     activateUser: (userId: string, data: ActivateUserDto) =>
-      apiClient.post(`/admin/users/${userId}/activate`, data),
+      apiClient.put(`/admin/users/${userId}/activate`, data),
 
     resetPassword: (userId: string, data: ResetUserPasswordDto) =>
       apiClient.post(`/admin/users/${userId}/reset-password`, data),

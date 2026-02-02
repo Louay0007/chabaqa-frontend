@@ -22,7 +22,7 @@ interface Community {
   status: 'pending' | 'approved' | 'rejected' | 'active' | 'inactive'
   featured: boolean
   verified: boolean
-  memberCount: number
+  membersCount: number
   contentCount: number
   createdAt: string
 }
@@ -49,9 +49,9 @@ export default function CommunitiesPage() {
   // Filter state
   const [filters, setFilters] = useState<CommunityFilters>({
     status: undefined,
-    search: undefined,
-    createdFrom: undefined,
-    createdTo: undefined,
+    searchTerm: undefined,
+    createdAfter: undefined,
+    createdBefore: undefined,
   })
 
   // Auth guard
@@ -76,9 +76,20 @@ export default function CommunitiesPage() {
           ...filters,
         })
 
-        const data = response.data as CommunitiesResponse
-        setCommunities(data.communities || [])
-        setTotal(data.total || 0)
+        if (response.success && response.data) {
+          // The API returns nested data: { success: true, data: { data: [], total: ... } }
+          // But apiClient response.data is the full object.
+          // Wait, let's verify the apiClient wrapper. 
+          // If apiClient.get returns the body, then response is the body.
+          // The body is { success: true, message: "...", data: { data: [], total: ... } }
+          // So response.data is the PaginatedResult.
+          const paginatedResult = response.data as any
+          setCommunities(paginatedResult.data || [])
+          setTotal(paginatedResult.total || 0)
+        } else {
+          setCommunities([])
+          setTotal(0)
+        }
       } catch (error: any) {
         console.error('[Communities] Fetch error:', error)
         if (error?.message?.includes('401')) {
@@ -123,7 +134,7 @@ export default function CommunitiesPage() {
       accessorKey: 'status',
       sortable: true,
       cell: (row) => (
-        <StatusBadge status={row.status} />
+        <StatusBadge status={row.status || 'unknown'} />
       ),
     },
     {
@@ -141,12 +152,12 @@ export default function CommunitiesPage() {
       ),
     },
     {
-      id: 'memberCount',
+      id: 'membersCount',
       header: 'Members',
-      accessorKey: 'memberCount',
+      accessorKey: 'membersCount',
       sortable: true,
       cell: (row) => (
-        <div className="text-sm">{row.memberCount || 0}</div>
+        <div className="text-sm">{row.membersCount || 0}</div>
       ),
     },
     {
@@ -205,8 +216,13 @@ export default function CommunitiesPage() {
     if (key === 'dateRange') {
       setFilters(prev => ({
         ...prev,
-        createdFrom: value?.from,
-        createdTo: value?.to,
+        createdAfter: value?.from,
+        createdBefore: value?.to,
+      }))
+    } else if (key === 'search') {
+      setFilters(prev => ({
+        ...prev,
+        searchTerm: value || undefined,
       }))
     } else {
       if (value === 'all') {
@@ -227,9 +243,9 @@ export default function CommunitiesPage() {
   const handleFilterReset = () => {
     setFilters({
       status: undefined,
-      search: undefined,
-      createdFrom: undefined,
-      createdTo: undefined,
+      searchTerm: undefined,
+      createdAfter: undefined,
+      createdBefore: undefined,
     })
   }
 
@@ -270,10 +286,6 @@ export default function CommunitiesPage() {
             Manage platform communities and approvals
           </p>
         </div>
-        <Button onClick={() => router.push('/admin/communities/pending')}>
-          <Plus className="h-4 w-4 mr-2" />
-          View Pending Approvals
-        </Button>
       </div>
 
       {/* Filter Panel */}

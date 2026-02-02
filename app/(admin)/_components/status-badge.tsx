@@ -52,11 +52,13 @@ const statusVariantMap: Record<string, 'default' | 'success' | 'warning' | 'dang
   'processing': 'warning',
   'sending': 'warning',
   'in_review': 'warning',
+  'under_review': 'warning',
   'flagged': 'warning',
   
   // Error/Danger states
   'suspended': 'danger',
   'rejected': 'danger',
+  'escalated': 'danger',
   'failed': 'danger',
   'cancelled': 'danger',
   'deleted': 'danger',
@@ -74,7 +76,8 @@ const statusVariantMap: Record<string, 'default' | 'success' | 'warning' | 'dang
 }
 
 function getVariantFromStatus(status: string): 'default' | 'success' | 'warning' | 'danger' | 'info' | 'secondary' {
-  const normalizedStatus = status.toLowerCase().replace(/\s+/g, '_')
+  if (!status) return 'default'
+  const normalizedStatus = String(status).toLowerCase().replace(/\s+/g, '_')
   return statusVariantMap[normalizedStatus] || 'default'
 }
 

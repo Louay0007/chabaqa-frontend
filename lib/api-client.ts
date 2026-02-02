@@ -3,7 +3,8 @@
  * Provides a typed HTTP client with automatic token management
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
+                    (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api` : "http://localhost:3000/api")
 
 interface RequestConfig extends RequestInit {
   params?: Record<string, any>
@@ -13,6 +14,7 @@ interface ApiResponse<T = any> {
   data: T
   message?: string
   statusCode?: number
+  success?: boolean
 }
 
 class ApiClient {
@@ -51,7 +53,8 @@ class ApiClient {
     
     // Determine if this is an admin request
     const isAdminRequest = endpoint.startsWith('/admin')
-    const isAuthEndpoint = endpoint.startsWith('/admin/login') || endpoint.startsWith('/admin/verify-2fa') || endpoint.startsWith('/admin/refresh') || endpoint.startsWith('/admin/logout') || endpoint.startsWith('/admin/forgot-password') || endpoint.startsWith('/admin/reset-password')
+    // Logout needs the token to blacklist it, so we don't treat it as an auth endpoint (which are public)
+    const isAuthEndpoint = endpoint.startsWith('/admin/login') || endpoint.startsWith('/admin/verify-2fa') || endpoint.startsWith('/admin/refresh') || endpoint.startsWith('/admin/forgot-password') || endpoint.startsWith('/admin/reset-password')
     
     // Get appropriate token
     const token = !isAuthEndpoint ? this.getToken(isAdminRequest) : null

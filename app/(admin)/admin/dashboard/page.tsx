@@ -63,11 +63,16 @@ export default function AdminDashboardPage() {
         const pendingStats = pendingRes?.data || pendingRes
 
         setStats({
-          totalUsers: platformStats?.totalUsers || 0,
-          totalCommunities: platformStats?.totalCommunities || 0,
+          // Fix: Ensure we use totalCommunities from API if available, or 0.
+          // The API response structure puts userGrowth at the top level in 'dashboard', 
+          // and platformStatistics inside it. We need to be careful with mapping.
+          // Based on the backend service, totalCommunities is returned inside 'userGrowth'.
+          
+          totalUsers: dashboard?.userGrowth?.totalUsers || platformStats?.totalUsers || 0,
+          totalCommunities: dashboard?.userGrowth?.totalCommunities || platformStats?.totalCommunities || 0,
           pendingContent: pendingStats?.pending || pendingStats?.pendingCount || 0,
-          totalRevenue: platformStats?.totalRevenue || 0,
-          growthRate: platformStats?.growthRate || 0,
+          totalRevenue: dashboard?.revenue?.totalRevenue || platformStats?.totalRevenue || 0,
+          growthRate: dashboard?.userGrowth?.growthRate || platformStats?.growthRate || 0,
           revenueChange: revenueMetrics?.revenueChange || 0,
         })
       } catch (error: any) {
@@ -201,10 +206,10 @@ export default function AdminDashboardPage() {
           <Button
             variant="outline"
             className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-green-50 hover:border-green-300 transition-colors"
-            onClick={() => router.push('/admin/communities/pending')}
+            onClick={() => router.push('/admin/communities')}
           >
             <Building className="h-8 w-8 text-green-600" />
-            <span className="font-medium">Approve Communities</span>
+            <span className="font-medium">View Communities</span>
           </Button>
 
           <Button

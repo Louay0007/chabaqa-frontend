@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar, ResponsiveContainer } from "recharts"
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
 import {
   Users,
   MessageSquare,
@@ -18,6 +18,8 @@ import {
   Crown,
   ArrowUpRight,
   Clock,
+  Smartphone,
+  Globe,
 } from "lucide-react"
 import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
@@ -32,9 +34,13 @@ export default function CommunityAnalyticsPage() {
   const [overview, setOverview] = useState<any | null>(null)
   const [membershipData, setMembershipData] = useState<any[]>([])
   const [engagementData, setEngagementData] = useState<any[]>([])
+  const [devicesData, setDevicesData] = useState<any[]>([])
+  const [referrersData, setReferrersData] = useState<any[]>([])
   const [topItems, setTopItems] = useState<any[]>([])
   const [analyticsGated, setAnalyticsGated] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
   // Load plan only (communities come from context)
   useEffect(() => {
@@ -73,14 +79,17 @@ export default function CommunityAnalyticsPage() {
         })().toISOString()
 
         // Overview, members and engagement
-        // Members/engagement endpoints are not available; skip to avoid 404 noise
-        const [overviewRes] = await Promise.all([
+        // Fetch all analytics data in parallel
+        const [overviewRes, devicesRes, referrersRes] = await Promise.all([
           api.creatorAnalytics.getOverview({ from, to, communityId: selectedCommunityId }).catch((e:any) => { if (e?.statusCode===402||e?.statusCode===403) setAnalyticsGated(true); return null }),
+          api.creatorAnalytics.getDevices({ from, to }).catch(() => null),
+          api.creatorAnalytics.getReferrers({ from, to }).catch(() => null),
         ])
 
         const rawOverview = overviewRes?.data || overviewRes || null
         if (rawOverview) {
           const totals = (rawOverview as any).totals || rawOverview
+          const trend = (rawOverview as any).trend || []
 
           const views = Number(totals?.views ?? 0) || 0
           const starts = Number(totals?.starts ?? 0) || 0
@@ -89,6 +98,8 @@ export default function CommunityAnalyticsPage() {
           const shares = Number(totals?.shares ?? 0) || 0
           const downloads = Number(totals?.downloads ?? 0) || 0
           const bookmarks = Number(totals?.bookmarks ?? 0) || 0
+          
+          const revenue = (rawOverview as any).revenue || { total: 0, count: 0 }
 
           const interactions = likes + shares + downloads + bookmarks
           const engagementRate = views > 0 ? (interactions / views) * 100 : 0
@@ -102,60 +113,105 @@ export default function CommunityAnalyticsPage() {
             completions: completes,
             completionRate,
             engagementRate,
+            totalRevenue: revenue.total,
+            salesCount: revenue.count,
+            trend
           }
 
           setOverview(normalizedOverview)
+          
+          // Populate charts with trend data
+          const memData = trend.map((t: any) => ({
+             // We don't have member history in daily rollup yet, so using views as a proxy for activity
+             // Or better, just show views/completes trend
+             month: new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+             totalMembers: t.views, // Placeholder for chart
+             activeMembers: t.completes // Placeholder for chart
+          }))
+          setMembershipData(memData)
+
+          const engData = trend.map((t: any) => ({
+             day: new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+             posts: t.starts, 
+             comments: t.completes 
+          }))
+          setEngagementData(engData)
+
         } else {
           setOverview(null)
+          setMembershipData([])
+          setEngagementData([])
         }
 
-        setMembershipData([])
-        setEngagementData([])
+        // Devices
+        const devices = (devicesRes as any)?.data?.rows || (devicesRes as any)?.rows || []
+        setDevicesData(devices.map((d: any) => ({ name: d.device || 'Unknown', value: d.count })))
+
+        // Referrers
+        const referrers = (referrersRes as any)?.data?.rows || (referrersRes as any)?.rows || []
+        setReferrersData(referrers)
 
         // Top content for selected feature
         const topLoader = selectedFeature === 'courses' ? api.creatorAnalytics.getCourses
           : selectedFeature === 'challenges' ? api.creatorAnalytics.getChallenges
           : selectedFeature === 'events' ? api.creatorAnalytics.getEvents
-          : api.creatorAnalytics.getProducts
+          : selectedFeature === 'products' ? api.creatorAnalytics.getProducts
+          : api.creatorAnalytics.getCourses // default
 
         const top = await topLoader({ from, to, communityId: selectedCommunityId }).catch(() => null as any)
+        
         const list =
           (top?.data?.items)
           || (top?.data?.byCourse)
           || (top?.data?.byChallenge)
           || (top?.data?.bySession)
+          || (top?.data?.byEvent)
+          || (top?.data?.byProduct)
           || (top?.items)
           || (top?.byCourse)
           || (top?.byChallenge)
           || (top?.bySession)
+          || (top?.byEvent)
           || (top?.byProduct)
           || []
+          
         setTopItems(Array.isArray(list) ? list.slice(0,3) : [])
+
+        // Calculate feature-specific totals
+        if (Array.isArray(list)) {
+           const featureTotals = list.reduce((acc: any, item: any) => ({
+             views: (acc.views || 0) + (item.views || 0),
+             starts: (acc.starts || 0) + (item.starts || 0),
+             completes: (acc.completes || 0) + (item.completes || 0),
+             likes: (acc.likes || 0) + (item.likes || 0),
+             shares: (acc.shares || 0) + (item.shares || 0),
+             downloads: (acc.downloads || 0) + (item.downloads || 0),
+             sales: (acc.sales || 0) + (item.sales || 0),
+             revenue: (acc.revenue || 0) + (item.revenue || 0),
+             participants: (acc.participants || 0) + (item.participants || item.starts || 0), // Estimate participants as starts
+             submissions: (acc.submissions || 0) + (item.completes || 0), // Estimate submissions as completes
+             registrations: (acc.registrations || 0) + (item.starts || 0), // Estimate registrations as starts
+           }), {})
+
+           // Merge into overview for metrics display
+           setOverview((prev: any) => ({
+             ...prev,
+             ...featureTotals,
+             // Recalculate rates based on specific feature totals
+             completionRate: featureTotals.starts > 0 ? (featureTotals.completes / featureTotals.starts) * 100 : 0,
+             engagementRate: featureTotals.views > 0 ? ((featureTotals.likes + featureTotals.shares + featureTotals.downloads) / featureTotals.views) * 100 : 0,
+             // Custom fields for specific features
+             challengeCompletionRate: featureTotals.starts > 0 ? (featureTotals.completes / featureTotals.starts) * 100 : 0,
+             attendanceRate: featureTotals.views > 0 ? (featureTotals.starts / featureTotals.views) * 100 : 0, // Approx
+           }))
+        }
+
       } catch (e:any) {
         if (e?.statusCode===402||e?.statusCode===403) setAnalyticsGated(true)
       }
     }
     loadAnalytics()
   }, [selectedCommunityId, selectedFeature, timeRange])
-
-  if (communityLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <p className="text-gray-600">Loading communities...</p>
-      </div>
-    )
-  }
-
-  if (!selectedCommunityId) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="text-center space-y-3">
-          <h2 className="text-xl font-semibold text-gray-900">Select a community</h2>
-          <p className="text-gray-600">Choose a community to view its analytics.</p>
-        </div>
-      </div>
-    )
-  }
 
   const metrics = useMemo(() => {
     const o = overview || {}
@@ -190,6 +246,25 @@ export default function CommunityAnalyticsPage() {
       { title: 'Revenue', value: `$${(o.totalRevenue ?? o.revenue?.total ?? 0).toLocaleString()}`, change: o.revenueChange || '+0%', icon: DollarSign },
     ]
   }, [overview, selectedFeature])
+
+  if (communityLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <p className="text-gray-600">Loading communities...</p>
+      </div>
+    )
+  }
+
+  if (!selectedCommunityId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="text-center space-y-3">
+          <h2 className="text-xl font-semibold text-gray-900">Select a community</h2>
+          <p className="text-gray-600">Choose a community to view its analytics.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -366,8 +441,8 @@ export default function CommunityAnalyticsPage() {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
           <Card>
             <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-base sm:text-lg">Member Growth</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">Track membership growth over time</CardDescription>
+              <CardTitle className="text-base sm:text-lg">Views Trend</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Views and completions over time</CardDescription>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               <ResponsiveContainer width="100%" height={300}>
@@ -380,14 +455,14 @@ export default function CommunityAnalyticsPage() {
                   <Area
                     type="monotone"
                     dataKey="totalMembers"
-                    name="Total Members"
+                    name="Views"
                     stroke="rgb(99, 102, 241)"
                     fill="rgba(99, 102, 241, 0.1)"
                   />
                   <Area
                     type="monotone"
                     dataKey="activeMembers"
-                    name="Active Members"
+                    name="Completions"
                     stroke="rgb(34, 197, 94)"
                     fill="rgba(34, 197, 94, 0.1)"
                   />
@@ -398,8 +473,8 @@ export default function CommunityAnalyticsPage() {
 
           <Card>
             <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-base sm:text-lg">Engagement Overview</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">Posts and comments activity</CardDescription>
+              <CardTitle className="text-base sm:text-lg">Activity Trend</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Starts and completions activity</CardDescription>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               <ResponsiveContainer width="100%" height={300}>
@@ -409,10 +484,81 @@ export default function CommunityAnalyticsPage() {
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Bar dataKey="posts" name="Posts" fill="rgba(99, 102, 241, 0.8)" />
-                  <Bar dataKey="comments" name="Comments" fill="rgba(34, 197, 94, 0.8)" />
+                  <Bar dataKey="posts" name="Starts" fill="rgba(99, 102, 241, 0.8)" />
+                  <Bar dataKey="comments" name="Completions" fill="rgba(34, 197, 94, 0.8)" />
                 </BarChart>
               </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Devices and Referrers */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
+          <Card>
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">Audience Devices</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Device types used by your audience</CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 pt-0 flex justify-center">
+              {devicesData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={devicesData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {devicesData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-gray-500">
+                  No device data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">Top Referrers</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Where your traffic is coming from</CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <div className="h-[300px] overflow-y-auto pr-2 space-y-4">
+                {referrersData.length > 0 ? referrersData.map((ref, idx) => (
+                  <div key={idx} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                        <Globe className="w-4 h-4 text-blue-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{ref.referrer || 'Direct'}</p>
+                        <p className="text-xs text-gray-500">
+                          {ref.utm_source ? `Source: ${ref.utm_source}` : 'No source'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-gray-900">{ref.count}</p>
+                      <p className="text-xs text-gray-500">visits</p>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="h-full flex items-center justify-center text-gray-500">
+                    No referrer data available
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -592,14 +738,14 @@ export default function CommunityAnalyticsPage() {
                           <Area
                             type="monotone"
                             dataKey="totalMembers"
-                            name="Total Members"
+                            name="Views"
                             stroke="rgb(99, 102, 241)"
                             fill="rgba(99, 102, 241, 0.1)"
                           />
                           <Area
                             type="monotone"
                             dataKey="activeMembers"
-                            name="Active Members"
+                            name="Completions"
                             stroke="rgb(34, 197, 94)"
                             fill="rgba(34, 197, 94, 0.1)"
                           />

@@ -20,13 +20,15 @@ import {
   TrendingUp,
   Calendar,
   Star,
-  CheckCircle
+  CheckCircle,
+  ExternalLink
 } from "lucide-react"
 import { toast } from "sonner"
 
 interface CommunityDetails {
   _id: string
   name: string
+  slug: string
   description: string
   creator: {
     _id: string
@@ -36,10 +38,11 @@ interface CommunityDetails {
   status: 'pending' | 'approved' | 'rejected' | 'active' | 'inactive'
   featured: boolean
   verified: boolean
-  memberCount: number
+  membersCount: number
   contentCount: number
   createdAt: string
   approvalNotes?: string
+  adminNotes?: string
   rejectionReason?: string
   members?: any[]
   content?: any[]
@@ -107,8 +110,8 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
       const data: CommunityModerationDto = {
         featured,
         verified,
-        active,
-        moderationNotes: moderationNotes || undefined,
+        isActive: active,
+        adminNotes: moderationNotes || undefined,
       }
 
       await adminApi.communities.moderateCommunity(community._id, data)
@@ -118,12 +121,31 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
       const response = await adminApi.communities.getCommunityDetails(params.id)
       const updatedData = response.data as CommunityDetails
       setCommunity(updatedData)
-      setModerationNotes('')
+      setModerationNotes(updatedData.adminNotes || '')
     } catch (error) {
       console.error('[Save Settings] Error:', error)
       toast.error('Failed to update community settings')
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Helper to generate content URL
+  const getContentUrl = (type: string, id: string) => {
+    // Fallback to home if slug is missing
+    const slug = community?.slug || 'community';
+    
+    switch (type) {
+      case 'course':
+        return `/${slug}/courses/${id}`
+      case 'event':
+        return `/${slug}/events/${id}`
+      case 'product':
+        return `/${slug}/products/${id}`
+      case 'post':
+        return `/${slug}/home` // Posts are usually on the feed
+      default:
+        return `/${slug}`
     }
   }
 
@@ -180,7 +202,7 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
             <CardDescription>Members</CardDescription>
             <CardTitle className="text-3xl flex items-center gap-2">
               <Users className="h-6 w-6 text-primary" />
-              {community.memberCount || 0}
+              {community.membersCount || 0}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -283,7 +305,7 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
             <CardHeader>
               <CardTitle>Members</CardTitle>
               <CardDescription>
-                {community.memberCount || 0} total members
+                {community.membersCount || 0} total members
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -330,9 +352,21 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
                           ({item.type || 'Unknown type'})
                         </span>
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground">
+                          {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          onClick={() => window.open(getContentUrl(item.type, item._id), '_blank')}
+                          title="View Content"
+                          disabled={!community.slug}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                   {community.content.length > 10 && (

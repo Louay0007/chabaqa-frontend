@@ -50,6 +50,7 @@ import { notificationsApi } from './notifications.api';
 import { storageApi } from './storage.api';
 import { emailCampaignsApi } from './email-campaigns.api';
 import { feedbackApi } from './feedback.api';
+import { aiApi } from './ai.api';
 
 export const api = {
   auth: authApi,
@@ -69,4 +70,5 @@ export const api = {
   storage: storageApi,
   emailCampaigns: emailCampaignsApi,
   feedback: feedbackApi,
+  ai: aiApi,
 };

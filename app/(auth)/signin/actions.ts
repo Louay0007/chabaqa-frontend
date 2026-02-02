@@ -221,7 +221,8 @@ export async function logoutAction(): Promise<{ success: boolean; error?: string
   let cookieStore: any = null;
 
   try {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 
+                   (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api` : "http://localhost:3000/api")
     const revokeUrl = `${apiBase}/auth/revoke-all-tokens`
     const logoutUrl = `${apiBase}/auth/logout`
 
