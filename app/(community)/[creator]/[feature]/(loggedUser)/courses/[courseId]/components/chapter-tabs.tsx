@@ -63,12 +63,13 @@ export default function ChapterTabs({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList>
-        <TabsTrigger value="content">Content</TabsTrigger>
-        <TabsTrigger value="notes">Notes</TabsTrigger>
-        <TabsTrigger value="resources">Resources</TabsTrigger>
-        <TabsTrigger value="reviews">Reviews</TabsTrigger>
-        <TabsTrigger value="discussion">Discussion</TabsTrigger>
+      <TabsList className="grid w-full grid-cols-5 md:grid-cols-6 lg:grid-cols-6 h-auto p-1">
+        <TabsTrigger value="content" className="py-2 text-xs md:text-sm">Content</TabsTrigger>
+        <TabsTrigger value="ai-tutor" className="py-2 text-xs md:text-sm gap-1"><Sparkles className="h-3 w-3 md:h-4 md:w-4 text-purple-500" /> AI</TabsTrigger>
+        <TabsTrigger value="notes" className="py-2 text-xs md:text-sm">Notes</TabsTrigger>
+        <TabsTrigger value="resources" className="py-2 text-xs md:text-sm">Resources</TabsTrigger>
+        <TabsTrigger value="reviews" className="py-2 text-xs md:text-sm">Reviews</TabsTrigger>
+        <TabsTrigger value="discussion" className="py-2 text-xs md:text-sm hidden md:inline-flex">Discussion</TabsTrigger>
       </TabsList>
 
       <TabsContent value="content" className="mt-6">

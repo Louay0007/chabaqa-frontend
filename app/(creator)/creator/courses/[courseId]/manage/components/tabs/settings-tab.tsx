@@ -5,8 +5,31 @@ import { CardContent, CardDescription, CardHeader, CardTitle } from "@/component
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { api } from "@/lib/api"
+import { useToast } from "@/components/ui/use-toast"
+import { useState } from "react"
+import { Input } from "@/components/ui/input"
 
-export function SettingsTab() {
+interface SettingsTabProps {
+  courseId: string
+  initialSettings?: any
+}
+
+export function SettingsTab({ courseId, initialSettings }: SettingsTabProps) {
+  const [sequentialProgression, setSequentialProgression] = useState(initialSettings?.sequentialProgression || false)
+  const [unlockMessage, setUnlockMessage] = useState(initialSettings?.unlockMessage || "Please complete the previous chapter to unlock this one.")
+  const { toast } = useToast()
+
+  const handleToggleSequential = async (enabled: boolean) => {
+    try {
+      await api.courses.toggleSequentialProgression(courseId, enabled, unlockMessage)
+      setSequentialProgression(enabled)
+      toast({ title: "Settings updated" })
+    } catch (error) {
+      toast({ title: "Failed to update settings", variant: "destructive" })
+    }
+  }
+
   return (
     <div className="space-y-6">
       <EnhancedCard>
@@ -15,6 +38,31 @@ export function SettingsTab() {
           <CardDescription>Advanced course configuration options</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium">Sequential Progression</h4>
+              <p className="text-sm text-muted-foreground">Force students to complete chapters in order</p>
+            </div>
+            <Switch 
+              checked={sequentialProgression} 
+              onCheckedChange={handleToggleSequential} 
+            />
+          </div>
+          
+          {sequentialProgression && (
+             <div className="pl-4 border-l-2 border-muted">
+               <Label className="mb-2 block">Unlock Message</Label>
+               <div className="flex gap-2">
+                  <Input 
+                    value={unlockMessage} 
+                    onChange={(e) => setUnlockMessage(e.target.value)} 
+                    placeholder="Message shown on locked chapters"
+                  />
+                  <Button onClick={() => handleToggleSequential(true)} size="sm">Save</Button>
+               </div>
+             </div>
+          )}
+
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium">Allow Comments</h4>

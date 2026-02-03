@@ -157,4 +157,84 @@ export const coursesApi = {
   getByCreator: async (userId: string, params?: { page?: number; limit?: number; published?: boolean }): Promise<any> => {
     return apiClient.get(`/cours/by-user/${userId}`, params);
   },
+
+  // =========================================================================
+  // ENGAGEMENT & SOCIAL (Reviews, Likes, Bookmarks)
+  // =========================================================================
+
+  // Add a review
+  addReview: async (courseId: string, rating: number, review: string): Promise<any> => {
+    return apiClient.post(`/cours/${courseId}/rating`, { rating, review });
+  },
+
+  // Get reviews for a course
+  getReviews: async (courseId: string): Promise<any> => {
+    return apiClient.get(`/cours/${courseId}/reviews`);
+  },
+
+  // Like a course
+  likeCourse: async (courseId: string): Promise<any> => {
+    return apiClient.post(`/cours/${courseId}/like`);
+  },
+
+  // Share a course
+  shareCourse: async (courseId: string): Promise<any> => {
+    return apiClient.post(`/cours/${courseId}/share`);
+  },
+
+  // Bookmark a course (using custom bookmark ID or generating one)
+  bookmarkCourse: async (courseId: string): Promise<any> => {
+    // We use a generated ID or let backend handle it if possible
+    // The backend expects `bookmarkId` in the body
+    const bookmarkId = `bm_${Date.now()}`;
+    return apiClient.post(`/cours/${courseId}/bookmark`, { bookmarkId });
+  },
+
+  // Remove a bookmark
+  removeBookmark: async (courseId: string, bookmarkId: string): Promise<any> => {
+    return apiClient.delete(`/cours/${courseId}/bookmark/${bookmarkId}`);
+  },
+
+  // =========================================================================
+  // USER NOTES
+  // =========================================================================
+
+  // Create a note
+  createNote: async (courseId: string, chapterId: string, content: string, timestamp?: number): Promise<any> => {
+    return apiClient.post(`/cours/${courseId}/notes`, { chapterId, content, timestamp });
+  },
+
+  // Get user notes for a course
+  getNotes: async (courseId: string): Promise<any> => {
+    return apiClient.get(`/cours/${courseId}/notes`);
+  },
+
+  // Update a note
+  updateNote: async (courseId: string, noteId: string, content: string): Promise<any> => {
+    return apiClient.put(`/cours/${courseId}/notes/${noteId}`, { content });
+  },
+
+  // Delete a note
+  deleteNote: async (courseId: string, noteId: string): Promise<any> => {
+    return apiClient.delete(`/cours/${courseId}/notes/${noteId}`);
+  },
+
+  // =========================================================================
+  // ADVANCED MANAGEMENT (Creator)
+  // =========================================================================
+
+  // Toggle sequential progression
+  toggleSequentialProgression: async (courseId: string, enabled: boolean, unlockMessage?: string): Promise<any> => {
+    return apiClient.put(`/cours/${courseId}/sequential-progression`, { enabled, unlockMessage });
+  },
+
+  // Unlock a chapter for a specific user
+  unlockChapterForUser: async (courseId: string, chapterId: string, userId: string): Promise<any> => {
+    return apiClient.post(`/cours/${courseId}/unlock-chapter`, { chapterId, userId });
+  },
+
+  // Update thumbnail (file upload)
+  updateThumbnail: async (courseId: string, file: File): Promise<any> => {
+    return apiClient.uploadFile(`/cours/${courseId}/thumbnail`, file, 'file');
+  },
 };
