@@ -189,10 +189,10 @@ export default function CoursePlayer({
   }, [courseId, sequentialProgressionEnabled, unlockedChapters, hasEnrollment])
 
   const handleWatchTimeUpdate = useCallback(() => {
-    if (onRefreshProgress) {
-      void onRefreshProgress()
-    }
-  }, [onRefreshProgress])
+    // Avoid spamming full progress refresh on every second of watch time.
+    // The backend is updated via EnhancedVideoPlayer's direct API calls.
+    // Global progress will be refreshed upon chapter completion.
+  }, [])
 
   const defaultChapterId = useMemo(() => {
     const firstAccessible = allChapters.find((c: any) => isChapterAccessible(String(c.id)))

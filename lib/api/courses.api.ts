@@ -74,7 +74,7 @@ export const coursesApi = {
   },
 
   getCourseEnrollmentProgress: async (courseId: string): Promise<any> => {
-    return apiClient.get(`/cours/${courseId}/track/progress`);
+    return apiClient.get(`/course-enrollment/${courseId}/progress`);
   },
 
   completeChapterEnrollment: async (courseId: string, chapterId: string): Promise<any> => {
