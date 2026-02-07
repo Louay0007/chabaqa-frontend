@@ -7,7 +7,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Explore } from "@/lib/data-communities"
 
-type ItemType = "community" | "course" | "challenge" | "product" | "oneToOne"
+type ItemType = "community" | "course" | "challenge" | "product" | "oneToOne" | "event"
 
 interface FeaturedCommunityCardProps {
   community: Explore
@@ -53,6 +53,11 @@ export function FeaturedCommunityCard({ community, index, slug }: FeaturedCommun
         badgeColor: "border-[#f65887]/50 text-[#f65887] bg-[#f65887]/10",
         ctaText: "Book",
         ctaColors: "#f65887, #fddab0"
+      },
+      event: {
+        badgeColor: "border-emerald-500/50 text-emerald-600 bg-emerald-50",
+        ctaText: "Register",
+        ctaColors: "#10b981, #34d399"
       }
     }
 

@@ -6,7 +6,7 @@ import { Explore } from "@/lib/data-communities"
 import Link from "next/link"
 import Image from "next/image"
 
-type ItemType = "community" | "course" | "challenge" | "product" | "oneToOne"
+type ItemType = "community" | "course" | "challenge" | "product" | "oneToOne" | "event"
 
 interface CommunityCardProps {
   community: Explore & { type?: ItemType }

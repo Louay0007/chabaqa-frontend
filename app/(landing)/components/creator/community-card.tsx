@@ -107,7 +107,7 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
           <div className="relative w-full sm:w-96 aspect-video sm:aspect-auto flex-shrink-0 overflow-hidden rounded-2xl">
             <Image
               src={community.image || getPlaceholderImage(community.type)}
-              alt={community.name}
+              alt={community.name || 'Community thumbnail'}
               fill
               className="object-cover rounded-2xl p-2"
               sizes="(max-width: 640px) 100vw, 384px"

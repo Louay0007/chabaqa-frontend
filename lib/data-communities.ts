@@ -100,7 +100,7 @@ export const mockPosts = [
 // communitiesData.ts
 export type Explore = {
   id: string
-  type: "community" | "course" | "challenge" | "product" | "oneToOne"
+  type: "community" | "course" | "challenge" | "product" | "oneToOne" | "event"
   name: string
   slug: string
   creator: string
