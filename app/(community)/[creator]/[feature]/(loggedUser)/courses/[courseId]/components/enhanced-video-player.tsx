@@ -385,16 +385,19 @@ export default function EnhancedVideoPlayer({
       enrollment,
       chapterAccessible,
     })
+
+    const isAccessDenied = !chapterAccessible && !currentChapter?.isPreview
+
     return (
       <Card className="border-0 shadow-sm overflow-hidden">
         <div className="relative bg-black aspect-video">
           <div className="flex items-center justify-center h-full text-white bg-gray-800">
             <div className="text-center">
-              {currentChapter?.isPreview && !enrollment ? (
+              {!isAccessDenied ? (
                 <>
                   <PlayCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-semibold">Video Unavailable</p>
-                  <p className="text-sm text-gray-300 mt-2">The video for this preview is currently unavailable.</p>
+                  <p className="text-sm text-gray-300 mt-2">The video for this chapter is currently unavailable.</p>
                 </>
               ) : (
                 <>
