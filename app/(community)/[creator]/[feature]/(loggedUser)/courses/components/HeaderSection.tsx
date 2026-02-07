@@ -24,9 +24,14 @@ export default function HeaderSection({ allCourses, userEnrollments }: HeaderSec
     0
   )
 
+  const matchCourse = (c: any, e: any) => {
+    const eid = typeof e?.courseId === 'string' ? e.courseId : (e?.courseId?._id ?? e?.courseId?.id ?? '')
+    return c?.id === eid || c?.mongoId === eid
+  }
+
   const avgProgress = Math.round(
     userEnrollments.reduce((acc, e) => {
-      const course = allCourses.find((c) => c.id === e.courseId)
+      const course = allCourses.find((c) => matchCourse(c, e))
       if (!course) return acc
       const totalChapters = course.sections.reduce((sAcc: any, s: any) => sAcc + s.chapters.length, 0)
       if (!totalChapters) return acc

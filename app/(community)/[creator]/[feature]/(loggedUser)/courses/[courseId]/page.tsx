@@ -31,11 +31,28 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
   const [unlockMessage, setUnlockMessage] = useState<string | undefined>(undefined)
   const [isEnrolled, setIsEnrolled] = useState<boolean | null>(null)
 
-  const refreshEnrollmentProgress = async (resolvedCourseId: string) => {
-    const enrollmentProgress = await coursesApi.getCourseEnrollmentProgress(resolvedCourseId).catch(() => null)
-    const rawEnrollment = (enrollmentProgress as any)?.enrollment || null
-    const progressPercentage = (enrollmentProgress as any)?.progress || 0
+  const refreshEnrollmentProgress = async (
+    resolvedCourseId: string,
+    courseForFallback?: { mongoId?: string; id?: string } | null,
+  ) => {
+    let enrollmentProgress = await coursesApi.getCourseEnrollmentProgress(resolvedCourseId).catch(() => null)
+    let rawEnrollment = (enrollmentProgress as any)?.enrollment || null
 
+    // If no enrollment and we have both ids, retry with the other id (handles backend id mismatch)
+    if (!rawEnrollment && courseForFallback?.mongoId && courseForFallback?.id) {
+      const otherId =
+        resolvedCourseId === String(courseForFallback.mongoId)
+          ? String(courseForFallback.id)
+          : String(courseForFallback.mongoId)
+      const retryProgress = await coursesApi.getCourseEnrollmentProgress(otherId).catch(() => null)
+      const retryEnrollment = (retryProgress as any)?.enrollment || null
+      if (retryEnrollment) {
+        enrollmentProgress = retryProgress
+        rawEnrollment = retryEnrollment
+      }
+    }
+
+    const progressPercentage = (enrollmentProgress as any)?.progress || 0
     const normalizedEnrollment = rawEnrollment
       ? {
           ...rawEnrollment,
@@ -59,8 +76,11 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
     setUnlockMessage(typeof unlockMsg === "string" ? unlockMsg : undefined)
   }
 
-  const refreshProgress = async (resolvedCourseId: string) => {
-    await refreshEnrollmentProgress(resolvedCourseId)
+  const refreshProgress = async (
+    resolvedCourseId: string,
+    courseForFallback?: { mongoId?: string; id?: string } | null,
+  ) => {
+    await refreshEnrollmentProgress(resolvedCourseId, courseForFallback)
     await refreshUnlockedChapters(resolvedCourseId)
   }
 
@@ -77,38 +97,74 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
     }
   }
 
-  const handleEnrollmentRequest = async () => {
+  const handleEnrollmentRequest = async (options?: { openPaymentModal?: boolean }) => {
     if (!course) return
 
     const isPaid = Number(course.price ?? 0) > 0
+    const resolvedCourseId = String(course.mongoId || courseId)
+
+    // Before any paid flow: re-fetch enrollment so we never redirect to Stripe if user is already enrolled
+    try {
+      const progressRes = await coursesApi.getCourseEnrollmentProgress(resolvedCourseId).catch(() => null)
+      const existingEnrollment = (progressRes as any)?.enrollment ?? null
+      if (existingEnrollment) {
+        await refreshProgress(resolvedCourseId, course)
+        return
+      }
+    } catch (_) {
+      // Continue to paid or free flow if re-fetch fails
+    }
+
+    // Paid course: from chapter "Enroll" we redirect to Stripe directly (no modal). From elsewhere we can show modal for promo code.
     if (isPaid) {
-      setIsEnrollDialogOpen(true)
+      const openModal = options?.openPaymentModal === true
+      if (openModal) {
+        setIsEnrollDialogOpen(true)
+        return
+      }
+      try {
+        setIsEnrolling(true)
+        toast({ title: "Redirecting to payment...", description: "Taking you to secure checkout." })
+        const result = await (coursesApi as any).initStripePayment(resolvedCourseId, undefined)
+        const checkoutUrl = result?.data?.checkoutUrl ?? result?.checkoutUrl
+        if (checkoutUrl) {
+          window.location.href = checkoutUrl
+          return
+        }
+        throw new Error("Unable to start checkout. Please try again.")
+      } catch (error) {
+        toast({
+          title: "Checkout failed",
+          description: typeof error === "object" && error && "message" in error ? String((error as any).message) : "Please try again.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsEnrolling(false)
+      }
       return
     }
 
     // Free course - enroll directly
     try {
       setIsEnrolling(true)
-      const resolvedCourseId = String(course.mongoId || courseId)
-      
       toast({
         title: "Enrolling...",
         description: "Please wait while we enroll you in this course.",
       })
 
       const response = await coursesApi.enroll(resolvedCourseId)
-      
+
       toast({
         title: "Enrolled successfully",
         description: response.message || "You now have access to this course.",
       })
-      
-      await refreshProgress(resolvedCourseId)
+
+      await refreshProgress(resolvedCourseId, course)
     } catch (error) {
-       toast({
+      toast({
         title: "Enrollment failed",
-        description: typeof error === "object" && error && "message" in error 
-          ? String((error as any).message) 
+        description: typeof error === "object" && error && "message" in error
+          ? String((error as any).message)
           : "Failed to enroll. Please try again.",
         variant: "destructive",
       })
@@ -132,7 +188,7 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
         const resolvedCourseId = String(normalizedCourse?.mongoId || courseId)
 
         setCourse(normalizedCourse)
-        await refreshProgress(resolvedCourseId)
+        await refreshProgress(resolvedCourseId, normalizedCourse)
       } catch (error) {
         if (!isActive) return
         const message =
@@ -152,25 +208,13 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
     }
   }, [courseId])
 
+  // Only show a status block for loading, error, or course not found. Never block with "Enrollment Required" — always show the course player.
   const status = useMemo(() => {
     if (isLoading) return { title: "Loading...", description: "" }
     if (errorMessage) return { title: "Failed to load course", description: errorMessage }
-    if (!course) return { title: "Course not found", description: "This course may be unpublished or no longer exists." }
-    
-    // Check if user needs to enroll (not enrolled + not a free preview course)
-    if (isEnrolled === false && course) {
-      const isFreePreview = course.price === 0 || course.priceType === 'free'
-      if (!isFreePreview) {
-        return {
-          title: "Enrollment Required",
-          description: "You need to enroll in this course to access its content. If it's paid, you can submit a payment proof for creator verification.",
-          showEnrollButton: true
-        }
-      }
-    }
-    
+    if (!course || !course.id) return { title: "Course not found", description: "This course may be unpublished or no longer exists." }
     return null
-  }, [isLoading, errorMessage, course, isEnrolled])
+  }, [isLoading, errorMessage, course])
 
   if (status) {
     return (
@@ -181,34 +225,15 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
             {status.description ? (
               <div className="mt-2 text-sm text-muted-foreground">{status.description}</div>
             ) : null}
-            {(status as any).showEnrollButton && course && (
-              <div className="mt-4 flex gap-3">
-                <Button asChild>
-                  <Link href={`/${creator}/${feature}/courses`}>
-                    View Courses
-                  </Link>
-                </Button>
-                <Button onClick={handleEnrollmentRequest} disabled={isEnrolling}>
-                  {isEnrolling ? "Enrolling..." : "Enroll / Submit payment proof"}
-                </Button>
-                <Button variant="outline" onClick={() => router.back()}>
-                  Go Back
+            {status.title === "Course not found" && (
+              <div className="mt-4">
+                <Button asChild variant="outline">
+                  <Link href={`/${creator}/${feature}/courses`}>View Courses</Link>
                 </Button>
               </div>
             )}
           </div>
         </div>
-
-        <EnrollCourseDialog
-          open={isEnrollDialogOpen}
-          onOpenChange={setIsEnrollDialogOpen}
-          course={course}
-          isEnrolled={Boolean(isEnrolled)}
-          onEnrolled={async () => {
-            const resolvedCourseId = String(course?.mongoId || courseId)
-            await refreshProgress(resolvedCourseId)
-          }}
-        />
       </div>
     )
   }
@@ -227,7 +252,7 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
         onRefreshCourse={refreshCourse}
         onRefreshProgress={async () => {
           const resolvedCourseId = String(course?.mongoId || courseId)
-          await refreshEnrollmentProgress(resolvedCourseId)
+          await refreshEnrollmentProgress(resolvedCourseId, course)
         }}
         onRefreshUnlockedChapters={async () => {
           const resolvedCourseId = String(course?.mongoId || courseId)
@@ -243,7 +268,7 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
         isEnrolled={Boolean(isEnrolled)}
         onEnrolled={async () => {
           const resolvedCourseId = String(course?.mongoId || courseId)
-          await refreshProgress(resolvedCourseId)
+          await refreshProgress(resolvedCourseId, course)
         }}
       />
     </>

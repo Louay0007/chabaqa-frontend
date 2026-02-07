@@ -53,22 +53,16 @@ export default function CoursesPageContent({
     const fetchEnrollments = async () => {
       try {
         const response = await coursesApi.getMyEnrollments()
-        const enrollmentsList = Array.isArray(response?.enrollments) ? response.enrollments : []
-        
-        // Normalize and filter to only enrollments for courses in THIS community
-        const allCourseIds = new Set(allCourses.map(c => normalizeCourseId(c?.id || c?.mongoId)))
-        
-        const normalized = enrollmentsList
-          .map((enrollment: any) => ({
-            ...enrollment,
-            courseId: normalizeCourseId(enrollment?.courseId),
-          }))
-          .filter((enrollment: any) => allCourseIds.has(enrollment.courseId))
-        
+        // Support both { enrollments } and { data: { enrollments } } from backend
+        const rawList = (response as any)?.data?.enrollments ?? (response as any)?.enrollments
+        const enrollmentsList = Array.isArray(rawList) ? rawList : []
+
+        const normalized = enrollmentsList.map((enrollment: any) => ({
+          ...enrollment,
+          courseId: normalizeCourseId(enrollment?.courseId ?? enrollment?.courseId?._id ?? enrollment?.courseId?.id),
+        }))
         setEnrollments(normalized)
-        console.log('✅ [CoursesPage] Fetched enrollments:', normalized.length, 'for this community')
       } catch (error) {
-        console.log('⚠️ [CoursesPage] Failed to fetch enrollments (guest user?):', error)
         setEnrollments([])
       } finally {
         setIsLoadingEnrollments(false)
@@ -78,9 +72,15 @@ export default function CoursesPageContent({
     fetchEnrollments()
   }, [allCourses])
 
-  // Debug: Log enrollment data
-  console.log('📊 CoursesPage - User Enrollments:', enrollments)
-  console.log('📚 CoursesPage - All Courses:', allCourses.map(c => ({ id: c.id, title: c.title })))
+  // Course ids in this community (for header count and My Courses tab)
+  const allCourseIds = new Set<string>()
+  allCourses.forEach((c) => {
+    const id = normalizeCourseId(c?.id)
+    const mongoId = normalizeCourseId(c?.mongoId)
+    if (id) allCourseIds.add(id)
+    if (mongoId) allCourseIds.add(mongoId)
+  })
+  const enrollmentsInCommunity = enrollments.filter((e) => allCourseIds.has(normalizeCourseId(e?.courseId)))
   const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false)
   const [enrollTargetCourseId, setEnrollTargetCourseId] = useState<string | null>(null)
 
@@ -89,11 +89,12 @@ export default function CoursesPageContent({
       course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.description.toLowerCase().includes(searchQuery.toLowerCase())
 
-    // Normalize IDs to strings for comparison
+    // Normalize IDs: match enrollment by either course id or mongoId (backend may return either)
+    const courseIdNorm = normalizeCourseId(course?.id)
+    const mongoIdNorm = normalizeCourseId(course?.mongoId)
     const isEnrolled = enrollments.some((e) => {
       const enrollmentCourseId = normalizeCourseId(e?.courseId)
-      const currentCourseId = normalizeCourseId(course?.id || course?.mongoId)
-      return enrollmentCourseId === currentCourseId
+      return enrollmentCourseId === courseIdNorm || enrollmentCourseId === mongoIdNorm
     })
 
     if (activeTab === "enrolled") {
@@ -112,10 +113,15 @@ export default function CoursesPageContent({
   })
 
   const getEnrollmentProgress = (courseId: string) => {
-    const enrollment = enrollments.find((e) => e.courseId === courseId)
+    const enrollment = enrollments.find((e) => {
+      const eid = normalizeCourseId(e?.courseId)
+      const cid = normalizeCourseId(courseId)
+      return eid === cid
+    })
     if (!enrollment) return null
 
-    const course = allCourses.find((c) => c.id === courseId)
+    const courseIdNorm = normalizeCourseId(courseId)
+    const course = allCourses.find((c) => normalizeCourseId(c?.id) === courseIdNorm || normalizeCourseId(c?.mongoId) === courseIdNorm)
     if (!course) return null
 
     const totalChapters = course.sections?.reduce((acc: number, s: any) => acc + (s.chapters?.length || 0), 0) || 0
@@ -141,7 +147,7 @@ export default function CoursesPageContent({
       <div className="container mx-auto px-4 py-8">
         <HeaderSection 
           allCourses={allCourses} 
-          userEnrollments={enrollments} 
+          userEnrollments={enrollmentsInCommunity} 
         />
         
         <CoursesTabs

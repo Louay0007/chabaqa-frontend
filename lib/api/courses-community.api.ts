@@ -25,14 +25,21 @@ export interface CoursesPageData {
  * Backend returns courses with sections and chapters nested
  */
 export function transformCourse(backendCourse: any): any {
+  console.log('🔄 transformCourse input:', backendCourse);
+  if (!backendCourse) return null;
+
+  // Extract inner data if wrapped in 'data' or 'cours' property
+  const courseData = backendCourse.data || backendCourse.cours || backendCourse;
+
   // Transform sections and chapters
-  const sections = (backendCourse.sections || []).map((section: any) => ({
+  const sections = (courseData.sections || []).map((section: any) => ({
     id: section.id || '',
     title: section.titre || section.title || '',
     description: section.description || '',
     order: section.ordre || section.order || 0,
-    courseId: String(backendCourse._id || backendCourse.id || ''),
+    courseId: String(courseData._id || courseData.id || ''),
     chapters: (section.chapitres || []).map((chapter: any) => {
+      // Schema: free preview = isPreview true or !isPaidChapter; backend sends isPreview and isPaid
       const isPaid = Boolean(chapter.isPaidChapter ?? chapter.isPaid);
       const isPreview = Boolean(chapter.isPreview ?? !isPaid);
       const content = typeof chapter.contenu === 'string' && chapter.contenu.trim().length > 0
@@ -46,8 +53,8 @@ export function transformCourse(backendCourse: any): any {
         videoUrl: chapter.videoUrl || undefined,
         // Handle duration: if duree > 300, it's likely already in seconds (legacy data)
         // Otherwise, duree is in minutes, convert to seconds
-        duration: Number(chapter.duree ?? 0) > 300 
-          ? Number(chapter.duree ?? 0) 
+        duration: Number(chapter.duree ?? 0) > 300
+          ? Number(chapter.duree ?? 0)
           : (Number(chapter.duree ?? 0) || 0) * 60,
         order: chapter.ordre || chapter.order || 0,
         isPaidChapter: isPaid,
@@ -55,16 +62,16 @@ export function transformCourse(backendCourse: any): any {
         price: Number(chapter.prix ?? chapter.price ?? 0) || 0,
         sectionId: String(chapter.sectionId || section.id || ''),
         notes: typeof chapter.notes === 'string' ? chapter.notes : '',
-        resources: Array.isArray(chapter.ressources) 
+        resources: Array.isArray(chapter.ressources)
           ? chapter.ressources.map((r: any) => ({
-              id: r.id || '',
-              title: r.titre || r.title || '',
-              titre: r.titre || r.title || '',
-              type: r.type || 'link',
-              url: r.url || '',
-              description: r.description || '',
-              order: r.ordre || r.order || 0,
-            }))
+            id: r.id || '',
+            title: r.titre || r.title || '',
+            titre: r.titre || r.title || '',
+            type: r.type || 'link',
+            url: r.url || '',
+            description: r.description || '',
+            order: r.ordre || r.order || 0,
+          }))
           : [],
         createdAt: chapter.createdAt || new Date().toISOString(),
       };
@@ -72,13 +79,13 @@ export function transformCourse(backendCourse: any): any {
     createdAt: section.createdAt || new Date().toISOString(),
   }));
 
-  const enrollmentCount = backendCourse.inscriptions?.length || backendCourse.enrollmentCount || 0;
+  const enrollmentCount = courseData.inscriptions?.length || courseData.enrollmentCount || 0;
 
   // Transform creator data
-  const creator = backendCourse.creator || (backendCourse.creatorId ? {
-    id: String(backendCourse.creatorId._id || backendCourse.creatorId.id || ''),
-    name: `${backendCourse.creatorId.nom || ''} ${backendCourse.creatorId.prenom || ''}`.trim() || backendCourse.creatorId.name || 'Unknown',
-    avatar: backendCourse.creatorId.avatar || backendCourse.creatorId.profile_picture || backendCourse.creatorId.photo_profil || undefined,
+  const creator = courseData.creator || (courseData.creatorId ? {
+    id: String(courseData.creatorId._id || courseData.creatorId.id || ''),
+    name: `${courseData.creatorId.nom || ''} ${courseData.creatorId.prenom || ''}`.trim() || courseData.creatorId.name || 'Unknown',
+    avatar: courseData.creatorId.avatar || courseData.creatorId.profile_picture || courseData.creatorId.photo_profil || undefined,
   } : {
     id: '',
     name: 'Unknown',
@@ -86,28 +93,29 @@ export function transformCourse(backendCourse: any): any {
   });
 
   return {
-    mongoId: String(backendCourse.mongoId || backendCourse._id || ''),
-    id: String(backendCourse._id || backendCourse.id || ''),
-    title: backendCourse.titre || backendCourse.title || '',
-    slug: backendCourse.slug || '',
-    description: backendCourse.description || '',
-    communityId: String(backendCourse.communityId || ''),
-    creatorId: String(backendCourse.creatorId?._id || backendCourse.creatorId?.id || backendCourse.creatorId || ''),
+    // mongoId for API calls that expect _id; id must match backend enrollment.courseId (custom id)
+    mongoId: String(courseData._id || courseData.mongoId || ''),
+    id: String(courseData.id || courseData._id || ''),
+    title: courseData.titre || courseData.title || '',
+    slug: courseData.slug || '',
+    description: courseData.description || '',
+    communityId: String(courseData.communityId || ''),
+    creatorId: String(courseData.creatorId?._id || courseData.creatorId?.id || courseData.creatorId || ''),
     creator, // Include creator object for component compatibility
-    thumbnail: backendCourse.thumbnail || backendCourse.image || undefined,
-    price: backendCourse.prix || backendCourse.price || 0,
-    priceType: backendCourse.isPaidCourse ? 'paid' : 'free',
-    level: backendCourse.niveau || backendCourse.level || 'beginner',
-    duration: backendCourse.duree || backendCourse.duration || 0,
-    isPublished: backendCourse.isPublished !== false,
+    thumbnail: courseData.thumbnail || courseData.image || undefined,
+    price: courseData.prix || courseData.price || 0,
+    priceType: courseData.isPaidCourse ? 'paid' : 'free',
+    level: courseData.niveau || courseData.level || 'beginner',
+    duration: courseData.duree || courseData.duration || 0,
+    isPublished: courseData.isPublished !== false,
     enrollmentCount,
-    enrollments: backendCourse.inscriptions || backendCourse.enrollments || [],
-    rating: Number(backendCourse.rating || backendCourse.averageRating || 0),
-    averageRating: Number(backendCourse.averageRating || backendCourse.rating || 0),
-    ratingCount: Number(backendCourse.ratingCount || backendCourse.totalRatings || backendCourse.reviews_count || 0),
+    enrollments: courseData.inscriptions || courseData.enrollments || [],
+    rating: Number(courseData.rating || courseData.averageRating || 0),
+    averageRating: Number(courseData.averageRating || courseData.rating || 0),
+    ratingCount: Number(courseData.ratingCount || courseData.totalRatings || courseData.reviews_count || 0),
     sections, // Include sections with chapters
-    createdAt: backendCourse.createdAt || new Date().toISOString(),
-    updatedAt: backendCourse.updatedAt || new Date().toISOString(),
+    createdAt: courseData.createdAt || new Date().toISOString(),
+    updatedAt: courseData.updatedAt || new Date().toISOString(),
   };
 }
 

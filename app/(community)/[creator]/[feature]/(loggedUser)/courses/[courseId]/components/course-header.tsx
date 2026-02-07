@@ -16,14 +16,19 @@ interface CourseHeaderProps {
 export default function CourseHeader({ creatorSlug, slug, course, progress, allChapters, completedChaptersCount, remainingChaptersCount }: CourseHeaderProps) {
   const averageRating = Number(course?.averageRating || course?.rating || 0)
   const ratingCount = Number(course?.ratingCount || 0)
-  
-  console.log('CourseHeader - Rating data:', { averageRating, ratingCount, course })
+
+  // Back link: prefer provided slug, fall back to course.communitySlug or creator-level courses
+  const backHref = slug
+    ? `/${creatorSlug}/${slug}/courses`
+    : course?.communitySlug
+      ? `/${creatorSlug}/${course.communitySlug}/courses`
+      : `/${creatorSlug}/courses`
 
 return (
   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-3 sm:space-y-0">
     <div className="flex items-center space-x-3 w-full sm:w-auto">
       <Button variant="ghost" size="icon" asChild>
-        <Link href={`/${creatorSlug}/${slug}/courses`}>
+        <Link href={backHref}>
           <ArrowLeft className="h-4 w-4" />
         </Link>
       </Button>

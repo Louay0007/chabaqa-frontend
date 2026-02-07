@@ -104,24 +104,33 @@ export default function VideoPlayer({
               {currentChapter?.isPreview && !enrollment ? (
                 <>
                   <PlayCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-semibold">Preview Available</p>
-                  <p className="text-sm text-gray-300 mt-2">Enroll to unlock full course content</p>
-                  <Button className="mt-4" onClick={onEnrollNow}>
-                    Enroll Now
-                  </Button>
+                  <p className="text-lg font-semibold">Video Unavailable</p>
+                  <p className="text-sm text-gray-300 mt-2">The video for this preview is currently unavailable.</p>
                 </>
               ) : (
                 <>
                   <Lock className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-semibold">Chapter Locked</p>
-                  {enrollment ? (
-                    <p className="text-sm text-gray-300 mt-2">Complete previous chapters to unlock this content.</p>
+                  {currentChapter?.isPaidChapter ? (
+                    <>
+                      <p className="text-lg font-semibold">Payment Required</p>
+                      <p className="text-sm text-gray-300 mt-2">You must pay to access this chapter.</p>
+                      <Button className="mt-4" onClick={onEnrollNow}>
+                        Enroll to Access
+                      </Button>
+                    </>
                   ) : (
                     <>
-                      <p className="text-sm text-gray-300 mt-2">Enroll in the course to access this content</p>
-                      <Button className="mt-4" onClick={onEnrollNow}>
-                        Enroll Now
-                      </Button>
+                      <p className="text-lg font-semibold">Chapter Locked</p>
+                      {enrollment ? (
+                        <p className="text-sm text-gray-300 mt-2">Complete previous chapters to unlock this content.</p>
+                      ) : (
+                        <>
+                          <p className="text-sm text-gray-300 mt-2">Enroll in the course to access this content</p>
+                          <Button className="mt-4" onClick={onEnrollNow}>
+                            Enroll Now
+                          </Button>
+                        </>
+                      )}
                     </>
                   )}
                 </>

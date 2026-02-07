@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useState, useRef } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import Link from 'next/link';
@@ -43,6 +43,8 @@ interface VerificationResponse {
 
 export default function PaymentSuccessContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const redirectDone = useRef(false);
   const [verified, setVerified] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,6 +106,17 @@ export default function PaymentSuccessContent() {
   const creatorSlug = paymentData?.creatorSlug;
   const communitySlug = paymentData?.communitySlug;
   const targetId = paymentData?.targetId || id;
+
+  // After successful course payment, redirect straight to the course (no success page)
+  useEffect(() => {
+    if (!verified || redirectDone.current || scope !== 'course') return;
+    if (creatorSlug && communitySlug && targetId) {
+      redirectDone.current = true;
+      router.replace(`/${creatorSlug}/${communitySlug}/courses/${targetId}`);
+    }
+  }, [verified, scope, creatorSlug, communitySlug, targetId, router]);
+
+  const isRedirectingToCourse = scope === 'course' && verified && creatorSlug && communitySlug && targetId;
 
   const renderContentButton = () => {
     const baseClass = "block w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition text-center";
@@ -186,6 +199,11 @@ export default function PaymentSuccessContent() {
               <div className="animate-spin inline-block w-12 h-12 border-4 border-gray-200 border-t-blue-600 rounded-full mb-4"></div>
               <p className="text-gray-600 font-semibold">Verifying payment...</p>
               <p className="text-sm text-gray-500 mt-2">Session ID: {sessionId}</p>
+            </div>
+          ) : isRedirectingToCourse ? (
+            <div className="text-center">
+              <div className="animate-spin inline-block w-12 h-12 border-4 border-gray-200 border-t-blue-600 rounded-full mb-4"></div>
+              <p className="text-gray-600 font-semibold">Payment successful. Redirecting to course...</p>
             </div>
           ) : verified ? (
             <div className="text-center">

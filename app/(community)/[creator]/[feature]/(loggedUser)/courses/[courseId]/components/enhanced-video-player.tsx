@@ -89,9 +89,14 @@ export default function EnhancedVideoPlayer({
     }
   }, [videoUrl, currentChapter, platform, isLocalFileVideo])
 
-  // Send watch time to backend every 10 seconds
+  // Send watch time to backend (throttled via lastUpdateRef). Now sends more frequently (per-second), guarded by isSendingRef.
+  const isSendingRef = useRef<boolean>(false)
+  const hasSentCompleteRef = useRef<boolean>(false)
+
   const sendWatchTime = useCallback(async (time: number, duration?: number) => {
     if (!enrollment || !currentChapter?.id) return
+    if (isSendingRef.current) return
+    isSendingRef.current = true
 
     try {
       const response = await coursesApi.updateChapterWatchTime(
@@ -114,6 +119,8 @@ export default function EnhancedVideoPlayer({
       }
     } catch (error) {
       console.error('Failed to update watch time:', error)
+    } finally {
+      isSendingRef.current = false
     }
   }, [courseId, currentChapter?.id, enrollment, onWatchTimeUpdate])
 
@@ -199,9 +206,26 @@ export default function EnhancedVideoPlayer({
           setWatchTime(time)
           if (duration > 0) setVideoDuration(duration)
 
-          // Send update every 10 seconds
-          if (enrollment && time - lastUpdateRef.current >= 10) {
-            sendWatchTime(time, duration > 0 ? duration : undefined)
+          // Send update every 1 second
+          if (enrollment && time - lastUpdateRef.current >= 1) {
+            void sendWatchTime(time, duration > 0 ? duration : undefined)
+          }
+
+          // Completion trigger (>=90%) for paid chapters only
+          if (enrollment && duration > 0 && !currentChapter?.isPreview && !hasSentCompleteRef.current) {
+            const pct = time / duration
+            if (pct >= 0.9) {
+              hasSentCompleteRef.current = true
+              coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
+                .then(() => {
+                  if (typeof (window as any).__onChapterComplete === 'function') {
+                    ;(window as any).__onChapterComplete()
+                  }
+                })
+                .catch((e) => {
+                  console.error('Failed to complete chapter:', e)
+                })
+            }
           }
         } else if (data.method === 'getDuration' && data.value) {
           setVideoDuration(Number(data.value))
@@ -260,8 +284,24 @@ export default function EnhancedVideoPlayer({
         setWatchTime(currentTime)
         if (duration > 0) setVideoDuration(duration)
 
-        if (isPlaying && currentTime - lastUpdateRef.current >= 10) {
+        if (isPlaying && currentTime - lastUpdateRef.current >= 1) {
           await sendWatchTime(currentTime, duration > 0 ? duration : undefined)
+        }
+
+        // Completion trigger (>=90%) for paid chapters only
+        if (isPlaying && enrollment && duration > 0 && !currentChapter?.isPreview && !hasSentCompleteRef.current) {
+          const pct = currentTime / duration
+          if (pct >= 0.9) {
+            try {
+              hasSentCompleteRef.current = true
+              await coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
+              if (typeof (window as any).__onChapterComplete === 'function') {
+                ;(window as any).__onChapterComplete()
+              }
+            } catch (e) {
+              console.error('Failed to complete chapter:', e)
+            }
+          }
         }
       }, 1000)
 
@@ -281,9 +321,25 @@ export default function EnhancedVideoPlayer({
           setWatchTime(currentTime)
           if (duration > 0) setVideoDuration(duration)
 
-          // Send update every 10 seconds
-          if (currentTime - lastUpdateRef.current >= 10) {
+          // Send update every 1 second
+          if (currentTime - lastUpdateRef.current >= 1) {
             await sendWatchTime(currentTime, duration > 0 ? duration : undefined)
+          }
+
+          // Completion trigger (>=90%) for paid chapters only
+          if (enrollment && duration > 0 && !currentChapter?.isPreview && !hasSentCompleteRef.current) {
+            const pct = currentTime / duration
+            if (pct >= 0.9) {
+              try {
+                hasSentCompleteRef.current = true
+                await coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
+                if (typeof (window as any).__onChapterComplete === 'function') {
+                  ;(window as any).__onChapterComplete()
+                }
+              } catch (e) {
+                console.error('Failed to complete chapter:', e)
+              }
+            }
           }
         } catch (error) {
           console.error('Error getting current time:', error)
@@ -312,7 +368,23 @@ export default function EnhancedVideoPlayer({
     }
   }, [currentChapter?.id, watchTime, enrollment, sendWatchTime, videoDuration])
 
-  if (!currentChapter?.videoUrl || !isChapterAccessible(currentChapter.id)) {
+  // Reset completion flag when chapter changes
+  useEffect(() => {
+    hasSentCompleteRef.current = false
+  }, [currentChapter?.id])
+
+  const chapterAccessible = currentChapter ? isChapterAccessible(currentChapter.id) : false
+  // Show the video for preview chapters even when user isn't enrolled.
+  const shouldShowLocked = !currentChapter?.videoUrl || (!chapterAccessible && !currentChapter?.isPreview)
+  
+  if (shouldShowLocked) {
+    console.debug('[VideoPlayer] locked/preview render check', {
+      chapterId: currentChapter?.id,
+      videoUrl: currentChapter?.videoUrl,
+      isPreview: currentChapter?.isPreview,
+      enrollment,
+      chapterAccessible,
+    })
     return (
       <Card className="border-0 shadow-sm overflow-hidden">
         <div className="relative bg-black aspect-video">
@@ -321,24 +393,33 @@ export default function EnhancedVideoPlayer({
               {currentChapter?.isPreview && !enrollment ? (
                 <>
                   <PlayCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-semibold">Preview Available</p>
-                  <p className="text-sm text-gray-300 mt-2">Enroll to unlock full course content</p>
-                  <Button className="mt-4" onClick={onEnrollNow}>
-                    Enroll Now
-                  </Button>
+                  <p className="text-lg font-semibold">Video Unavailable</p>
+                  <p className="text-sm text-gray-300 mt-2">The video for this preview is currently unavailable.</p>
                 </>
               ) : (
                 <>
                   <Lock className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-semibold">Chapter Locked</p>
-                  {enrollment ? (
-                    <p className="text-sm text-gray-300 mt-2">Complete previous chapters to unlock this content.</p>
+                  {currentChapter?.isPaidChapter ? (
+                    <>
+                      <p className="text-lg font-semibold">Payment Required</p>
+                      <p className="text-sm text-gray-300 mt-2">You must pay to access this chapter.</p>
+                      <Button className="mt-4" onClick={onEnrollNow}>
+                        Enroll to Access
+                      </Button>
+                    </>
                   ) : (
                     <>
-                      <p className="text-sm text-gray-300 mt-2">Enroll in the course to access this content</p>
-                      <Button className="mt-4" onClick={onEnrollNow}>
-                        Enroll Now
-                      </Button>
+                      <p className="text-lg font-semibold">Chapter Locked</p>
+                      {enrollment ? (
+                        <p className="text-sm text-gray-300 mt-2">Complete previous chapters to unlock this content.</p>
+                      ) : (
+                        <>
+                          <p className="text-sm text-gray-300 mt-2">Enroll in the course to access this content</p>
+                          <Button className="mt-4" onClick={onEnrollNow}>
+                            Enroll Now
+                          </Button>
+                        </>
+                      )}
                     </>
                   )}
                 </>

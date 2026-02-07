@@ -52,6 +52,21 @@ export default function CoursePlayer({
     return new Map<string, any>(unlockedChapters.map((c: any) => [String(c.id), c]))
   }, [unlockedChapters])
 
+  // Expose a global hook so the player can notify when it completes a chapter.
+  // This avoids changing many prop signatures; CoursePlayer will refresh progress/unlocked-chapters when notified.
+  useEffect(() => {
+    (window as any).__onChapterComplete = async () => {
+      const resolvedCourseId = String(course?.mongoId || courseId)
+      if (onRefreshProgress) await onRefreshProgress()
+      if (onRefreshUnlockedChapters) await onRefreshUnlockedChapters()
+    }
+    return () => {
+      try {
+        delete (window as any).__onChapterComplete
+      } catch {}
+    }
+  }, [course, courseId, onRefreshProgress, onRefreshUnlockedChapters])
+
   const resolveChapterAccess = useCallback(
     async (chapterId: string): Promise<{ canAccess: boolean; reason?: string }> => {
       const resolvedChapterId = String(chapterId)
@@ -156,8 +171,11 @@ export default function CoursePlayer({
       if (typeof known === "boolean") return known
 
       const chapter = allChapters.find((c: any) => String(c.id) === key)
-      const isFreeChapter = Boolean(chapter?.isPreview) || !Boolean(chapter?.isPaidChapter)
-      // Optimistic for free/preview content.
+      if (!chapter) return false
+      // Free preview per schema: isPreview true OR not paid (isPaidChapter false)
+      const isFreeChapter =
+        Boolean(chapter.isPreview) ||
+        !Boolean(chapter.isPaidChapter)
       return Boolean(isFreeChapter)
     },
     [accessibleChapters, allChapters],
@@ -322,7 +340,50 @@ export default function CoursePlayer({
 
   const handleEnrollNow = useCallback(async () => {
     if (enrollment) return
-    
+    console.debug('[CoursePlayer] handleEnrollNow called', {
+      currentChapterId: currentChapter?.id,
+      currentChapterIsPreview: currentChapter?.isPreview,
+      currentChapterIsPaid: currentChapter?.isPaidChapter,
+      enrollment,
+      selectedChapter,
+    })
+    // If current chapter is a free preview, open it directly (no enroll/payment)
+    if (currentChapter?.isPreview && !enrollment) {
+      console.debug('[CoursePlayer] opening preview chapter directly', { chapterId: currentChapter.id })
+      const chapterId = String(currentChapter.id)
+      try {
+        // Ensure optimistic access is cached so player shows immediately
+        const cached = await ensureChapterAccessCached(chapterId)
+        console.debug('[CoursePlayer] ensureChapterAccessCached result', { chapterId, cached })
+      } catch (e) {
+        // ignore
+      }
+      // Select the chapter so the player will render the video
+      setSelectedChapter(chapterId)
+
+      // Smooth-scroll to the player area so the user sees the video
+      setTimeout(() => {
+        const el = document.querySelector('.relative.bg-black.aspect-video')
+        if (el && typeof (el as HTMLElement).scrollIntoView === 'function') {
+          ;(el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' })
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        }
+      }, 120)
+
+      return
+    }
+
+    // If the chapter itself is paid (per-chapter) and user is not enrolled, show a payment-required message
+    if (!enrollment && (currentChapter?.isPaidChapter || (currentChapter?.price && Number(currentChapter.price) > 0))) {
+      toast({
+        title: "Payment required",
+        description: "You must pay for this chapter to access it.",
+        variant: "destructive",
+      })
+      return
+    }
+
     // Always delegate to parent if handler is provided
     // The parent (page.tsx) handles the decision between direct enrollment (free) vs dialog (paid)
     if (onOpenEnrollment) {
@@ -347,7 +408,7 @@ export default function CoursePlayer({
         variant: "destructive",
       })
     }
-  }, [course?.price, courseId, enrollment, onOpenEnrollment, onRefreshProgress, onRefreshUnlockedChapters, toast])
+  }, [course?.price, courseId, enrollment, onOpenEnrollment, onRefreshProgress, onRefreshUnlockedChapters, toast, currentChapter, setSelectedChapter])
 
   return (
     <div className="min-h-screen bg-gray-50">
