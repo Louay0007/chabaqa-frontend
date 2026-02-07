@@ -30,6 +30,9 @@ export interface CreateFeedbackData {
   comment?: string;
 }
 
+// Export alias for backward compatibility
+export type CreateFeedbackDto = CreateFeedbackData;
+
 export interface UpdateFeedbackData {
   rating: number;
   comment?: string;

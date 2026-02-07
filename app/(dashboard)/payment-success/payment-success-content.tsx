@@ -6,23 +6,39 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import Link from 'next/link';
 
+
 interface VerificationResponse {
-  status: string;
-  paymentMethod?: {
-    type: string;
-    card?: {
-      brand: string;
-      last4: string;
-      exp_month: number;
-      exp_year: number;
+  success?: boolean;
+  data?: {
+    status: string;
+    orderId?: string;
+    contentTitle?: string;
+    communitySlug?: string;
+    creatorSlug?: string;
+    targetId?: string;
+    paymentMethod?: {
+      type: string;
+      card?: {
+        brand: string;
+        last4: string;
+        exp_month: number;
+        exp_year: number;
+      };
+      bank_account?: {
+        bank_name: string;
+        last4: string;
+      };
     };
-    bank_account?: {
-      bank_name: string;
-      last4: string;
-    };
+    customerId?: string;
   };
-  customerId?: string;
+  // Fallback for flat structure
+  status?: string;
   error?: string;
+  paymentMethod?: any;
+  contentTitle?: string;
+  communitySlug?: string;
+  creatorSlug?: string;
+  targetId?: string;
 }
 
 export default function PaymentSuccessContent() {
@@ -35,6 +51,9 @@ export default function PaymentSuccessContent() {
   const sessionId = searchParams.get('sessionId');
   const scope = searchParams.get('scope');
   const id = searchParams.get('id');
+
+  console.log('Payment Success Params:', searchParams.toString());
+  console.log('Session ID:', sessionId);
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -58,7 +77,11 @@ export default function PaymentSuccessContent() {
         const data = await response.json();
         setVerificationData(data);
 
-        if (response.ok && data.status === 'paid') {
+        // Check both potential structures (active wrapper or direct response)
+        const isSuccess = data.success === true || response.ok;
+        const status = data.data?.status || data.status;
+
+        if (isSuccess && (status === 'paid' || status === 'complete' || status === 'succeeded')) {
           setVerified(true);
         } else {
           setError(data.error || 'Payment verification failed');
@@ -74,6 +97,84 @@ export default function PaymentSuccessContent() {
     verifyPayment();
   }, [sessionId]);
 
+  // Helper to access data safely
+  const paymentData = verificationData?.data || verificationData;
+  const paymentMethod = paymentData?.paymentMethod;
+  const contentTitle = paymentData?.contentTitle;
+  const creatorSlug = paymentData?.creatorSlug;
+  const communitySlug = paymentData?.communitySlug;
+  const targetId = paymentData?.targetId || id;
+
+  const renderContentButton = () => {
+    const baseClass = "block w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition text-center";
+
+    // 1. Course
+    if (scope === 'course' && creatorSlug && communitySlug && targetId) {
+      return (
+        <Link href={`/${creatorSlug}/${communitySlug}/courses/${targetId}`} className={baseClass}>
+          Go to Course
+        </Link>
+      );
+    }
+
+    // 2. Community
+    if (scope === 'community' && creatorSlug && communitySlug) {
+      return (
+        <Link href={`/${creatorSlug}/${communitySlug}/home`} className={baseClass}>
+          Go to Community
+        </Link>
+      );
+    }
+
+    // 3. Product
+    if (scope === 'product' && creatorSlug && communitySlug && targetId) {
+      return (
+        <Link href={`/${creatorSlug}/${communitySlug}/products/${targetId}`} className={baseClass}>
+          Go to Product
+        </Link>
+      );
+    }
+
+    // 4. Challenge
+    if (scope === 'challenge' && creatorSlug && communitySlug && targetId) {
+      return (
+        <Link href={`/${creatorSlug}/${communitySlug}/challenges/${targetId}`} className={baseClass}>
+          Go to Challenge
+        </Link>
+      );
+    }
+
+    // 5. Event
+    if (scope === 'event' && creatorSlug && communitySlug && targetId) {
+      return (
+        <Link href={`/${creatorSlug}/${communitySlug}/events/${targetId}`} className={baseClass}>
+          Go to Event
+        </Link>
+      );
+    }
+
+    // 6. Session
+    if (scope === 'session') {
+      return (
+        <Link href="/sessions/bookings/user" className={baseClass}>
+          View My Bookings
+        </Link>
+      );
+    }
+
+    // 7. Subscription
+    if (scope === 'subscription') {
+      return (
+        <Link href="/dashboard" className={baseClass}>
+          Go to Dashboard
+        </Link>
+      );
+    }
+
+    // Fallback if metadata missing but we have ID for course (assuming legacy path if any) or just dashboard
+    return null;
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Header />
@@ -86,7 +187,7 @@ export default function PaymentSuccessContent() {
               <p className="text-gray-600 font-semibold">Verifying payment...</p>
               <p className="text-sm text-gray-500 mt-2">Session ID: {sessionId}</p>
             </div>
-          ) : verified && verificationData?.status === 'paid' ? (
+          ) : verified ? (
             <div className="text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg
@@ -103,50 +204,52 @@ export default function PaymentSuccessContent() {
                   />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h1>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Granted!</h1>
               <p className="text-gray-600 mb-6">
-                Your payment has been processed successfully.
+                Your payment was successful and your access has been enabled.
+                {contentTitle && <span className="block mt-1 font-semibold text-blue-900">{contentTitle}</span>}
               </p>
 
-              {verificationData?.paymentMethod && (
+
+              {paymentMethod && (
                 <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
                   <h3 className="font-semibold text-gray-900 mb-3">Payment Method</h3>
                   <div className="space-y-2 text-sm">
                     <p>
                       <span className="text-gray-600">Type:</span>{' '}
                       <span className="font-medium">
-                        {verificationData.paymentMethod.type}
+                        {paymentMethod.type}
                       </span>
                     </p>
-                    {verificationData.paymentMethod.card && (
+                    {paymentMethod.card && (
                       <>
                         <p>
                           <span className="text-gray-600">Card:</span>{' '}
                           <span className="font-medium">
-                            {verificationData.paymentMethod.card.brand.toUpperCase()} •••• •••• •••• {verificationData.paymentMethod.card.last4}
+                            {paymentMethod.card.brand.toUpperCase()} •••• •••• •••• {paymentMethod.card.last4}
                           </span>
                         </p>
                         <p>
                           <span className="text-gray-600">Expires:</span>{' '}
                           <span className="font-medium">
-                            {verificationData.paymentMethod.card.exp_month}/
-                            {verificationData.paymentMethod.card.exp_year}
+                            {paymentMethod.card.exp_month}/
+                            {paymentMethod.card.exp_year}
                           </span>
                         </p>
                       </>
                     )}
-                    {verificationData.paymentMethod.bank_account && (
+                    {paymentMethod.bank_account && (
                       <>
                         <p>
                           <span className="text-gray-600">Bank:</span>{' '}
                           <span className="font-medium">
-                            {verificationData.paymentMethod.bank_account.bank_name}
+                            {paymentMethod.bank_account.bank_name}
                           </span>
                         </p>
                         <p>
                           <span className="text-gray-600">Account:</span>{' '}
                           <span className="font-medium">
-                            •••• {verificationData.paymentMethod.bank_account.last4}
+                            •••• {paymentMethod.bank_account.last4}
                           </span>
                         </p>
                       </>
@@ -155,7 +258,7 @@ export default function PaymentSuccessContent() {
                 </div>
               )}
 
-              {verificationData && (
+              {/* {verificationData && (
                 <details className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-left text-xs">
                   <summary className="cursor-pointer font-semibold text-blue-900 mb-3">
                     API Response
@@ -164,17 +267,10 @@ export default function PaymentSuccessContent() {
                     {JSON.stringify(verificationData, null, 2)}
                   </pre>
                 </details>
-              )}
+              )} */}
 
               <div className="space-y-3">
-                {scope === 'course' && id && (
-                  <Link
-                    href={`/courses/${id}`}
-                    className="block w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition"
-                  >
-                    Go to Course
-                  </Link>
-                )}
+                {renderContentButton()}
                 <Link
                   href="/dashboard"
                   className="block w-full bg-gray-100 text-gray-900 font-semibold py-2 px-4 rounded-lg hover:bg-gray-200 transition"
@@ -204,7 +300,7 @@ export default function PaymentSuccessContent() {
               <p className="text-gray-600 mb-2">{error || 'Payment could not be verified'}</p>
               <p className="text-sm text-gray-500 mb-6">Session ID: {sessionId}</p>
 
-              {verificationData && (
+              {/* {verificationData && (
                 <details className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 text-left text-xs">
                   <summary className="cursor-pointer font-semibold text-red-900 mb-3">
                     Error Details
@@ -213,7 +309,7 @@ export default function PaymentSuccessContent() {
                     {JSON.stringify(verificationData, null, 2)}
                   </pre>
                 </details>
-              )}
+              )} */}
 
               <div className="space-y-3">
                 <Link
@@ -232,9 +328,9 @@ export default function PaymentSuccessContent() {
             </div>
           )}
         </div>
-      </main>
+      </main >
 
       <Footer />
-    </div>
+    </div >
   );
 }

@@ -147,8 +147,8 @@ export const communitiesApi = {
 
       headerToken = rawLocalToken
         ? (rawLocalToken.toLowerCase().startsWith('bearer ')
-            ? rawLocalToken
-            : `Bearer ${rawLocalToken}`)
+          ? rawLocalToken
+          : `Bearer ${rawLocalToken}`)
         : null;
     }
 
@@ -172,5 +172,17 @@ export const communitiesApi = {
     }
 
     return data;
+  },
+
+  /**
+   * Initialize Stripe Link payment for community membership
+   * Uses apiClient for proper auth token handling and automatic refresh
+   */
+  initStripePayment: async (communityId: string, promoCode?: string): Promise<any> => {
+    const endpoint = promoCode
+      ? `/payment/stripe-link/init/community?promoCode=${encodeURIComponent(promoCode)}`
+      : `/payment/stripe-link/init/community`;
+
+    return apiClient.post<any>(endpoint, { communityId });
   },
 };

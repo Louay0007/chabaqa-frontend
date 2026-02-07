@@ -22,8 +22,6 @@ interface EventCardProps {
   handleRegister: () => void;
   promoCode: string;
   setPromoCode: (code: string) => void;
-  paymentProof: File | null;
-  setPaymentProof: (file: File | null) => void;
   isSubmitting: boolean;
 }
 
@@ -39,8 +37,6 @@ export default function EventCard({
   handleRegister,
   promoCode,
   setPromoCode,
-  paymentProof,
-  setPaymentProof,
   isSubmitting
 }: EventCardProps) {
   const selectedTicketData = event.tickets?.find((t) => t.id === selectedTicket);
@@ -252,21 +248,6 @@ export default function EventCard({
                           className="h-10"
                           disabled={isSubmitting}
                         />
-                      </div>
-
-                      <div>
-                        <Label className="text-sm font-medium mb-2 block">Payment proof</Label>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => setPaymentProof(e.target.files?.[0] || null)}
-                          disabled={isSubmitting}
-                        />
-                        {paymentProof && (
-                          <p className="text-xs text-muted-foreground mt-1 truncate">
-                            {paymentProof.name}
-                          </p>
-                        )}
                       </div>
                     </div>
                   )}

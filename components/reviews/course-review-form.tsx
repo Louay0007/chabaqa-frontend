@@ -40,7 +40,7 @@ export function CourseReviewForm({ courseId, existingReview, onReviewSubmitted }
       let review: Feedback
       if (existingReview?._id) {
         // Update existing review
-        review = await feedbackApi.update(existingReview._id, rating, comment || undefined)
+        review = await feedbackApi.update(existingReview._id, { rating, comment: comment || undefined })
         toast({ title: "Review updated successfully" })
       } else {
         // Create new review
@@ -57,7 +57,7 @@ export function CourseReviewForm({ courseId, existingReview, onReviewSubmitted }
           if (createError?.statusCode === 409 || createError?.message?.includes('already submitted')) {
             const existing = await feedbackApi.getMyFeedback("Cours", courseId)
             if (existing) {
-              review = await feedbackApi.update(existing._id, rating, comment || undefined)
+              review = await feedbackApi.update(existing._id, { rating, comment: comment || undefined })
               toast({ title: "Review updated successfully" })
             } else {
               throw createError

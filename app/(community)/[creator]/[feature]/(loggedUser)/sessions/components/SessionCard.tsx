@@ -184,51 +184,78 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
       }
 
       if (isPaidSession) {
-        if (!paymentProof) {
-          toast({
-            title: "Payment proof required",
-            description: "Please upload a payment proof to submit your request.",
-            variant: "destructive",
+        // If payment proof is provided, use manual payment
+        if (paymentProof) {
+          const promoQuery = promoCode.trim()
+            ? `?promoCode=${encodeURIComponent(promoCode.trim())}`
+            : ""
+
+          const formData = new FormData()
+          formData.append('sessionId', String(selectedSession || session?.id))
+          formData.append('slotId', selectedSlotId)
+          formData.append('proof', paymentProof)
+          if (bookingNotes.trim()) {
+            formData.append('notes', bookingNotes.trim())
+          }
+
+          const initResponse = await fetch(`/api/payments/manual/init/session${promoQuery}`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+            credentials: 'include',
+            body: formData,
           })
+
+          const initData = await initResponse.json().catch(() => null)
+          if (!initResponse.ok) {
+            const message = initData?.message || initData?.error || 'Failed to submit payment proof'
+            throw new Error(message)
+          }
+
+          toast({
+            title: 'Payment submitted',
+            description: initData?.message || 'Your payment proof was submitted. Please wait for creator verification.',
+          })
+
+          setPromoCode("")
+          setPaymentProof(null)
+          setDialogOpen(false)
           return
+        } 
+        
+        // Otherwise, try Stripe Link payment
+        try {
+          if (!selectedSlotId && !scheduledAt) {
+            throw new Error("Please select a date and time slot")
+          }
+
+          const bookingData = {
+            scheduledAt: scheduledAt || new Date().toISOString(), // Fallback if needed, but validation above handles it
+            notes: bookingNotes.trim() || undefined,
+          }
+          
+          // NOTE: If using slots, we might need to reserve the slot first or pass slotId in bookingDto?
+          // For now, assuming standard scheduledAt booking flow or that backend handles slot from time
+          
+          const response: any = await sessionsApi.initStripePayment(
+            String(session?.id),
+            bookingData,
+            promoCode.trim() || undefined
+          )
+
+          if (response?.checkoutUrl) {
+             window.location.href = response.checkoutUrl
+             return
+          } else {
+            throw new Error("Failed to initialize payment")
+          }
+        } catch (stripeError: any) {
+           // If Stripe fails or no proof provided, show error
+           if (!paymentProof) {
+             throw stripeError
+           }
         }
-
-        const promoQuery = promoCode.trim()
-          ? `?promoCode=${encodeURIComponent(promoCode.trim())}`
-          : ""
-
-        const formData = new FormData()
-        formData.append('sessionId', String(selectedSession || session?.id))
-        formData.append('slotId', selectedSlotId)
-        formData.append('proof', paymentProof)
-        if (bookingNotes.trim()) {
-          formData.append('notes', bookingNotes.trim())
-        }
-
-        const initResponse = await fetch(`/api/payments/manual/init/session${promoQuery}`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          credentials: 'include',
-          body: formData,
-        })
-
-        const initData = await initResponse.json().catch(() => null)
-        if (!initResponse.ok) {
-          const message = initData?.message || initData?.error || 'Failed to submit payment proof'
-          throw new Error(message)
-        }
-
-        toast({
-          title: 'Payment submitted',
-          description: initData?.message || 'Your payment proof was submitted. Please wait for creator verification.',
-        })
-
-        setPromoCode("")
-        setPaymentProof(null)
-        setDialogOpen(false)
-        return
       }
 
       // For free sessions or sessions with available slots, book the slot
@@ -530,7 +557,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
 
                   <Button
                     onClick={handleConfirm}
-                    disabled={isSubmitting || (!selectedSlotId && !scheduledAt) || (isPaidSession && !paymentProof)}
+                    disabled={isSubmitting || (!selectedSlotId && !scheduledAt)}
                     className="w-full bg-sessions-500 hover:bg-sessions-600 h-10 text-sm font-medium"
                   >
                     {isSubmitting ? (
@@ -539,7 +566,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                         Processing...
                       </>
                     ) : isPaidSession ? (
-                      `Submit payment proof - $${session.price}`
+                      paymentProof ? `Submit payment proof - $${session.price}` : `Pay with Card - $${session.price}`
                     ) : (
                       `Confirm Booking${session.price > 0 ? ` - $${session.price}` : ''}`
                     )}

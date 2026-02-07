@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { X, CreditCard, Shield, CheckCircle, Users, Star, Clock, Gift, ArrowRight, Sparkles } from "lucide-react"
+import { communitiesApi } from "@/lib/api/communities.api"
 
 interface JoinCommunityModalProps {
   community: any
@@ -22,9 +23,6 @@ export function JoinCommunityModal({ community, onClose }: JoinCommunityModalPro
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    cardNumber: "",
-    expiryDate: "",
-    cvv: "",
   })
 
   const formatPrice = (price: number, type: string) => {
@@ -46,11 +44,19 @@ export function JoinCommunityModal({ community, onClose }: JoinCommunityModalPro
   }
 
   const handlePayment = async () => {
+    const communityId = community?._id || community?.id
+    if (!communityId) return
+
     setIsProcessing(true)
-    // Simulate payment processing
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      const result = await (communitiesApi as any).initStripePayment(communityId)
+      const checkoutUrl = result?.data?.checkoutUrl || result?.checkoutUrl
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl
+        return
+      }
+    } catch { }
     setIsProcessing(false)
-    setStep("success")
   }
 
   return (
@@ -192,42 +198,13 @@ export function JoinCommunityModal({ community, onClose }: JoinCommunityModalPro
                 </CardContent>
               </Card>
 
-              {/* Payment Form */}
               <div className="space-y-4">
                 <h4 className="text-lg font-semibold text-gray-900 flex items-center">
                   <CreditCard className="w-5 h-5 mr-2" />
-                  Payment Information
+                  Secure Checkout
                 </h4>
-
-                <div>
-                  <Label htmlFor="cardNumber">Card Number</Label>
-                  <Input
-                    id="cardNumber"
-                    value={formData.cardNumber}
-                    onChange={(e) => setFormData({ ...formData, cardNumber: e.target.value })}
-                    placeholder="1234 5678 9012 3456"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="expiryDate">Expiry Date</Label>
-                    <Input
-                      id="expiryDate"
-                      value={formData.expiryDate}
-                      onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                      placeholder="MM/YY"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="cvv">CVV</Label>
-                    <Input
-                      id="cvv"
-                      value={formData.cvv}
-                      onChange={(e) => setFormData({ ...formData, cvv: e.target.value })}
-                      placeholder="123"
-                    />
-                  </div>
+                <div className="text-sm text-gray-600">
+                  You will be redirected to Stripe to complete your payment securely.
                 </div>
               </div>
 
@@ -249,7 +226,7 @@ export function JoinCommunityModal({ community, onClose }: JoinCommunityModalPro
                 <Button
                   size="lg"
                   onClick={handlePayment}
-                  disabled={isProcessing || !formData.cardNumber || !formData.expiryDate || !formData.cvv}
+                  disabled={isProcessing}
                   className="bg-gradient-to-r from-chabaqa-primary to-chabaqa-secondary1 text-white px-8"
                 >
                   {isProcessing ? "Processing..." : `Start Free Trial`}

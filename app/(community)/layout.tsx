@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import "../globals.css"
 import { AuthProvider } from "@/app/providers/auth-provider"
 import { CommunityProvider } from "@/app/providers/community-context"
+import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
   title: "Chabaqa - Turn your passion into buisness",
@@ -21,6 +22,7 @@ export default function RootLayout({
         <AuthProvider>
           <CommunityProvider>
             {children}
+            <Toaster />
           </CommunityProvider>
         </AuthProvider>
       </body>

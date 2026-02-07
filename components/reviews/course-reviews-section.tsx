@@ -33,8 +33,11 @@ export function CourseReviewsSection({ courseId, showForm = true, onRefreshCours
       let allReviews: Feedback[] = []
       let myReviewValue: Feedback | null = null
 
-      if (reviewsData.status === "fulfilled") {
+      if (reviewsData.status === "fulfilled" && Array.isArray(reviewsData.value)) {
         allReviews = reviewsData.value
+      } else if (reviewsData.status === "fulfilled" && (reviewsData.value as any).data && Array.isArray((reviewsData.value as any).data)) {
+         // Handle case where API returns wrapped response { data: [...] }
+         allReviews = (reviewsData.value as any).data
       }
 
       if (myReviewData.status === "fulfilled" && myReviewData.value) {

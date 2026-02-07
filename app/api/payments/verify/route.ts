@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
     // Call the backend verification endpoint
     const response = await fetch(
-      `${backendUrl}/payments/stripe-link/verify?sessionId=${sessionId}`,
+      `${backendUrl}/payment/stripe-link/verify?sessionId=${sessionId}`,
       {
         method: 'GET',
         headers: {
@@ -42,11 +42,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error('Payment verification error:', error);
-    
-    const errorMessage = error instanceof Error 
-      ? error.message 
+
+    const errorMessage = error instanceof Error
+      ? error.message
       : 'Failed to verify payment';
-    
+
     return NextResponse.json(
       { message: errorMessage, status: 'error' },
       { status: 500 }

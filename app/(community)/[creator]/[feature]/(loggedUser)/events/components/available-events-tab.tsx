@@ -7,7 +7,6 @@ import { TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { tokenStorage } from "@/lib/token-storage";
 import { eventsApi } from "@/lib/api/events.api";
 
 interface AvailableEventsTabProps {
@@ -22,7 +21,6 @@ export default function AvailableEventsTab({ availableEvents }: AvailableEventsT
   const [notes, setNotes] = useState("");
 
   const [promoCode, setPromoCode] = useState("");
-  const [paymentProof, setPaymentProof] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Filter only published and upcoming events
@@ -42,12 +40,6 @@ export default function AvailableEventsTab({ availableEvents }: AvailableEventsT
 
     setIsSubmitting(true);
     try {
-      const accessToken = tokenStorage.getAccessToken();
-      if (!accessToken) {
-        toast({ title: "Authentication required", description: "Please sign in to register.", variant: "destructive" });
-        return;
-      }
-
       if (price <= 0) {
         await eventsApi.register(String(selectedEvent.id), String(selectedTicket));
         toast({ title: "Registered", description: "Your registration has been confirmed." });
@@ -58,39 +50,12 @@ export default function AvailableEventsTab({ availableEvents }: AvailableEventsT
         return;
       }
 
-      if (!paymentProof) {
-        toast({ title: "Payment proof required", description: "Please upload a payment proof.", variant: "destructive" });
-        return;
+      const result = await (eventsApi as any).initStripePayment(String(selectedEvent.id), String(selectedTicket), promoCode.trim() || undefined);
+      const checkoutUrl = result?.data?.checkoutUrl || result?.checkoutUrl;
+      if (!checkoutUrl) {
+        throw new Error('Unable to start checkout. Please try again.');
       }
-
-      const promoQuery = promoCode.trim() ? `?promoCode=${encodeURIComponent(promoCode.trim())}` : "";
-      const formData = new FormData();
-      formData.append('eventId', String(selectedEvent.id));
-      formData.append('proof', paymentProof);
-
-      const initResponse = await fetch(`/api/payments/manual/init/event${promoQuery}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}` },
-        credentials: 'include',
-        body: formData,
-      });
-      const initData = await initResponse.json().catch(() => null);
-      if (!initResponse.ok) {
-        const msg = initData?.message || initData?.error || 'Failed to submit payment proof';
-        throw new Error(msg);
-      }
-
-      toast({
-        title: "Payment submitted",
-        description: initData?.message || "Your payment proof was submitted. Please wait for creator verification.",
-      });
-
-      setSelectedEvent(null);
-      setSelectedTicket("");
-      setQuantity(1);
-      setNotes("");
-      setPromoCode("");
-      setPaymentProof(null);
+      window.location.href = checkoutUrl;
     } catch (error: any) {
       toast({ title: "Registration failed", description: error?.message || "Please try again.", variant: "destructive" });
     } finally {
@@ -131,8 +96,6 @@ export default function AvailableEventsTab({ availableEvents }: AvailableEventsT
             handleRegister={handleRegister}
             promoCode={promoCode}
             setPromoCode={setPromoCode}
-            paymentProof={paymentProof}
-            setPaymentProof={setPaymentProof}
             isSubmitting={isSubmitting}
           />
         ))}

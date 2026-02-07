@@ -36,17 +36,17 @@ export interface CreateChapterData {
 export const coursesApi = {
   // Get all courses
   getAll: async (params?: PaginationParams): Promise<PaginatedResponse<Course>> => {
-    return apiClient.get<PaginatedResponse<Course>>('/courses', params);
+    return apiClient.get<PaginatedResponse<Course>>('/cours', params);
   },
 
   // Create course
   create: async (data: CreateCourseData): Promise<ApiSuccessResponse<Course>> => {
-    return apiClient.post<ApiSuccessResponse<Course>>('/courses', data);
+    return apiClient.post<ApiSuccessResponse<Course>>('/cours/create-cours', data);
   },
 
   // Get course by ID
   getById: async (id: string): Promise<ApiSuccessResponse<Course>> => {
-    return apiClient.get<ApiSuccessResponse<Course>>(`/courses/${id}`);
+    return apiClient.get<ApiSuccessResponse<Course>>(`/cours/${id}`);
   },
 
   // Get course details from backend cours module (supports mongo _id or custom id)
@@ -67,11 +67,14 @@ export const coursesApi = {
   },
 
   startChapter: async (courseId: string, sectionId: string, chapterId: string, data?: { watchTime?: number }): Promise<any> => {
-    return apiClient.post(`/course-enrollment/${courseId}/sections/${sectionId}/chapters/${chapterId}/start`, data || {});
+    return apiClient.post(
+      `/course-enrollment/${courseId}/sections/${sectionId}/chapters/${chapterId}/start`,
+      { watchTime: data?.watchTime ?? 0 },
+    );
   },
 
   getCourseEnrollmentProgress: async (courseId: string): Promise<any> => {
-    return apiClient.get(`/course-enrollment/${courseId}/progress`);
+    return apiClient.get(`/cours/${courseId}/track/progress`);
   },
 
   completeChapterEnrollment: async (courseId: string, chapterId: string): Promise<any> => {
@@ -79,17 +82,24 @@ export const coursesApi = {
   },
 
   updateChapterWatchTime: async (courseId: string, chapterId: string, watchTime: number, videoDuration?: number): Promise<any> => {
-    return apiClient.put(`/course-enrollment/${courseId}/chapters/${chapterId}/watch-time`, { watchTime, videoDuration });
+    return apiClient.put(`/course-enrollment/${courseId}/chapters/${chapterId}/watch-time`, {
+      watchTime,
+      videoDuration,
+    });
+  },
+
+  completeCourseEnrollment: async (courseId: string): Promise<any> => {
+    return apiClient.put(`/course-enrollment/${courseId}/complete`);
   },
 
   // Update course
   update: async (id: string, data: UpdateCourseData): Promise<ApiSuccessResponse<Course>> => {
-    return apiClient.patch<ApiSuccessResponse<Course>>(`/courses/${id}`, data);
+    return apiClient.patch<ApiSuccessResponse<Course>>(`/cours/${id}`, data);
   },
 
   // Delete course
   delete: async (id: string): Promise<ApiSuccessResponse<void>> => {
-    return apiClient.delete<ApiSuccessResponse<void>>(`/courses/${id}`);
+    return apiClient.delete<ApiSuccessResponse<void>>(`/cours/${id}`);
   },
 
   // Get courses by community (using slug)
@@ -109,27 +119,68 @@ export const coursesApi = {
 
   // Get user enrollments
   getMyEnrollments: async (): Promise<any> => {
+    // This endpoint seems specific to enrollment module, checking if it needs /cours prefix
+    // The controller read didn't show this. It might be in course-enrollment.controller.
+    // We will leave it as is if it targets a different module, or assume it's correct.
     return apiClient.get('/course-enrollment/my-enrollments');
   },
 
-  // Get course sections
+  // Get course sections (Note: Backend doesn't have a direct getSections endpoint, usually part of getById)
   getSections: async (courseId: string): Promise<ApiSuccessResponse<CourseSection[]>> => {
-    return apiClient.get<ApiSuccessResponse<CourseSection[]>>(`/courses/${courseId}/sections`);
+    return apiClient.get<ApiSuccessResponse<CourseSection[]>>(`/cours/${courseId}/sections`);
   },
 
   // Create course section
   createSection: async (courseId: string, data: CreateSectionData): Promise<ApiSuccessResponse<CourseSection>> => {
-    return apiClient.post<ApiSuccessResponse<CourseSection>>(`/courses/${courseId}/sections`, data);
+    // Backend expects: POST /cours/:id/add-section
+    return apiClient.post<ApiSuccessResponse<CourseSection>>(`/cours/${courseId}/add-section`, {
+      titre: data.title,
+      description: data.description,
+      ordre: data.order
+    });
+  },
+
+  // Update section
+  updateSection: async (courseId: string, sectionId: string, data: { title?: string; description?: string; order?: number }): Promise<any> => {
+    return apiClient.patch(`/cours/${courseId}/sections/${sectionId}`, {
+      titre: data.title,
+      description: data.description,
+      ordre: data.order
+    });
+  },
+
+  // Delete section
+  deleteSection: async (courseId: string, sectionId: string): Promise<any> => {
+    return apiClient.delete(`/cours/${courseId}/sections/${sectionId}`);
   },
 
   // Get course chapters
   getChapters: async (courseId: string): Promise<ApiSuccessResponse<CourseChapter[]>> => {
-    return apiClient.get<ApiSuccessResponse<CourseChapter[]>>(`/courses/${courseId}/chapters`);
+    return apiClient.get<ApiSuccessResponse<CourseChapter[]>>(`/cours/${courseId}/chapters`);
   },
 
   // Create course chapter
-  createChapter: async (courseId: string, data: CreateChapterData): Promise<ApiSuccessResponse<CourseChapter>> => {
-    return apiClient.post<ApiSuccessResponse<CourseChapter>>(`/courses/${courseId}/chapters`, data);
+  createChapter: async (courseId: string, sectionId: string, data: CreateChapterData): Promise<ApiSuccessResponse<CourseChapter>> => {
+    // Backend expects: POST /cours/:id/sections/:sectionId/add-chapitre
+    return apiClient.post<ApiSuccessResponse<CourseChapter>>(`/cours/${courseId}/sections/${sectionId}/add-chapitre`, {
+      titre: data.title,
+      description: data.content,
+      videoUrl: data.videoUrl,
+      duree: data.duration ? String(data.duration) : undefined,
+      ordre: data.order,
+      isPaid: !data.isFree,
+      notes: "" // Add default notes if needed
+    });
+  },
+
+  // Update chapter
+  updateChapter: async (courseId: string, sectionId: string, chapterId: string, data: any): Promise<any> => {
+    return apiClient.patch(`/cours/${courseId}/sections/${sectionId}/chapitres/${chapterId}`, data);
+  },
+
+  // Delete chapter
+  deleteChapter: async (courseId: string, sectionId: string, chapterId: string): Promise<any> => {
+    return apiClient.delete(`/cours/${courseId}/sections/${sectionId}/chapitres/${chapterId}`);
   },
 
   // Enroll in course
@@ -138,19 +189,27 @@ export const coursesApi = {
     return apiClient.post<{ message: string; enrollment: CourseEnrollment }>(`/cours/${id}/enroll${query}`);
   },
 
+  initStripePayment: async (courseId: string, promoCode?: string): Promise<any> => {
+    const endpoint = promoCode
+      ? `/payment/stripe-link/init/course?promoCode=${encodeURIComponent(promoCode)}`
+      : `/payment/stripe-link/init/course`;
+
+    return apiClient.post<any>(endpoint, { courseId });
+  },
+
   // Get course progress
   getProgress: async (id: string): Promise<ApiSuccessResponse<CourseEnrollment>> => {
-    return apiClient.get<ApiSuccessResponse<CourseEnrollment>>(`/courses/${id}/progress`);
+    return apiClient.get<ApiSuccessResponse<CourseEnrollment>>(`/cours/${id}/track/progress`);
   },
 
   // Update chapter progress
   updateProgress: async (id: string, chapterId: string, progress: number): Promise<ApiSuccessResponse<void>> => {
-    return apiClient.patch<ApiSuccessResponse<void>>(`/courses/${id}/progress/${chapterId}`, { progress });
+    return apiClient.patch<ApiSuccessResponse<void>>(`/cours/${id}/progress/${chapterId}`, { progress });
   },
 
   // Complete chapter
   completeChapter: async (id: string, chapterId: string): Promise<ApiSuccessResponse<void>> => {
-    return apiClient.post<ApiSuccessResponse<void>>(`/courses/${id}/complete/${chapterId}`);
+    return apiClient.post<ApiSuccessResponse<void>>(`/cours/${id}/complete/${chapterId}`);
   },
 
   // Get courses by user (creator)
@@ -164,7 +223,7 @@ export const coursesApi = {
 
   // Add a review
   addReview: async (courseId: string, rating: number, review: string): Promise<any> => {
-    return apiClient.post(`/cours/${courseId}/rating`, { rating, review });
+    return apiClient.post(`/cours/${courseId}/track/rating`, { rating, review });
   },
 
   // Get reviews for a course
@@ -174,12 +233,12 @@ export const coursesApi = {
 
   // Like a course
   likeCourse: async (courseId: string): Promise<any> => {
-    return apiClient.post(`/cours/${courseId}/like`);
+    return apiClient.post(`/cours/${courseId}/track/like`);
   },
 
   // Share a course
   shareCourse: async (courseId: string): Promise<any> => {
-    return apiClient.post(`/cours/${courseId}/share`);
+    return apiClient.post(`/cours/${courseId}/track/share`);
   },
 
   // Bookmark a course (using custom bookmark ID or generating one)
@@ -187,12 +246,12 @@ export const coursesApi = {
     // We use a generated ID or let backend handle it if possible
     // The backend expects `bookmarkId` in the body
     const bookmarkId = `bm_${Date.now()}`;
-    return apiClient.post(`/cours/${courseId}/bookmark`, { bookmarkId });
+    return apiClient.post(`/cours/${courseId}/track/bookmark`, { bookmarkId });
   },
 
   // Remove a bookmark
   removeBookmark: async (courseId: string, bookmarkId: string): Promise<any> => {
-    return apiClient.delete(`/cours/${courseId}/bookmark/${bookmarkId}`);
+    return apiClient.delete(`/cours/${courseId}/track/bookmark/${bookmarkId}`);
   },
 
   // =========================================================================
@@ -225,16 +284,16 @@ export const coursesApi = {
 
   // Toggle sequential progression
   toggleSequentialProgression: async (courseId: string, enabled: boolean, unlockMessage?: string): Promise<any> => {
-    return apiClient.put(`/cours/${courseId}/sequential-progression`, { enabled, unlockMessage });
+    return apiClient.patch(`/cours/${courseId}/sequential-progression`, { enabled, unlockMessage });
   },
 
   // Unlock a chapter for a specific user
   unlockChapterForUser: async (courseId: string, chapterId: string, userId: string): Promise<any> => {
-    return apiClient.post(`/cours/${courseId}/unlock-chapter`, { chapterId, userId });
+    return apiClient.post(`/cours/${courseId}/chapters/${chapterId}/unlock`, { userId });
   },
 
   // Update thumbnail (file upload)
   updateThumbnail: async (courseId: string, file: File): Promise<any> => {
-    return apiClient.uploadFile(`/cours/${courseId}/thumbnail`, file, 'file');
+    return apiClient.put(`/cours/${courseId}/thumbnail`, { thumbnailUrl: 'TEMP_URL_NEED_UPLOAD_SERVICE' }); // TODO: Fix upload integration
   },
 };

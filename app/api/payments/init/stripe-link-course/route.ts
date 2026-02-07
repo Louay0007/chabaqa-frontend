@@ -34,8 +34,8 @@ export async function POST(req: NextRequest) {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
     const backendEndpoint = promoCode
-      ? `${backendUrl}/payments/stripe-link/init/course?promoCode=${encodeURIComponent(promoCode)}`
-      : `${backendUrl}/payments/stripe-link/init/course`;
+      ? `${backendUrl}/payment/stripe-link/init/course?promoCode=${encodeURIComponent(promoCode)}`
+      : `${backendUrl}/payment/stripe-link/init/course`;
 
     // Forward the request to the backend
     const response = await fetch(

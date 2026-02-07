@@ -118,6 +118,14 @@ export const eventsApi = {
     return apiClient.post<ApiSuccessResponse<void>>(endpoint, { ticketType });
   },
 
+  initStripePayment: async (eventId: string, ticketType: string, promoCode?: string): Promise<any> => {
+    const endpoint = promoCode
+      ? `/payment/stripe-link/init/event?promoCode=${encodeURIComponent(promoCode)}`
+      : `/payment/stripe-link/init/event`;
+
+    return apiClient.post<any>(endpoint, { eventId, ticketType });
+  },
+
   // Unregister from event
   unregister: async (id: string): Promise<ApiSuccessResponse<void>> => {
     return apiClient.post<ApiSuccessResponse<void>>(`/events/${id}/unregister`, {});

@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Lock, PlayCircle } from "lucide-react"
-import Link from "next/link"
 import { coursesApi } from "@/lib/api/courses.api"
 
 interface EnhancedVideoPlayerProps {
@@ -15,6 +14,7 @@ interface EnhancedVideoPlayerProps {
   slug: string
   courseId: string
   onWatchTimeUpdate?: (seconds: number) => void
+  onEnrollNow?: () => void
 }
 
 // Helper to extract YouTube video ID from various URL formats
@@ -53,6 +53,7 @@ export default function EnhancedVideoPlayer({
   slug,
   courseId,
   onWatchTimeUpdate,
+  onEnrollNow,
 }: EnhancedVideoPlayerProps) {
   const [player, setPlayer] = useState<any>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -62,6 +63,8 @@ export default function EnhancedVideoPlayer({
   const lastUpdateRef = useRef<number>(0)
   const playerRef = useRef<HTMLDivElement>(null)
   const htmlVideoRef = useRef<HTMLVideoElement | null>(null)
+  const vimeoIframeRef = useRef<HTMLIFrameElement | null>(null)
+  const [vimeoReady, setVimeoReady] = useState(false)
 
   const videoUrl = currentChapter?.videoUrl || ''
   const platform = detectPlatform(videoUrl)
@@ -162,6 +165,65 @@ export default function EnhancedVideoPlayer({
     }
   }, [youtubeId, platform, currentChapter?.id, isChapterAccessible])
 
+  // Initialize Vimeo Player tracking via postMessage API
+  useEffect(() => {
+    if (platform !== 'vimeo' || !vimeoId || !vimeoIframeRef.current) return
+    if (!isChapterAccessible(currentChapter?.id)) return
+
+    const iframe = vimeoIframeRef.current
+    const iframeWindow = iframe.contentWindow
+    if (!iframeWindow) return
+
+    // Enable Vimeo Player API
+    const enableApi = () => {
+      iframeWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: 'play' }), '*')
+      iframeWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: 'pause' }), '*')
+      iframeWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: 'timeupdate' }), '*')
+      iframeWindow.postMessage(JSON.stringify({ method: 'getDuration' }), '*')
+    }
+
+    const handleMessage = (event: MessageEvent) => {
+      if (!event.origin.includes('vimeo.com')) return
+      try {
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+        if (data.event === 'ready') {
+          setVimeoReady(true)
+          enableApi()
+        } else if (data.event === 'play') {
+          setIsPlaying(true)
+        } else if (data.event === 'pause') {
+          setIsPlaying(false)
+        } else if (data.event === 'timeupdate' && data.data) {
+          const time = Number(data.data.seconds || 0)
+          const duration = Number(data.data.duration || 0)
+          setWatchTime(time)
+          if (duration > 0) setVideoDuration(duration)
+
+          // Send update every 10 seconds
+          if (enrollment && time - lastUpdateRef.current >= 10) {
+            sendWatchTime(time, duration > 0 ? duration : undefined)
+          }
+        } else if (data.method === 'getDuration' && data.value) {
+          setVideoDuration(Number(data.value))
+        }
+      } catch (e) {
+        // Ignore non-JSON messages
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+
+    // Try to enable API after a short delay (iframe may need time to load)
+    const timeoutId = setTimeout(() => {
+      enableApi()
+    }, 1000)
+
+    return () => {
+      window.removeEventListener('message', handleMessage)
+      clearTimeout(timeoutId)
+    }
+  }, [vimeoId, platform, currentChapter?.id, isChapterAccessible, enrollment, sendWatchTime])
+
   // Track watch time for native HTML5 video
   useEffect(() => {
     if (!isLocalFileVideo()) return
@@ -261,18 +323,24 @@ export default function EnhancedVideoPlayer({
                   <PlayCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-semibold">Preview Available</p>
                   <p className="text-sm text-gray-300 mt-2">Enroll to unlock full course content</p>
-                  <Button asChild className="mt-4">
-                    <Link href={`/${creatorSlug}/${slug}/courses`}>Enroll Now</Link>
+                  <Button className="mt-4" onClick={onEnrollNow}>
+                    Enroll Now
                   </Button>
                 </>
               ) : (
                 <>
                   <Lock className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-semibold">Chapter Locked</p>
-                  <p className="text-sm text-gray-300 mt-2">Enroll in the course to access this content</p>
-                  <Button asChild className="mt-4">
-                    <Link href={`/${creatorSlug}/${slug}/courses`}>View Course</Link>
-                  </Button>
+                  {enrollment ? (
+                    <p className="text-sm text-gray-300 mt-2">Complete previous chapters to unlock this content.</p>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-300 mt-2">Enroll in the course to access this content</p>
+                      <Button className="mt-4" onClick={onEnrollNow}>
+                        Enroll Now
+                      </Button>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -301,7 +369,8 @@ export default function EnhancedVideoPlayer({
           <div ref={playerRef} className="absolute inset-0 w-full h-full" />
         ) : platform === 'vimeo' && vimeoId ? (
           <iframe
-            src={`https://player.vimeo.com/video/${vimeoId}?autoplay=0&title=0&byline=0&portrait=0`}
+            ref={vimeoIframeRef}
+            src={`https://player.vimeo.com/video/${vimeoId}?autoplay=0&title=0&byline=0&portrait=0&api=1`}
             title={currentChapter.title}
             allow="autoplay; fullscreen; picture-in-picture"
             allowFullScreen

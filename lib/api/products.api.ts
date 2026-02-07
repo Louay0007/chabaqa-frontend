@@ -138,4 +138,12 @@ export const productsApi = {
   submitReview: async (productId: string, data: { rating: number; comment?: string }): Promise<ApiSuccessResponse<any>> => {
     return apiClient.post<ApiSuccessResponse<any>>(`/products/${productId}/reviews`, data);
   },
+
+  // Initiate Stripe Link payment for product
+  initStripePayment: async (productId: string, promoCode?: string): Promise<any> => {
+    const endpoint = promoCode
+      ? `/payment/stripe-link/init/product?promoCode=${encodeURIComponent(promoCode)}`
+      : `/payment/stripe-link/init/product`;
+    return apiClient.post(endpoint, { productId });
+  },
 };

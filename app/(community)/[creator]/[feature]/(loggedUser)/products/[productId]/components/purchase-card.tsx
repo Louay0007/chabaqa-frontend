@@ -24,9 +24,11 @@ export default function PurchaseCard({ product, purchase, isPurchased, onPurchas
   const totalDownloads = purchase?.downloadCount || 0
 
   const [open, setOpen] = useState(false)
+  const [paymentMethodSelectionOpen, setPaymentMethodSelectionOpen] = useState(false)
   const [promoCode, setPromoCode] = useState("")
   const [paymentProof, setPaymentProof] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isStripeLoading, setIsStripeLoading] = useState(false)
   const [isPendingVerification, setIsPendingVerification] = useState(false)
 
   const isPaidProduct = useMemo(() => Number(product?.price ?? 0) > 0, [product])
@@ -52,6 +54,30 @@ export default function PurchaseCard({ product, purchase, isPurchased, onPurchas
       })
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleStripePayment = async () => {
+    if (!product) return
+    setIsStripeLoading(true)
+    try {
+      const result = await productsApi.initStripePayment(
+        String(product.id || product._id),
+        promoCode.trim() || undefined
+      )
+
+      if (result?.checkoutUrl) {
+        window.location.href = result.checkoutUrl
+      } else {
+        throw new Error('No checkout URL returned')
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Payment initialization failed',
+        description: error?.message || 'Please try again.',
+        variant: 'destructive',
+      })
+      setIsStripeLoading(false)
     }
   }
 
@@ -182,16 +208,16 @@ export default function PurchaseCard({ product, purchase, isPurchased, onPurchas
               <Button
                 className="w-full h-10 sm:h-11 text-sm sm:text-base font-medium bg-primary hover:bg-primary/90"
                 onClick={() => {
-                  if (isPaidProduct) setOpen(true)
+                  if (isPaidProduct) setPaymentMethodSelectionOpen(true)
                   else void handleClaimFree()
                 }}
-                disabled={isSubmitting || isPendingVerification}
+                disabled={isSubmitting || isPendingVerification || isStripeLoading}
               >
                 {isPendingVerification
                   ? 'Pending verification'
                   : product.price === 0
                     ? (isSubmitting ? 'Processing...' : 'Get Free & Unlock Downloads')
-                    : 'Submit payment proof'}
+                    : 'Purchase Now'}
               </Button>
 
               {/* Money Back Guarantee */}
@@ -207,6 +233,63 @@ export default function PurchaseCard({ product, purchase, isPurchased, onPurchas
         </CardContent>
       </Card>
 
+      {/* Payment Method Selection Dialog */}
+      <Dialog open={paymentMethodSelectionOpen} onOpenChange={setPaymentMethodSelectionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Choose Payment Method</DialogTitle>
+            <DialogDescription>
+              Select how you'd like to purchase {product?.title}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            {/* Stripe Payment Option */}
+            <Button
+              className="w-full h-auto py-4 flex flex-col items-start bg-primary hover:bg-primary/90"
+              onClick={() => {
+                setPaymentMethodSelectionOpen(false)
+                void handleStripePayment()
+              }}
+              disabled={isStripeLoading}
+            >
+              <div className="flex items-center justify-between w-full">
+                <div className="text-left">
+                  <div className="font-semibold text-base">Pay with Stripe</div>
+                  <div className="text-sm text-white/80 mt-1">Instant access · Credit/Debit Card</div>
+                </div>
+                <span className="text-xl">💳</span>
+              </div>
+            </Button>
+
+            {/* Manual Payment Option */}
+            <Button
+              variant="outline"
+              className="w-full h-auto py-4 flex flex-col items-start"
+              onClick={() => {
+                setPaymentMethodSelectionOpen(false)
+                setOpen(true)
+              }}
+            >
+              <div className="flex items-center justify-between w-full">
+                <div className="text-left">
+                  <div className="font-semibold text-base">Bank Transfer</div>
+                  <div className="text-sm text-muted-foreground mt-1">Manual verification required</div>
+                </div>
+                <span className="text-xl">🏦</span>
+              </div>
+            </Button>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPaymentMethodSelectionOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Payment Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>

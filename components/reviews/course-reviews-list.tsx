@@ -35,6 +35,11 @@ export function CourseReviewsList({ reviews, isLoading, currentUserId }: CourseR
     )
   }
 
+  if (!Array.isArray(reviews)) {
+    console.error("CourseReviewsList: reviews prop is not an array", reviews)
+    return null
+  }
+
   if (reviews.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">

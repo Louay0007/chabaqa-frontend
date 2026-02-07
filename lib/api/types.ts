@@ -128,32 +128,38 @@ export interface CourseEnrollment {
 }
 
 // Challenge types
-export interface Challenge {
-  id: string;
+export interface ChallengeResource {
+  id?: string;
   title: string;
-  slug: string;
-  description: string;
-  communityId: string;
-  creatorId: string;
-  thumbnail?: string;
-  startDate: string;
-  endDate: string;
-  prize?: string;
-  difficulty: 'easy' | 'medium' | 'hard';
-  isActive: boolean;
-  participantCount: number;
-  participants?: ChallengeParticipant[];
-  createdAt: string;
+  type: 'video' | 'article' | 'code' | 'tool' | 'pdf' | 'link';
+  url: string;
+  description?: string;
+  order?: number;
+}
+
+export interface ChallengeTaskResource {
+  id?: string;
+  title: string;
+  type: 'video' | 'article' | 'code' | 'tool';
+  url: string;
+  description?: string;
 }
 
 export interface ChallengeTask {
   id: string;
-  challengeId: string;
+  challengeId?: string;
+  day: number;
   title: string;
   description: string;
+  deliverable?: string;
   points: number;
-  order: number;
-  createdAt: string;
+  instructions?: string;
+  notes?: string;
+  isActive?: boolean;
+  isCompleted?: boolean;
+  resources?: ChallengeTaskResource[];
+  createdAt?: string;
+  order?: number; // legacy
 }
 
 export interface ChallengeParticipant {
@@ -161,9 +167,73 @@ export interface ChallengeParticipant {
   userId: string;
   challengeId: string;
   score: number;
+  progress: number;
   completedTasks: string[];
   joinedAt: string;
-  user: User;
+  isActive?: boolean;
+  user: User | {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+}
+
+export interface ChallengePricing {
+  participationFee: number;
+  currency: string;
+  depositAmount?: number;
+  depositRequired?: boolean;
+  isPremium?: boolean;
+  completionReward?: number;
+  topPerformerBonus?: number;
+  streakBonus?: number;
+  premiumFeatures?: {
+    personalMentoring?: boolean;
+    exclusiveResources?: boolean;
+    priorityFeedback?: boolean;
+    certificate?: boolean;
+    liveSessions?: boolean;
+    communityAccess?: boolean;
+  };
+  paymentOptions?: {
+    allowInstallments?: boolean;
+    installmentCount?: number;
+    earlyBirdDiscount?: number;
+    groupDiscount?: number;
+    memberDiscount?: number;
+  };
+  freeTrialDays?: number;
+  trialFeatures?: string[];
+}
+
+export interface Challenge {
+  id: string;
+  mongoId?: string;
+  title: string;
+  slug?: string;
+  description: string;
+  communityId: string;
+  communitySlug?: string;
+  creatorId: string;
+  thumbnail?: string;
+  startDate: string;
+  endDate: string;
+  prize?: string;
+  difficulty: 'easy' | 'medium' | 'hard' | string;
+  category?: string;
+  isActive: boolean;
+  participantCount: number;
+  participants?: ChallengeParticipant[];
+  tasks?: ChallengeTask[];
+  resources?: ChallengeResource[];
+  notes?: string;
+  duration?: string;
+  depositAmount?: number;
+  completionReward?: number;
+  pricing?: ChallengePricing;
+  sequentialProgression?: boolean;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 // Session types
@@ -298,10 +368,10 @@ export interface Post {
   authorId: string;
   thumbnail?: string;
   isPublished: boolean;
-  likesCount: number;
+  likes: number;
   commentsCount: number;
+  shareCount: number;
   isLikedByUser?: boolean;
-  shareCount?: number;
   isSharedByUser?: boolean;
   comments?: PostComment[];
   images?: string[];
@@ -377,6 +447,7 @@ export interface DashboardAnalytics {
     posts: number;
     comments: number;
     likes: number;
+    shares: number;
   };
 }
 
@@ -450,6 +521,9 @@ export interface ProgressionItem {
 export interface ProgressionSummaryByType {
   total: number;
   completed: number;
+  inProgress: number;
+  notStarted: number;
+  byType: Record<string, ProgressionSummaryByType>;
 }
 
 export interface ProgressionSummary {
@@ -465,6 +539,7 @@ export interface ProgressionPagination {
   limit: number;
   total: number;
   totalPages: number;
+  items: ProgressionItem[];
 }
 
 export interface ProgressionOverview {

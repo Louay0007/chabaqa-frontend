@@ -13,7 +13,6 @@ import {
   PlayCircle, 
   Lock 
 } from "lucide-react"
-import Link from "next/link"
 
 interface VideoPlayerProps {
   creatorSlug: string
@@ -25,6 +24,7 @@ interface VideoPlayerProps {
   setIsPlaying: (playing: boolean) => void
   currentTime: number
   formatTime: (seconds: number) => string
+  onEnrollNow?: () => void
 }
 
 export default function VideoPlayer({ 
@@ -36,7 +36,8 @@ export default function VideoPlayer({
   isPlaying, 
   setIsPlaying, 
   currentTime, 
-  formatTime 
+  formatTime,
+  onEnrollNow
 }: VideoPlayerProps) {
   return (
     <Card className="border-0 shadow-sm overflow-hidden">
@@ -105,18 +106,24 @@ export default function VideoPlayer({
                   <PlayCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-semibold">Preview Available</p>
                   <p className="text-sm text-gray-300 mt-2">Enroll to unlock full course content</p>
-                  <Button asChild className="mt-4">
-                    <Link href={`/${creatorSlug}/${slug}/courses`}>Enroll Now</Link>
+                  <Button className="mt-4" onClick={onEnrollNow}>
+                    Enroll Now
                   </Button>
                 </>
               ) : (
                 <>
                   <Lock className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-semibold">Chapter Locked</p>
-                  <p className="text-sm text-gray-300 mt-2">Enroll in the course to access this content</p>
-                  <Button asChild className="mt-4">
-                    <Link href={`/${creatorSlug}/${slug}/courses`}>View Course</Link>
-                  </Button>
+                  {enrollment ? (
+                    <p className="text-sm text-gray-300 mt-2">Complete previous chapters to unlock this content.</p>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-300 mt-2">Enroll in the course to access this content</p>
+                      <Button className="mt-4" onClick={onEnrollNow}>
+                        Enroll Now
+                      </Button>
+                    </>
+                  )}
                 </>
               )}
             </div>

@@ -8,6 +8,7 @@ import { coursesApi } from "@/lib/api/courses.api"
 import { transformCourse } from "@/lib/api/courses-community.api"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { useToast } from "@/components/ui/use-toast"
 
 type CoursePlayerPageProps = {
   params: Promise<{ creator: string; feature: string; courseId: string }>
@@ -16,8 +17,10 @@ type CoursePlayerPageProps = {
 export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
   const { creator, feature, courseId } = use(params)
   const router = useRouter()
+  const { toast } = useToast()
 
   const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false)
+  const [isEnrolling, setIsEnrolling] = useState(false)
 
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -71,6 +74,46 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
       setCourse(normalizedCourse)
     } catch (error) {
       console.error("Failed to refresh course:", error)
+    }
+  }
+
+  const handleEnrollmentRequest = async () => {
+    if (!course) return
+
+    const isPaid = Number(course.price ?? 0) > 0
+    if (isPaid) {
+      setIsEnrollDialogOpen(true)
+      return
+    }
+
+    // Free course - enroll directly
+    try {
+      setIsEnrolling(true)
+      const resolvedCourseId = String(course.mongoId || courseId)
+      
+      toast({
+        title: "Enrolling...",
+        description: "Please wait while we enroll you in this course.",
+      })
+
+      const response = await coursesApi.enroll(resolvedCourseId)
+      
+      toast({
+        title: "Enrolled successfully",
+        description: response.message || "You now have access to this course.",
+      })
+      
+      await refreshProgress(resolvedCourseId)
+    } catch (error) {
+       toast({
+        title: "Enrollment failed",
+        description: typeof error === "object" && error && "message" in error 
+          ? String((error as any).message) 
+          : "Failed to enroll. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsEnrolling(false)
     }
   }
 
@@ -145,8 +188,8 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
                     View Courses
                   </Link>
                 </Button>
-                <Button onClick={() => setIsEnrollDialogOpen(true)}>
-                  Enroll / Submit payment proof
+                <Button onClick={handleEnrollmentRequest} disabled={isEnrolling}>
+                  {isEnrolling ? "Enrolling..." : "Enroll / Submit payment proof"}
                 </Button>
                 <Button variant="outline" onClick={() => router.back()}>
                   Go Back
@@ -161,9 +204,9 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
           onOpenChange={setIsEnrollDialogOpen}
           course={course}
           isEnrolled={Boolean(isEnrolled)}
-          onEnrolled={(nextEnrollment: any) => {
-            setEnrollment(nextEnrollment)
-            setIsEnrolled(true)
+          onEnrolled={async () => {
+            const resolvedCourseId = String(course?.mongoId || courseId)
+            await refreshProgress(resolvedCourseId)
           }}
         />
       </div>
@@ -171,24 +214,38 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
   }
 
   return (
-    <CoursePlayer
-      creatorSlug={creator}
-      slug={feature}
-      courseId={String(course?.mongoId || courseId)}
-      course={course}
-      enrollment={enrollment}
-      unlockedChapters={unlockedChapters}
-      sequentialProgressionEnabled={sequentialProgressionEnabled}
-      unlockMessage={unlockMessage}
-      onRefreshCourse={refreshCourse}
-      onRefreshProgress={async () => {
-        const resolvedCourseId = String(course?.mongoId || courseId)
-        await refreshEnrollmentProgress(resolvedCourseId)
-      }}
-      onRefreshUnlockedChapters={async () => {
-        const resolvedCourseId = String(course?.mongoId || courseId)
-        await refreshUnlockedChapters(resolvedCourseId)
-      }}
-    />
+    <>
+      <CoursePlayer
+        creatorSlug={creator}
+        slug={feature}
+        courseId={String(course?.mongoId || courseId)}
+        course={course}
+        enrollment={enrollment}
+        unlockedChapters={unlockedChapters}
+        sequentialProgressionEnabled={sequentialProgressionEnabled}
+        unlockMessage={unlockMessage}
+        onRefreshCourse={refreshCourse}
+        onRefreshProgress={async () => {
+          const resolvedCourseId = String(course?.mongoId || courseId)
+          await refreshEnrollmentProgress(resolvedCourseId)
+        }}
+        onRefreshUnlockedChapters={async () => {
+          const resolvedCourseId = String(course?.mongoId || courseId)
+          await refreshUnlockedChapters(resolvedCourseId)
+        }}
+        onOpenEnrollment={handleEnrollmentRequest}
+      />
+
+      <EnrollCourseDialog
+        open={isEnrollDialogOpen}
+        onOpenChange={setIsEnrollDialogOpen}
+        course={course}
+        isEnrolled={Boolean(isEnrolled)}
+        onEnrolled={async () => {
+          const resolvedCourseId = String(course?.mongoId || courseId)
+          await refreshProgress(resolvedCourseId)
+        }}
+      />
+    </>
   )
 }

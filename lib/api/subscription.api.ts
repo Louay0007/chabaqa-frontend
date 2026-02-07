@@ -197,7 +197,7 @@ export interface CreatePlanData {
   transactionFixedFeeDT?: number;
 }
 
-export interface UpdatePlanData extends Partial<CreatePlanData> {}
+export interface UpdatePlanData extends Partial<CreatePlanData> { }
 
 export interface RecordUsageData {
   metricType: UsageMetricType;
@@ -289,7 +289,7 @@ export const subscriptionApi = {
   },
 
   async updateSubscription(
-    subscriptionId: string, 
+    subscriptionId: string,
     updateData: Partial<CreatorSubscription>
   ): Promise<ApiSuccessResponse<CreatorSubscription>> {
     return apiClient.put(`/subscriptions/${subscriptionId}`, updateData);
@@ -393,5 +393,12 @@ export const subscriptionApi = {
         hasPaymentMethod: false,
       };
     }
+  },
+
+  /**
+   * Initiate Stripe Link payment for subscription
+   */
+  initStripePayment: async (tier: PlanTier, interval: 'month' | 'year' = 'month'): Promise<any> => {
+    return apiClient.post('/payment/stripe-link/init/subscription', { tier, interval });
   },
 };

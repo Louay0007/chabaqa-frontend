@@ -7,12 +7,52 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Check, ChevronLeft, ChevronRight } from "lucide-react"
 import { siteData } from "@/lib/data"
+import { subscriptionApi, PlanTier } from "@/lib/api/subscription.api"
+import { useToast } from "@/components/ui/use-toast"
 
 type Billing = "monthly" | "yearly"
 
 export function Pricing() {
+  const { toast } = useToast()
   const [billing, setBilling] = useState<Billing>("monthly")
   const plans = siteData.pricing.plans
+
+  const handleSubscriptionPayment = async (tierName: string, interval: Billing) => {
+    try {
+      // Map plan name to PlanTier enum
+      const tierMap: Record<string, PlanTier> = {
+        'Starter': PlanTier.STARTER,
+        'Growth': PlanTier.GROWTH,
+        'Pro': PlanTier.PRO,
+        'Enterprise': PlanTier.ENTERPRISE,
+      }
+
+      const tier = tierMap[tierName]
+      if (!tier) {
+        toast({
+          title: "Invalid plan",
+          description: "Please select a valid subscription plan.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const billingInterval = interval === 'monthly' ? 'month' : 'year'
+      const result = await subscriptionApi.initStripePayment(tier, billingInterval)
+
+      if (result?.checkoutUrl) {
+        window.location.href = result.checkoutUrl
+      } else {
+        throw new Error('No checkout URL returned')
+      }
+    } catch (error: any) {
+      toast({
+        title: "Payment initialization failed",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
 
   // Confetti on yearly
   useEffect(() => {
@@ -125,7 +165,7 @@ export function Pricing() {
           aria-label="Pricing plans"
         >
           <style>{`#pricing ::-webkit-scrollbar{ display:none; height:0; width:0 }`}</style>
-            
+
           {plans.map((plan: any, i: number) => {
             const hasToggle = !!plan.prices
             const currentPrice = hasToggle ? (billing === "monthly" ? plan.prices.monthly : plan.prices.yearly) : plan.price
@@ -150,7 +190,7 @@ export function Pricing() {
                     </span>
                   </div>
                 )}
-                
+
                 <CardHeader className="text-center pb-6 sm:pb-8">
                   <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 mt-4 sm:mt-6">
                     {plan.name}
@@ -193,12 +233,11 @@ export function Pricing() {
                   </ul>
 
                   <Button
-                    className={`w-full py-2.5 sm:py-3 text-sm sm:text-base ${
-                      plan.popular
-                        ? "bg-chabaqa-primary hover:bg-chabaqa-primary/90 text-white"
-                        : "bg-chabaqa-accent hover:bg-chabaqa-accent/90 text-white"
-                    }`}
-                    onClick={() => window.open("#", "_blank")}
+                    className={`w-full py-2.5 sm:py-3 text-sm sm:text-base ${plan.popular
+                      ? "bg-chabaqa-primary hover:bg-chabaqa-primary/90 text-white"
+                      : "bg-chabaqa-accent hover:bg-chabaqa-accent/90 text-white"
+                      }`}
+                    onClick={() => handleSubscriptionPayment(plan.tier, billing)}
                   >
                     {plan.cta}
                   </Button>
@@ -216,13 +255,12 @@ export function Pricing() {
                 key={i}
                 aria-label={`Go to slide ${i + 1}`}
                 onClick={() => goTo(i)}
-                className={`h-1.5 w-4 rounded-full transition-all ${
-                  active === i ? "bg-chabaqa-primary w-6" : "bg-gray-300"
-                }`}
+                className={`h-1.5 w-4 rounded-full transition-all ${active === i ? "bg-chabaqa-primary w-6" : "bg-gray-300"
+                  }`}
               />
             ))}
           </div>
-          
+
         </div>
       </div>
     </section>
@@ -250,9 +288,8 @@ function SaveBadge({ plans, billing }: { plans: any[]; billing: Billing }) {
 
   return (
     <div
-      className={`ml-4 hidden sm:flex items-center rounded-full px-3 py-1 text-sm font-medium ring-1 transition ${
-        billing === "yearly" ? "bg-green-50 text-green-700 ring-green-200" : "bg-gray-50 text-gray-600 ring-gray-200"
-      }`}
+      className={`ml-4 hidden sm:flex items-center rounded-full px-3 py-1 text-sm font-medium ring-1 transition ${billing === "yearly" ? "bg-green-50 text-green-700 ring-green-200" : "bg-gray-50 text-gray-600 ring-gray-200"
+        }`}
     >
       {billing === "yearly" ? `You’re saving up to ${best}%` : `Save up to ${best}% with yearly`}
     </div>
@@ -279,11 +316,10 @@ function MobileSaveBadge({ plans, billing }: { plans: any[]; billing: Billing })
   if (best == null) return null
   return (
     <div
-      className={`sm:hidden flex w-fit mx-auto mb-3 items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition ${
-        billing === "yearly"
-          ? "bg-green-50 text-green-700 ring-green-200"
-          : "bg-gray-50 text-gray-600 ring-gray-200"
-      }`}
+      className={`sm:hidden flex w-fit mx-auto mb-3 items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition ${billing === "yearly"
+        ? "bg-green-50 text-green-700 ring-green-200"
+        : "bg-gray-50 text-gray-600 ring-gray-200"
+        }`}
     >
       {billing === "yearly" ? `Saving up to ${best}%` : `Save up to ${best}% yearly`}
     </div>

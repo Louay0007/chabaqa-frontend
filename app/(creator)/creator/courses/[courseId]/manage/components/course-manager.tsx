@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { apiClient } from "@/lib/api"
+import { coursesApi } from "@/lib/api/courses.api"
 import { Course } from "@/lib/models"
+import { toast } from "sonner"
 import { CourseHeader } from "./course-header"
 import { CourseTabs } from "./course-tabs"
 import { DetailsTab } from "./tabs/details-tab"
@@ -22,79 +23,88 @@ export function CourseManager({ courseId }: { courseId: string }) {
   const [loading, setLoading] = useState(true)
 
   const fetchCourse = async () => {
-    const response = await apiClient.get<any>(`/cours/${courseId}`)
+    try {
+      const rawResponse = await coursesApi.getCoursById(courseId)
+      // Handle potentially wrapped response or direct response
+      const response = rawResponse.data || rawResponse
 
-    const transformedCourse: Course = {
-      mongoId: response.mongoId || response._id || response.id,
-      id: response.id,
-      titre: response.titre,
-      title: response.titre,
-      description: response.description,
-      thumbnail: response.thumbnail || "",
-      prix: response.prix,
-      price: response.prix,
-      devise: response.devise,
-      currency: response.devise,
-      category: response.category || "",
-      niveau: response.niveau || "",
-      level: response.niveau || "",
-      duree: response.duree || "",
-      duration: response.duree || "",
-      isPublished: Boolean(response.isPublished),
-      learningObjectives: response.learningObjectives || [],
-      requirements: response.requirements || [],
-      notes: response.notes || "",
-      sections: (response.sections || []).map((section: any) => ({
-        id: section.id,
-        title: section.titre,
-        description: section.description || "",
-        courseId: section.courseId,
-        order: section.ordre,
-        chapters: (section.chapitres || []).map((chapitre: any) => ({
-          id: chapitre.id,
-          title: chapitre.titre,
-          content: chapitre.description || "",
-          videoUrl: chapitre.videoUrl || "",
-          duration: Number(chapitre.duree ?? 0) || 0,
-          sectionId: chapitre.sectionId || section.id,
-          order: chapitre.ordre,
-          isPreview: !Boolean(chapitre.isPaidChapter ?? chapitre.isPaid),
-          price: chapitre.prix || 0,
-          notes: chapitre.notes || "",
-          resources: Array.isArray(chapitre.ressources) 
-            ? chapitre.ressources.map((r: any) => ({
-                id: r.id || '',
-                title: r.titre || r.title || '',
-                titre: r.titre || r.title || '',
-                type: r.type || 'link',
-                url: r.url || '',
-                description: r.description || '',
-                order: r.ordre || r.order || 0,
-              }))
-            : [],
-          createdAt: chapitre.createdAt ? new Date(chapitre.createdAt) : new Date(),
+      console.log("Fetched course data:", response)
+
+      const transformedCourse: Course = {
+        mongoId: response.mongoId || response._id || response.id,
+        id: response.id || response._id,
+        titre: response.titre || response.title || "",
+        title: response.titre || response.title || "",
+        description: response.description || "",
+        thumbnail: response.thumbnail || "",
+        prix: response.prix ?? response.price ?? 0,
+        price: response.prix ?? response.price ?? 0,
+        devise: response.devise || response.currency || "USD",
+        currency: response.devise || response.currency || "USD",
+        category: response.category || "",
+        niveau: response.niveau || response.level || "",
+        level: response.niveau || response.level || "",
+        duree: response.duree || response.duration || "",
+        duration: response.duree || response.duration || "",
+        isPublished: Boolean(response.isPublished),
+        learningObjectives: response.learningObjectives || [],
+        requirements: response.requirements || [],
+        notes: response.notes || "",
+        sections: (response.sections || []).map((section: any) => ({
+          id: section.id || section._id,
+          title: section.titre || section.title || "",
+          description: section.description || "",
+          courseId: section.courseId,
+          order: section.ordre ?? section.order ?? 0,
+          chapters: (section.chapitres || section.chapters || []).map((chapitre: any) => ({
+            id: chapitre.id || chapitre._id,
+            title: chapitre.titre || chapitre.title || "",
+            content: chapitre.description || chapitre.content || "",
+            videoUrl: chapitre.videoUrl || "",
+            duration: Number(chapitre.duree ?? chapitre.duration ?? 0) || 0,
+            sectionId: chapitre.sectionId || section.id,
+            order: chapitre.ordre ?? chapitre.order ?? 0,
+            isPreview: !Boolean(chapitre.isPaidChapter ?? chapitre.isPaid ?? true),
+            price: chapitre.prix ?? chapitre.price ?? 0,
+            notes: chapitre.notes || "",
+            resources: Array.isArray(chapitre.ressources || chapitre.resources) 
+              ? (chapitre.ressources || chapitre.resources).map((r: any) => ({
+                  id: r.id || r._id || '',
+                  title: r.titre || r.title || '',
+                  titre: r.titre || r.title || '',
+                  type: r.type || 'link',
+                  url: r.url || '',
+                  description: r.description || '',
+                  order: r.ordre || r.order || 0,
+                }))
+              : [],
+            createdAt: chapitre.createdAt ? new Date(chapitre.createdAt) : new Date(),
+          })),
+          createdAt: section.createdAt ? new Date(section.createdAt) : new Date(),
         })),
-        createdAt: section.createdAt ? new Date(section.createdAt) : new Date(),
-      })),
-      enrollments: [],
-      createdAt: response.createdAt,
-      updatedAt: response.updatedAt,
-      communityId: response.communityId,
-      creatorId: response.creatorId,
-      creator: response.creator,
-    }
+        enrollments: [],
+        createdAt: response.createdAt,
+        updatedAt: response.updatedAt,
+        communityId: response.communityId,
+        creatorId: response.creatorId,
+        creator: response.creator,
+      }
 
-    setCourse(transformedCourse)
+      setCourse(transformedCourse)
+    } catch (error) {
+      console.error('Failed to fetch course:', error)
+      toast.error("Failed to load course details")
+      // Only redirect on actual error, not just empty data
+      if ((error as any)?.response?.status === 404) {
+         router.push('/creator/courses')
+      }
+    }
   }
 
   useEffect(() => {
     const run = async () => {
       try {
         await fetchCourse()
-      } catch (error) {
-        console.error('Failed to fetch course:', error)
-        // If course not found, redirect to courses list
-        router.push('/creator/courses')
       } finally {
         setLoading(false)
       }
@@ -173,7 +183,7 @@ export function CourseManager({ courseId }: { courseId: string }) {
     const targetId = course.mongoId || course.id
     setIsLoading(true)
     try {
-      await apiClient.patch(`/cours/${targetId}`, {
+      await coursesApi.update(targetId, {
         titre: formData.title,
         description: formData.description,
         prix: formData.price === "" ? 0 : Number(formData.price),
@@ -189,6 +199,10 @@ export function CourseManager({ courseId }: { courseId: string }) {
       })
 
       await fetchCourse()
+      toast.success("Course updated successfully")
+    } catch (error) {
+      console.error('Failed to update course:', error)
+      toast.error("Failed to update course")
     } finally {
       setIsLoading(false)
     }
@@ -198,36 +212,61 @@ export function CourseManager({ courseId }: { courseId: string }) {
     if (!course) return
     const targetId = course.mongoId || course.id
     const nextOrder = (course.sections?.length || 0) + 1
-    await apiClient.post(`/cours/${targetId}/add-section`, {
-      titre: payload.titre,
-      description: payload.description || "",
-      ordre: nextOrder,
-    })
-    await fetchCourse()
+    
+    try {
+      await coursesApi.createSection(targetId, {
+        title: payload.titre,
+        description: payload.description || "",
+        order: nextOrder,
+      })
+      await fetchCourse()
+      toast.success("Section created successfully")
+    } catch (error) {
+      console.error('Failed to create section:', error)
+      toast.error("Failed to create section")
+    }
   }
 
   const handleDeleteSection = async (sectionId: string) => {
     if (!course) return
     const targetId = course.mongoId || course.id
-    await apiClient.delete(`/cours/${targetId}/sections/${sectionId}`)
-    await fetchCourse()
+    try {
+      await coursesApi.deleteSection(targetId, sectionId)
+      await fetchCourse()
+      toast.success("Section deleted successfully")
+    } catch (error) {
+      console.error('Failed to delete section:', error)
+      toast.error("Failed to delete section")
+    }
   }
 
   const handleDeleteChapter = async (sectionId: string, chapterId: string) => {
     if (!course) return
     const targetId = course.mongoId || course.id
-    await apiClient.delete(`/cours/${targetId}/sections/${sectionId}/chapitres/${chapterId}`)
-    await fetchCourse()
+    try {
+      await coursesApi.deleteChapter(targetId, sectionId, chapterId)
+      await fetchCourse()
+      toast.success("Chapter deleted successfully")
+    } catch (error) {
+      console.error('Failed to delete chapter:', error)
+      toast.error("Failed to delete chapter")
+    }
   }
 
   const handleUpdateSection = async (sectionId: string, payload: { title: string; description: string }) => {
     if (!course) return
     const targetId = course.mongoId || course.id
-    await apiClient.patch(`/cours/${targetId}/sections/${sectionId}`, {
-      titre: payload.title,
-      description: payload.description,
-    })
-    await fetchCourse()
+    try {
+      await coursesApi.updateSection(targetId, sectionId, {
+        title: payload.title,
+        description: payload.description,
+      })
+      await fetchCourse()
+      toast.success("Section updated successfully")
+    } catch (error) {
+      console.error('Failed to update section:', error)
+      toast.error("Failed to update section")
+    }
   }
 
   const handleUpdateChapter = async (
@@ -245,16 +284,22 @@ export function CourseManager({ courseId }: { courseId: string }) {
   ) => {
     if (!course) return
     const targetId = course.mongoId || course.id
-    await apiClient.patch(`/cours/${targetId}/sections/${sectionId}/chapitres/${chapterId}`, {
-      titre: payload.title,
-      description: payload.content,
-      videoUrl: payload.videoUrl || undefined,
-      duree: payload.duration ? toHHMM(Number(payload.duration)) : undefined,
-      isPaid: !Boolean(payload.isPreview),
-      prix: payload.isPreview ? 0 : payload.price === "" ? 0 : Number(payload.price),
-      notes: payload.notes || undefined,
-    })
-    await fetchCourse()
+    try {
+      await coursesApi.updateChapter(targetId, sectionId, chapterId, {
+        titre: payload.title,
+        description: payload.content,
+        videoUrl: payload.videoUrl || undefined,
+        duree: payload.duration ? toHHMM(Number(payload.duration)) : undefined,
+        isPaid: !Boolean(payload.isPreview),
+        prix: payload.isPreview ? 0 : payload.price === "" ? 0 : Number(payload.price),
+        notes: payload.notes || undefined,
+      })
+      await fetchCourse()
+      toast.success("Chapter updated successfully")
+    } catch (error) {
+      console.error('Failed to update chapter:', error)
+      toast.error("Failed to update chapter")
+    }
   }
 
   const toHHMM = (minutesValue: number): string => {
@@ -269,16 +314,23 @@ export function CourseManager({ courseId }: { courseId: string }) {
     const targetId = course.mongoId || course.id
     const section = course.sections?.find((s) => s.id === sectionId)
     const nextOrder = (section?.chapters?.length || 0) + 1
-    await apiClient.post(`/cours/${targetId}/sections/${sectionId}/add-chapitre`, {
-      titre: payload.title,
-      description: payload.content,
-      videoUrl: payload.videoUrl || undefined,
-      isPaid: !Boolean(payload.isPreview),
-      ordre: nextOrder,
-      duree: payload.duration ? toHHMM(Number(payload.duration)) : undefined,
-      notes: payload.notes || undefined,
-    })
-    await fetchCourse()
+    
+    try {
+      await coursesApi.createChapter(targetId, sectionId, {
+        title: payload.title,
+        content: payload.content,
+        videoUrl: payload.videoUrl || undefined,
+        isFree: Boolean(payload.isPreview),
+        order: nextOrder,
+        duration: payload.duration ? Number(payload.duration) : 0,
+        notes: payload.notes || undefined,
+      })
+      await fetchCourse()
+      toast.success("Chapter created successfully")
+    } catch (error) {
+      console.error('Failed to create chapter:', error)
+      toast.error("Failed to create chapter")
+    }
   }
 
   if (loading) {

@@ -12,8 +12,8 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Zap, Calendar, Clock, DollarSign, Trophy, CheckCircle, Users, Target } from "lucide-react"
 import { formatDate } from "@/lib/utils"
-import { tokenStorage } from "@/lib/token-storage"
 import { useState, useMemo } from "react"
+import { challengesApi } from "@/lib/api/challenges.api"
 
 interface ChallengeSelectionModalProps {
   challenge: any
@@ -24,87 +24,36 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
   const { toast } = useToast()
   
   const [promoCode, setPromoCode] = useState("")
-  const [paymentProof, setPaymentProof] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!challenge) return null
 
-  const depositAmount = challenge?.depositAmount ?? 0
-  const completionReward = challenge?.completionReward ?? 0
+  const paymentAmount = challenge?.depositAmount ?? challenge?.pricing?.depositAmount ?? challenge?.participationFee ?? challenge?.pricing?.participationFee ?? challenge?.pricing?.price ?? 0
+  const completionReward = challenge?.completionReward ?? challenge?.pricing?.completionReward ?? 0
 
   const handleJoin = async () => {
     setIsSubmitting(true)
     try {
-      const accessToken = tokenStorage.getAccessToken()
-      if (!accessToken) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to join this challenge.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      if (depositAmount > 0 && !paymentProof) {
-        toast({
-          title: "Payment proof required",
-          description: "Please upload a payment proof to submit your request.",
-          variant: "destructive",
-        })
-        return
-      }
-
       const challengeId = String(challenge.id || challenge._id)
       console.log('[Join Challenge] Challenge ID:', challengeId)
-      console.log('[Join Challenge] Deposit Amount:', depositAmount)
-      console.log('[Join Challenge] Has Payment Proof:', !!paymentProof)
+      console.log('[Join Challenge] Deposit Amount:', paymentAmount)
 
-      const promoQuery = promoCode.trim()
-        ? `?promoCode=${encodeURIComponent(promoCode.trim())}`
-        : ""
-
-      const formData = new FormData()
-      formData.append('challengeId', challengeId)
-      if (paymentProof) {
-        formData.append('proof', paymentProof)
+      if (!paymentAmount || paymentAmount <= 0) {
+        const response = await challengesApi.join(challengeId)
+        toast({
+          title: "Success!",
+          description: response?.message || "You have joined the challenge successfully!",
+        })
+        window.location.reload()
+        return
       }
 
-      const initResponse = await fetch(`/api/payments/manual/init/challenge${promoQuery}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        credentials: 'include',
-        body: formData,
-      })
-
-      const initData = await initResponse.json().catch(() => null)
-      console.log('[Join Challenge] Response:', initResponse.status, initData)
-      
-      if (!initResponse.ok) {
-        // Check if user is already participating
-        const errorMessage = initData?.error?.error?.message || initData?.message || initData?.error || 'Failed to join challenge'
-        if (errorMessage.includes('already participating')) {
-          toast({
-            title: "Already Joined!",
-            description: "You are already participating in this challenge. Redirecting...",
-          })
-          // Reload to show updated state
-          window.location.reload()
-          return
-        }
-        throw new Error(errorMessage)
+      const result = await (challengesApi as any).initStripePayment(challengeId, promoCode.trim() || undefined)
+      const checkoutUrl = result?.data?.checkoutUrl || result?.checkoutUrl
+      if (!checkoutUrl) {
+        throw new Error('Unable to start checkout. Please try again.')
       }
-
-      toast({
-        title: 'Success!',
-        description: initData?.message || (depositAmount > 0 
-          ? 'Payment proof submitted! Please wait for verification.' 
-          : 'You have joined the challenge successfully!'),
-      })
-
-      // Reload the page to show updated participation status
-      window.location.reload()
+      window.location.href = checkoutUrl
     } catch (error: any) {
       console.error('[Join Challenge] Error:', error)
       toast({
@@ -145,7 +94,7 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
             <div className="flex flex-col items-center gap-1 p-2 rounded-lg bg-muted/50">
               <DollarSign className="h-4 w-4 text-challenges-500" />
               <p className="text-[10px] text-muted-foreground">Deposit</p>
-              <p className="text-xs font-semibold">{depositAmount > 0 ? `$${depositAmount}` : 'Free'}</p>
+              <p className="text-xs font-semibold">{paymentAmount > 0 ? `$${paymentAmount}` : 'Free'}</p>
             </div>
             <div className="flex flex-col items-center gap-1 p-2 rounded-lg bg-muted/50">
               <Trophy className="h-4 w-4 text-yellow-500" />
@@ -176,10 +125,10 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
           </div>
 
           {/* Payment Information */}
-          {depositAmount > 0 && (
+          {paymentAmount > 0 && (
             <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200">
               <p className="text-[11px] text-amber-800">
-                Pay <strong>${depositAmount}</strong> to join. Complete to get <strong>${completionReward}</strong> back!
+                Pay <strong>${paymentAmount}</strong> to join. Complete to get <strong>${completionReward}</strong> back!
               </p>
             </div>
           )}
@@ -198,19 +147,6 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
               />
             </div>
 
-            {depositAmount > 0 && (
-              <div className="space-y-1">
-                <Label htmlFor="paymentProof" className="text-xs">Payment proof *</Label>
-                <Input
-                  id="paymentProof"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setPaymentProof(e.target.files?.[0] || null)}
-                  disabled={isSubmitting}
-                  className="h-8 text-xs"
-                />
-              </div>
-            )}
           </div>
 
           {/* Action Buttons */}
@@ -222,8 +158,8 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
             >
               {isSubmitting 
                 ? "Processing..." 
-                : depositAmount > 0 
-                  ? `Pay $${depositAmount} & Join` 
+                : paymentAmount > 0 
+                  ? `Proceed to payment`
                   : "Join Free"
               }
             </Button>

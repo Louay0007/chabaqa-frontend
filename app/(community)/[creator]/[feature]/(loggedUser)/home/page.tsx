@@ -3,25 +3,17 @@
 import { useState, useEffect, useRef } from "react"
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  Heart,
   MessageSquare,
-  Share,
-  Bookmark,
-  MoreHorizontal,
   ImageIcon,
   Video,
   LinkIcon,
   Send,
   Smile,
-  Pencil,
-  Trash2,
-  Check,
   X,
   ChevronDown,
   ChevronUp,
@@ -29,27 +21,20 @@ import {
   BookOpen,
   Zap,
   Trophy,
-  Users,
   TrendingUp,
   Loader2,
   AlertCircle,
   Star,
 } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
-import Image from "next/image"
 import { communityHomeApi, type CommunityHomeData } from "@/lib/api/community-home.api"
 import { postsApi } from "@/lib/api/posts.api"
-import type { Post, Challenge, Course, User, PostLink, PostComment } from "@/lib/api/types"
-import { resolveImageUrl } from "@/lib/hooks/useUser"
-
-interface PostWithInteractions extends Post {
-  isBookmarked?: boolean;
-}
+import type { Post, PostLink } from "@/lib/api/types"
+import { PostCard } from "@/app/(community)/components/post-card"
 
 export default function CommunityDashboard({ params }: { params: Promise<{ creator?: string; feature: string }> }) {
   const resolvedParams = React.use(params)
-  const { creator, feature } = resolvedParams
+  const { feature } = resolvedParams
 
   // State management
   const [loading, setLoading] = useState(true)
@@ -58,18 +43,10 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   const [newPost, setNewPost] = useState("")
   const [isCreatingPost, setIsCreatingPost] = useState(false)
   const [bookmarkedPosts, setBookmarkedPosts] = useState<Set<string>>(new Set())
-  const [postsPage, setPostsPage] = useState(1)
-  const [likingPosts, setLikingPosts] = useState<Set<string>>(new Set())
-  const [sharingPosts, setSharingPosts] = useState<Set<string>>(new Set())
-  const [openComments, setOpenComments] = useState<Set<string>>(new Set())
-  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({})
-  const [commentSubmitting, setCommentSubmitting] = useState<Set<string>>(new Set())
-  const [editingComment, setEditingComment] = useState<{ postId: string; commentId: string } | null>(null)
-  const [editingDraft, setEditingDraft] = useState<string>("")
+  const [postsPage] = useState(1)
   const [links, setLinks] = useState<PostLink[]>([])
   const [linkUrl, setLinkUrl] = useState<string>("")
   const [linkTitle, setLinkTitle] = useState<string>("")
-  const [commentsByPost, setCommentsByPost] = useState<Record<string, PostComment[]>>({})
   const [showLinks, setShowLinks] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
 
@@ -129,23 +106,6 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
     fetchData()
   }, [feature, postsPage])
 
-  // Seed comments map from loaded posts
-  useEffect(() => {
-    if (!data?.posts) return
-    setCommentsByPost((prev) => {
-      const next = { ...prev }
-      data.posts.forEach((post) => {
-        if (!next[post.id] && post.comments) {
-          next[post.id] = (post.comments as PostComment[]).map((c) => ({
-            ...c,
-            userAvatar: resolveImageUrl(c.userAvatar) || c.userAvatar,
-          }))
-        }
-      })
-      return next
-    })
-  }, [data?.posts])
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -175,114 +135,6 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   // Use /[creator_name]/[feature] route structure for all navigation
   const basePath = `/${community.creator.name}/${feature}`
 
-  const handleLike = async (postId: string, isCurrentlyLiked: boolean) => {
-    // Prevent multiple clicks on the same post
-    if (likingPosts.has(postId)) {
-      return
-    }
-
-    try {
-      // Mark this post as being liked
-      setLikingPosts(prev => new Set(prev).add(postId))
-
-      const response = isCurrentlyLiked
-        ? await postsApi.unlike(postId)
-        : await postsApi.like(postId)
-
-      const stats = response.data
-
-      // Update post with backend truth
-      setData(prevData => {
-        if (!prevData) return prevData
-        return {
-          ...prevData,
-          posts: prevData.posts.map(post => {
-            if (post.id === postId) {
-              return {
-                ...post,
-                likesCount: stats.totalLikes,
-                commentsCount: stats.totalComments,
-                shareCount: stats.totalShares,
-                isLikedByUser: stats.isLikedByUser,
-                isSharedByUser: stats.isSharedByUser,
-              }
-            }
-            return post
-          })
-        }
-      })
-    } catch (error: any) {
-      console.error('Error toggling like:', error)
-
-      // No state change because we rely on server truth; could add toast
-      setData(prevData => {
-        if (!prevData) return prevData
-
-        return {
-          ...prevData,
-
-          posts: prevData.posts.map(post => {
-            if (post.id === postId) {
-              return { ...post }
-            }
-            return post
-          })
-        }
-      })
-
-      // Show error message
-      alert(error.message || 'Failed to update like')
-    } finally {
-      // Remove from liking set
-      setLikingPosts(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(postId)
-        return newSet
-      })
-    }
-  }
-
-  const handleShare = async (postId: string, isAlreadyShared?: boolean) => {
-    if (sharingPosts.has(postId) || isAlreadyShared) {
-      return
-    }
-
-    try {
-      setSharingPosts(prev => new Set(prev).add(postId))
-      const response = await postsApi.share(postId)
-      const stats = response.data
-
-      setData(prevData => {
-        if (!prevData) return prevData
-        return {
-          ...prevData,
-          posts: prevData.posts.map(post => {
-            if (post.id === postId) {
-              return {
-                ...post,
-                likesCount: stats.totalLikes,
-                commentsCount: stats.totalComments,
-                shareCount: stats.totalShares,
-                isSharedByUser: stats.isSharedByUser,
-                isLikedByUser: stats.isLikedByUser,
-              }
-            }
-            return post
-          })
-        }
-      })
-    } catch (error: any) {
-      console.error('Error sharing post:', error)
-      alert(error.message || 'Failed to share post')
-    } finally {
-      setSharingPosts(prev => {
-        const next = new Set(prev)
-        next.delete(postId)
-        return next
-      })
-    }
-  }
-
   const handleBookmark = (postId: string) => {
     // For now, bookmark is local only (no API endpoint yet)
     setBookmarkedPosts(prev => {
@@ -295,6 +147,34 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
       }
       return newSet
     })
+  }
+
+  const handlePostUpdate = (updatedPost: Post) => {
+    setData(prevData => {
+      if (!prevData) return prevData
+      return {
+        ...prevData,
+        posts: prevData.posts.map(p => p.id === updatedPost.id ? updatedPost : p)
+      }
+    })
+  }
+  
+  const handlePostDelete = async (postId: string) => {
+    if (!confirm("Are you sure you want to delete this post?")) return;
+    
+    try {
+      await postsApi.delete(postId)
+      setData(prevData => {
+        if (!prevData) return prevData
+        return {
+          ...prevData,
+          posts: prevData.posts.filter(p => p.id !== postId)
+        }
+      })
+    } catch (error: any) {
+      console.error('Error deleting post:', error)
+      alert(error.message || 'Failed to delete post')
+    }
   }
 
   const handleCreatePost = async () => {
@@ -399,171 +279,6 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
 
   const removeVideo = (index: number) => {
     setUploadedVideos(prev => prev.filter((_, i) => i !== index))
-  }
-
-  const formatTimeAgo = (dateString: string | Date) => {
-    const date = typeof dateString === 'string' ? new Date(dateString) : dateString
-    const now = new Date()
-    const diffInMs = now.getTime() - date.getTime()
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60))
-    const diffInDays = Math.floor(diffInHours / 24)
-
-    if (diffInHours < 1) return "Just now"
-    if (diffInHours < 24) return `${diffInHours}h ago`
-    if (diffInDays < 7) return `${diffInDays}d ago`
-    return date.toLocaleDateString()
-  }
-
-  // Transform posts to include interaction state
-  const postsWithInteractions: PostWithInteractions[] = posts.map(post => ({
-    ...post,
-    isBookmarked: bookmarkedPosts.has(post.id),
-    shareCount: post.shareCount || 0,
-    isSharedByUser: post.isSharedByUser || false,
-  }))
-
-  const getCommentsForPost = (postId: string) => commentsByPost[postId] || []
-
-  const normalizeComments = (items: PostComment[]) =>
-    (items || []).map((c) => ({
-      ...c,
-      userAvatar: resolveImageUrl(c.userAvatar) || c.userAvatar,
-    }))
-
-  const handleToggleComments = async (postId: string) => {
-
-    const next = new Set(openComments)
-    if (next.has(postId)) {
-      next.delete(postId)
-      setOpenComments(next)
-      return
-    }
-
-    next.add(postId)
-    setOpenComments(next)
-
-    // Fetch latest comments when opening
-    try {
-      const response = await postsApi.getComments(postId, { page: 1, limit: 50 })
-      const comments = response.data || []
-      setCommentsByPost((prev) => ({ ...prev, [postId]: normalizeComments(comments as PostComment[]) }))
-      // Also update commentsCount on the post to stay in sync with backend
-      setData((prevData) => {
-        if (!prevData) return prevData
-
-        return {
-          ...prevData,
-          posts: prevData.posts.map((p) =>
-            p.id === postId ? { ...p, commentsCount: comments.length } : p
-          ),
-        }
-      })
-    } catch (error) {
-      console.error('Error loading comments:', error)
-    }
-  }
-
-  const handleAddComment = async (postId: string) => {
-    const draft = commentDrafts[postId]?.trim()
-    if (!draft) return
-
-    setCommentSubmitting((prev) => new Set(prev).add(postId))
-    try {
-      const response = await postsApi.createComment(postId, { content: draft })
-      const newComment = {
-        ...(response.data as PostComment),
-        userAvatar: resolveImageUrl((response.data as PostComment)?.userAvatar) || (response.data as PostComment)?.userAvatar,
-      }
-
-      setCommentsByPost((prev) => ({
-        ...prev,
-        [postId]: [...(prev[postId] || []), newComment],
-      }))
-
-      setCommentDrafts((prev) => ({ ...prev, [postId]: "" }))
-
-      // Update counts
-      setData((prevData) => {
-        if (!prevData) return prevData
-        return {
-          ...prevData,
-          posts: prevData.posts.map((p) =>
-            p.id === postId ? { ...p, commentsCount: (p.commentsCount || 0) + 1 } : p
-          ),
-        }
-      })
-    } catch (error: any) {
-      console.error('Error adding comment:', error)
-      alert(error.message || 'Failed to add comment')
-    } finally {
-      setCommentSubmitting((prev) => {
-        const next = new Set(prev)
-        next.delete(postId)
-        return next
-      })
-    }
-  }
-
-  const handleDeleteComment = async (postId: string, commentId: string) => {
-    setCommentSubmitting((prev) => new Set(prev).add(commentId))
-    try {
-      await postsApi.deleteComment(postId, commentId)
-      setCommentsByPost((prev) => ({
-        ...prev,
-        [postId]: (prev[postId] || []).filter((c) => c.id !== commentId),
-      }))
-      setData((prevData) => {
-        if (!prevData) return prevData
-        return {
-          ...prevData,
-          posts: prevData.posts.map((p) =>
-            p.id === postId ? { ...p, commentsCount: Math.max((p.commentsCount || 1) - 1, 0) } : p
-          ),
-        }
-      })
-    } catch (error: any) {
-      console.error('Error deleting comment:', error)
-      alert(error.message || 'Failed to delete comment')
-    } finally {
-      setCommentSubmitting((prev) => {
-        const next = new Set(prev)
-        next.delete(commentId)
-        return next
-      })
-    }
-  }
-
-  const handleStartEditComment = (postId: string, comment: PostComment) => {
-    setEditingComment({ postId, commentId: comment.id })
-    setEditingDraft(comment.content)
-  }
-
-  const handleUpdateComment = async () => {
-    if (!editingComment) return
-    const { postId, commentId } = editingComment
-    const draft = editingDraft.trim()
-    if (!draft) return
-
-    setCommentSubmitting((prev) => new Set(prev).add(commentId))
-    try {
-      const response = await postsApi.updateComment(postId, commentId, { content: draft })
-      const updated = response.data
-      setCommentsByPost((prev) => ({
-        ...prev,
-        [postId]: (prev[postId] || []).map((c) => (c.id === commentId ? updated : c)),
-      }))
-      setEditingComment(null)
-      setEditingDraft("")
-    } catch (error: any) {
-      console.error('Error updating comment:', error)
-      alert(error.message || 'Failed to update comment')
-    } finally {
-      setCommentSubmitting((prev) => {
-        const next = new Set(prev)
-        next.delete(commentId)
-        return next
-      })
-    }
   }
 
   const handleAddLink = () => {
@@ -798,7 +513,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
             <div className="lg:col-span-3 space-y-6">
               {/* Posts Feed */}
               <div className="space-y-6">
-                {postsWithInteractions.length === 0 ? (
+                {posts.length === 0 ? (
                   <Card className="border-0 shadow-sm bg-white">
                     <CardContent className="p-8 text-center">
                       <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -812,303 +527,16 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                     </CardContent>
                   </Card>
                 ) : (
-                  postsWithInteractions.map((post) => (
-                    <Card key={post.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
-                      <CardContent className="p-4 sm:p-6">
-                        {/* Post Header */}
-                        <div className="flex items-start justify-between mb-3 sm:mb-4">
-                          <div className="flex items-center space-x-2 sm:space-x-3">
-                            <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                              <AvatarImage src={post.author.avatar || "/placeholder.svg?height=48&width=48"} />
-                              <AvatarFallback>
-                                {(post.author.username || post.author.firstName || 'U')
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")
-                                  .toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <h4 className="font-semibold text-sm sm:text-base">
-                                {post.author.username || post.author.firstName || 'Anonymous'}
-                              </h4>
-                              <p className="text-xs sm:text-sm text-muted-foreground">
-                                {formatTimeAgo(post.createdAt)} • {post.author.role}
-                              </p>
-                            </div>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-8 sm:w-8">
-                                <MoreHorizontal className="h-3 w-3 sm:h-4 sm:w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>Save post</DropdownMenuItem>
-                              <DropdownMenuItem>Hide post</DropdownMenuItem>
-                              <DropdownMenuItem>Report post</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-
-                        {/* Post Content */}
-                        <div className="mb-3 sm:mb-4">
-                          {post.title && (
-                            <h3 className="font-semibold text-base sm:text-lg mb-2">{post.title}</h3>
-                          )}
-                          <p className="text-gray-800 leading-relaxed text-sm sm:text-base whitespace-pre-wrap">
-                            {post.content}
-                          </p>
-
-                          {/* Tags */}
-                          {post.tags && post.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-2 sm:mt-3">
-                              {post.tags.map((tag) => (
-                                <Badge key={tag} variant="secondary" className="text-xs">
-                                  #{tag}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Post Images */}
-                        {post.images && post.images.length > 0 && (
-                          <div className="mb-3 sm:mb-4">
-                            <div className={`grid gap-2 ${post.images.length === 1
-                              ? 'grid-cols-1'
-                              : post.images.length === 2
-                                ? 'grid-cols-2'
-                                : post.images.length === 3
-                                  ? 'grid-cols-3'
-                                  : 'grid-cols-2'
-                              }`}>
-                              {post.images.map((image, index) => (
-                                <div key={index} className="relative rounded-lg overflow-hidden bg-gray-100">
-                                  <img
-                                    src={image || "/placeholder.svg"}
-                                    alt={`Post image ${index + 1}`}
-                                    className="w-full h-full object-contain rounded-lg"
-                                    style={{ maxHeight: (post.images?.length ?? 0) === 1 ? '500px' : '300px' }}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Post Videos */}
-                        {post.videos && post.videos.length > 0 && (
-                          <div className="mb-3 sm:mb-4">
-                            <div className="grid grid-cols-1 gap-2">
-                              {post.videos.map((video, index) => (
-                                <div key={index} className="relative rounded-lg overflow-hidden">
-                                  <video
-                                    src={video}
-                                    controls
-                                    className="w-full h-auto max-h-96 rounded-lg"
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Post Links */}
-                        {post.links && post.links.length > 0 && (
-                          <div className="mb-3 sm:mb-4 space-y-2">
-                            {post.links.map((link, index) => (
-                              <a
-                                key={index}
-                                href={link.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block p-3 border rounded-lg hover:bg-gray-50 transition-colors"
-                              >
-                                <div className="flex items-center gap-3">
-                                  {link.thumbnail && (
-                                    <img src={link.thumbnail} alt="" className="w-12 h-12 object-cover rounded" />
-                                  )}
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-sm truncate">{link.title || link.url}</p>
-                                    {link.description && (
-                                      <p className="text-xs text-muted-foreground truncate">{link.description}</p>
-                                    )}
-                                    <p className="text-xs text-blue-500 truncate">{new URL(link.url).hostname}</p>
-                                  </div>
-                                </div>
-                              </a>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Post Actions */}
-                        <div className="flex items-center justify-between pt-3 sm:pt-4 border-t">
-                          <div className="flex items-center space-x-4 sm:space-x-6">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleLike(post.id, post.isLikedByUser || false)}
-                              disabled={likingPosts.has(post.id)}
-                              className={`${post.isLikedByUser ? "text-red-500" : "text-muted-foreground"} hover:text-red-500 text-xs sm:text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
-                            >
-                              <Heart className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 transition-all ${post.isLikedByUser ? "fill-red-500 text-red-500" : ""}`} />
-                              {post.likesCount}
-                            </Button>
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleToggleComments(post.id)}
-                              className="text-muted-foreground hover:text-blue-500 text-xs sm:text-sm"
-                            >
-                              <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                              {post.commentsCount}
-                            </Button>
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleShare(post.id, post.isSharedByUser)}
-                              disabled={sharingPosts.has(post.id) || post.isSharedByUser}
-                              className={`${post.isSharedByUser ? "text-green-600" : "text-muted-foreground"} hover:text-green-500 text-xs sm:text-sm disabled:opacity-50`}
-                            >
-                              <Share className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                              {post.shareCount || 0}
-                            </Button>
-                          </div>
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleBookmark(post.id)}
-                            className={`${post.isBookmarked ? "text-yellow-500" : "text-muted-foreground"} hover:text-yellow-500 text-xs sm:text-sm`}
-                          >
-                            <Bookmark className={`h-3 w-3 sm:h-4 sm:w-4 ${post.isBookmarked ? "fill-current" : ""}`} />
-                          </Button>
-                        </div>
-
-                        {/* Comments */}
-                        {openComments.has(post.id) && (
-                          <div className="mt-4 pt-4 border-t space-y-4">
-                            <div className="flex items-start gap-2">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={currentUser?.avatar || "/placeholder.svg?height=32&width=32"} />
-                                <AvatarFallback>
-                                  {(currentUser?.username || currentUser?.firstName || 'U')
-                                    .split(' ')
-                                    .map((n: string) => n[0])
-                                    .join('')
-                                    .toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-
-                              <div className="flex-1 space-y-2">
-                                <Textarea
-                                  value={commentDrafts[post.id] || ''}
-                                  onChange={(e) => setCommentDrafts((prev) => ({ ...prev, [post.id]: e.target.value }))}
-                                  placeholder="Write a comment..."
-                                  className="min-h-[60px] bg-gray-50 border-0 focus-visible:ring-2"
-                                />
-                                <div className="flex justify-end">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleAddComment(post.id)}
-                                    disabled={commentSubmitting.has(post.id) || !(commentDrafts[post.id] || '').trim()}
-                                  >
-                                    Post Comment
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="space-y-3">
-                              {getCommentsForPost(post.id).length === 0 ? (
-                                <div className="text-sm text-muted-foreground">No comments yet.</div>
-                              ) : (
-                                getCommentsForPost(post.id).map((c) => {
-                                  const isEditing = editingComment?.postId === post.id && editingComment?.commentId === c.id
-                                  const canManage = c.userId === (currentUser?.id || (currentUser as any)?._id)
-
-                                  return (
-                                    <div key={c.id} className="flex items-start gap-3">
-                                      <Avatar className="h-8 w-8">
-                                        <AvatarImage src={c.userAvatar || "/placeholder.svg?height=32&width=32"} />
-                                        <AvatarFallback>
-                                          {(c.userName || 'U')
-                                            .split(' ')
-                                            .map((n: string) => n[0])
-                                            .join('')
-                                            .toUpperCase()}
-                                        </AvatarFallback>
-                                      </Avatar>
-
-                                      <div className="flex-1">
-                                        <div className="rounded-2xl bg-gray-50 px-4 py-3">
-                                          <div className="flex items-center justify-between gap-2">
-                                            <div className="text-sm font-medium truncate">{c.userName}</div>
-                                            <div className="text-xs text-muted-foreground">{formatTimeAgo(c.createdAt)}</div>
-                                          </div>
-
-                                          {!isEditing ? (
-                                            <div className="text-sm whitespace-pre-wrap mt-1">{c.content}</div>
-                                          ) : (
-                                            <div className="mt-2 space-y-2">
-                                              <Textarea
-                                                value={editingDraft}
-                                                onChange={(e) => setEditingDraft(e.target.value)}
-                                                className="min-h-[60px] bg-white"
-                                              />
-                                              <div className="flex justify-end gap-2">
-                                                <Button
-                                                  size="sm"
-                                                  variant="secondary"
-                                                  onClick={() => {
-                                                    setEditingComment(null)
-                                                    setEditingDraft('')
-                                                  }}
-                                                >
-                                                  <X className="h-4 w-4 mr-1" />
-                                                  Cancel
-                                                </Button>
-                                                <Button
-                                                  size="sm"
-                                                  onClick={handleUpdateComment}
-                                                  disabled={commentSubmitting.has(c.id) || !editingDraft.trim()}
-                                                >
-                                                  <Check className="h-4 w-4 mr-1" />
-                                                  Save
-                                                </Button>
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        {canManage && !isEditing && (
-                                          <div className="flex justify-end gap-2 mt-1">
-                                            <Button size="sm" variant="ghost" onClick={() => handleStartEditComment(post.id, c)}>
-                                              <Pencil className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                              size="sm"
-                                              variant="ghost"
-                                              onClick={() => handleDeleteComment(post.id, c.id)}
-                                              disabled={commentSubmitting.has(c.id)}
-                                            >
-                                              <Trash2 className="h-4 w-4 text-red-600" />
-                                            </Button>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )
-                                })
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                  posts.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      currentUser={currentUser}
+                      isBookmarked={bookmarkedPosts.has(post.id)}
+                      onPostUpdate={handlePostUpdate}
+                      onDelete={handlePostDelete}
+                      onBookmark={handleBookmark}
+                    />
                   ))
                 )}
               </div>

@@ -1,9 +1,8 @@
-import { useSWRConfig } from 'swr'
-import useSWR from 'swr'
+import useSWR, { useSWRConfig } from 'swr'
 // If default import continues to fail, use named export or check build config
 import { authenticatedFetch } from '@/lib/authenticated-fetch'
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
+const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.170:3000/api'
 const apiOrigin = apiBase.replace(/\/api$/, '')
 
 export function resolveImageUrl(value?: string): string | undefined {

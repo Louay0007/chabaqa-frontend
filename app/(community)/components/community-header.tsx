@@ -35,7 +35,8 @@ import {
   TrendingUp,
   ShoppingBag,
   Sparkles,
-  Star
+  Star,
+  LayoutDashboard
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { communitiesApi } from "@/lib/api/communities.api"
@@ -493,6 +494,19 @@ return (
 
               {/* User Menu */}
               <div className="space-y-2 pt-4 border-t">
+                {currentUser?.role === 'creator' && (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    asChild
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Link href="/creator/dashboard">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      Dashboard
+                    </Link>
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   className="w-full justify-start"
@@ -564,6 +578,14 @@ return (
                 <div className="text-sm text-muted-foreground">{currentUser?.email || ""}</div>
               </div>
               <DropdownMenuSeparator />
+              {currentUser?.role === 'creator' && (
+                <DropdownMenuItem asChild>
+                  <Link href="/creator/dashboard">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Dashboard
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
                 <Link href="/">
                   <Home className="mr-2 h-4 w-4" />

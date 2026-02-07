@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { coursesApi } from "@/lib/api/courses.api"
-import { tokenStorage } from "@/lib/token-storage"
 
 type EnrollCourseDialogProps = {
   open: boolean
@@ -39,8 +38,12 @@ export default function EnrollCourseDialog({
 }: EnrollCourseDialogProps) {
   const { toast } = useToast()
   const [promoCode, setPromoCode] = useState("")
-  const [paymentProof, setPaymentProof] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const resolvedCourseId = useMemo(() => {
+    if (!course) return ""
+    return String(course.mongoId || course.id || course._id || "")
+  }, [course])
 
   const priceLabel = useMemo(() => {
     if (!course) return ""
@@ -58,65 +61,30 @@ export default function EnrollCourseDialog({
       return
     }
 
+    if (!resolvedCourseId) {
+      toast({
+        title: "Enrollment failed",
+        description: "Missing course id. Please refresh the page and try again.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsSubmitting(true)
     try {
-      // Paid course: submit manual payment proof for creator verification
+      // Paid course: redirect to Stripe Link checkout
       if (isPaidCourse) {
-        const accessToken = tokenStorage.getAccessToken()
-        if (!accessToken) {
-          toast({
-            title: "Authentication required",
-            description: "Please sign in to purchase this course.",
-            variant: "destructive",
-          })
-          return
+        const result = await (coursesApi as any).initStripePayment(resolvedCourseId, promoCode.trim() || undefined)
+        const checkoutUrl = result?.data?.checkoutUrl || result?.checkoutUrl
+        if (!checkoutUrl) {
+          throw new Error("Unable to start checkout. Please try again.")
         }
-
-        if (!paymentProof) {
-          toast({
-            title: "Payment proof required",
-            description: "Please upload a payment proof to submit your request.",
-            variant: "destructive",
-          })
-          return
-        }
-
-        const promoQuery = promoCode.trim()
-          ? `?promoCode=${encodeURIComponent(promoCode.trim())}`
-          : ""
-
-        const formData = new FormData()
-        formData.append('courseId', String(course.id))
-        formData.append('proof', paymentProof)
-
-        const initResponse = await fetch(`/api/payments/manual/init/course${promoQuery}`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          credentials: 'include',
-          body: formData,
-        })
-
-        const initData = await initResponse.json().catch(() => null)
-        if (!initResponse.ok) {
-          const message = initData?.message || initData?.error || 'Failed to submit payment proof'
-          throw new Error(message)
-        }
-
-        toast({
-          title: 'Payment submitted',
-          description: initData?.message || 'Your payment proof was submitted. Please wait for creator verification.',
-        })
-
-        onOpenChange(false)
-        setPromoCode("")
-        setPaymentProof(null)
+        window.location.href = checkoutUrl
         return
       }
 
       // Free course: enroll directly
-      const response = await coursesApi.enroll(String(course.id), promoCode.trim() || undefined)
+      const response = await coursesApi.enroll(resolvedCourseId, promoCode.trim() || undefined)
       onEnrolled(response.enrollment)
 
       toast({
@@ -146,7 +114,7 @@ export default function EnrollCourseDialog({
             {isEnrolled
               ? "You are already enrolled in this course."
               : isPaidCourse
-                ? "Upload a payment proof to submit your manual payment request. Access will be granted after creator verification."
+                ? "You will be redirected to Stripe to complete your payment securely."
                 : "Confirm enrollment to access this free course."}
           </DialogDescription>
         </DialogHeader>
@@ -168,18 +136,6 @@ export default function EnrollCourseDialog({
             />
           </div>
 
-          {isPaidCourse && (
-            <div className="space-y-2">
-              <Label htmlFor="paymentProof">Payment proof</Label>
-              <Input
-                id="paymentProof"
-                type="file"
-                accept="image/*"
-                onChange={(e) => setPaymentProof(e.target.files?.[0] || null)}
-                disabled={!canEnroll || isSubmitting}
-              />
-            </div>
-          )}
         </div>
 
         <DialogFooter>
@@ -192,7 +148,7 @@ export default function EnrollCourseDialog({
             Cancel
           </Button>
           <Button type="button" onClick={handleConfirm} disabled={!canEnroll || isSubmitting}>
-            {isSubmitting ? "Processing..." : isPaidCourse ? "Submit payment proof" : "Confirm enrollment"}
+            {isSubmitting ? "Processing..." : isPaidCourse ? "Proceed to payment" : "Confirm enrollment"}
           </Button>
         </DialogFooter>
       </DialogContent>
