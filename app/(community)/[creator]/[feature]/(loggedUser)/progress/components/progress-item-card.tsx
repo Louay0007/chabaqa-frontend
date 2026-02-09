@@ -1,11 +1,9 @@
-"use client"
-
 import Link from "next/link"
 import Image from "next/image"
 import { formatDistanceToNow } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import {
   BookOpen,
@@ -24,43 +22,51 @@ import {
   CheckCircle2,
   PlayCircle,
   Clock,
+  ExternalLink,
+  ChevronRight,
+  MapPin,
+  Tag,
+  Star,
 } from "lucide-react"
 import type { ProgressionItem, ProgressionContentType } from "@/lib/api/types"
 import { cn } from "@/lib/utils"
 
 const TYPE_CONFIG: Record<
   ProgressionContentType,
-  { label: string; icon: React.ComponentType<{ className?: string }>; color: string }
+  { label: string; icon: any; color: string; bgColor: string; borderColor: string }
 > = {
-  course: { label: "Course", icon: BookOpen, color: "text-blue-600" },
-  challenge: { label: "Challenge", icon: Flag, color: "text-orange-600" },
-  session: { label: "Session", icon: Users, color: "text-purple-600" },
-  event: { label: "Event", icon: CalendarDays, color: "text-indigo-600" },
-  product: { label: "Product", icon: ShoppingBag, color: "text-pink-600" },
-  post: { label: "Post", icon: MessageSquare, color: "text-green-600" },
-  resource: { label: "Resource", icon: FileText, color: "text-gray-600" },
-  community: { label: "Community", icon: Building2, color: "text-cyan-600" },
-  subscription: { label: "Subscription", icon: Repeat, color: "text-yellow-600" },
+  course: { label: "Course", icon: BookOpen, color: "text-blue-600", bgColor: "bg-blue-50", borderColor: "border-blue-100" },
+  challenge: { label: "Challenge", icon: Flag, color: "text-orange-600", bgColor: "bg-orange-50", borderColor: "border-orange-100" },
+  session: { label: "Session", icon: Users, color: "text-purple-600", bgColor: "bg-purple-50", borderColor: "border-purple-100" },
+  event: { label: "Event", icon: CalendarDays, color: "text-indigo-600", bgColor: "bg-indigo-50", borderColor: "border-indigo-100" },
+  product: { label: "Product", icon: ShoppingBag, color: "text-pink-600", bgColor: "bg-pink-50", borderColor: "border-pink-100" },
+  post: { label: "Post", icon: MessageSquare, color: "text-green-600", bgColor: "bg-green-50", borderColor: "border-green-100" },
+  resource: { label: "Resource", icon: FileText, color: "text-slate-600", bgColor: "bg-slate-50", borderColor: "border-slate-100" },
+  community: { label: "Community", icon: Building2, color: "text-cyan-600", bgColor: "bg-cyan-50", borderColor: "border-cyan-100" },
+  subscription: { label: "Subscription", icon: Repeat, color: "text-yellow-600", bgColor: "bg-yellow-50", borderColor: "border-yellow-100" },
 }
 
 const STATUS_CONFIG: Record<
   ProgressionItem["status"],
-  { label: string; className: string; icon: React.ComponentType<{ className?: string }> }
+  { label: string; className: string; icon: any; glowColor: string }
 > = {
   not_started: {
     label: "Not started",
     className: "bg-slate-100 text-slate-700 border-slate-200",
     icon: PlayCircle,
+    glowColor: "group-hover:shadow-slate-200/50",
   },
   in_progress: {
     label: "In progress",
     className: "bg-amber-100 text-amber-800 border-amber-200",
-    icon: Clock,
+    icon: Timer,
+    glowColor: "group-hover:shadow-amber-200/50",
   },
   completed: {
     label: "Completed",
     className: "bg-emerald-100 text-emerald-700 border-emerald-200",
     icon: CheckCircle2,
+    glowColor: "group-hover:shadow-emerald-200/50",
   },
 }
 
@@ -79,7 +85,7 @@ const formatDateLabel = (value?: unknown) => {
   if (!value) return undefined
   const date = new Date(String(value))
   if (Number.isNaN(date.getTime())) return undefined
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
 }
 
 interface ProgressItemCardProps {
@@ -87,205 +93,182 @@ interface ProgressItemCardProps {
 }
 
 export default function ProgressItemCard({ item }: ProgressItemCardProps) {
-  const config = TYPE_CONFIG[item.contentType] || { label: item.contentType, icon: Layers, color: "text-gray-600" }
+  const config = TYPE_CONFIG[item.contentType] || { label: item.contentType, icon: Layers, color: "text-slate-600", bgColor: "bg-slate-50", borderColor: "border-slate-100" }
   const statusConfig = STATUS_CONFIG[item.status]
   const Icon = config.icon
   const StatusIcon = statusConfig.icon
 
   const metaChips = (() => {
-    const chips: { label: string; value?: string; icon?: React.ComponentType<{ className?: string }> }[] = []
+    const chips: { label: string; value?: string; icon?: any }[] = []
     const meta = (item.meta || {}) as Record<string, any>
 
     switch (item.contentType) {
       case "course":
-        if (meta.level) {
-          chips.push({ label: "Level", value: String(meta.level), icon: BookOpen })
-        }
-        if (meta.category) {
-          chips.push({ label: "Category", value: String(meta.category), icon: Layers })
-        }
-        if (meta.price !== undefined) {
-          chips.push({ label: "Price", value: formatCurrency(meta.price), icon: ShoppingBag })
-        }
+        if (meta.level) chips.push({ label: "Level", value: String(meta.level), icon: Target })
+        if (meta.category) chips.push({ label: "Track", value: String(meta.category), icon: Layers })
         break
       case "challenge":
-        if (meta.difficulty) {
-          chips.push({ label: "Difficulty", value: String(meta.difficulty), icon: Target })
-        }
-        if (meta.startDate) {
-          chips.push({
-            label: "Starts",
-            value: formatDateLabel(meta.startDate),
-            icon: CalendarDays,
-          })
-        }
-        if (typeof meta.participants === "number") {
-          chips.push({
-            label: "Participants",
-            value: String(meta.participants),
-            icon: Users,
-          })
-        }
+        if (meta.difficulty) chips.push({ label: "Difficulty", value: String(meta.difficulty), icon: Star })
+        if (meta.startDate) chips.push({ label: "Begins", value: formatDateLabel(meta.startDate), icon: CalendarDays })
         break
       case "session":
-        if (meta.duration) {
-          chips.push({ label: "Duration", value: `${meta.duration} min`, icon: Timer })
-        }
-        if (meta.category) {
-          chips.push({ label: "Focus", value: String(meta.category), icon: Target })
-        }
-        if (meta.price !== undefined) {
-          chips.push({ label: "Price", value: formatCurrency(meta.price), icon: ShoppingBag })
-        }
+        if (meta.duration) chips.push({ label: "Length", value: `${meta.duration}m`, icon: Clock })
+        if (meta.category) chips.push({ label: "Focus", value: String(meta.category), icon: Target })
         break
       case "event":
-        if (meta.category) {
-          chips.push({ label: "Category", value: String(meta.category), icon: CalendarDays })
-        }
-        if (meta.eventType) {
-          chips.push({ label: "Format", value: String(meta.eventType), icon: Building2 })
-        }
-        if (typeof meta.attendees === "number") {
-          chips.push({
-            label: "Attendees",
-            value: String(meta.attendees),
-            icon: Users,
-          })
-        }
-        break
-      case "product":
-        if (meta.productType) {
-          chips.push({ label: "Type", value: String(meta.productType), icon: ShoppingBag })
-        }
-        if (meta.category) {
-          chips.push({ label: "Category", value: String(meta.category), icon: Layers })
-        }
-        if (meta.price !== undefined) {
-          chips.push({ label: "Price", value: formatCurrency(meta.price), icon: ShoppingBag })
-        }
-        break
-      case "post":
-        if (meta.tags?.length) {
-          chips.push({ label: "Tags", value: (meta.tags as string[]).join(", "), icon: MessageSquare })
-        }
-        if (typeof meta.likes === "number") {
-          chips.push({ label: "Likes", value: String(meta.likes), icon: Heart })
-        }
+        if (meta.eventType) chips.push({ label: "Format", value: String(meta.eventType), icon: Building2 })
+        if (typeof meta.attendees === "number") chips.push({ label: "Joined", value: String(meta.attendees), icon: Users })
         break
       default:
         break
     }
-
     return chips
   })()
 
   return (
-    <Card className="overflow-hidden border border-border/60 shadow-sm transition hover:border-primary/40 hover:shadow-md">
-      <CardHeader className="space-y-3 pb-3">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div className={cn("rounded-xl bg-primary/10 p-3 text-primary flex-shrink-0", config.color)}>
-              <Icon className="h-5 w-5" />
-            </div>
-            <div className="space-y-2 flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className="capitalize text-xs">
-                  {config.label}
-                </Badge>
-                {item.community?.name && (
-                  <Badge variant="secondary" className="text-xs">
-                    {item.community.name}
-                  </Badge>
-                )}
-                <Badge 
-                  variant="outline" 
-                  className={cn("text-xs border", statusConfig.className)}
-                >
-                  <StatusIcon className="h-3 w-3 mr-1" />
-                  {statusConfig.label}
-                </Badge>
-              </div>
-              <CardTitle className="text-lg leading-tight line-clamp-2">{item.title}</CardTitle>
-              {item.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
-              )}
-            </div>
-          </div>
-          {item.thumbnail && (
-            <div className="relative h-20 w-20 overflow-hidden rounded-lg border flex-shrink-0">
+    <Card className={cn(
+      "group relative overflow-hidden border-2 border-border/40 transition-all duration-300 hover:border-primary/30 hover:shadow-xl",
+      statusConfig.glowColor
+    )}>
+      {/* Decorative accent based on content type */}
+      <div className={cn("absolute top-0 left-0 w-1.5 h-full opacity-80", config.color.replace("text", "bg"))} />
+      
+      <CardContent className="p-0">
+        <div className="flex flex-col lg:flex-row">
+          {/* Visual/Icon Section */}
+          <div className="relative w-full lg:w-48 h-48 lg:h-auto shrink-0 bg-slate-50/50">
+            {item.thumbnail ? (
               <Image
                 src={item.thumbnail}
                 alt={item.title}
                 fill
-                className="object-cover"
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
               />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                <Icon className={cn("h-20 w-20", config.color)} />
+              </div>
+            )}
+            <div className="absolute top-3 left-3 flex flex-col gap-2">
+              <Badge className={cn("shadow-sm font-black uppercase text-[10px] tracking-widest border-none px-2.5 py-1", config.bgColor, config.color)}>
+                {config.label}
+              </Badge>
             </div>
-          )}
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4 pt-0">
-        {typeof item.progressPercent === "number" ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Progress</span>
-              <span className="font-medium">{item.progressPercent}%</span>
-            </div>
-            <Progress value={item.progressPercent} className="h-2.5" />
           </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <StatusIcon className={cn("h-4 w-4", statusConfig.className.split(" ")[1])} />
-            <span className="text-sm text-muted-foreground">{statusConfig.label}</span>
-          </div>
-        )}
 
-        {metaChips.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {metaChips.map((chip) => {
-              const ChipIcon = chip.icon
-              return (
-                <span
-                  key={`${chip.label}-${chip.value}`}
-                  className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"
-                >
-                  {ChipIcon && <ChipIcon className="h-3 w-3" />}
-                  <span>{chip.label}</span>
-                  {chip.value && (
-                    <span className="text-foreground font-semibold">· {chip.value}</span>
+          {/* Content Section */}
+          <div className="flex-1 p-6 flex flex-col justify-between min-w-0">
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    {item.community?.name && (
+                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+                        <MapPin className="h-2.5 w-2.5" />
+                        {item.community.name}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-xl font-bold tracking-tight text-foreground leading-tight truncate group-hover:text-primary transition-colors">
+                    {item.title}
+                  </h3>
+                  {item.description && (
+                    <p className="text-sm text-muted-foreground font-medium line-clamp-2 leading-relaxed">
+                      {item.description}
+                    </p>
                   )}
-                </span>
-              )
-            })}
-          </div>
-        )}
+                </div>
+                
+                <Badge variant="outline" className={cn("shrink-0 font-bold border-2 px-3 py-1", statusConfig.className)}>
+                  <StatusIcon className="h-3.5 w-3.5 mr-1.5" />
+                  {statusConfig.label}
+                </Badge>
+              </div>
 
-        <div className="flex flex-col gap-3 border-t pt-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-3 w-3" />
-            <span>
-              {item.status === 'completed' && item.completedAt
-                ? `Completed ${formatDistanceToNow(new Date(item.completedAt), { addSuffix: true })}`
-                : item.lastAccessedAt
-                ? `Updated ${formatDistanceToNow(new Date(item.lastAccessedAt), { addSuffix: true })}`
-                : 'Not started'}
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {item.actions?.view && (
-              <Button variant="outline" size="sm" asChild>
-                <Link href={item.actions.view}>
-                  View
-                </Link>
-              </Button>
-            )}
-            {item.actions?.continue && item.status !== 'completed' && (
-              <Button size="sm" asChild>
-                <Link href={item.actions.continue}>
-                  {item.status === 'not_started' ? 'Start' : 'Continue'}
-                </Link>
-              </Button>
-            )}
+              {/* Progress Bar (if applicable) */}
+              {typeof item.progressPercent === "number" && (
+                <div className="space-y-2 py-1">
+                  <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest">
+                    <span className="text-muted-foreground/70">Completion Progress</span>
+                    <span className={cn("font-bold", item.progressPercent === 100 ? "text-emerald-600" : "text-primary")}>
+                      {item.progressPercent}%
+                    </span>
+                  </div>
+                  <div className="relative h-2.5 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
+                    <div 
+                      className={cn(
+                        "absolute top-0 left-0 h-full transition-all duration-1000 ease-in-out rounded-full shadow-sm z-10",
+                        item.progressPercent === 100 ? "bg-emerald-500" : "bg-primary"
+                      )}
+                      style={{ width: `${item.progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Metadata Chips */}
+              {metaChips.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {metaChips.map((chip) => {
+                    const ChipIcon = chip.icon
+                    return (
+                      <div
+                        key={`${chip.label}-${chip.value}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 border border-slate-200/60 text-[11px] font-bold text-slate-600"
+                      >
+                        {ChipIcon && <ChipIcon className="h-3 w-3 text-slate-400" />}
+                        <span className="text-slate-400 font-medium uppercase tracking-tighter">{chip.label}:</span>
+                        <span className="text-slate-900">{chip.value}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
+              <div className="flex items-center gap-4 text-[11px] font-bold text-muted-foreground/60 uppercase tracking-widest">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>
+                    {item.status === 'completed' && item.completedAt
+                      ? `Done ${formatDistanceToNow(new Date(item.completedAt), { addSuffix: true })}`
+                      : item.lastAccessedAt
+                      ? `Last active ${formatDistanceToNow(new Date(item.lastAccessedAt), { addSuffix: true })}`
+                      : 'Never started'}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                {item.actions?.view && (
+                  <Button variant="ghost" size="sm" asChild className="h-9 px-4 font-bold text-xs uppercase tracking-widest hover:bg-slate-100 transition-all gap-2">
+                    <Link href={item.actions.view}>
+                      Details
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                )}
+                {item.actions?.continue && item.status !== 'completed' && (
+                  <Button size="sm" asChild className="h-9 px-5 font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-xl hover:-translate-y-0.5 transition-all gap-2">
+                    <Link href={item.actions.continue}>
+                      {item.status === 'not_started' ? (
+                        <>
+                          <PlayCircle className="h-3.5 w-3.5" />
+                          Start
+                        </>
+                      ) : (
+                        <>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Resume
+                        </>
+                      )}
+                    </Link>
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </CardContent>

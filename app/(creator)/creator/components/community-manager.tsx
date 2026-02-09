@@ -29,9 +29,15 @@ export function CommunityManager({ communities }: CommunityManagerProps) {
             >
               <div className="flex items-center space-x-4">
                 <img
-                  src={community.image || "/placeholder.svg"}
+                  src={
+                    community.logo ||
+                    community.image ||
+                    community.coverImage ||
+                    "/placeholder.svg?height=64&width=64&text=Community"
+                  }
                   alt={community.name}
-                  className="w-16 h-16 rounded-lg object-cover"
+                  className="w-16 h-16 rounded-lg object-cover bg-gray-100"
+                  loading="lazy"
                 />
                 <div>
                   <div className="flex items-center space-x-2">

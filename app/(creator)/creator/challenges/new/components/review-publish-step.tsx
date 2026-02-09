@@ -13,6 +13,8 @@ interface ReviewPublishStepProps {
     category: string
     difficulty: string
     duration: string
+    currency?: string
+    participationFee?: string
     depositAmount: string
     maxParticipants: string
     thumbnail: string
@@ -62,7 +64,13 @@ export function ReviewPublishStep({ formData, setFormData, startDate, endDate }:
                   <strong>Duration:</strong> {formData.duration || "Not set"}
                 </div>
                 <div>
-                  <strong>Deposit:</strong> ${formData.depositAmount || "Not set"}
+                  <strong>Currency:</strong> {formData.currency || "TND"}
+                </div>
+                <div>
+                  <strong>Participation Fee:</strong> {formData.participationFee || "0"} {formData.currency || "TND"}
+                </div>
+                <div>
+                  <strong>Deposit:</strong> {formData.depositAmount || "0"} {formData.currency || "TND"}
                 </div>
                 <div>
                   <strong>Max Participants:</strong> {formData.maxParticipants || "Unlimited"}
@@ -86,13 +94,13 @@ export function ReviewPublishStep({ formData, setFormData, startDate, endDate }:
               <h3 className="font-semibold mb-3">Rewards</h3>
               <div className="space-y-2 text-sm">
                 <div>
-                  <strong>Completion:</strong> ${formData.rewards.completionReward || "0"}
+                  <strong>Completion:</strong> {formData.rewards.completionReward || "0"} {formData.currency || "TND"}
                 </div>
                 <div>
-                  <strong>Top Performer:</strong> ${formData.rewards.topPerformerBonus || "0"}
+                  <strong>Top Performer:</strong> {formData.rewards.topPerformerBonus || "0"} {formData.currency || "TND"}
                 </div>
                 <div>
-                  <strong>Streak Bonus:</strong> ${formData.rewards.streakBonus || "0"}
+                  <strong>Streak Bonus:</strong> {formData.rewards.streakBonus || "0"} {formData.currency || "TND"}
                 </div>
               </div>
             </div>

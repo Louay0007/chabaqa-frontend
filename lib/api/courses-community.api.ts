@@ -46,11 +46,31 @@ export function transformCourse(backendCourse: any): any {
         ? chapter.contenu
         : chapter.description || '';
 
+      // Extract video URL with fallbacks
+      const videoUrl = chapter.videoUrl ?? chapter.video_url ?? chapter.videoURL ?? chapter.video ?? chapter.url ?? "";
+      
+      // Debug logging for video URL
+      console.log(`📹 [transformCourse] Chapter "${chapter.titre || chapter.title}":`, {
+        id: chapter.id,
+        videoUrl,
+        rawVideoUrl: chapter.videoUrl,
+        hasVideo: Boolean(videoUrl && videoUrl.trim())
+      });
+
+ 
+      // Debug logging for video URL
+      console.log(`📹 [transformCourse] Chapter "${chapter.titre || chapter.title}":`, {
+        id: chapter.id,
+        videoUrl,
+        rawVideoUrl: chapter.videoUrl,
+        hasVideo: Boolean(videoUrl && videoUrl.trim())
+      });
+
       return {
         id: chapter.id || '',
         title: chapter.titre || chapter.title || '',
         content,
-        videoUrl: chapter.videoUrl || undefined,
+        videoUrl,
         // Handle duration: if duree > 300, it's likely already in seconds (legacy data)
         // Otherwise, duree is in minutes, convert to seconds
         duration: Number(chapter.duree ?? 0) > 300

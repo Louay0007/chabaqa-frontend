@@ -5,19 +5,72 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Target, Trophy, Clock, Award, FileText, Upload, MessageSquare, ListTodo } from "lucide-react"
 import ResourceList from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/[challengeId]/components/ResourceList"
+import SubmitProjectModal from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/[challengeId]/components/SubmitProjectModal"
+import { useState, useEffect } from "react"
 
 interface CurrentTaskProps {
   challengeTasks: any[]
   selectedTaskDay: number | null
   setSelectedTaskDay: (day: number | null) => void
+  challengeId: string
 }
 
-export default function CurrentTask({ challengeTasks, selectedTaskDay, setSelectedTaskDay }: CurrentTaskProps) {
+export default function CurrentTask({ challengeTasks, selectedTaskDay, setSelectedTaskDay, challengeId }: CurrentTaskProps) {
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false)
+  const [submittedTasks, setSubmittedTasks] = useState<string[]>([])
+  const [existingSubmissionStatus, setExistingSubmissionStatus] = useState<boolean>(false)
+
   // Determine the current task based on selection or default to active/first
   const currentTask =
     selectedTaskDay !== null
       ? challengeTasks.find((t) => t.day === selectedTaskDay)
       : challengeTasks.find((t) => t.isActive) || challengeTasks[0]
+
+  // Check if we already have a submission for this task from the API
+  // We can do this by checking if the task is marked as "hasSubmission" or similar from the parent
+  // BUT since we don't have that prop, let's fetch it or use a more robust check if possible.
+  // Ideally, the parent component should pass down "submissions" or "submissionStatus" map.
+  // For now, let's assume if it's NOT completed but we want to know if it's pending, we need to check.
+  
+  // Actually, let's fetch the submission status when the task changes if we don't have it.
+  // However, simpler approach: The backend prevents duplicate submissions.
+  // The frontend "isCompleted" usually means "Approved" or "Done".
+  // We need to know if "Pending".
+  
+  // Let's add a useEffect to check submission status for the current task
+  useEffect(() => {
+    const checkSubmission = async () => {
+      if (!currentTask?.id) return;
+      
+      try {
+        // We can reuse the submissions endpoint or a specific check endpoint
+        // Let's use the submissions endpoint and filter
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/challenges/${challengeId}/submissions`, {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        })
+        if (response.ok) {
+          const data = await response.json()
+          const submissions = Array.isArray(data) ? data : (data.data || []);
+          
+          const hasSubmission = submissions.some((s: any) => 
+            s.taskId === currentTask.id || 
+            String(s.taskId) === String(currentTask.id) ||
+            String(s.taskId) === String(currentTask.day)
+          );
+          
+          setExistingSubmissionStatus(hasSubmission);
+        }
+      } catch (error) {
+        console.error("Error checking submission status:", error)
+      }
+    }
+
+    checkSubmission();
+  }, [currentTask?.id, challengeId]);
+
+  const isLocked = currentTask?.isCompleted || submittedTasks.includes(currentTask?.id) || existingSubmissionStatus
 
   if (!currentTask) {
     return (
@@ -48,7 +101,7 @@ export default function CurrentTask({ challengeTasks, selectedTaskDay, setSelect
             Day {currentTask.day} Challenge
           </div>
           <Badge variant="secondary" className="bg-challenges-100 text-challenges-700">
-            {currentTask.isActive ? "Active" : currentTask.isCompleted ? "Completed" : "Upcoming"}
+            {currentTask.isActive ? "Active" : isLocked ? "Completed" : "Upcoming"}
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -114,15 +167,34 @@ export default function CurrentTask({ challengeTasks, selectedTaskDay, setSelect
         </div>
 
         <div className="flex space-x-3">
-          <Button className="flex-1 bg-challenges-500 hover:bg-challenges-600">
+          <Button 
+            className="flex-1 bg-challenges-500 hover:bg-challenges-600"
+            onClick={() => setIsSubmitModalOpen(true)}
+            disabled={isLocked}
+          >
             <Upload className="h-4 w-4 mr-2" />
-            Submit Project
+            {isLocked ? "Project Submitted" : "Submit Project"}
           </Button>
           <Button variant="outline">
             <MessageSquare className="h-4 w-4 mr-2" />
             Get Help
           </Button>
         </div>
+
+        <SubmitProjectModal
+          isOpen={isSubmitModalOpen}
+          onClose={() => setIsSubmitModalOpen(false)}
+          challengeId={challengeId}
+          taskId={currentTask.id}
+          taskTitle={currentTask.title}
+          onSubmitSuccess={() => {
+            // Refresh or update local state if needed
+            // window.location.reload(); // Simple refresh to see updated state
+            if (currentTask?.id) {
+              setSubmittedTasks(prev => [...prev, currentTask.id])
+            }
+          }}
+        />
       </CardContent>
     </Card>
   )

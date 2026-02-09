@@ -21,9 +21,12 @@ import { Switch } from "@/components/ui/switch"
 import { useState } from "react"
 import { Course } from "@/lib/models"
 import { apiClient } from "@/lib/api/client"
+import { coursesApi } from "@/lib/api/courses.api"
 
 type ContentTabProps = {
   course: Course
+  courseId: string
+  onRefreshCourse?: () => Promise<void>
   onAddSection: (payload: { titre: string; description?: string }) => Promise<void>
   onAddChapter: (sectionId: string, payload: any) => Promise<void>
   onDeleteSection: (sectionId: string) => Promise<void>
@@ -46,6 +49,8 @@ type ContentTabProps = {
 
 export function ContentTab({
   course,
+  courseId,
+  onRefreshCourse,
   onAddSection,
   onAddChapter,
   onDeleteSection,
@@ -87,11 +92,31 @@ export function ContentTab({
     notes: "",
   })
 
-  const uploadChapterVideo = async (file: File): Promise<string | null> => {
+  const uploadNewChapterVideo = async (file: File): Promise<string | null> => {
     setIsUploading(true)
     try {
       const result = await apiClient.uploadFile<{ url: string }>("/upload/video", file, "video")
       return result?.url ?? null
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const uploadExistingChapterVideo = async (sectionId: string, chapterId: string, file: File): Promise<string | null> => {
+    setIsUploading(true)
+    try {
+      const result = await coursesApi.uploadChapterVideo(courseId, sectionId, chapterId, file)
+      const updatedCourse = result?.data || result?.cours || result
+      const updatedSection = updatedCourse?.sections?.find((s: any) => String(s.id) === String(sectionId))
+      const updatedChapter = updatedSection?.chapitres?.find((c: any) => String(c.id) === String(chapterId))
+      const newUrl = updatedChapter?.videoUrl || updatedChapter?.video_url || ""
+      if (newUrl) {
+        setEditChapter((p) => ({ ...p, videoUrl: String(newUrl) }))
+      }
+      if (onRefreshCourse) {
+        await onRefreshCourse()
+      }
+      return newUrl || null
     } finally {
       setIsUploading(false)
     }
@@ -262,10 +287,8 @@ export function ContentTab({
                       const file = e.target.files?.[0]
                       if (!file) return
                       void (async () => {
-                        const url = await uploadChapterVideo(file)
-                        if (url) {
-                          setEditChapter((p) => ({ ...p, videoUrl: url }))
-                        }
+                        if (!editChapterSectionId || !editChapterId) return
+                        await uploadExistingChapterVideo(editChapterSectionId, editChapterId, file)
                       })()
                     }}
                   />
@@ -419,7 +442,7 @@ export function ContentTab({
                             const file = e.target.files?.[0]
                             if (!file) return
                             void (async () => {
-                              const url = await uploadChapterVideo(file)
+                              const url = await uploadNewChapterVideo(file)
                               if (url) {
                                 setNewChapter((prev) => ({ ...prev, videoUrl: url }))
                               }

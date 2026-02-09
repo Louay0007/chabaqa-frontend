@@ -66,8 +66,11 @@ export default function PurchaseCard({ product, purchase, isPurchased, onPurchas
         promoCode.trim() || undefined
       )
 
-      if (result?.checkoutUrl) {
-        window.location.href = result.checkoutUrl
+      // Handle both possible response structures
+      const checkoutUrl = result?.checkoutUrl || result?.data?.checkoutUrl
+
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl
       } else {
         throw new Error('No checkout URL returned')
       }

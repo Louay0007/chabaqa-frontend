@@ -1,9 +1,9 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useMemo, useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2 } from "lucide-react"
+import { Loader2, RefreshCw, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { progressionApi } from "@/lib/api/progression.api"
 import type {
@@ -41,6 +41,14 @@ export default function ProgressionPageContent({
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Initial data sync if needed
+  useEffect(() => {
+    if (!initialData || !initialData.items) {
+      handleRefresh()
+    }
+  }, [])
 
   const activeLimit = pagination?.limit || DEFAULT_LIMIT
 
@@ -81,27 +89,39 @@ export default function ProgressionPageContent({
           typeFilter === "all" ? undefined : ([typeFilter] as ProgressionContentType[]),
       }
 
-      const response = await progressionApi.getOverview(params)
+      try {
+        setError(null)
+        const response = await progressionApi.getOverview(params)
 
-      setSummary(response.summary)
-      setPagination(response.pagination)
-
-      setItems((prev) => {
-        if (!append) {
-          return response.items
+        if (!response) {
+          throw new Error("No data received from server")
         }
-        const existingKeys = new Set(
-          prev.map((item) => `${item.contentType}-${item.contentId}`),
-        )
-        const merged = [...prev]
-        response.items.forEach((item) => {
-          const key = `${item.contentType}-${item.contentId}`
-          if (!existingKeys.has(key)) {
-            merged.push(item)
+
+        setSummary(response.summary)
+        setPagination(response.pagination)
+
+        setItems((prev) => {
+          if (!append) {
+            return response.items || []
           }
+          const existingKeys = new Set(
+            prev.map((item) => `${item.contentType}-${item.contentId}`),
+          )
+          const merged = [...prev]
+          ;(response.items || []).forEach((item) => {
+            const key = `${item.contentType}-${item.contentId}`
+            if (!existingKeys.has(key)) {
+              merged.push(item)
+            }
+          })
+          return merged
         })
-        return merged
-      })
+      } catch (err: any) {
+        console.error("[ProgressionPage] Fetch error:", err)
+        const errorMessage = err.response?.data?.message || err.message || "Failed to sync your progress"
+        setError(errorMessage)
+        throw err
+      }
     },
     [slug, typeFilter, activeLimit],
   )
@@ -182,12 +202,36 @@ export default function ProgressionPageContent({
           summary={summary}
         />
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {isLoading ? (
-            <Card className="border border-dashed">
-              <CardContent className="flex items-center gap-3 py-10 text-muted-foreground">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Updating your progress...
+            <div className="grid gap-6">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="overflow-hidden border-2 border-slate-100 animate-pulse">
+                  <CardContent className="p-0">
+                    <div className="flex flex-col lg:flex-row h-48">
+                      <div className="w-full lg:w-48 bg-slate-200" />
+                      <div className="flex-1 p-6 space-y-4">
+                        <div className="h-6 bg-slate-200 rounded w-1/3" />
+                        <div className="h-4 bg-slate-200 rounded w-full" />
+                        <div className="h-4 bg-slate-200 rounded w-2/3" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : error ? (
+            <Card className="border-2 border-destructive/20 bg-destructive/5">
+              <CardContent className="py-12 text-center space-y-4">
+                <div className="inline-flex p-3 rounded-full bg-destructive/10 text-destructive">
+                  <AlertCircle className="h-8 w-8" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground">Something went wrong</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">{error}</p>
+                <Button onClick={handleRefresh} variant="outline" className="gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Try Again
+                </Button>
               </CardContent>
             </Card>
           ) : filteredItems.length === 0 ? (

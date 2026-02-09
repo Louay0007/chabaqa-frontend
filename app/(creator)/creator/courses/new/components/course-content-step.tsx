@@ -56,12 +56,23 @@ export function CourseContentStep({
   const [uploadingChapterIds, setUploadingChapterIds] = useState<Record<string, boolean>>({})
 
   const uploadVideoForChapter = async (sectionId: string, chapterId: string, file: File) => {
+    console.log('🎬 [VIDEO UPLOAD] Starting upload for chapter:', chapterId)
+    console.log('   📁 File:', file.name, 'Size:', file.size, 'Type:', file.type)
+    
     setUploadingChapterIds((prev) => ({ ...prev, [chapterId]: true }))
     try {
       const result = await apiClient.uploadFile<{ url: string }>("/upload/video", file, "video")
+      console.log('✅ [VIDEO UPLOAD] Upload successful:', result)
+      console.log('   🔗 URL received:', result?.url)
+      
       if (result?.url) {
         updateChapter(sectionId, chapterId, "videoUrl", result.url)
+        console.log('✅ [VIDEO UPLOAD] Video URL set in chapter state:', result.url)
+      } else {
+        console.error('❌ [VIDEO UPLOAD] No URL in response:', result)
       }
+    } catch (error) {
+      console.error('❌ [VIDEO UPLOAD] Upload failed:', error)
     } finally {
       setUploadingChapterIds((prev) => ({ ...prev, [chapterId]: false }))
     }

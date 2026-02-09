@@ -14,7 +14,18 @@ export interface CreateCourseData {
 }
 
 export interface UpdateCourseData extends Partial<CreateCourseData> {
+  titre?: string;
+  description?: string;
+  prix?: number;
+  devise?: string;
+  category?: string;
+  niveau?: string;
+  duree?: string;
+  learningObjectives?: string[];
+  requirements?: string[];
+  notes?: string;
   isPublished?: boolean;
+  thumbnail?: string;
 }
 
 export interface CreateSectionData {
@@ -30,6 +41,7 @@ export interface CreateChapterData {
   duration: number;
   order: number;
   isFree: boolean;
+  notes?: string;
 }
 
 // Courses API
@@ -176,6 +188,11 @@ export const coursesApi = {
   // Update chapter
   updateChapter: async (courseId: string, sectionId: string, chapterId: string, data: any): Promise<any> => {
     return apiClient.patch(`/cours/${courseId}/sections/${sectionId}/chapitres/${chapterId}`, data);
+  },
+
+  // Upload chapter video (direct)
+  uploadChapterVideo: async (courseId: string, sectionId: string, chapterId: string, file: File): Promise<any> => {
+    return apiClient.uploadFile(`/cours/${courseId}/sections/${sectionId}/chapitres/${chapterId}/upload-video`, file, 'file');
   },
 
   // Delete chapter

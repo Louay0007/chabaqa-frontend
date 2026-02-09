@@ -46,7 +46,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const [promoCode, setPromoCode] = useState("")
-  const [paymentProof, setPaymentProof] = useState<File | null>(null)
+  // const [paymentProof, setPaymentProof] = useState<File | null>(null) // Removed
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   // Available slots from backend
@@ -184,59 +184,18 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
       }
 
       if (isPaidSession) {
-        // If payment proof is provided, use manual payment
-        if (paymentProof) {
-          const promoQuery = promoCode.trim()
-            ? `?promoCode=${encodeURIComponent(promoCode.trim())}`
-            : ""
-
-          const formData = new FormData()
-          formData.append('sessionId', String(selectedSession || session?.id))
-          formData.append('slotId', selectedSlotId)
-          formData.append('proof', paymentProof)
-          if (bookingNotes.trim()) {
-            formData.append('notes', bookingNotes.trim())
-          }
-
-          const initResponse = await fetch(`/api/payments/manual/init/session${promoQuery}`, {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-            credentials: 'include',
-            body: formData,
-          })
-
-          const initData = await initResponse.json().catch(() => null)
-          if (!initResponse.ok) {
-            const message = initData?.message || initData?.error || 'Failed to submit payment proof'
-            throw new Error(message)
-          }
-
-          toast({
-            title: 'Payment submitted',
-            description: initData?.message || 'Your payment proof was submitted. Please wait for creator verification.',
-          })
-
-          setPromoCode("")
-          setPaymentProof(null)
-          setDialogOpen(false)
-          return
-        } 
-        
-        // Otherwise, try Stripe Link payment
+        // Only use Stripe Link payment
         try {
           if (!selectedSlotId && !scheduledAt) {
             throw new Error("Please select a date and time slot")
           }
 
           const bookingData = {
-            scheduledAt: scheduledAt || new Date().toISOString(), // Fallback if needed, but validation above handles it
+            scheduledAt: scheduledAt || new Date().toISOString(),
             notes: bookingNotes.trim() || undefined,
+            // Pass slot ID if available
+            slotId: selectedSlotId || undefined
           }
-          
-          // NOTE: If using slots, we might need to reserve the slot first or pass slotId in bookingDto?
-          // For now, assuming standard scheduledAt booking flow or that backend handles slot from time
           
           const response: any = await sessionsApi.initStripePayment(
             String(session?.id),
@@ -244,17 +203,19 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
             promoCode.trim() || undefined
           )
 
-          if (response?.checkoutUrl) {
-             window.location.href = response.checkoutUrl
+          console.log('[SessionCard] Stripe payment initialized:', response)
+
+          const checkoutUrl = response?.checkoutUrl || response?.data?.checkoutUrl;
+
+          if (checkoutUrl) {
+             window.location.href = checkoutUrl
              return
           } else {
-            throw new Error("Failed to initialize payment")
+            console.error('[SessionCard] No checkoutUrl in response:', response)
+            throw new Error("Failed to initialize payment: No checkout URL received")
           }
         } catch (stripeError: any) {
-           // If Stripe fails or no proof provided, show error
-           if (!paymentProof) {
              throw stripeError
-           }
         }
       }
 
@@ -517,16 +478,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="paymentProof" className="text-sm font-medium">Payment proof</Label>
-                        <Input
-                          id="paymentProof"
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => setPaymentProof(e.target.files?.[0] || null)}
-                          disabled={isSubmitting}
-                        />
-                      </div>
+                      {/* Payment proof removed */}
                     </div>
                   )}
 
@@ -566,7 +518,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                         Processing...
                       </>
                     ) : isPaidSession ? (
-                      paymentProof ? `Submit payment proof - $${session.price}` : `Pay with Card - $${session.price}`
+                      `Pay with Card - $${session.price}`
                     ) : (
                       `Confirm Booking${session.price > 0 ? ` - $${session.price}` : ''}`
                     )}

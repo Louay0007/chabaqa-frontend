@@ -79,6 +79,8 @@ interface Challenge {
   completionReward?: number
   topPerformerBonus?: number
   streakBonus?: number
+  participationFee?: number | string
+  currency?: string
   category?: string
   difficulty?: string
   duration?: string
@@ -98,10 +100,14 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
   const [isLoading, setIsLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [challenge, setChallenge] = useState<Challenge | null>(null)
+  const [isTaskProcessing, setIsTaskProcessing] = useState(false)
+  const [isResourceProcessing, setIsResourceProcessing] = useState(false)
+  const [isDeletingChallenge, setIsDeletingChallenge] = useState(false)
 
   const [formData, setFormData] = useState({
     title: "",
     description: "",
+    thumbnail: "",
     startDate: "",
     endDate: "",
     depositAmount: "",
@@ -109,10 +115,13 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     completionReward: "",
     topPerformerBonus: "",
     streakBonus: "",
+    participationFee: "",
+    currency: "USD",
     category: "",
     difficulty: "",
     duration: "",
     isActive: false,
+    sequentialProgression: false,
     notes: "",
   })
 
@@ -143,12 +152,14 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
           lastActivityAt: new Date(p.lastActivityAt || p.joinedAt),
           user: p.user,
         })),
-        depositAmount: data.depositAmount,
-        maxParticipants: data.maxParticipants,
-        completionReward: data.completionReward,
-        topPerformerBonus: data.topPerformerBonus,
-        streakBonus: data.streakBonus,
-        category: data.category,
+        depositAmount: data.depositAmount || "",
+        maxParticipants: data.maxParticipants || "",
+        completionReward: data.completionReward || "",
+        topPerformerBonus: data.topPerformerBonus || "",
+        streakBonus: data.streakBonus || "",
+        participationFee: data.participationFee || data.pricing?.participationFee || "",
+        currency: data.currency || data.pricing?.currency || "USD",
+        category: data.category || "",
         difficulty: data.difficulty,
         duration: data.duration,
         thumbnail: data.thumbnail,
@@ -174,7 +185,7 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
           instructions: t.instructions || '',
           notes: t.notes,
         })),
-        sequentialProgression: data.sequentialProgression,
+        sequentialProgression: data.sequentialProgression || false,
         pricing: data.pricing,
       }
 
@@ -209,6 +220,7 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
       setFormData({
         title: challenge.title || "",
         description: challenge.description || "",
+        thumbnail: challenge.thumbnail || "",
         startDate: challenge.startDate ? new Date(challenge.startDate).toISOString().split("T")[0] : "",
         endDate: challenge.endDate ? new Date(challenge.endDate).toISOString().split("T")[0] : "",
         depositAmount: challenge.depositAmount?.toString() || "",
@@ -216,10 +228,13 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         completionReward: challenge.completionReward?.toString() || "",
         topPerformerBonus: challenge.topPerformerBonus?.toString() || "",
         streakBonus: challenge.streakBonus?.toString() || "",
+        participationFee: challenge.participationFee?.toString() || "",
+        currency: challenge.currency || "USD",
         category: challenge.category || "",
         difficulty: challenge.difficulty || "",
         duration: challenge.duration || "",
         isActive: challenge.isActive || false,
+        sequentialProgression: challenge.sequentialProgression || false,
         notes: challenge.notes || "",
       })
     }
@@ -227,6 +242,11 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
 
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+
+    // Keep local challenge preview in sync for thumbnail updates
+    if (field === "thumbnail") {
+      setChallenge((prev) => (prev ? { ...prev, thumbnail: value } : prev))
+    }
   }
 
   const handleSave = async () => {
@@ -237,6 +257,7 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
       await apiClient.patch(`/challenges/${targetId}`, {
         title: formData.title,
         description: formData.description,
+        thumbnail: formData.thumbnail || challenge.thumbnail,
         startDate: formData.startDate,
         endDate: formData.endDate,
         depositAmount: formData.depositAmount ? Number(formData.depositAmount) : undefined,
@@ -244,10 +265,13 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         completionReward: formData.completionReward ? Number(formData.completionReward) : undefined,
         topPerformerBonus: formData.topPerformerBonus ? Number(formData.topPerformerBonus) : undefined,
         streakBonus: formData.streakBonus ? Number(formData.streakBonus) : undefined,
-        category: formData.category || undefined,
-        difficulty: formData.difficulty || undefined,
-        duration: formData.duration || undefined,
+        participationFee: formData.participationFee ? Number(formData.participationFee) : undefined,
+        currency: formData.currency,
+        category: formData.category,
+        difficulty: formData.difficulty,
+        duration: formData.duration,
         isActive: formData.isActive,
+        sequentialProgression: formData.sequentialProgression,
         notes: formData.notes || undefined,
       })
       toast.success("Challenge updated successfully")
@@ -275,6 +299,8 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     if (!challenge) return
     const targetId = challenge.mongoId || challenge.id
     try {
+      setIsTaskProcessing(true)
+      // Format new task to match CreateChallengeTaskDto
       const newTask = {
         id: crypto.randomUUID(),
         day: taskData.day,
@@ -282,12 +308,18 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         description: taskData.description,
         deliverable: taskData.deliverable,
         points: taskData.points,
-        instructions: taskData.instructions,
-        notes: taskData.notes,
-        isActive: taskData.isActive,
-        resources: (taskData.resources || []).map(r => ({ ...r, id: r.id || crypto.randomUUID() })),
+        instructions: taskData.instructions || '',
+        notes: taskData.notes || undefined,
+        resources: (taskData.resources || []).map(r => ({
+          id: r.id || crypto.randomUUID(),
+          title: r.title,
+          type: r.type,
+          url: r.url,
+          description: r.description || '',
+        })),
       }
-      // Map existing tasks to DTO format
+
+      // Map existing tasks to match CreateChallengeTaskDto exactly
       const existingTasks = (challenge.tasks || []).map(t => ({
         id: t.id,
         day: t.day,
@@ -295,10 +327,17 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         description: t.description,
         deliverable: t.deliverable,
         points: t.points,
-        instructions: t.instructions,
-        notes: t.notes,
-        resources: t.resources || [],
+        instructions: t.instructions || '',
+        notes: t.notes || undefined,
+        resources: (t.resources || []).map(r => ({
+          id: r.id || crypto.randomUUID(),
+          title: r.title,
+          type: r.type,
+          url: r.url,
+          description: r.description || '',
+        })),
       }))
+
       const updatedTasks = [...existingTasks, newTask]
       await apiClient.patch(`/challenges/${targetId}`, { tasks: updatedTasks })
       toast.success("Task added successfully")
@@ -306,6 +345,8 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     } catch (error) {
       console.error('Failed to add task:', error)
       toast.error("Failed to add task")
+    } finally {
+      setIsTaskProcessing(false)
     }
   }
 
@@ -313,7 +354,8 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     if (!challenge) return
     const targetId = challenge.mongoId || challenge.id
     try {
-      // Map tasks to DTO format
+      setIsTaskProcessing(true)
+      // Map tasks to match CreateChallengeTaskDto exactly
       const updatedTasks = challenge.tasks.map(t => {
         const task = t.id === taskId ? { ...t, ...taskData } : t
         return {
@@ -323,10 +365,15 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
           description: task.description,
           deliverable: task.deliverable,
           points: task.points,
-          instructions: task.instructions,
-          notes: task.notes,
-          isActive: task.isActive,
-          resources: (task.resources || []).map(r => ({ ...r, id: r.id || crypto.randomUUID() })),
+          instructions: task.instructions || '',
+          notes: task.notes || undefined,
+          resources: (task.resources || []).map(r => ({
+            id: r.id || crypto.randomUUID(),
+            title: r.title,
+            type: r.type,
+            url: r.url,
+            description: r.description || '',
+          })),
         }
       })
       await apiClient.patch(`/challenges/${targetId}`, { tasks: updatedTasks })
@@ -335,6 +382,8 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     } catch (error) {
       console.error('Failed to update task:', error)
       toast.error("Failed to update task")
+    } finally {
+      setIsTaskProcessing(false)
     }
   }
 
@@ -342,7 +391,8 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     if (!challenge) return
     const targetId = challenge.mongoId || challenge.id
     try {
-      // Map tasks to DTO format, excluding the deleted one
+      setIsTaskProcessing(true)
+      // Map tasks to match CreateChallengeTaskDto exactly, excluding the deleted one
       const updatedTasks = challenge.tasks
         .filter(t => t.id !== taskId)
         .map(t => ({
@@ -352,9 +402,15 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
           description: t.description,
           deliverable: t.deliverable,
           points: t.points,
-          instructions: t.instructions,
-          notes: t.notes,
-          resources: t.resources || [],
+          instructions: t.instructions || '',
+          notes: t.notes || undefined,
+          resources: (t.resources || []).map(r => ({
+            id: r.id || crypto.randomUUID(),
+            title: r.title,
+            type: r.type,
+            url: r.url,
+            description: r.description || '',
+          })),
         }))
       await apiClient.patch(`/challenges/${targetId}`, { tasks: updatedTasks })
       toast.success("Task deleted successfully")
@@ -362,6 +418,8 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     } catch (error) {
       console.error('Failed to delete task:', error)
       toast.error("Failed to delete task")
+    } finally {
+      setIsTaskProcessing(false)
     }
   }
 
@@ -375,6 +433,7 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     if (!challenge) return
     const targetId = challenge.mongoId || challenge.id
     try {
+      setIsResourceProcessing(true)
       const newResource = {
         id: crypto.randomUUID(),
         title: resourceData.title,
@@ -399,6 +458,8 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     } catch (error) {
       console.error('Failed to add resource:', error)
       toast.error("Failed to add resource")
+    } finally {
+      setIsResourceProcessing(false)
     }
   }
 
@@ -406,6 +467,7 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     if (!challenge) return
     const targetId = challenge.mongoId || challenge.id
     try {
+      setIsResourceProcessing(true)
       // Map resources to DTO format
       const updatedResources = challenge.resources.map(r => {
         const resource = r.id === resourceId ? { ...r, ...resourceData } : r
@@ -424,6 +486,8 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     } catch (error) {
       console.error('Failed to update resource:', error)
       toast.error("Failed to update resource")
+    } finally {
+      setIsResourceProcessing(false)
     }
   }
 
@@ -431,6 +495,7 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     if (!challenge) return
     const targetId = challenge.mongoId || challenge.id
     try {
+      setIsResourceProcessing(true)
       // Map resources to DTO format, excluding the deleted one
       const updatedResources = challenge.resources
         .filter(r => r.id !== resourceId)
@@ -448,6 +513,8 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     } catch (error) {
       console.error('Failed to delete resource:', error)
       toast.error("Failed to delete resource")
+    } finally {
+      setIsResourceProcessing(false)
     }
   }
 
@@ -455,13 +522,17 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
   const handleDeleteChallenge = async () => {
     if (!challenge) return
     const targetId = challenge.mongoId || challenge.id
+    if (!confirm("Are you sure you want to delete this challenge? This action cannot be undone.")) return
     try {
+      setIsDeletingChallenge(true)
       await apiClient.delete(`/challenges/${targetId}`)
       toast.success("Challenge deleted successfully")
       router.push('/creator/challenges')
     } catch (error) {
       console.error('Failed to delete challenge:', error)
       toast.error("Failed to delete challenge")
+    } finally {
+      setIsDeletingChallenge(false)
     }
   }
 
@@ -551,6 +622,8 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         <TabsContent value="settings" className="space-y-6">
           <ChallengeSettingsTab
             challengeId={challengeId}
+            formData={formData}
+            onInputChange={handleInputChange}
             onDeleteChallenge={handleDeleteChallenge}
           />
         </TabsContent>

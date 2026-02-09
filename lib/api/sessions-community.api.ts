@@ -25,6 +25,7 @@ export interface SessionWithMentor extends Session {
 export interface BookingWithSession extends SessionBooking {
   session?: SessionWithMentor;
   meetingUrl?: string;
+  amountPaid?: number;
 }
 
 export interface SessionsPageData {
@@ -204,8 +205,9 @@ export const sessionsCommunityApi = {
           id: booking.sessionId || '',
           title: booking.sessionTitle || 'Session',
           description: '',
-          duration: 60,
-          price: 0,
+          duration: booking.sessionDuration || 60,
+          price: booking.sessionPrice || 0,
+          currency: booking.sessionCurrency || 'USD',
           creatorId: '',
           creatorName: booking.creatorName || 'Unknown',
           creatorAvatar: booking.creatorAvatar || undefined,
@@ -223,6 +225,7 @@ export const sessionsCommunityApi = {
           notes: booking.notes || undefined,
           createdAt: booking.createdAt || new Date().toISOString(),
           updatedAt: booking.updatedAt || new Date().toISOString(),
+          amountPaid: booking.amountPaid, // Pass through amountPaid
           session: transformSession(sessionInfo),
         };
       });

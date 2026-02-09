@@ -14,6 +14,8 @@ export interface Community {
   id: string
   slug: string
   name: string
+  // Primary logo image for the community (from backend transformCommunityForFrontend)
+  logo?: string
   creator: string
   creatorId: string
   creatorAvatar: string

@@ -169,34 +169,35 @@ export default function AchievementsPageContent({
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                    <Trophy className="h-6 w-6 text-yellow-300" />
+                  <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm flex items-center justify-center">
+                    <Trophy className="h-7 w-7 text-yellow-300" />
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold">Achievements</h1>
-                    <p className="text-indigo-100 text-sm">Track your journey in {community.name}</p>
+                    <h1 className="text-3xl font-extrabold tracking-tight">Achievements</h1>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold flex items-center justify-end gap-1">
-                    {stats.totalXp} <span className="text-sm font-normal text-indigo-200 mt-2">XP</span>
+                  <div className="text-4xl font-extrabold flex items-center justify-end gap-1">
+                    {stats.totalXp} <span className="text-xl font-semibold text-indigo-200 mt-1.5">XP</span>
                   </div>
-                  <div className="text-xs text-indigo-200 uppercase tracking-wider font-medium">Total Earned</div>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4 bg-white/10 rounded-xl p-4 backdrop-blur-sm border border-white/10">
-                <div className="text-center border-r border-white/10 last:border-0">
-                  <div className="text-2xl font-bold">{stats.unlocked}</div>
-                  <div className="text-xs text-indigo-200 mt-1">Unlocked</div>
+                <div className="text-center border-r border-white/20">
+                  <div className="text-3xl font-bold flex items-center justify-center gap-2">
+                    <Trophy className="h-7 w-7 text-yellow-300" /> {stats.unlocked}
+                  </div>
                 </div>
-                <div className="text-center border-r border-white/10 last:border-0">
-                  <div className="text-2xl font-bold">{stats.inProgress}</div>
-                  <div className="text-xs text-indigo-200 mt-1">In Progress</div>
+                <div className="text-center border-r border-white/20">
+                  <div className="text-3xl font-bold flex items-center justify-center gap-2">
+                    <Target className="h-7 w-7 text-indigo-300" /> {stats.inProgress}
+                  </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold">{stats.completionRate}%</div>
-                  <div className="text-xs text-indigo-200 mt-1">Complete</div>
+                  <div className="text-3xl font-bold flex items-center justify-center gap-2">
+                    <CheckCircle2 className="h-7 w-7 text-green-300" /> {stats.completionRate}%
+                  </div>
                 </div>
               </div>
             </div>
@@ -204,28 +205,28 @@ export default function AchievementsPageContent({
 
           {/* Next Milestone Card */}
           {nextMilestone ? (
-            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-orange-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative overflow-hidden group flex flex-col justify-between">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-orange-50 rounded-bl-full -mr-6 -mt-6 transition-transform group-hover:scale-110"></div>
               <div className="relative z-10 h-full flex flex-col">
-                <div className="flex items-center gap-2 mb-4 text-orange-600 font-semibold text-sm uppercase tracking-wide">
+                <div className="flex items-center gap-2 mb-5 text-orange-600 font-semibold text-sm uppercase tracking-wide">
                   <Flame className="h-4 w-4" />
                   Next Goal
                 </div>
                 
-                <div className="flex-1 flex flex-col justify-center text-center">
-                  <div className="text-4xl mb-3 animate-bounce-slow">
-                    {nextMilestone.icon || '🎯'}
+                <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
+                  <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 text-orange-600 ring-1 ring-orange-100">
+                    <Target className="h-8 w-8" />
                   </div>
-                  <h3 className="font-bold text-gray-900 mb-1 line-clamp-1">{nextMilestone.name}</h3>
-                  <p className="text-sm text-gray-500 line-clamp-2 mb-4">{nextMilestone.description}</p>
+                  <h3 className="font-bold text-gray-900 mb-1.5 text-xl line-clamp-1">{nextMilestone.name}</h3>
+                  <p className="text-sm text-gray-500 line-clamp-2 mb-5 leading-relaxed">{nextMilestone.description}</p>
                 </div>
 
                 <div className="mt-auto">
-                  <div className="flex justify-between text-xs text-gray-600 mb-1.5">
+                  <div className="flex justify-between text-xs text-gray-600 mb-2">
                     <span>Progress</span>
-                    <span className="font-medium">{Math.round(nextMilestone.progress || 0)}%</span>
+                    <span className="font-semibold">{Math.round(nextMilestone.progress || 0)}%</span>
                   </div>
-                  <Progress value={nextMilestone.progress} className="h-2 bg-orange-100" />
+                  <Progress value={nextMilestone.progress} className="h-2.5 bg-orange-100/70 [&>*]:bg-orange-500" />
                 </div>
               </div>
             </div>
@@ -243,14 +244,14 @@ export default function AchievementsPageContent({
         {/* Filters and Controls */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-2 rounded-xl border shadow-sm">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full sm:w-auto">
-            <TabsList className="bg-gray-100/50 p-1 h-auto">
-              <TabsTrigger value="all" className="px-4 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+            <TabsList className="bg-gray-100/60 p-1 h-auto rounded-lg">
+              <TabsTrigger value="all" className="px-4 py-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 transition-all">
                 All
               </TabsTrigger>
-              <TabsTrigger value="unlocked" className="px-4 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <TabsTrigger value="unlocked" className="px-4 py-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 transition-all">
                 Unlocked
               </TabsTrigger>
-              <TabsTrigger value="locked" className="px-4 py-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <TabsTrigger value="locked" className="px-4 py-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 transition-all">
                 Locked
               </TabsTrigger>
             </TabsList>
@@ -259,7 +260,7 @@ export default function AchievementsPageContent({
           <div className="flex items-center gap-3 w-full sm:w-auto">
             {categories.length > 1 && (
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-[140px] h-10 border-gray-200 bg-gray-50/50">
+                <SelectTrigger className="w-[150px] h-10 border-gray-200 bg-gray-50/50 text-gray-700 hover:border-indigo-300 focus:border-indigo-500 transition-colors">
                   <Filter className="h-4 w-4 mr-2 text-gray-500" />
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
@@ -273,30 +274,30 @@ export default function AchievementsPageContent({
               </Select>
             )}
 
-            <div className="flex items-center bg-gray-100/50 rounded-lg p-1 border border-gray-200/50">
-              <Button 
-                size="sm" 
+            <div className="flex items-center bg-gray-100/60 rounded-lg p-1 border border-gray-200/50">
+              <Button
+                size="sm"
                 variant="ghost"
-                className={cn("h-8 w-8 p-0 rounded-md", viewMode === 'grid' && "bg-white shadow-sm text-indigo-600")}
+                className={cn("h-9 w-9 p-0 rounded-md text-gray-600 hover:bg-white hover:text-indigo-600", viewMode === 'grid' && "bg-white shadow-sm text-indigo-600")}
                 onClick={() => setViewMode('grid')}
               >
                 <Grid3x3 className="h-4 w-4" />
               </Button>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant="ghost"
-                className={cn("h-8 w-8 p-0 rounded-md", viewMode === 'list' && "bg-white shadow-sm text-indigo-600")}
+                className={cn("h-9 w-9 p-0 rounded-md text-gray-600 hover:bg-white hover:text-indigo-600", viewMode === 'list' && "bg-white shadow-sm text-indigo-600")}
                 onClick={() => setViewMode('list')}
               >
                 <List className="h-4 w-4" />
               </Button>
             </div>
 
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="outline"
               onClick={handleRefresh}
-              className="h-10 w-10 p-0 border-gray-200 hover:bg-indigo-50 hover:text-indigo-600"
+              className="h-10 w-10 p-0 border-gray-200 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
             >
               <RefreshCw className="h-4 w-4" />
             </Button>
@@ -305,20 +306,20 @@ export default function AchievementsPageContent({
 
         {/* Achievements Grid */}
         {filteredAchievements.length === 0 ? (
-          <Card className="border-dashed border-2 bg-transparent">
+          <Card className="border-dashed border-2 bg-gray-50/50 shadow-sm">
             <CardContent className="py-16 text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-6">
-                <Trophy className="h-10 w-10 text-gray-400" />
+                <Sparkles className="h-10 w-10 text-gray-400" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No achievements found</h3>
-              <p className="text-gray-500 max-w-md mx-auto">
-                Try adjusting your filters to see more results.
+              <h3 className="text-2xl font-semibold text-gray-900 mb-2">No achievements found</h3>
+              <p className="text-gray-500 max-w-md mx-auto text-base">
+                Try adjusting your filters or check back later for new challenges!
               </p>
               {(selectedCategory !== 'all' || activeTab !== 'all') && (
-                <Button 
-                  variant="link" 
+                <Button
+                  variant="link"
                   onClick={() => { setSelectedCategory('all'); setActiveTab('all'); }}
-                  className="mt-4 text-indigo-600"
+                  className="mt-6 text-indigo-600 font-semibold"
                 >
                   Clear all filters
                 </Button>
@@ -354,6 +355,7 @@ function AchievementCard({
   viewMode: 'grid' | 'list'
 }) {
   const rarityConfig = RARITY_CONFIG[achievement.rarity] || RARITY_CONFIG.common
+  const RarityIcon = rarityConfig.icon
   
   const progressPercent = achievement.progress || 0
   const isUnlocked = achievement.isUnlocked
@@ -361,51 +363,51 @@ function AchievementCard({
   return (
     <Card 
       className={cn(
-        "group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-0 ring-1",
+        "group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 border border-gray-100",
         isUnlocked
-          ? "ring-indigo-100 bg-white"
-          : "ring-gray-200 bg-gray-50/50 opacity-90 hover:opacity-100",
+          ? "bg-white"
+          : "bg-gray-50/50 opacity-95 hover:opacity-100",
         viewMode === 'list' && "flex-row items-center gap-6 p-2"
       )}
     >
       {/* Shine effect for unlocked achievements */}
       {isUnlocked && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 z-20 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 z-20 pointer-events-none"></div>
       )}
 
       {/* Rarity Stripe - Thicker and more visible */}
       <div className={cn(
-        "absolute top-0 left-0 h-full w-1.5",
+        "absolute top-0 left-0 h-full w-2",
         `bg-gradient-to-b ${rarityConfig.gradient}`
       )}></div>
 
-      <CardContent className={cn("p-5 pl-7", viewMode === 'list' && "flex-1 flex items-center gap-6 p-4 pl-6")}>
+      <CardContent className={cn("p-4 pl-6", viewMode === 'list' && "flex-1 flex items-center gap-4 p-3 pl-6")}>
         {/* Header / Icon Area */}
-        <div className={cn("flex items-start justify-between mb-4", viewMode === 'list' && "mb-0 w-1/4")}>
+        <div className={cn("flex items-start justify-between mb-3", viewMode === 'list' && "mb-0 w-1/4")}>
           <div className={cn(
-            "relative rounded-full w-16 h-16 flex items-center justify-center text-3xl shadow-md transition-transform group-hover:scale-110 ring-4 ring-white",
-            isUnlocked ? `bg-gradient-to-br ${rarityConfig.gradient} text-white` : "bg-gray-200 grayscale"
+            "relative rounded-2xl w-12 h-12 flex items-center justify-center shadow-md transition-transform group-hover:scale-105",
+            isUnlocked ? `bg-gradient-to-br ${rarityConfig.gradient} text-white` : "bg-gray-200 text-gray-400 grayscale"
           )}>
-            {achievement.icon || '🏆'}
+            <RarityIcon className={cn("h-6 w-6", isUnlocked ? "text-white" : "text-gray-500")} />
             
             {/* Lock Overlay */}
             {!isUnlocked && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full backdrop-blur-[1px]">
-                <Lock className="h-6 w-6 text-white/80 drop-shadow-md" />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/45 rounded-full backdrop-blur-[1.5px]">
+                <Lock className="h-5 w-5 text-white/90 drop-shadow-md" />
               </div>
             )}
 
             {/* Unlocked Badge */}
             {isUnlocked && (
-              <div className="absolute -bottom-1 -right-1 bg-white text-green-600 p-1 rounded-full shadow-md border-2 border-green-50">
-                <CheckCircle2 className="h-4 w-4" />
+              <div className="absolute -bottom-1 -right-1 bg-white text-green-600 p-1 rounded-full shadow-md border border-green-50">
+                <CheckCircle2 className="h-3 w-3" />
               </div>
             )}
           </div>
 
           {/* XP Badge */}
           {achievement.points > 0 && viewMode === 'grid' && (
-            <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200 transition-colors shadow-sm">
+            <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200 transition-colors shadow-sm text-[11px] px-2 py-0.5">
               <Zap className="h-3 w-3 mr-1 fill-amber-500 text-amber-500" />
               {achievement.points} XP
             </Badge>
@@ -413,32 +415,32 @@ function AchievementCard({
         </div>
 
         {/* Content Area */}
-        <div className={cn("flex-1 min-w-0", viewMode === 'list' && "grid grid-cols-2 gap-8 items-center")}>
+        <div className={cn("flex-1 min-w-0", viewMode === 'list' && "grid grid-cols-2 gap-4 items-center")}>
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <h3 className={cn("font-bold text-gray-900 truncate", viewMode === 'grid' && "text-lg")}>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold text-gray-900 truncate text-sm md:text-base">
                 {achievement.name}
               </h3>
               {viewMode === 'list' && achievement.points > 0 && (
-                <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200 shadow-sm">
+                <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200 shadow-sm text-[11px] px-2 py-0.5">
                   <Zap className="h-3 w-3 mr-1 fill-amber-500 text-amber-500" />
                   {achievement.points} XP
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-gray-600 line-clamp-2 mb-3 leading-relaxed">
+            <p className="text-xs md:text-sm text-gray-600 line-clamp-2 mb-2 leading-snug">
               {achievement.description}
             </p>
             
             {/* Tags */}
-            <div className="flex flex-wrap gap-2">
-              <Badge 
-                className={cn("text-[10px] uppercase tracking-wider h-5 px-2 font-bold shadow-sm border-0 text-white", `bg-gradient-to-r ${rarityConfig.gradient}`)}
+            <div className="flex flex-wrap gap-1.5">
+              <Badge
+                className={cn("text-[10px] uppercase tracking-wider h-5 px-2.5 font-semibold shadow-sm border-0 text-white", `bg-gradient-to-r ${rarityConfig.gradient}`)}
               >
                 {rarityConfig.label}
               </Badge>
               {achievement.tags?.slice(0, 2).map(tag => (
-                <Badge key={tag} variant="secondary" className="text-[10px] bg-slate-100 text-slate-600 h-5 px-2 capitalize border-slate-200 border">
+                <Badge key={tag} variant="secondary" className="text-[10px] bg-slate-100 text-slate-600 h-5 px-2.5 capitalize border-slate-200 border">
                   {tag}
                 </Badge>
               ))}
@@ -446,38 +448,38 @@ function AchievementCard({
           </div>
 
           {/* Progress Area */}
-          <div className={cn("mt-5", viewMode === 'list' && "mt-0")}>
+          <div className={cn("mt-4", viewMode === 'list' && "mt-0")}>
             {!isUnlocked ? (
               <div className="space-y-2.5">
                 <div className="flex justify-between text-xs font-semibold text-slate-700">
                   <span className="flex items-center gap-1.5"><Target className="h-3.5 w-3.5 text-slate-400" /> Progress</span>
                   <span>{Math.round(progressPercent)}%</span>
                 </div>
-                <div className="relative h-2.5 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                  <div 
-                    className="absolute top-0 left-0 h-full bg-indigo-500 rounded-full transition-all duration-500 ease-out" 
+                <div className="relative h-2 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                  <div
+                    className="absolute top-0 left-0 h-full bg-indigo-500 rounded-full transition-all duration-500 ease-out"
                     style={{ width: `${progressPercent}%` }}
                   ></div>
                 </div>
                 {achievement.currentValue !== undefined && achievement.targetValue !== undefined && (
-                  <div className="text-xs text-right text-slate-500 font-medium mt-1">
+                  <div className="text-[11px] text-right text-slate-500 font-medium mt-0.5">
                     {achievement.currentValue} <span className="text-slate-300">/</span> {achievement.targetValue}
                   </div>
                 )}
               </div>
             ) : (
-              <div className="bg-green-50 rounded-xl p-3 border border-green-100 shadow-sm">
-                <div className="text-xs text-green-800 font-bold flex items-center gap-2">
+              <div className="bg-green-50 rounded-lg p-3 border border-green-100 shadow-sm flex items-center justify-between">
+                <div className="text-xs md:text-sm text-green-800 font-bold flex items-center gap-1.5">
                   <div className="p-1 bg-green-200 rounded-full">
-                    <Sparkles className="h-3 w-3 text-green-700" />
+                    <Sparkles className="h-3.5 w-3.5 text-green-700" />
                   </div>
-                  Unlocked
-                  {achievement.earnedAt && (
-                    <span className="text-green-600 font-medium ml-auto text-[10px] uppercase tracking-wide">
-                      {formatDistanceToNow(new Date(achievement.earnedAt), { addSuffix: true })}
-                    </span>
-                  )}
+                  Unlocked!
                 </div>
+                {achievement.earnedAt && (
+                  <span className="text-green-600 font-medium text-[11px] uppercase tracking-wide">
+                    {formatDistanceToNow(new Date(achievement.earnedAt), { addSuffix: true })}
+                  </span>
+                )}
               </div>
             )}
           </div>

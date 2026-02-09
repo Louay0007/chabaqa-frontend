@@ -60,7 +60,7 @@ export function CourseManager({ courseId }: { courseId: string }) {
             id: chapitre.id || chapitre._id,
             title: chapitre.titre || chapitre.title || "",
             content: chapitre.description || chapitre.content || "",
-            videoUrl: chapitre.videoUrl || "",
+            videoUrl: chapitre.videoUrl || chapitre.video_url || "",
             duration: Number(chapitre.duree ?? chapitre.duration ?? 0) || 0,
             sectionId: chapitre.sectionId || section.id,
             order: chapitre.ordre ?? chapitre.order ?? 0,
@@ -117,6 +117,7 @@ export function CourseManager({ courseId }: { courseId: string }) {
     title: "",
     description: "",
     longDescription: "",
+    thumbnail: "",
     price: "",
     currency: "USD",
     category: "",
@@ -135,6 +136,7 @@ export function CourseManager({ courseId }: { courseId: string }) {
         title: course.title || course.titre || "",
         description: course.description || "",
         longDescription: course.description || "",
+        thumbnail: course.thumbnail || "",
         price: String(course.price ?? course.prix ?? ""),
         currency: course.currency || course.devise || "USD",
         category: course.category || "",
@@ -150,6 +152,11 @@ export function CourseManager({ courseId }: { courseId: string }) {
 
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+
+    // Keep local course preview in sync for fields that affect it (e.g. thumbnail)
+    if (field === "thumbnail") {
+      setCourse((prev) => (prev ? { ...prev, thumbnail: value } : prev))
+    }
   }
 
   const handleArrayChange = (field: string, index: number, value: string) => {
@@ -195,7 +202,7 @@ export function CourseManager({ courseId }: { courseId: string }) {
         requirements: (formData.requirements || []).filter(Boolean),
         notes: formData.notes,
         isPublished: Boolean(formData.isPublished),
-        thumbnail: course.thumbnail,
+        thumbnail: formData.thumbnail || course.thumbnail,
       })
 
       await fetchCourse()
@@ -371,6 +378,8 @@ export function CourseManager({ courseId }: { courseId: string }) {
         {activeTab === "content" && (
           <ContentTab
             course={course}
+            courseId={String(course.mongoId || course.id)}
+            onRefreshCourse={fetchCourse}
             onAddSection={handleAddSection}
             onAddChapter={handleAddChapter}
             onDeleteSection={handleDeleteSection}
@@ -404,7 +413,7 @@ export function CourseManager({ courseId }: { courseId: string }) {
         )}
 
         {activeTab === "settings" && (
-          <SettingsTab />
+          <SettingsTab courseId={String(course.mongoId || course.id)} />
         )}
       </CourseTabs>
     </div>

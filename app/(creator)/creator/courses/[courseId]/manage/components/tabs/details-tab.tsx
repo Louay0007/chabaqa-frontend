@@ -211,7 +211,7 @@ export function DetailsTab({
           </CardHeader>
           <CardContent>
             <ThumbnailUpload
-              value={course.thumbnail || ""}
+              value={formData.thumbnail || course.thumbnail || ""}
               onChange={handleThumbnailChange}
             />
           </CardContent>

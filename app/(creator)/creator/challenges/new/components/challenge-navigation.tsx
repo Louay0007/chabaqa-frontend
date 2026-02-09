@@ -3,24 +3,28 @@ import { Button } from "@/components/ui/button"
 interface ChallengeNavigationProps {
   currentStep: number
   steps: Array<{ id: number }>
-  setCurrentStep: (step: number) => void
+  onNext: () => void
+  onBack: () => void
   onSubmit: () => void
   isPublished: boolean
+  isSubmitting?: boolean
 }
 
 export function ChallengeNavigation({
   currentStep,
   steps,
-  setCurrentStep,
+  onNext,
+  onBack,
   onSubmit,
-  isPublished
+  isPublished,
+  isSubmitting = false,
 }: ChallengeNavigationProps) {
   return (
     <div className="flex items-center justify-between">
       <Button
         variant="outline"
-        onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-        disabled={currentStep === 1}
+        onClick={onBack}
+        disabled={currentStep === 1 || isSubmitting}
       >
         Previous
       </Button>
@@ -28,14 +32,23 @@ export function ChallengeNavigation({
       <div className="flex items-center space-x-2">
         {currentStep < steps.length ? (
           <Button
-            onClick={() => setCurrentStep(Math.min(steps.length, currentStep + 1))}
+            onClick={onNext}
             className="bg-challenges-500 hover:bg-challenges-600"
+            disabled={isSubmitting}
           >
             Next Step
           </Button>
         ) : (
-          <Button onClick={onSubmit} className="bg-challenges-500 hover:bg-challenges-600">
-            {isPublished ? "Create & Publish Challenge" : "Save as Draft"}
+          <Button
+            onClick={onSubmit}
+            className="bg-challenges-500 hover:bg-challenges-600"
+            disabled={isSubmitting}
+          >
+            {isSubmitting
+              ? "Creating..."
+              : isPublished
+              ? "Create & Publish Challenge"
+              : "Save as Draft"}
           </Button>
         )}
       </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Lock, PlayCircle } from "lucide-react"
@@ -13,8 +13,10 @@ interface EnhancedVideoPlayerProps {
   enrollment: any
   slug: string
   courseId: string
-  onWatchTimeUpdate?: (seconds: number) => void
+  onWatchTimeUpdate?: (seconds: number, duration?: number) => void
   onEnrollNow?: () => void
+  /** Called after watch time is saved so parent can refetch progress (e.g. when enrollment was auto-created). */
+  onProgressSaved?: () => void
 }
 
 // Helper to extract YouTube video ID from various URL formats
@@ -54,6 +56,7 @@ export default function EnhancedVideoPlayer({
   courseId,
   onWatchTimeUpdate,
   onEnrollNow,
+  onProgressSaved,
 }: EnhancedVideoPlayerProps) {
   const [player, setPlayer] = useState<any>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -64,12 +67,97 @@ export default function EnhancedVideoPlayer({
   const playerRef = useRef<HTMLDivElement>(null)
   const htmlVideoRef = useRef<HTMLVideoElement | null>(null)
   const vimeoIframeRef = useRef<HTMLIFrameElement | null>(null)
-  const [vimeoReady, setVimeoReady] = useState(false)
+  const vimeoReady = useRef(false) // Changed to ref to avoid re-renders
+  const [isVimeoReady, setIsVimeoReady] = useState(false)
 
-  const videoUrl = currentChapter?.videoUrl || ''
+  const rawVideoUrl = currentChapter?.videoUrl || ''
+
+  // Normalize URL for local playback
+  // For localhost development: keep the full URL with port 3000
+  // For production with Nginx proxy: use relative paths
+  const videoUrl = useMemo(() => {
+    if (!rawVideoUrl) return ''
+    
+    // Check if it's a local upload
+    if (rawVideoUrl.includes('/uploads/')) {
+       try {
+         // If it's a localhost URL, keep it absolute (for development)
+         if (rawVideoUrl.startsWith('http://localhost:') || rawVideoUrl.startsWith('http://127.0.0.1:')) {
+           console.log('🔧 [VideoPlayer] Keeping absolute localhost URL:', rawVideoUrl)
+           return rawVideoUrl
+         }
+         
+         // If it's a full URL (production), strip origin to force relative path
+         if (rawVideoUrl.startsWith('http')) {
+            const urlObj = new URL(rawVideoUrl);
+            const relativePath = urlObj.pathname + urlObj.search;
+            console.log('🔧 [VideoPlayer] Converting to relative path:', relativePath)
+            return relativePath;
+         }
+         
+         // Ensure it starts with /
+         if (!rawVideoUrl.startsWith('/')) return '/' + rawVideoUrl;
+         return rawVideoUrl;
+       } catch (e) {
+         console.error('❌ [VideoPlayer] URL parsing error:', e)
+         // Fallback regex if URL parsing fails
+         const match = rawVideoUrl.match(/(\/uploads\/.*)/);
+         if (match) return match[1];
+         return rawVideoUrl;
+       }
+    }
+    return rawVideoUrl;
+  }, [rawVideoUrl])
+
   const platform = detectPlatform(videoUrl)
   const youtubeId = platform === 'youtube' ? extractYouTubeId(videoUrl) : null
   const vimeoId = platform === 'vimeo' ? extractVimeoId(videoUrl) : null
+
+  const storageKey = useMemo(() => {
+    if (!courseId || !currentChapter?.id) return null;
+    return `course_progress_${courseId}_${currentChapter.id}`;
+  }, [courseId, currentChapter?.id]);
+
+  // Saved watch position (seconds) from enrollment/progression (used to resume)
+  const savedWatchPosition = useMemo(() => {
+    if (!currentChapter?.id || !enrollment?.progress) return 0
+    const chapterProgress = enrollment.progress.find((p: any) => String(p.chapterId) === String(currentChapter.id))
+    const serverPosition = Number((chapterProgress && (chapterProgress as any).watchTime) ?? 0)
+    
+    // Check LocalStorage for a potentially newer position
+    if (typeof window !== 'undefined' && storageKey) {
+      const localData = localStorage.getItem(storageKey);
+      if (localData) {
+        try {
+          const { time, timestamp } = JSON.parse(localData);
+          // Only use local position if it's recent (e.g., last 24 hours) or the server has 0
+          if (time > serverPosition) {
+            console.log(`📍 [VideoPlayer] Resuming from LocalStorage: ${time}s (Server had ${serverPosition}s)`);
+            return time;
+          }
+        } catch (e) {
+          localStorage.removeItem(storageKey);
+        }
+      }
+    }
+    
+    return serverPosition;
+  }, [currentChapter?.id, enrollment?.progress, storageKey])
+
+  // Initial UX sync: Notify parent about the saved position immediately on mount
+  useEffect(() => {
+    if (savedWatchPosition > 0 && onWatchTimeUpdate && currentChapter?.id) {
+      const chapterProgress = enrollment?.progress?.find((p: any) => String(p.chapterId) === String(currentChapter.id))
+      const duration = Number((chapterProgress && (chapterProgress as any).videoDuration) || currentChapter.duration || 0)
+      
+      console.log(`🚀 [VideoPlayer] Initial UX Sync: Notifying parent of saved position ${savedWatchPosition}s`);
+      onWatchTimeUpdate(savedWatchPosition, duration > 0 ? duration : undefined);
+      
+      // Also update local state to avoid flicker
+      setWatchTime(savedWatchPosition);
+      if (duration > 0) setVideoDuration(duration);
+    }
+  }, [currentChapter?.id]); // Only run when chapter changes
 
   const isLocalFileVideo = useCallback(() => {
     const safeUrl = String(videoUrl || '')
@@ -77,6 +165,11 @@ export default function EnhancedVideoPlayer({
     // URLs containing /uploads/ are local files. 
     // We check for both /uploads/video/ and just /uploads/ for flexibility.
     if (safeUrl.includes('/uploads/')) return true
+    // Common CDN / storage hosts that often serve direct video files
+    if (/s3\.amazonaws\.com|\.cloudfront\.net|storage\.googleapis\.com|blob\.core\.windows\.net|cdn\./i.test(safeUrl)) {
+      return true
+    }
+    // File extension check (with optional query string)
     return /\.(mp4|webm|mov|avi|mkv|3gp)(\?.*)?$/i.test(safeUrl)
   }, [videoUrl])
 
@@ -84,19 +177,21 @@ export default function EnhancedVideoPlayer({
   useEffect(() => {
     if (videoUrl) {
       console.log(`🎬 [VideoPlayer] Loading: "${currentChapter?.titre || currentChapter?.title}"`)
-      console.log(`🔗 URL: ${videoUrl}`)
+      console.log(`🔗 Raw URL: ${rawVideoUrl}`)
+      console.log(`🔗 Playable URL: ${videoUrl}`)
       console.log(`🛠️ Type: ${isLocalFileVideo() ? 'Local File' : platform}`)
     }
-  }, [videoUrl, currentChapter, platform, isLocalFileVideo])
+  }, [videoUrl, rawVideoUrl, currentChapter, platform, isLocalFileVideo])
 
   // Send watch time to backend (throttled via lastUpdateRef). Now sends more frequently (per-second), guarded by isSendingRef.
   const isSendingRef = useRef<boolean>(false)
   const hasSentCompleteRef = useRef<boolean>(false)
 
   const sendWatchTime = useCallback(async (time: number, duration?: number) => {
-    if (!enrollment || !currentChapter?.id) return
+    if (!currentChapter?.id) return
     if (isSendingRef.current) return
     isSendingRef.current = true
+    const hadEnrollment = Boolean(enrollment)
 
     try {
       const response = await coursesApi.updateChapterWatchTime(
@@ -115,19 +210,24 @@ export default function EnhancedVideoPlayer({
       }
 
       if (onWatchTimeUpdate) {
-        onWatchTimeUpdate(Math.floor(time))
+        onWatchTimeUpdate(Math.floor(time), duration ? Math.floor(duration) : undefined)
+      }
+      // Refetch progress when backend may have auto-created enrollment so UI gets it
+      if (!hadEnrollment && onProgressSaved) {
+        onProgressSaved()
       }
     } catch (error) {
       console.error('Failed to update watch time:', error)
     } finally {
       isSendingRef.current = false
     }
-  }, [courseId, currentChapter?.id, enrollment, onWatchTimeUpdate])
+  }, [courseId, currentChapter?.id, enrollment, onWatchTimeUpdate, onProgressSaved])
 
   // Initialize YouTube Player
   useEffect(() => {
     if (platform !== 'youtube' || !youtubeId || !playerRef.current) return
-    if (!isChapterAccessible(currentChapter?.id)) return
+    // Allow initializing YouTube player for preview chapters even when not enrolled.
+    if (!isChapterAccessible(currentChapter?.id) && !currentChapter?.isPreview) return
 
     // Load YouTube IFrame API
     if (!(window as any).YT) {
@@ -147,6 +247,18 @@ export default function EnhancedVideoPlayer({
           modestbranding: 1,
         },
         events: {
+          onReady: (event: any) => {
+            // Resume position if available
+            if (savedWatchPosition && savedWatchPosition > 0) {
+              try {
+                event.target.seekTo(savedWatchPosition, true)
+                lastUpdateRef.current = savedWatchPosition
+                setWatchTime(savedWatchPosition)
+              } catch (e) {
+                // ignore seek errors
+              }
+            }
+          },
           onStateChange: (event: any) => {
             if (event.data === (window as any).YT.PlayerState.PLAYING) {
               setIsPlaying(true)
@@ -175,7 +287,8 @@ export default function EnhancedVideoPlayer({
   // Initialize Vimeo Player tracking via postMessage API
   useEffect(() => {
     if (platform !== 'vimeo' || !vimeoId || !vimeoIframeRef.current) return
-    if (!isChapterAccessible(currentChapter?.id)) return
+    // Allow initializing Vimeo player for preview chapters even when not enrolled.
+    if (!isChapterAccessible(currentChapter?.id) && !currentChapter?.isPreview) return
 
     const iframe = vimeoIframeRef.current
     const iframeWindow = iframe.contentWindow
@@ -194,8 +307,19 @@ export default function EnhancedVideoPlayer({
       try {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
         if (data.event === 'ready') {
-          setVimeoReady(true)
+          vimeoReady.current = true
+          setIsVimeoReady(true)
           enableApi()
+          // Seek to saved position if available
+          if (savedWatchPosition && savedWatchPosition > 0) {
+            try {
+              iframeWindow.postMessage(JSON.stringify({ method: 'setCurrentTime', value: savedWatchPosition }), '*')
+              lastUpdateRef.current = savedWatchPosition
+              setWatchTime(savedWatchPosition)
+            } catch (e) {
+              // ignore
+            }
+          }
         } else if (data.event === 'play') {
           setIsPlaying(true)
         } else if (data.event === 'pause') {
@@ -206,9 +330,27 @@ export default function EnhancedVideoPlayer({
           setWatchTime(time)
           if (duration > 0) setVideoDuration(duration)
 
-          // Send update every 1 second
-          if (enrollment && time - lastUpdateRef.current >= 1) {
-            void sendWatchTime(time, duration > 0 ? duration : undefined)
+          // Immediately notify parent so UI can update optimistically per-second
+          if (onWatchTimeUpdate) {
+            try {
+              onWatchTimeUpdate(Math.floor(time), duration > 0 ? Math.floor(duration) : undefined)
+            } catch (e) {
+              // ignore
+            }
+          }
+
+          // Send update every 1 second (backend can auto-create enrollment)
+          if (time - lastUpdateRef.current >= 1) {
+            // Check High-Water Mark: Only send if we've passed the max stored time
+            const localData = storageKey ? localStorage.getItem(storageKey) : null;
+            let maxStored = savedWatchPosition;
+            if (localData) {
+               try { maxStored = Math.max(maxStored, JSON.parse(localData).time || 0); } catch(e){}
+            }
+            
+            if (time > maxStored) {
+               void sendWatchTime(time, duration > 0 ? duration : undefined)
+            }
           }
 
           // Completion trigger (>=90%) for paid chapters only
@@ -251,11 +393,113 @@ export default function EnhancedVideoPlayer({
   // Track watch time for native HTML5 video
   useEffect(() => {
     if (!isLocalFileVideo()) return
-    if (!enrollment || !currentChapter?.id) return
-    if (!isChapterAccessible(currentChapter?.id)) return
+    const accessAllowed = (currentChapter?.id ? isChapterAccessible(currentChapter?.id) : false) || !!currentChapter?.isPreview
+    if (!accessAllowed) return
 
     const videoEl = htmlVideoRef.current
     if (!videoEl) return
+
+    const onTimeUpdate = () => {
+      const currentTime = videoEl.currentTime;
+      const duration = videoEl.duration;
+      
+      // Update local state for current playback
+      setWatchTime(currentTime);
+      if (duration > 0) setVideoDuration(duration);
+
+      // --- HIGH WATER MARK LOGIC ---
+      // We calculate the maximum time reached across all storage layers
+      let maxStoredTime = savedWatchPosition; // Start with backend/initial load value
+      
+      if (storageKey) {
+        const localData = localStorage.getItem(storageKey);
+        if (localData) {
+          try {
+            const parsed = JSON.parse(localData);
+            maxStoredTime = Math.max(maxStoredTime, parsed.time || 0);
+          } catch (e) {}
+        }
+      }
+
+      // The effective progress is the maximum of current time and anything previously saved
+      const effectiveMaxTime = Math.max(maxStoredTime, Math.floor(currentTime));
+
+      // Notify parent with the HIGH WATER MARK for UI/UX stability (sidebar, header, etc)
+      if (onWatchTimeUpdate) {
+        onWatchTimeUpdate(effectiveMaxTime, duration > 0 ? Math.floor(duration) : undefined);
+      }
+
+      // Update LocalStorage Mirror (Only if current time is actually greater)
+      if (storageKey && Math.floor(currentTime) > maxStoredTime) {
+        localStorage.setItem(storageKey, JSON.stringify({
+          time: Math.floor(currentTime),
+          timestamp: Date.now()
+        }));
+      }
+
+      // --- AUTO-COMPLETION RECOVERY ---
+      // If High-Water Mark is already >= 90% (e.g. from local storage), ensure we mark it complete
+      // This handles the "I already completed it" case where backend might have missed it.
+      if (enrollment && duration > 0 && !currentChapter?.isPreview && !hasSentCompleteRef.current) {
+         // Check if effective max time is enough to complete
+         if (effectiveMaxTime / duration >= 0.9) {
+            hasSentCompleteRef.current = true;
+            console.log(`✅ [VideoPlayer] High-Water Mark (${effectiveMaxTime}s) triggered completion recovery`);
+            coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
+              .then(() => {
+                if (typeof (window as any).__onChapterComplete === 'function') {
+                  (window as any).__onChapterComplete();
+                }
+              })
+              .catch(e => console.error("Completion recovery failed", e));
+         }
+      }
+
+      // Throttled sync to backend (every 5 seconds) - ONLY if advancing beyond high-water mark
+      if (currentTime - lastUpdateRef.current >= 5 && Math.floor(currentTime) > maxStoredTime) {
+        sendWatchTime(currentTime, duration > 0 ? duration : undefined);
+      }
+
+      // Standard Completion check (Live Playback)
+      // (This is redundant if the block above catches it, but kept for safety during active play)
+      if (enrollment && duration > 0 && !currentChapter?.isPreview && !hasSentCompleteRef.current) {
+        if (currentTime / duration >= 0.9) {
+          hasSentCompleteRef.current = true;
+          coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
+            .then(() => {
+              if (typeof (window as any).__onChapterComplete === 'function') {
+                (window as any).__onChapterComplete();
+              }
+            });
+        }
+      }
+    };
+
+    videoEl.addEventListener('timeupdate', onTimeUpdate);
+    
+    // Resume position
+    const onLoadedMetadataResume = () => {
+      const videoEl = htmlVideoRef.current;
+      if (!videoEl) return;
+
+      console.log(`📍 [VideoPlayer] Metadata loaded. Duration: ${videoEl.duration}s, Target resume: ${savedWatchPosition}s`);
+
+      if (savedWatchPosition > 0) {
+        // If the video is shorter than the saved position (rare), seek to the end minus a small buffer
+        const seekTime = Math.min(savedWatchPosition, videoEl.duration - 0.5);
+        
+        try {
+          videoEl.currentTime = seekTime;
+          lastUpdateRef.current = seekTime;
+          setWatchTime(seekTime);
+          console.log(`✅ [VideoPlayer] Successfully resumed to ${seekTime}s`);
+        } catch (e) {
+          console.error('❌ [VideoPlayer] Seek failed:', e);
+        }
+      }
+    };
+
+    videoEl.addEventListener('loadedmetadata', onLoadedMetadataResume);
 
     const onPlay = () => setIsPlaying(true)
     const onPause = () => setIsPlaying(false)
@@ -266,15 +510,17 @@ export default function EnhancedVideoPlayer({
     videoEl.addEventListener('ended', onEnded)
 
     return () => {
+      videoEl.removeEventListener('timeupdate', onTimeUpdate);
       videoEl.removeEventListener('play', onPlay)
       videoEl.removeEventListener('pause', onPause)
       videoEl.removeEventListener('ended', onEnded)
+      videoEl.removeEventListener('loadedmetadata', onLoadedMetadataResume)
     }
-  }, [currentChapter?.id, enrollment, isChapterAccessible, isLocalFileVideo])
+  }, [currentChapter?.id, enrollment, isChapterAccessible, isLocalFileVideo, storageKey, savedWatchPosition, sendWatchTime, onWatchTimeUpdate, courseId]);
 
-  // Track watch time when playing
+  // Track watch time when playing (run even without enrollment so backend can auto-create it)
   useEffect(() => {
-    if (isLocalFileVideo() && enrollment && currentChapter?.id) {
+    if (isLocalFileVideo() && currentChapter?.id) {
       const videoEl = htmlVideoRef.current
       if (!videoEl) return
 
@@ -284,11 +530,29 @@ export default function EnhancedVideoPlayer({
         setWatchTime(currentTime)
         if (duration > 0) setVideoDuration(duration)
 
-        if (isPlaying && currentTime - lastUpdateRef.current >= 1) {
-          await sendWatchTime(currentTime, duration > 0 ? duration : undefined)
+        // Notify parent immediately for per-second UI updates
+        if (onWatchTimeUpdate) {
+          try {
+            onWatchTimeUpdate(Math.floor(currentTime), duration > 0 ? Math.floor(duration) : undefined)
+          } catch (e) {
+            // ignore
+          }
         }
 
-        // Completion trigger (>=90%) for paid chapters only
+        if (isPlaying && currentTime - lastUpdateRef.current >= 1) {
+           // High-Water Mark Check
+           const localData = storageKey ? localStorage.getItem(storageKey) : null;
+           let maxStored = savedWatchPosition;
+           if (localData) {
+              try { maxStored = Math.max(maxStored, JSON.parse(localData).time || 0); } catch(e){}
+           }
+
+           if (currentTime > maxStored) {
+              await sendWatchTime(currentTime, duration > 0 ? duration : undefined)
+           }
+        }
+
+        // Completion trigger (>=90%) for paid chapters only (requires enrollment to exist)
         if (isPlaying && enrollment && duration > 0 && !currentChapter?.isPreview && !hasSentCompleteRef.current) {
           const pct = currentTime / duration
           if (pct >= 0.9) {
@@ -313,7 +577,7 @@ export default function EnhancedVideoPlayer({
       }
     }
 
-    if (isPlaying && player && enrollment) {
+    if (isPlaying && player && currentChapter?.id) {
       intervalRef.current = setInterval(async () => {
         try {
           const currentTime = await player.getCurrentTime()
@@ -321,9 +585,27 @@ export default function EnhancedVideoPlayer({
           setWatchTime(currentTime)
           if (duration > 0) setVideoDuration(duration)
 
+          // Immediately notify parent for per-second UI updates
+          if (onWatchTimeUpdate) {
+            try {
+              onWatchTimeUpdate(Math.floor(currentTime), duration > 0 ? Math.floor(duration) : undefined)
+            } catch (e) {
+              // ignore
+            }
+          }
+
           // Send update every 1 second
           if (currentTime - lastUpdateRef.current >= 1) {
-            await sendWatchTime(currentTime, duration > 0 ? duration : undefined)
+             // Check High-Water Mark for YouTube/Vimeo too
+             const localData = storageKey ? localStorage.getItem(storageKey) : null;
+             let maxStored = savedWatchPosition;
+             if (localData) {
+                try { maxStored = Math.max(maxStored, JSON.parse(localData).time || 0); } catch(e){}
+             }
+
+             if (currentTime > maxStored) {
+               await sendWatchTime(currentTime, duration > 0 ? duration : undefined)
+             }
           }
 
           // Completion trigger (>=90%) for paid chapters only
@@ -359,14 +641,58 @@ export default function EnhancedVideoPlayer({
     }
   }, [currentChapter?.id, enrollment, isLocalFileVideo, isPlaying, player, sendWatchTime])
 
-  // Send final watch time when chapter changes or component unmounts
+  // Final sync on tab close / navigation
   useEffect(() => {
-    return () => {
-      if (watchTime > lastUpdateRef.current && enrollment) {
-        sendWatchTime(watchTime, videoDuration > 0 ? videoDuration : undefined)
+    if (!courseId || !currentChapter?.id || !watchTime) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        saveFinalProgress();
       }
-    }
-  }, [currentChapter?.id, watchTime, enrollment, sendWatchTime, videoDuration])
+    };
+
+    const handleBeforeUnload = () => {
+      saveFinalProgress();
+    };
+
+    const saveFinalProgress = () => {
+      if (!currentChapter?.id) return;
+
+      // UX Fix: Only save if we are actually at or beyond the saved/max position
+      // This prevents sending redundant requests when the user is re-watching
+      const localData = localStorage.getItem(storageKey || '');
+      let maxTime = savedWatchPosition;
+      if (localData) {
+        try { maxTime = Math.max(maxTime, JSON.parse(localData).time); } catch (e) {}
+      }
+
+      if (Math.floor(watchTime) < maxTime) {
+        console.log(`ℹ️ [VideoPlayer] Skipping final sync: Current time ${Math.floor(watchTime)}s is below max reached ${maxTime}s`);
+        return;
+      }
+      
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+      const endpoint = `${backendUrl}/course-enrollment/${courseId}/chapters/${currentChapter.id}/watch-time`;
+      
+      const payload = JSON.stringify({
+        watchTime: Math.floor(watchTime),
+        videoDuration: videoDuration > 0 ? Math.floor(videoDuration) : undefined
+      });
+
+      // Use sendBeacon for reliable delivery on tab close
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(endpoint, new Blob([payload], { type: 'application/json' }));
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [courseId, currentChapter?.id, watchTime, videoDuration]);
 
   // Reset completion flag when chapter changes
   useEffect(() => {
@@ -374,32 +700,43 @@ export default function EnhancedVideoPlayer({
   }, [currentChapter?.id])
 
   const chapterAccessible = currentChapter ? isChapterAccessible(currentChapter.id) : false
+  
+  // Check if video URL is valid (not empty string)
+  const hasValidVideoUrl = Boolean(
+    currentChapter?.videoUrl && 
+    typeof currentChapter.videoUrl === 'string' && 
+    currentChapter.videoUrl.trim() !== ''
+  );
+  
   // Show the video for preview chapters even when user isn't enrolled.
-  const shouldShowLocked = !currentChapter?.videoUrl || (!chapterAccessible && !currentChapter?.isPreview)
+  const shouldShowLocked = !hasValidVideoUrl || (!chapterAccessible && !currentChapter?.isPreview)
   
   if (shouldShowLocked) {
     console.debug('[VideoPlayer] locked/preview render check', {
       chapterId: currentChapter?.id,
       videoUrl: currentChapter?.videoUrl,
+      hasValidVideoUrl,
       isPreview: currentChapter?.isPreview,
       enrollment,
       chapterAccessible,
     })
 
     const isAccessDenied = !chapterAccessible && !currentChapter?.isPreview
+    const isVideoMissing = !hasValidVideoUrl
 
     return (
       <Card className="border-0 shadow-sm overflow-hidden">
         <div className="relative bg-black aspect-video">
           <div className="flex items-center justify-center h-full text-white bg-gray-800">
             <div className="text-center">
-              {!isAccessDenied ? (
+              {isVideoMissing ? (
                 <>
                   <PlayCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-semibold">Video Unavailable</p>
                   <p className="text-sm text-gray-300 mt-2">The video for this chapter is currently unavailable.</p>
+                  <p className="text-xs text-gray-400 mt-1">Please contact the course creator to upload the video content.</p>
                 </>
-              ) : (
+              ) : isAccessDenied ? (
                 <>
                   <Lock className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   {currentChapter?.isPaidChapter ? (
@@ -426,7 +763,7 @@ export default function EnhancedVideoPlayer({
                     </>
                   )}
                 </>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -439,14 +776,17 @@ export default function EnhancedVideoPlayer({
       <div className="relative bg-black aspect-video">
         {isLocalFileVideo() ? (
           <video
+            key={videoUrl} // Force re-render when URL changes
             ref={htmlVideoRef}
             src={videoUrl}
             controls
+            playsInline
             preload="metadata"
             className="absolute inset-0 w-full h-full"
             onError={(e) => {
               console.error("❌ Video Player Error:", e);
               console.error("❌ Failed URL:", videoUrl);
+              console.error("❌ Original URL:", rawVideoUrl);
             }}
           />
         ) : platform === 'youtube' && youtubeId ? (
@@ -470,13 +810,15 @@ export default function EnhancedVideoPlayer({
           />
         )}
 
-        {/* Watch time indicator (for tracking confirmation) */}
-        {enrollment && watchTime > 0 && (
+        {/* Watch time indicator (for tracking confirmation) - Only show when advancing BEYOND high-water mark */}
+        {enrollment && watchTime > savedWatchPosition && watchTime > 0 && (
           <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-2">
             <div className="w-16 h-1.5 bg-gray-600 rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary"
-                style={{ width: `${videoDuration > 0 ? (watchTime / videoDuration) * 100 : 0}%` }}
+                style={{ 
+                  width: `${videoDuration > 0 ? (watchTime / videoDuration) * 100 : 0}%` 
+                }}
               />
             </div>
             <span>

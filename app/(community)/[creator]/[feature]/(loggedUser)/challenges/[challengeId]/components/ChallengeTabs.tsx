@@ -55,7 +55,10 @@ export default function ChallengeTabs({
       </TabsContent>
 
       <TabsContent value="submissions" className="space-y-6">
-        <SubmissionsTab challengeTasks={challengeTasks} />
+        <SubmissionsTab 
+          challengeTasks={challengeTasks} 
+          challengeId={challenge.id || challenge._id}
+        />
       </TabsContent>
     </Tabs>
   )

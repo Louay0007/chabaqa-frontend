@@ -31,11 +31,16 @@ export async function POST(req: NextRequest) {
     const promoCode = searchParams.get('promoCode');
 
     // Get the backend API URL from environment (must include /api because Nest uses global prefix)
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    const backendUrl = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+
+    // Ensure URL is absolute for server-side fetch
+    const finalBackendUrl = backendUrl.startsWith('http') 
+      ? backendUrl 
+      : `http://localhost:3000${backendUrl}`;
 
     const backendEndpoint = promoCode
-      ? `${backendUrl}/payment/stripe-link/init/course?promoCode=${encodeURIComponent(promoCode)}`
-      : `${backendUrl}/payment/stripe-link/init/course`;
+      ? `${finalBackendUrl}/payment/stripe-link/init/course?promoCode=${encodeURIComponent(promoCode)}`
+      : `${finalBackendUrl}/payment/stripe-link/init/course`;
 
     // Forward the request to the backend
     const response = await fetch(

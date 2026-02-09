@@ -10,9 +10,24 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { Zap, Calendar, Clock, DollarSign, Trophy, CheckCircle, Users, Target } from "lucide-react"
+import {
+  Zap,
+  Calendar,
+  Clock,
+  DollarSign,
+  Trophy,
+  CheckCircle2,
+  Users,
+  Target,
+  Sparkles,
+  TrendingUp,
+  Award,
+  Gift,
+  Tag,
+  ArrowRight
+} from "lucide-react"
 import { formatDate } from "@/lib/utils"
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { challengesApi } from "@/lib/api/challenges.api"
 
 interface ChallengeSelectionModalProps {
@@ -22,7 +37,7 @@ interface ChallengeSelectionModalProps {
 
 export default function ChallengeSelectionModal({ challenge, setSelectedChallenge }: ChallengeSelectionModalProps) {
   const { toast } = useToast()
-  
+
   const [promoCode, setPromoCode] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -68,104 +83,152 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
 
   return (
     <Dialog open={!!challenge} onOpenChange={() => setSelectedChallenge(null)}>
-      <DialogContent className="w-[95vw] max-w-lg sm:w-full">
-        <DialogHeader className="pb-2">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-gradient-to-r from-challenges-500 to-orange-500">
-              <Zap className="h-4 w-4 text-white" />
-            </div>
-            <DialogTitle className="text-base font-bold line-clamp-1">{challenge.title}</DialogTitle>
-          </div>
-        </DialogHeader>
+      <DialogContent className="w-[95vw] max-w-2xl sm:w-full p-0 overflow-hidden border-0 shadow-2xl">
+        {/* Header with gradient background */}
+        <div className="relative bg-gradient-to-br from-challenges-600 via-challenges-500 to-orange-500 p-6 pb-8">
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-16 translate-x-16" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full blur-xl translate-y-12 -translate-x-12" />
 
-        <div className="space-y-3">
-          {/* Stats Grid */}
-          <div className="grid grid-cols-4 gap-2">
-            <div className="flex flex-col items-center gap-1 p-2 rounded-lg bg-muted/50">
-              <Calendar className="h-4 w-4 text-challenges-500" />
-              <p className="text-[10px] text-muted-foreground">Start</p>
-              <p className="text-xs font-semibold">{formatDate(challenge.startDate).split(',')[0]}</p>
+          <DialogHeader className="relative">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm shadow-lg">
+                <Zap className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <DialogTitle className="text-xl font-bold text-white mb-1 line-clamp-2">
+                  {challenge.title}
+                </DialogTitle>
+                <p className="text-white/90 text-sm flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Join the challenge and transform your habits
+                </p>
+              </div>
             </div>
-            <div className="flex flex-col items-center gap-1 p-2 rounded-lg bg-muted/50">
-              <Clock className="h-4 w-4 text-challenges-500" />
-              <p className="text-[10px] text-muted-foreground">Duration</p>
-              <p className="text-xs font-semibold">{challenge.duration || '30d'}</p>
+          </DialogHeader>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-5 bg-gradient-to-b from-gray-50 to-white">
+          {/* Stats Grid - Enhanced */}
+          <div className="grid grid-cols-4 gap-3 -mt-12 relative z-10">
+            <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+              <div className="p-2 rounded-lg bg-blue-50">
+                <Calendar className="h-5 w-5 text-blue-600" />
+              </div>
+              <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">Start</p>
+              <p className="text-sm font-bold text-gray-900">{formatDate(challenge.startDate).split(',')[0]}</p>
             </div>
-            <div className="flex flex-col items-center gap-1 p-2 rounded-lg bg-muted/50">
-              <DollarSign className="h-4 w-4 text-challenges-500" />
-              <p className="text-[10px] text-muted-foreground">Deposit</p>
-              <p className="text-xs font-semibold">{paymentAmount > 0 ? `$${paymentAmount}` : 'Free'}</p>
+            <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+              <div className="p-2 rounded-lg bg-purple-50">
+                <Clock className="h-5 w-5 text-purple-600" />
+              </div>
+              <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">Duration</p>
+              <p className="text-sm font-bold text-gray-900">{challenge.duration || '30 days'}</p>
             </div>
-            <div className="flex flex-col items-center gap-1 p-2 rounded-lg bg-muted/50">
-              <Trophy className="h-4 w-4 text-yellow-500" />
-              <p className="text-[10px] text-muted-foreground">Reward</p>
-              <p className="text-xs font-semibold">${completionReward}</p>
+            <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+              <div className="p-2 rounded-lg bg-emerald-50">
+                <DollarSign className="h-5 w-5 text-emerald-600" />
+              </div>
+              <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">Deposit</p>
+              <p className="text-sm font-bold text-gray-900">{paymentAmount > 0 ? `$${paymentAmount}` : 'Free'}</p>
+            </div>
+            <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
+              <div className="p-2 rounded-lg bg-amber-50">
+                <Trophy className="h-5 w-5 text-amber-600" />
+              </div>
+              <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">Reward</p>
+              <p className="text-sm font-bold text-gray-900">${completionReward}</p>
             </div>
           </div>
 
-          {/* Benefits Section */}
-          <div className="bg-gradient-to-r from-green-50 to-blue-50 p-2.5 rounded-lg border">
-            <h3 className="text-xs font-bold mb-1.5 flex items-center gap-1">
-              <Target className="h-3 w-3 text-green-600" />
-              What You'll Get
-            </h3>
-            <div className="grid grid-cols-2 gap-1.5">
-              {[
-                { text: "Daily tasks", icon: CheckCircle },
-                { text: "Support", icon: Users },
-                { text: "Tracking", icon: Target },
-                { text: "Rewards", icon: Trophy }
-              ].map((item) => (
-                <div key={item.text} className="flex items-center gap-1.5 text-[11px]">
-                  <item.icon className="h-3 w-3 text-green-500 flex-shrink-0" />
-                  <span>{item.text}</span>
+          {/* Benefits Section - Enhanced */}
+          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 p-5 border border-emerald-100 shadow-sm">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-200/20 rounded-full blur-3xl" />
+            <div className="relative">
+              <h3 className="text-sm font-bold mb-4 flex items-center gap-2 text-gray-900">
+                <div className="p-1.5 rounded-lg bg-emerald-500">
+                  <Gift className="h-4 w-4 text-white" />
                 </div>
-              ))}
+                What You'll Get
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { text: "Daily tasks & tracking", icon: CheckCircle2, color: "text-emerald-600" },
+                  { text: "Community support", icon: Users, color: "text-blue-600" },
+                  { text: "Progress analytics", icon: TrendingUp, color: "text-purple-600" },
+                  { text: "Achievement rewards", icon: Award, color: "text-amber-600" }
+                ].map((item) => (
+                  <div key={item.text} className="flex items-center gap-2.5 p-2.5 rounded-lg bg-white/60 backdrop-blur-sm">
+                    <div className="p-1.5 rounded-md bg-white shadow-sm">
+                      <item.icon className={`h-4 w-4 ${item.color}`} />
+                    </div>
+                    <span className="text-xs font-medium text-gray-700">{item.text}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Payment Information */}
+          {/* Payment Information - Enhanced */}
           {paymentAmount > 0 && (
-            <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200">
-              <p className="text-[11px] text-amber-800">
-                Pay <strong>${paymentAmount}</strong> to join. Complete to get <strong>${completionReward}</strong> back!
-              </p>
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 p-4 border border-amber-200 shadow-sm">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-amber-200/30 rounded-full blur-2xl" />
+              <div className="relative flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-amber-500 shadow-sm">
+                  <DollarSign className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-amber-900 mb-1">
+                    Investment & Return
+                  </p>
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    Pay <span className="font-bold text-amber-900">${paymentAmount}</span> to join.
+                    Complete the challenge to get <span className="font-bold text-emerald-700">${completionReward}</span> back!
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Form Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <Label htmlFor="promoCode" className="text-xs">Promo code</Label>
-              <Input
-                id="promoCode"
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value)}
-                placeholder="Enter code"
-                disabled={isSubmitting}
-                className="h-8 text-xs"
-              />
-            </div>
-
+          {/* Promo Code Section - Enhanced */}
+          <div className="space-y-2">
+            <Label htmlFor="promoCode" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <Tag className="h-4 w-4 text-challenges-500" />
+              Have a promo code?
+            </Label>
+            <Input
+              id="promoCode"
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value)}
+              placeholder="Enter your promo code"
+              disabled={isSubmitting}
+              className="h-11 text-sm border-gray-200 focus:border-challenges-500 focus:ring-challenges-500"
+            />
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-1">
+          {/* Action Buttons - Enhanced */}
+          <div className="flex gap-3 pt-2">
             <Button
-              className="flex-1 h-9 text-xs font-semibold bg-gradient-to-r from-challenges-500 to-orange-500 hover:from-challenges-600 hover:to-orange-600"
+              className="flex-1 h-12 text-sm font-semibold bg-gradient-to-r from-challenges-600 to-orange-500 hover:from-challenges-700 hover:to-orange-600 shadow-lg hover:shadow-xl transition-all duration-200 group"
               onClick={handleJoin}
               disabled={isSubmitting}
             >
-              {isSubmitting 
-                ? "Processing..." 
-                : paymentAmount > 0 
-                  ? `Proceed to payment`
-                  : "Join Free"
-              }
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Processing...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  {paymentAmount > 0 ? "Proceed to Payment" : "Join Challenge Free"}
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </span>
+              )}
             </Button>
-            <Button 
-              variant="outline" 
-              className="h-9 px-4 text-xs" 
+            <Button
+              variant="outline"
+              className="h-12 px-6 text-sm font-medium border-gray-300 hover:bg-gray-50"
               onClick={() => setSelectedChallenge(null)}
               disabled={isSubmitting}
             >
