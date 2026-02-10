@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import Link from 'next/link';
+import { communitiesApi } from '@/lib/api/communities.api';
 
 
 interface VerificationResponse {
@@ -53,6 +54,7 @@ export default function PaymentSuccessContent() {
   const sessionId = searchParams.get('sessionId');
   const scope = searchParams.get('scope');
   const id = searchParams.get('id');
+  const provider = searchParams.get('provider'); // Add provider check
 
   console.log('Payment Success Params:', searchParams.toString());
   console.log('Session ID:', sessionId);
@@ -66,8 +68,15 @@ export default function PaymentSuccessContent() {
       }
 
       try {
+        // Determine correct endpoint based on provider
+        let verifyUrl = `/api/payment/verify?paymentId=${sessionId}`; // Default to Flouci (singular payment)
+        
+        if (provider === 'stripe' || provider === 'stripe-link') {
+          verifyUrl = `/api/payment/stripe-link/verify?sessionId=${sessionId}`;
+        }
+
         const response = await fetch(
-          `/api/payments/verify?sessionId=${sessionId}`,
+          verifyUrl,
           {
             method: 'GET',
             headers: {
@@ -91,6 +100,8 @@ export default function PaymentSuccessContent() {
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Verification failed';
         setError(errorMessage);
+        // Ensure verificationData is reset or null if verification fails significantly
+        setVerificationData(null);
       } finally {
         setLoading(false);
       }
@@ -107,16 +118,55 @@ export default function PaymentSuccessContent() {
   const communitySlug = paymentData?.communitySlug;
   const targetId = paymentData?.targetId || id;
 
-  // After successful course payment, redirect straight to the course (no success page)
+  // After successful payment, redirect straight to content (no success page)
   useEffect(() => {
-    if (!verified || redirectDone.current || scope !== 'course') return;
-    if (creatorSlug && communitySlug && targetId) {
+    if (!verified || redirectDone.current) return;
+
+    // Course Redirect
+    if (scope === 'course' && creatorSlug && communitySlug && targetId) {
       redirectDone.current = true;
       router.replace(`/${creatorSlug}/${communitySlug}/courses/${targetId}`);
+      return;
+    }
+
+    // Community Redirect: poll joined list until membership appears (to avoid race with webhook)
+    if (scope === 'community' && creatorSlug && communitySlug) {
+      redirectDone.current = true;
+      (async () => {
+        const timeoutMs = 20000; // 20 seconds
+        const intervalMs = 1000;
+        const started = Date.now();
+        let joined = false;
+        try {
+          while (Date.now() - started < timeoutMs) {
+            try {
+              const res = await communitiesApi.getMyJoined();
+              const joinedList = res?.data || [];
+              if (Array.isArray(joinedList) && joinedList.some((c: any) => String(c.slug) === String(communitySlug))) {
+                joined = true;
+                break;
+              }
+            } catch (e) {
+              // ignore and retry
+            }
+            await new Promise((r) => setTimeout(r, intervalMs));
+          }
+        } finally {
+          if (joined) {
+            router.replace(`/${creatorSlug}/${communitySlug}/home`);
+          } else {
+            // fallback: redirect and include joined flag so client refreshes
+            router.replace(`/${creatorSlug}/${communitySlug}/home?joined=1`);
+          }
+        }
+      })();
     }
   }, [verified, scope, creatorSlug, communitySlug, targetId, router]);
 
-  const isRedirectingToCourse = scope === 'course' && verified && creatorSlug && communitySlug && targetId;
+  const isRedirecting = verified && (
+    (scope === 'course' && creatorSlug && communitySlug && targetId) ||
+    (scope === 'community' && creatorSlug && communitySlug)
+  );
 
   const renderContentButton = () => {
     const baseClass = "block w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition text-center";
@@ -200,10 +250,10 @@ export default function PaymentSuccessContent() {
               <p className="text-gray-600 font-semibold">Verifying payment...</p>
               <p className="text-sm text-gray-500 mt-2">Session ID: {sessionId}</p>
             </div>
-          ) : isRedirectingToCourse ? (
+          ) : isRedirecting ? (
             <div className="text-center">
               <div className="animate-spin inline-block w-12 h-12 border-4 border-gray-200 border-t-blue-600 rounded-full mb-4"></div>
-              <p className="text-gray-600 font-semibold">Payment successful. Redirecting to course...</p>
+              <p className="text-gray-600 font-semibold">Payment successful. Redirecting...</p>
             </div>
           ) : verified ? (
             <div className="text-center">
@@ -315,7 +365,9 @@ export default function PaymentSuccessContent() {
                 </svg>
               </div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Failed</h1>
-              <p className="text-gray-600 mb-2">{error || 'Payment could not be verified'}</p>
+              <p className="text-gray-600 mb-2">
+                {typeof error === 'string' ? error : 'Payment could not be verified'}
+              </p>
               <p className="text-sm text-gray-500 mb-6">Session ID: {sessionId}</p>
 
               {/* {verificationData && (

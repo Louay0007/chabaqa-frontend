@@ -108,7 +108,7 @@ export default function ChapterTabs({
 
       <TabsContent value="ai-tutor" className="mt-6">
         {courseId && currentChapter?.id ? (
-          <AiTutorWidget courseId={courseId} chapterId={String(currentChapter.id)} />
+          <AiTutorWidget courseId={courseId!} chapterId={String(currentChapter.id)} />
         ) : (
           <Card className="border-0 shadow-sm">
             <CardContent className="py-8 text-center text-muted-foreground">

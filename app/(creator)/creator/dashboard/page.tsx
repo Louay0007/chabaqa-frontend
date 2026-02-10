@@ -20,6 +20,7 @@ import {
   ArrowRight,
   Plus,
   Eye,
+  FileText,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -54,7 +55,7 @@ export default function CreatorDashboardPage() {
   const [creatorCourses, setCreatorCourses] = useState<any[]>([])
   const [creatorChallenges, setCreatorChallenges] = useState<any[]>([])
   const [creatorSessions, setCreatorSessions] = useState<any[]>([])
-  const [creatorPosts] = useState<any[]>([])
+  const [creatorPosts, setCreatorPosts] = useState<any[]>([])
   const [userCommunities, setUserCommunities] = useState<any[]>([])
   const [overview, setOverview] = useState<any | null>(null)
   const [recentActivity, setRecentActivity] = useState<any[]>([])
@@ -145,7 +146,7 @@ export default function CreatorDashboardPage() {
         const prevMonthStart = new Date(toDate.getFullYear(), toDate.getMonth() - 1, 1)
         const prevMonthEnd = new Date(toDate.getFullYear(), toDate.getMonth(), 0)
 
-        const [coursesRes, challengesRes, sessionsRes, overviewRes, prevCoursesRes, prevChallengesRes, prevSessionsRes, prevOverviewRes] = await Promise.all([
+        const [coursesRes, challengesRes, sessionsRes, postsRes, overviewRes, prevCoursesRes, prevChallengesRes, prevSessionsRes, prevOverviewRes] = await Promise.all([
           // Courses: Get courses for selected community
           apiClient.get<any>(`/cours/user/created`, { limit: 100, communityId: selectedCommunityId }).catch((e) => { console.log('[Dashboard] Courses fetch error:', e); return null }),
 
@@ -154,6 +155,9 @@ export default function CreatorDashboardPage() {
 
           // Sessions: Get sessions for selected community
           apiClient.get<any>(`/sessions`, { creatorId: userId, limit: 50, communityId: selectedCommunityId }).catch((e) => { console.log('[Dashboard] Sessions fetch error:', e); return null }),
+
+          // Posts: Get posts for selected community
+          apiClient.get<any>(`/posts/community/${selectedCommunityId}`, { limit: 50 }).catch((e) => { console.log('[Dashboard] Posts fetch error:', e); return null }),
 
           // Current month analytics for selected community
           api.creatorAnalytics.getOverview({ from: fromDate.toISOString(), to: toDate.toISOString(), communityId: selectedCommunityId }).catch(() => null as any),
@@ -170,6 +174,7 @@ export default function CreatorDashboardPage() {
           coursesRes,
           challengesRes,
           sessionsRes,
+          postsRes,
           overviewRes,
           prevCoursesRes,
           prevChallengesRes,
@@ -194,6 +199,11 @@ export default function CreatorDashboardPage() {
         const sessions = sessionsRes?.sessions || sessionsRes?.data?.sessions || sessionsRes?.data?.items || sessionsRes?.items || []
         console.log('[Dashboard] Parsed sessions:', sessions)
         setCreatorSessions(Array.isArray(sessions) ? sessions : [])
+
+        // 4. Posts Parsing
+        const posts = postsRes?.data?.data || postsRes?.data || postsRes?.items || []
+        console.log('[Dashboard] Parsed posts:', posts)
+        setCreatorPosts(Array.isArray(posts) ? posts : [])
 
         // Process previous month data for growth calculation
         const filterByDateRange = (items: any[], startDate: Date, endDate: Date, dateField: string = 'createdAt') => {
@@ -581,7 +591,7 @@ export default function CreatorDashboardPage() {
               <TabsContent value="courses">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {creatorCourses.map((course) => {
-                    const enrollmentCount = Array.isArray(course.enrollments) ? course.enrollments.length : 0
+                    const enrollmentCount = Array.isArray(course.enrollments) ? course.enrollments.length : (course.enrollmentCount || 0)
                     return (
                       <EnhancedCard key={course.id} hover className="overflow-hidden">
                         <div className="relative">
@@ -593,7 +603,9 @@ export default function CreatorDashboardPage() {
                             className="w-full h-48 object-cover"
                           />
                           <div className="absolute top-3 right-3">
-                            <Badge className="bg-courses-500 text-white">${course.price}</Badge>
+                            <Badge className="bg-courses-500 text-white">
+                              {course.prix > 0 ? `${course.prix} ${course.devise || 'TND'}` : 'Free'}
+                            </Badge>
                           </div>
                         </div>
                         <CardHeader>
@@ -618,27 +630,44 @@ export default function CreatorDashboardPage() {
               <TabsContent value="challenges">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {creatorChallenges.map((challenge) => {
-                    const participantsCount = Array.isArray(challenge.participants) ? challenge.participants.length : 0
+                    const participantsCount = Array.isArray(challenge.participants) ? challenge.participants.length : (challenge.participantsCount || 0)
                     return (
                       <EnhancedCard key={challenge.id} hover className="overflow-hidden">
-                        <div className="relative">
-                          <div className="bg-gradient-to-r from-challenges-500 to-orange-500 p-6 text-white">
-                            <h3 className="text-xl font-bold mb-2">{challenge.title}</h3>
-                            <p className="text-challenges-100 text-sm">{challenge.description}</p>
-                          </div>
+                        <div className="relative h-48 bg-gradient-to-r from-challenges-500 to-orange-500 p-6 text-white flex flex-col justify-center">
+                          <Badge className="absolute top-3 right-3 bg-white/20 text-white hover:bg-white/30 border-0">
+                            {challenge.price > 0 ? `$${challenge.price}` : 'Free'}
+                          </Badge>
+                          <Zap className="h-10 w-10 mb-3 opacity-90" />
+                          <h3 className="text-xl font-bold line-clamp-2 mb-1">{challenge.title}</h3>
+                          <p className="text-challenges-100 text-sm line-clamp-2 opacity-90">{challenge.description}</p>
                         </div>
-                        <CardContent className="flex items-center justify-between pt-4">
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Users className="h-4 w-4 mr-1" />
-                            {participantsCount} participants
+                        <CardContent className="pt-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center text-sm text-muted-foreground">
+                              <Users className="h-4 w-4 mr-1 text-challenges-500" />
+                              <span className="font-medium text-gray-900 mr-1">{participantsCount}</span> participants
+                            </div>
+                            <Badge variant="outline" className="text-xs">
+                              {challenge.difficulty || 'All levels'}
+                            </Badge>
                           </div>
-                          <Button size="sm" asChild>
-                            <Link href={`/creator/challenges/${challenge.id}/manage`}>Manage</Link>
+                          <Button size="sm" className="w-full bg-challenges-500 hover:bg-challenges-600" asChild>
+                            <Link href={`/creator/challenges/${challenge.id}/manage`}>Manage Challenge</Link>
                           </Button>
                         </CardContent>
                       </EnhancedCard>
                     )
                   })}
+                  {creatorChallenges.length === 0 && (
+                    <div className="col-span-full text-center py-12 bg-gray-50 rounded-lg border border-dashed">
+                      <Zap className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                      <h3 className="text-lg font-medium text-gray-900">No challenges yet</h3>
+                      <p className="text-gray-500 mb-4">Create your first community challenge to engage your members.</p>
+                      <Button asChild className="bg-challenges-500 hover:bg-challenges-600">
+                         <Link href="/creator/challenges/create">Create Challenge</Link>
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
@@ -646,56 +675,105 @@ export default function CreatorDashboardPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {creatorSessions.map((session) => (
                     <EnhancedCard key={session.id} hover className="overflow-hidden">
-                      <CardHeader>
-                        <CardTitle className="line-clamp-2">{session.title}</CardTitle>
-                        <CardDescription className="line-clamp-3">{session.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="flex items-center justify-between">
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <DollarSign className="h-4 w-4 mr-1" />${session.price}
+                      <div className="relative h-48 bg-gradient-to-r from-sessions-500 to-indigo-500 p-6 text-white flex flex-col justify-center items-center text-center">
+                        <Calendar className="h-12 w-12 mb-3 opacity-90" />
+                        <h3 className="text-xl font-bold line-clamp-2">{session.title}</h3>
+                        <Badge className="mt-2 bg-white/20 text-white hover:bg-white/30 border-0">
+                          {session.duration || 60} mins
+                        </Badge>
+                      </div>
+                      <CardContent className="pt-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center text-sm font-medium text-gray-900">
+                             <DollarSign className="h-4 w-4 mr-1 text-green-600" />
+                             {session.price > 0 ? `$${session.price}` : 'Free'}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            1-on-1 Session
+                          </div>
                         </div>
-                        <Button size="sm" asChild>
-                          <Link href={`/creator/sessions/${session.id}/manage`}>Manage</Link>
+                        <Button size="sm" className="w-full bg-sessions-500 hover:bg-sessions-600" asChild>
+                          <Link href={`/creator/sessions/${session.id}/manage`}>Manage Session</Link>
                         </Button>
                       </CardContent>
                     </EnhancedCard>
                   ))}
+                  {creatorSessions.length === 0 && (
+                    <div className="col-span-full text-center py-12 bg-gray-50 rounded-lg border border-dashed">
+                      <Calendar className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                      <h3 className="text-lg font-medium text-gray-900">No sessions yet</h3>
+                      <p className="text-gray-500 mb-4">Start offering 1-on-1 coaching or consulting sessions.</p>
+                      <Button asChild>
+                         <Link href="/creator/sessions/create">Create Session</Link>
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
               <TabsContent value="posts">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {creatorPosts.map((post) => {
-                    const commentsCount = Array.isArray(post.comments) ? post.comments.length : 0
+                    const commentsCount = Array.isArray(post.comments) ? post.comments.length : (post.commentsCount || 0)
+                    const likesCount = post.likes?.length || post.likesCount || 0
                     return (
                       <EnhancedCard key={post.id} hover className="overflow-hidden">
-                        <div className="relative">
-                          {post.thumbnail && (
+                        <div className="relative h-48 bg-gray-100">
+                          {post.thumbnail ? (
                             <Image
-                              src={post.thumbnail || "/placeholder.svg"}
+                              src={post.thumbnail}
                               alt={post.title}
-                              width={400}
-                              height={200}
-                              className="w-full h-48 object-cover"
+                              fill
+                              className="object-cover"
                             />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                              <FileText className="h-12 w-12 text-gray-400" />
+                            </div>
                           )}
-                        </div>
-                        <CardHeader>
-                          <CardTitle className="line-clamp-2">{post.title}</CardTitle>
-                          <CardDescription className="line-clamp-3">{post.excerpt}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex items-center justify-between">
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <MessageSquare className="h-4 w-4 mr-1" />
-                            {commentsCount} comments
+                          <div className="absolute top-3 left-3">
+                            <Badge className="bg-black/50 text-white backdrop-blur-sm border-0 capitalize">
+                              {post.category || 'Post'}
+                            </Badge>
                           </div>
-                          <Button size="sm" asChild>
-                            <Link href={`/creator/posts/${post.id}/manage`}>Manage</Link>
+                        </div>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-lg line-clamp-2">{post.title}</CardTitle>
+                          <CardDescription className="line-clamp-2">{post.excerpt || post.content?.substring(0, 100)}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <div className="flex items-center">
+                                <MessageSquare className="h-3.5 w-3.5 mr-1" />
+                                {commentsCount}
+                              </div>
+                              <div className="flex items-center">
+                                <Star className="h-3.5 w-3.5 mr-1" />
+                                {likesCount}
+                              </div>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                              {new Date(post.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <Button size="sm" variant="outline" className="w-full" asChild>
+                            <Link href={`/creator/posts/${post.id}/manage`}>Edit Post</Link>
                           </Button>
                         </CardContent>
                       </EnhancedCard>
                     )
                   })}
+                  {creatorPosts.length === 0 && (
+                    <div className="col-span-full text-center py-12 bg-gray-50 rounded-lg border border-dashed">
+                      <FileText className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                      <h3 className="text-lg font-medium text-gray-900">No posts yet</h3>
+                      <p className="text-gray-500 mb-4">Share updates, articles, or announcements with your community.</p>
+                      <Button asChild>
+                         <Link href={communityFeedUrl}>Create Your First Post</Link>
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>

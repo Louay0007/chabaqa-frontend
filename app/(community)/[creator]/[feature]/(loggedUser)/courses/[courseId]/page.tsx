@@ -31,6 +31,11 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
   const [unlockMessage, setUnlockMessage] = useState<string | undefined>(undefined)
   const [isEnrolled, setIsEnrolled] = useState<boolean | null>(null)
 
+  const trackingSentRef = useMemo(
+    () => ({ view: false, start: false }),
+    [],
+  )
+
   const refreshEnrollmentProgress = async (
     resolvedCourseId: string,
     courseForFallback?: { mongoId?: string; id?: string } | null,
@@ -92,6 +97,15 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
       const normalizedCourse = rawCourse ? transformCourse(rawCourse) : null
       console.log('Normalized course:', normalizedCourse)
       setCourse(normalizedCourse)
+
+      // Track a course view for creator analytics (best-effort)
+      if (!trackingSentRef.view) {
+        trackingSentRef.view = true
+        const trackingId = String(normalizedCourse?.id || courseId)
+        void coursesApi.trackView(trackingId).catch(() => {
+          // ignore tracking failures
+        })
+      }
     } catch (error) {
       console.error("Failed to refresh course:", error)
     }
@@ -188,6 +202,13 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
         const resolvedCourseId = String(normalizedCourse?.mongoId || courseId)
 
         setCourse(normalizedCourse)
+        if (!trackingSentRef.view) {
+          trackingSentRef.view = true
+          const trackingId = String(normalizedCourse?.id || courseId)
+          void coursesApi.trackView(trackingId).catch(() => {
+            // ignore tracking failures
+          })
+        }
         await refreshProgress(resolvedCourseId, normalizedCourse)
       } catch (error) {
         if (!isActive) return

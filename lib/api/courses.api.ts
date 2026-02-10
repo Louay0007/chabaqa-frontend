@@ -1,5 +1,6 @@
 import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } from './client';
 import type { Course, CourseSection, CourseChapter, CourseEnrollment } from './types';
+import { getDeviceInfo } from '@/lib/utils/device';
 
 export interface CreateCourseData {
   title: string;
@@ -14,7 +15,18 @@ export interface CreateCourseData {
 }
 
 export interface UpdateCourseData extends Partial<CreateCourseData> {
+  titre?: string;
+  description?: string;
+  prix?: number;
+  devise?: string;
+  category?: string;
+  niveau?: string;
+  duree?: string;
+  learningObjectives?: string[];
+  requirements?: string[];
+  notes?: string;
   isPublished?: boolean;
+  thumbnail?: string;
 }
 
 export interface CreateSectionData {
@@ -30,6 +42,7 @@ export interface CreateChapterData {
   duration: number;
   order: number;
   isFree: boolean;
+  notes?: string;
 }
 
 // Courses API
@@ -90,6 +103,22 @@ export const coursesApi = {
 
   completeCourseEnrollment: async (courseId: string): Promise<any> => {
     return apiClient.put(`/course-enrollment/${courseId}/complete`);
+  },
+
+  // =========================================================================
+  // TRACKING (Creator Analytics)
+  // =========================================================================
+
+  trackView: async (courseId: string): Promise<any> => {
+    return apiClient.post(`/cours/${courseId}/track/view`, { metadata: getDeviceInfo() });
+  },
+
+  trackStart: async (courseId: string): Promise<any> => {
+    return apiClient.post(`/cours/${courseId}/track/start`, { metadata: getDeviceInfo() });
+  },
+
+  trackComplete: async (courseId: string): Promise<any> => {
+    return apiClient.post(`/cours/${courseId}/track/complete`, { metadata: getDeviceInfo() });
   },
 
   // Update course
@@ -178,6 +207,11 @@ export const coursesApi = {
     return apiClient.patch(`/cours/${courseId}/sections/${sectionId}/chapitres/${chapterId}`, data);
   },
 
+  // Upload chapter video (direct)
+  uploadChapterVideo: async (courseId: string, sectionId: string, chapterId: string, file: File): Promise<any> => {
+    return apiClient.uploadFile(`/cours/${courseId}/sections/${sectionId}/chapitres/${chapterId}/upload-video`, file, 'file');
+  },
+
   // Delete chapter
   deleteChapter: async (courseId: string, sectionId: string, chapterId: string): Promise<any> => {
     return apiClient.delete(`/cours/${courseId}/sections/${sectionId}/chapitres/${chapterId}`);
@@ -233,12 +267,12 @@ export const coursesApi = {
 
   // Like a course
   likeCourse: async (courseId: string): Promise<any> => {
-    return apiClient.post(`/cours/${courseId}/track/like`);
+    return apiClient.post(`/cours/${courseId}/track/like`, { metadata: getDeviceInfo() });
   },
 
   // Share a course
   shareCourse: async (courseId: string): Promise<any> => {
-    return apiClient.post(`/cours/${courseId}/track/share`);
+    return apiClient.post(`/cours/${courseId}/track/share`, { metadata: getDeviceInfo() });
   },
 
   // Bookmark a course (using custom bookmark ID or generating one)

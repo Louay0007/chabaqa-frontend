@@ -8,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Upload } from "lucide-react"
+import { useRef, useState } from "react"
+import { api } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
 import { Switch } from "@/components/ui/switch"
 export default function ChallengeDetailsTab({
   challenge,
@@ -18,9 +21,40 @@ export default function ChallengeDetailsTab({
   formData: any
   onInputChange: (field: string, value: any) => void
 }) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const { toast } = useToast()
+
   const totalParticipants = challenge.participants?.length || 0
   const totalRewards = (challenge.completionReward || 0) + (challenge.topPerformerBonus || 0)
   const averageProgress = (challenge.participants || []).reduce((acc: number, p: any) => acc + (p.progress || 0), 0) / totalParticipants || 0
+
+  const handlePickFile = () => fileInputRef.current?.click()
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const max = 2 * 1024 * 1024
+    if (file.size > max) {
+      toast({ title: "File too large", description: "Please upload an image up to 2MB.", variant: "destructive" })
+      return
+    }
+
+    try {
+      setUploading(true)
+      const res = await api.storage.upload(file)
+      const uploaded = (res as any)?.data || res
+      const url = uploaded?.url || uploaded?.data?.url
+      if (!url) throw new Error("Upload did not return a URL")
+      onInputChange("thumbnail", url)
+      toast({ title: "Thumbnail updated", description: file.name })
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e?.message || "Try again later.", variant: "destructive" })
+    } finally {
+      setUploading(false)
+    }
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -148,10 +182,17 @@ export default function ChallengeDetailsTab({
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
-                {challenge.thumbnail ? (
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                {(formData.thumbnail || challenge.thumbnail) ? (
                   <Image
-                    src={challenge.thumbnail || "/placeholder.svg"}
+                    src={formData.thumbnail || challenge.thumbnail || "/placeholder.svg"}
                     alt={challenge.title}
                     width={300}
                     height={200}
@@ -164,9 +205,15 @@ export default function ChallengeDetailsTab({
                   </div>
                 )}
               </div>
-              <Button variant="outline" className="w-full bg-transparent">
+              <Button
+                variant="outline"
+                className="w-full bg-transparent"
+                type="button"
+                onClick={handlePickFile}
+                disabled={uploading}
+              >
                 <Upload className="h-4 w-4 mr-2" />
-                Change Thumbnail
+                {uploading ? "Uploading..." : "Change Thumbnail"}
               </Button>
             </div>
           </CardContent>

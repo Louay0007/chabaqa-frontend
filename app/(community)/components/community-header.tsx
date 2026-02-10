@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -84,6 +85,8 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
   const [notificationsLoading, setNotificationsLoading] = useState(true)
 
   const { user: currentUser, isAuthenticated, logout } = useAuthContext()
+  const searchParams = useSearchParams()
+  const joinedFlag = searchParams.get('joined')
 
   // Fetch notifications
   useEffect(() => {
@@ -163,7 +166,7 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
     }
 
     fetchData()
-  }, [currentCommunity, isAuthenticated])
+  }, [currentCommunity, isAuthenticated, joinedFlag])
 
   // Handle search
   const handleSearch = (e: React.FormEvent) => {

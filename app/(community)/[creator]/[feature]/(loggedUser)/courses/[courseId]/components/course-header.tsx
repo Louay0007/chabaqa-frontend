@@ -11,11 +11,25 @@ interface CourseHeaderProps {
   allChapters: any[]
   completedChaptersCount: number
   remainingChaptersCount: number
+  /** Optional override for live progress (high-water mark from player) */
+  currentChapterProgress?: number
 }
 
-export default function CourseHeader({ creatorSlug, slug, course, progress, allChapters, completedChaptersCount, remainingChaptersCount }: CourseHeaderProps) {
+export default function CourseHeader({ 
+  creatorSlug, 
+  slug, 
+  course, 
+  progress, 
+  allChapters, 
+  completedChaptersCount, 
+  remainingChaptersCount,
+  currentChapterProgress 
+}: CourseHeaderProps) {
   const averageRating = Number(course?.averageRating || course?.rating || 0)
   const ratingCount = Number(course?.ratingCount || 0)
+
+  // Use the specific chapter progress if available (High-Water Mark), otherwise fallback to general progress
+  const displayProgress = typeof currentChapterProgress === 'number' ? currentChapterProgress : progress
 
   // Back link: prefer provided slug, fall back to course.communitySlug or creator-level courses
   const backHref = slug
@@ -37,14 +51,6 @@ return (
 
     {/* Progress & Info */}
     <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 text-sm text-muted-foreground w-full sm:w-auto">
-      <span className="truncate">Chapter progress: {Math.round(progress)}%</span>
-      <span className="hidden sm:inline">•</span>
-      <span className="truncate">{completedChaptersCount} completed</span>
-      <span className="hidden sm:inline">•</span>
-      <span className="truncate">{remainingChaptersCount} remaining</span>
-      <span className="hidden sm:inline">•</span>
-      <span className="truncate">{allChapters.length} chapters</span>
-      <span className="hidden sm:inline">•</span>
       <div className="flex items-center truncate">
         <Star className="h-4 w-4 text-yellow-500 mr-1 fill-yellow-500" />
         {ratingCount > 0 ? `${averageRating.toFixed(1)} (${ratingCount} ${ratingCount === 1 ? 'review' : 'reviews'})` : "No reviews yet"}
@@ -53,7 +59,7 @@ return (
 
     {/* Progress Bar */}
     <div className="w-full sm:w-32 mt-2 sm:mt-0">
-      <Progress value={progress} className="h-2" />
+      <Progress value={displayProgress} className="h-2" />
     </div>
   </div>
 );

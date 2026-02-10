@@ -20,12 +20,18 @@ import {
   Clock,
   Smartphone,
   Globe,
+  RefreshCw,
+  Monitor,
 } from "lucide-react"
 import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { useAuthContext } from "@/app/providers/auth-provider"
+import { useRouter } from "next/navigation"
 
 export default function CommunityAnalyticsPage() {
+  const router = useRouter()
+  const { user: authUser, isAuthenticated, loading: authLoading } = useAuthContext()
   const { toast } = useToast()
   const { selectedCommunityId, setSelectedCommunityId, communities, isLoading: communityLoading } = useCreatorCommunity()
   const [selectedFeature, setSelectedFeature] = useState("courses")
@@ -39,34 +45,57 @@ export default function CommunityAnalyticsPage() {
   const [topItems, setTopItems] = useState<any[]>([])
   const [analyticsGated, setAnalyticsGated] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [isSyncing, setIsSyncing] = useState(false)
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+
+  // Redirect to signin if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/signin?redirect=/creator/analytics')
+    }
+  }, [authLoading, isAuthenticated, router])
 
   // Load plan only (communities come from context)
   useEffect(() => {
     const loadPlan = async () => {
-      if (communityLoading) return
+      if (communityLoading || authLoading || !isAuthenticated) return
       setLoading(true)
       setAnalyticsGated(false)
-      try {
-        const me = await api.auth.me().catch(() => null as any)
-        const user = me?.data || (me as any)?.user || null
-        if (!user) { setLoading(false); return }
-
-        const subRes = await Promise.resolve(null as any)
-        const plan = (subRes?.data?.plan || subRes?.plan || user?.creatorPlan || 'starter') as any
-        setUserPlan(plan === 'pro' || plan === 'growth' ? plan : 'starter')
-      } finally {
-        setLoading(false)
-      }
+      // Force PRO plan features for everyone
+      setUserPlan('pro')
+      setLoading(false)
     }
     loadPlan()
-  }, [communityLoading])
+  }, [communityLoading, authLoading, isAuthenticated, authUser])
+
+  // Helper to trigger backfill
+  const syncAnalytics = async (days = 90) => {
+    try {
+      setIsSyncing(true)
+      toast({
+        title: "Syncing analytics",
+        description: "We're updating your community statistics. This may take a moment.",
+      })
+      await api.creatorAnalytics.backfill(days)
+      // Reload analytics after backfill
+      window.location.reload()
+    } catch (error) {
+      console.error('[Analytics] Sync failed:', error)
+      toast({
+        variant: "destructive",
+        title: "Sync failed",
+        description: "Could not synchronize analytics data. Please try again later.",
+      })
+    } finally {
+      setIsSyncing(false)
+    }
+  }
 
   // Load analytics when filters change
   useEffect(() => {
     const loadAnalytics = async () => {
-      if (!selectedCommunityId) return
+      if (!selectedCommunityId || !isAuthenticated || authLoading) return
 
       try {
         const now = new Date()
@@ -82,27 +111,57 @@ export default function CommunityAnalyticsPage() {
         // Fetch all analytics data in parallel
         const [overviewRes, devicesRes, referrersRes] = await Promise.all([
           api.creatorAnalytics.getOverview({ from, to, communityId: selectedCommunityId }).catch((e:any) => { if (e?.statusCode===402||e?.statusCode===403) setAnalyticsGated(true); return null }),
-          api.creatorAnalytics.getDevices({ from, to }).catch(() => null),
-          api.creatorAnalytics.getReferrers({ from, to }).catch(() => null),
+          api.creatorAnalytics.getDevices({ from, to, communityId: selectedCommunityId }).catch(() => null),
+          api.creatorAnalytics.getReferrers({ from, to, communityId: selectedCommunityId }).catch(() => null),
         ])
 
         const rawOverview = overviewRes?.data || overviewRes || null
+
+        const devicesRows = (devicesRes as any)?.data?.rows || (devicesRes as any)?.rows || []
+        const referrersRows = (referrersRes as any)?.data?.rows || (referrersRes as any)?.rows || []
+        const hasTrackingSignals = (Array.isArray(devicesRows) && devicesRows.length > 0)
+          || (Array.isArray(referrersRows) && referrersRows.length > 0)
+
+        // Auto-backfill when rollup-based overview is effectively empty but tracking-based endpoints already show activity.
+        // This avoids a dashboard full of zeros while other widgets show data.
+        if (rawOverview && !isSyncing && hasTrackingSignals) {
+          const totals = (rawOverview as any).totals || rawOverview
+          const trendAny = (rawOverview as any).trendAll || (rawOverview as any).trend7d || (rawOverview as any).trend28d || (rawOverview as any).trend || []
+          const views = Number(totals?.viewsTotal ?? totals?.views ?? totals?.total_views ?? 0) || 0
+          const starts = Number(totals?.starts ?? totals?.starts_count ?? 0) || 0
+          const completes = Number(totals?.completes ?? totals?.completions ?? totals?.completions_count ?? 0) || 0
+
+          const isOverviewEmpty = (!Array.isArray(trendAny) || trendAny.length === 0) && views === 0 && starts === 0 && completes === 0
+          if (isOverviewEmpty) {
+            console.log('[Analytics] Overview rollups empty but tracking data exists; triggering sync...')
+            syncAnalytics(90)
+            return
+          }
+        }
+
         if (rawOverview) {
           const totals = (rawOverview as any).totals || rawOverview
-          const trend = (rawOverview as any).trend || []
+          const trend = (() => {
+            const o: any = rawOverview
+            if (timeRange === '7d') return o.trend7d || o.trendAll || o.trend28d || o.trend || []
+            if (timeRange === '28d') return o.trend28d || o.trendAll || o.trend7d || o.trend || []
+            return o.trendAll || o.trend28d || o.trend7d || o.trend || []
+          })()
 
-          const views = Number(totals?.views ?? 0) || 0
-          const starts = Number(totals?.starts ?? 0) || 0
-          const completes = Number(totals?.completes ?? 0) || 0
-          const likes = Number(totals?.likes ?? 0) || 0
-          const shares = Number(totals?.shares ?? 0) || 0
-          const downloads = Number(totals?.downloads ?? 0) || 0
-          const bookmarks = Number(totals?.bookmarks ?? 0) || 0
+          const views = Number(totals?.viewsTotal ?? totals?.views ?? totals?.total_views ?? 0) || 0
+          const starts = Number(totals?.starts ?? totals?.starts_count ?? 0) || 0
+          const completes = Number(totals?.completes ?? totals?.completions ?? totals?.completions_count ?? 0) || 0
+          const likes = Number(totals?.likes ?? totals?.likes_count ?? 0) || 0
+          const shares = Number(totals?.shares ?? totals?.shares_count ?? 0) || 0
+          const downloads = Number(totals?.downloads ?? totals?.downloads_count ?? 0) || 0
+          const bookmarks = Number(totals?.bookmarks ?? totals?.bookmarks_count ?? 0) || 0
           
           const revenue = (rawOverview as any).revenue || { total: 0, count: 0 }
 
-          const interactions = likes + shares + downloads + bookmarks
-          const engagementRate = views > 0 ? (interactions / views) * 100 : 0
+          const interactions = starts + completes + likes + shares + downloads + bookmarks
+          const engagementRate =
+            Number((rawOverview as any).engagementRate ?? (rawOverview as any).avgEngagement ?? 0)
+            || (views > 0 ? (interactions / views) * 100 : 0)
           const completionRate = starts > 0 ? (completes / starts) * 100 : 0
 
           const normalizedOverview = {
@@ -110,11 +169,12 @@ export default function CommunityAnalyticsPage() {
             // Flatten commonly used fields so UI metrics don't show zeros
             viewsTotal: views,
             views,
+            starts,
             completions: completes,
             completionRate,
             engagementRate,
-            totalRevenue: revenue.total,
-            salesCount: revenue.count,
+            totalRevenue: revenue.total ?? (rawOverview as any).totalRevenue ?? (rawOverview as any).salesTotal ?? 0,
+            salesCount: revenue.count ?? (rawOverview as any).salesCount ?? 0,
             trend
           }
 
@@ -125,15 +185,15 @@ export default function CommunityAnalyticsPage() {
              // We don't have member history in daily rollup yet, so using views as a proxy for activity
              // Or better, just show views/completes trend
              month: new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-             totalMembers: t.views, // Placeholder for chart
-             activeMembers: t.completes // Placeholder for chart
+             totalMembers: t.views || t.viewsTotal || 0, 
+             activeMembers: t.completes || t.completions || 0
           }))
           setMembershipData(memData)
 
           const engData = trend.map((t: any) => ({
              day: new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-             posts: t.starts, 
-             comments: t.completes 
+             posts: t.starts || 0, 
+             comments: t.completes || t.completions || 0 
           }))
           setEngagementData(engData)
 
@@ -144,12 +204,10 @@ export default function CommunityAnalyticsPage() {
         }
 
         // Devices
-        const devices = (devicesRes as any)?.data?.rows || (devicesRes as any)?.rows || []
-        setDevicesData(devices.map((d: any) => ({ name: d.device || 'Unknown', value: d.count })))
+        setDevicesData(devicesRows.map((d: any) => ({ name: d.device || 'Unknown', value: Number(d.count || 0) })))
 
         // Referrers
-        const referrers = (referrersRes as any)?.data?.rows || (referrersRes as any)?.rows || []
-        setReferrersData(referrers)
+        setReferrersData(referrersRows.map((r: any) => ({ ...r, count: Number(r.count || 0) })))
 
         // Top content for selected feature
         const topLoader = selectedFeature === 'courses' ? api.creatorAnalytics.getCourses
@@ -217,10 +275,10 @@ export default function CommunityAnalyticsPage() {
     const o = overview || {}
     if (selectedFeature === 'courses') {
       return [
-        { title: 'Total Views', value: (o.viewsTotal ?? o.views ?? 0).toLocaleString(), change: o.viewsChange || '+0%', icon: Users },
-        { title: 'Course Completions', value: (o.completions ?? 0).toLocaleString(), change: o.completionsChange || '+0%', icon: BookOpen },
-        { title: 'Average Rating', value: (o.avgRating ?? 0).toFixed?.(1) ?? String(o.avgRating ?? 0), change: o.ratingChange || '+0', icon: TrendingUp },
-        { title: 'Engagement', value: `${Math.round(o.engagementRate ?? 0)}%`, change: o.engagementChange || '+0%', icon: MessageSquare },
+        { title: 'Views', value: Number(o.viewsTotal ?? o.views ?? 0).toLocaleString(), change: o.viewsChange || '+0%', icon: Users },
+        { title: 'Starts', value: Number(o.starts ?? 0).toLocaleString(), change: o.startsChange || '+0%', icon: ArrowUpRight },
+        { title: 'Completes', value: Number(o.completions ?? o.completes ?? 0).toLocaleString(), change: o.completionsChange || '+0%', icon: BookOpen },
+        { title: 'Completion Rate', value: `${Math.round(o.completionRate ?? 0)}%`, change: o.completionRateChange || '+0%', icon: TrendingUp },
       ]
     }
     if (selectedFeature === 'challenges') {
@@ -316,45 +374,54 @@ export default function CommunityAnalyticsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="7d">Last 7 days</SelectItem>
-                  {(userPlan === "growth" || userPlan === "pro") && (
-                    <SelectItem value="28d">Last 28 days</SelectItem>
-                  )}
-                  {userPlan === "pro" && (
-                    <>
-                      <SelectItem value="90d">Last 90 days</SelectItem>
-                      <SelectItem value="1y">Last year</SelectItem>
-                    </>
-                  )}
+                  <SelectItem value="28d">Last 28 days</SelectItem>
+                  <SelectItem value="90d">Last 90 days</SelectItem>
+                  <SelectItem value="1y">Last year</SelectItem>
                 </SelectContent>
               </Select>
               
-              {userPlan === "pro" && (
-                <Button variant="outline" className="w-full sm:w-auto">
-                  <Download className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Export CSV</span>
-                  <span className="sm:hidden">Export</span>
-                </Button>
-              )}
+              <Button variant="outline" className="w-full sm:w-auto">
+                <Download className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Export CSV</span>
+                <span className="sm:hidden">Export</span>
+              </Button>
+
+              <Button 
+                variant="outline" 
+                className="w-full sm:w-auto"
+                onClick={() => syncAnalytics()}
+                disabled={isSyncing}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                {isSyncing ? 'Syncing...' : 'Sync Data'}
+              </Button>
             </div>
           </div>
         </div>
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
-          {metrics.map((metric) => {
+          {metrics.map((metric, idx) => {
             const Icon = metric.icon
+            const isPositive = metric.change.startsWith('+')
             return (
-              <Card key={metric.title} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="text-xs sm:text-sm font-medium text-gray-600">{metric.title}</p>
-                      <p className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2">{metric.value}</p>
-                      <p className="text-xs sm:text-sm text-green-600 mt-1">{metric.change}</p>
+              <Card key={metric.title} className="hover:shadow-md transition-all border-l-4 border-l-transparent hover:border-l-indigo-500">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">{metric.title}</p>
+                      <h3 className="text-2xl font-bold text-gray-900 mt-2">{metric.value}</h3>
                     </div>
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
-                      <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                    <div className={`p-2 rounded-lg ${idx % 2 === 0 ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                      <Icon className="w-5 h-5" />
                     </div>
+                  </div>
+                  <div className="mt-4 flex items-center text-sm">
+                    <span className={`font-medium ${isPositive ? 'text-green-600' : 'text-red-600'} flex items-center`}>
+                      {isPositive ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingUp className="w-3 h-3 mr-1 rotate-180" />}
+                      {metric.change}
+                    </span>
+                    <span className="text-gray-400 ml-2">vs last period</span>
                   </div>
                 </CardContent>
               </Card>
@@ -362,200 +429,297 @@ export default function CommunityAnalyticsPage() {
           })}
         </div>
 
-        {/* Upgrade Banner */}
-        {userPlan !== "pro" && (
-          <Card className="mb-6 lg:mb-8 bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Crown className="w-5 h-5 text-purple-600" />
-                    <h3 className="text-base sm:text-lg font-semibold">
-                      Upgrade to {userPlan === "starter" ? "Growth" : "Pro"} Plan
-                    </h3>
-                  </div>
-                  <p className="text-sm text-gray-600">Unlock more powerful analytics features</p>
-                </div>
-                <Button className="bg-gradient-to-r from-purple-500 to-indigo-600 w-full sm:w-auto">
-                  <Crown className="w-4 h-4 mr-2" />
-                  Upgrade Now
-                </Button>
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
-                {userPlan === "starter" ? (
-                  <>
-                    <div className="p-3 bg-white rounded-lg flex items-start space-x-3">
-                      <Lock className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <h4 className="text-sm font-medium">28-Day Trends</h4>
-                        <p className="text-xs text-gray-500">Extended historical data</p>
-                      </div>
-                    </div>
-                    <div className="p-3 bg-white rounded-lg flex items-start space-x-3">
-                      <Lock className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <h4 className="text-sm font-medium">Advanced Analytics</h4>
-                        <p className="text-xs text-gray-500">Deeper insights</p>
-                      </div>
-                    </div>
-                    <div className="p-3 bg-white rounded-lg flex items-start space-x-3">
-                      <Lock className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <h4 className="text-sm font-medium">Custom Ranges</h4>
-                        <p className="text-xs text-gray-500">Flexible analysis</p>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="p-3 bg-white rounded-lg flex items-start space-x-3">
-                      <Lock className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <h4 className="text-sm font-medium">All-Time Analytics</h4>
-                        <p className="text-xs text-gray-500">Complete history</p>
-                      </div>
-                    </div>
-                    <div className="p-3 bg-white rounded-lg flex items-start space-x-3">
-                      <Lock className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <h4 className="text-sm font-medium">CSV Export</h4>
-                        <p className="text-xs text-gray-500">Detailed reports</p>
-                      </div>
-                    </div>
-                    <div className="p-3 bg-white rounded-lg flex items-start space-x-3">
-                      <Lock className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <h4 className="text-sm font-medium">AI Predictions</h4>
-                        <p className="text-xs text-gray-500">Growth insights</p>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Charts */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
-          <Card>
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-base sm:text-lg">Views Trend</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">Views and completions over time</CardDescription>
+          <Card className="shadow-sm">
+            <CardHeader className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-gray-900">Performance Trend</CardTitle>
+                  <CardDescription className="text-sm text-gray-500 mt-1">Views and completions over time</CardDescription>
+                </div>
+                {membershipData.length > 0 && (
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
+                      <span className="text-gray-600">Views</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                      <span className="text-gray-600">Completions</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0">
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={membershipData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Area
-                    type="monotone"
-                    dataKey="totalMembers"
-                    name="Views"
-                    stroke="rgb(99, 102, 241)"
-                    fill="rgba(99, 102, 241, 0.1)"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="activeMembers"
-                    name="Completions"
-                    stroke="rgb(34, 197, 94)"
-                    fill="rgba(34, 197, 94, 0.1)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+            <CardContent className="p-6 pt-0">
+              {membershipData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={320}>
+                  <AreaChart data={membershipData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorCompletions" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                    <XAxis 
+                      dataKey="month" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                      dy={10}
+                    />
+                    <YAxis 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                      itemStyle={{ fontSize: '13px' }}
+                      cursor={{ stroke: '#9ca3af', strokeDasharray: '4 4' }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="totalMembers"
+                      name="Views"
+                      stroke="#6366f1"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorViews)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="activeMembers"
+                      name="Completions"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorCompletions)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[320px] flex flex-col items-center justify-center text-gray-500 space-y-3 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                  <div className="p-3 bg-white rounded-full shadow-sm">
+                    <TrendingUp className="w-6 h-6 text-gray-400" />
+                  </div>
+                  <p className="text-sm font-medium">No trend data available</p>
+                  <Button variant="outline" size="sm" onClick={() => syncAnalytics()} className="text-xs">
+                    Try syncing data
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-base sm:text-lg">Activity Trend</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">Starts and completions activity</CardDescription>
+          <Card className="shadow-sm">
+            <CardHeader className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-gray-900">Engagement Activity</CardTitle>
+                  <CardDescription className="text-sm text-gray-500 mt-1">Starts vs Completions</CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={engagementData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Bar dataKey="posts" name="Starts" fill="rgba(99, 102, 241, 0.8)" />
-                  <Bar dataKey="comments" name="Completions" fill="rgba(34, 197, 94, 0.8)" />
-                </BarChart>
-              </ResponsiveContainer>
+            <CardContent className="p-6 pt-0">
+              {engagementData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart data={engagementData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barGap={4}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                    <XAxis 
+                      dataKey="day" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                      dy={10}
+                    />
+                    <YAxis 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                    />
+                    <Tooltip 
+                      cursor={{ fill: '#f9fafb' }}
+                      contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                    />
+                    <Legend 
+                      verticalAlign="top" 
+                      height={36} 
+                      iconType="circle"
+                      formatter={(value) => <span className="text-sm text-gray-600 ml-1">{value}</span>}
+                    />
+                    <Bar 
+                      dataKey="posts" 
+                      name="Starts" 
+                      fill="#818cf8" 
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={40}
+                    />
+                    <Bar 
+                      dataKey="comments" 
+                      name="Completions" 
+                      fill="#34d399" 
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={40}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[320px] flex flex-col items-center justify-center text-gray-500 space-y-3 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                  <div className="p-3 bg-white rounded-full shadow-sm">
+                    <MessageSquare className="w-6 h-6 text-gray-400" />
+                  </div>
+                  <p className="text-sm font-medium">No activity data available</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
         {/* Devices and Referrers */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
-          <Card>
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-base sm:text-lg">Audience Devices</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">Device types used by your audience</CardDescription>
+          <Card className="shadow-sm flex flex-col">
+            <CardHeader className="p-6 pb-2">
+              <CardTitle className="text-lg font-semibold text-gray-900">Audience Devices</CardTitle>
+              <CardDescription className="text-sm text-gray-500 mt-1">Device categories used by your users</CardDescription>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0 flex justify-center">
+            <CardContent className="p-6 pt-2 flex-1 flex flex-col">
               {devicesData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={devicesData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {devicesData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="flex flex-col h-full">
+                  {/* Chart Section */}
+                  <div className="h-[220px] w-full flex items-center justify-center relative mb-6">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={devicesData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={65}
+                          outerRadius={90}
+                          paddingAngle={2}
+                          dataKey="value"
+                          stroke="none"
+                        >
+                          {devicesData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', fontSize: '12px' }}
+                          formatter={(value: number) => [value.toLocaleString(), 'Users']}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    {/* Center Text */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                       <span className="text-2xl font-bold text-gray-900">
+                         {devicesData.reduce((acc, curr) => acc + (curr.value || 0), 0).toLocaleString()}
+                       </span>
+                       <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">Users</span>
+                    </div>
+                  </div>
+
+                  {/* List Section */}
+                  <div className="space-y-4 flex-1 overflow-y-auto pr-1">
+                    {devicesData.sort((a,b) => b.value - a.value).map((device, index) => {
+                      const total = devicesData.reduce((acc, curr) => acc + (curr.value || 0), 0);
+                      const percentage = total > 0 ? (device.value / total) * 100 : 0;
+                      const color = COLORS[index % COLORS.length];
+                      
+                      let Icon = Smartphone;
+                      if (device.name.toLowerCase().includes('desktop') || device.name.toLowerCase().includes('laptop')) Icon = Monitor;
+                      if (device.name.toLowerCase().includes('tablet')) Icon = Smartphone; // Tablet often shares icon or similar
+
+                      return (
+                        <div key={index} className="flex flex-col space-y-1.5">
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+                              <Icon className="w-4 h-4 text-gray-500" />
+                              <span className="font-medium text-gray-700 capitalize">{device.name}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-semibold text-gray-900">{device.value.toLocaleString()}</span>
+                              <span className="text-gray-500 w-10 text-right">{Math.round(percentage)}%</span>
+                            </div>
+                          </div>
+                          <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div 
+                              className="h-full rounded-full transition-all duration-500" 
+                              style={{ width: `${percentage}%`, backgroundColor: color }}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
               ) : (
-                <div className="h-[300px] flex items-center justify-center text-gray-500">
-                  No device data available
+                <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-3 bg-gray-50 rounded-lg border border-dashed border-gray-200 min-h-[300px]">
+                  <div className="p-3 bg-white rounded-full shadow-sm">
+                    <Smartphone className="w-6 h-6 text-gray-400" />
+                  </div>
+                  <p className="text-sm font-medium">No device data available</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-base sm:text-lg">Top Referrers</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">Where your traffic is coming from</CardDescription>
+          <Card className="shadow-sm">
+            <CardHeader className="p-6">
+              <CardTitle className="text-lg font-semibold text-gray-900">Traffic Sources</CardTitle>
+              <CardDescription className="text-sm text-gray-500 mt-1">Top referrers driving traffic</CardDescription>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0">
-              <div className="h-[300px] overflow-y-auto pr-2 space-y-4">
-                {referrersData.length > 0 ? referrersData.map((ref, idx) => (
-                  <div key={idx} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                        <Globe className="w-4 h-4 text-blue-500" />
+            <CardContent className="p-6 pt-0">
+              <div className="h-[300px] overflow-y-auto pr-2 space-y-5">
+                {referrersData.length > 0 ? (
+                  (() => {
+                    const maxCount = Math.max(1, ...referrersData.map((r: any) => Number(r.count || 0)));
+                    return referrersData.map((ref: any, idx: number) => {
+                    const percentage = (Number(ref.count || 0) / maxCount) * 100;
+                    
+                    return (
+                      <div key={idx} className="group">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                              <Globe className="w-4 h-4 text-blue-500" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{ref.referrer || 'Direct'}</p>
+                              {ref.utm_source && (
+                                <p className="text-xs text-gray-500 truncate max-w-[150px]">
+                                  via {ref.utm_source}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-gray-900">{ref.count}</p>
+                          </div>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                          <div 
+                            className="bg-blue-500 h-1.5 rounded-full transition-all duration-500" 
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{ref.referrer || 'Direct'}</p>
-                        <p className="text-xs text-gray-500">
-                          {ref.utm_source ? `Source: ${ref.utm_source}` : 'No source'}
-                        </p>
-                      </div>
+                    );
+                  })
+                  })()
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-3 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                    <div className="p-3 bg-white rounded-full shadow-sm">
+                      <Globe className="w-6 h-6 text-gray-400" />
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-gray-900">{ref.count}</p>
-                      <p className="text-xs text-gray-500">visits</p>
-                    </div>
-                  </div>
-                )) : (
-                  <div className="h-full flex items-center justify-center text-gray-500">
-                    No referrer data available
+                    <p className="text-sm font-medium">No traffic source data available</p>
                   </div>
                 )}
               </div>
@@ -570,7 +734,7 @@ export default function CommunityAnalyticsPage() {
               <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:inline-grid">
                 <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
                 <TabsTrigger value="details" className="text-xs sm:text-sm">Details</TabsTrigger>
-                {userPlan !== "starter" && <TabsTrigger value="trends" className="text-xs sm:text-sm">Trends</TabsTrigger>}
+                <TabsTrigger value="trends" className="text-xs sm:text-sm">Trends</TabsTrigger>
               </TabsList>
             </CardHeader>
 
@@ -579,49 +743,34 @@ export default function CommunityAnalyticsPage() {
                 <h3 className="text-base sm:text-lg font-semibold mb-4">
                   Top {selectedFeature.charAt(0).toUpperCase() + selectedFeature.slice(1)}
                 </h3>
-                <div className="space-y-3">
-                  {topItems.map((item, index) => (
-                    <div key={item.id || index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border rounded-lg gap-2">
-                      <div className="flex-1">
-                        <h4 className="text-sm sm:text-base font-medium">{item.title || `Item ${index + 1}`}</h4>
-                        <p className="text-xs sm:text-sm text-gray-500">
-                          {selectedFeature === 'courses' && `${item.enrollments || 0} enrollments`}
-                          {selectedFeature === 'challenges' && `${item.participants || 0} participants`}
-                          {selectedFeature === 'events' && `${item.registrations || 0} registrations`}
-                          {selectedFeature === 'products' && `${item.sales || 0} sales`}
-                        </p>
-                      </div>
-                      <div className="text-left sm:text-right">
-                        <p className="text-sm sm:text-base font-medium">
-                          {item.views || item.revenue || item.completions || item.participants || '0'}{' '}
-                          {selectedFeature === 'courses' && 'views'}
-                          {selectedFeature === 'challenges' && 'participants'}
-                          {selectedFeature === 'events' && 'registrations'}
-                          {selectedFeature === 'products' && 'sales'}
-                        </p>
-                        <p className="text-xs sm:text-sm text-green-600">
-                          {item.change || item.growth || '+0%'} from last period
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {topItems.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      No top {selectedFeature} found for this time period.
-                    </div>
-                  )}
-                  {userPlan === "starter" && (
-                    <div className="mt-4 p-3 sm:p-4 bg-gray-50 rounded-lg border border-dashed">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-start space-x-3">
-                          <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <h4 className="text-sm sm:text-base font-medium text-gray-700">View More Items</h4>
-                            <p className="text-xs sm:text-sm text-gray-500">Upgrade to see more top performers</p>
-                          </div>
+                <div className="space-y-0 border rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 border-b p-3 flex text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <div className="flex-1">Title</div>
+                    <div className="w-24 text-right">Views</div>
+                    <div className="w-24 text-right">Starts</div>
+                    <div className="w-24 text-right">Completes</div>
+                    <div className="w-20 text-right">Conv. Rate</div>
+                  </div>
+                  {topItems.length > 0 ? (
+                    topItems.map((item, index) => (
+                      <div key={item.id || index} className="flex items-center p-4 border-b last:border-0 hover:bg-gray-50 transition-colors">
+                        <div className="flex-1 min-w-0 pr-4">
+                          <h4 className="text-sm font-medium text-gray-900 truncate">{item.title || item.name || `Item ${index + 1}`}</h4>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            ID: {item.contentId || item.id || 'N/A'}
+                          </p>
                         </div>
-                        <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
+                        <div className="w-24 text-right text-sm text-gray-600">{item.views?.toLocaleString() || 0}</div>
+                        <div className="w-24 text-right text-sm text-gray-600">{item.starts?.toLocaleString() || 0}</div>
+                        <div className="w-24 text-right text-sm text-gray-600">{item.completes?.toLocaleString() || 0}</div>
+                        <div className="w-20 text-right text-sm font-medium text-gray-900">
+                          {item.completionRate ? `${Math.round(item.completionRate * 100)}%` : '0%'}
+                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12 text-gray-500">
+                      No top {selectedFeature} found for this time period.
                     </div>
                   )}
                 </div>
@@ -697,73 +846,60 @@ export default function CommunityAnalyticsPage() {
                       </div>
                     </>
                   )}
-                  {userPlan === "starter" && (
-                    <>
-                      <div className="p-3 sm:p-4 border rounded-lg bg-gray-50 border-dashed">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Lock className="w-4 h-4 text-gray-400" />
-                          <h4 className="text-sm font-medium text-gray-700">Advanced Metrics</h4>
-                        </div>
-                        <p className="text-xs sm:text-sm text-gray-500">Upgrade to access</p>
-                      </div>
-                      <div className="p-3 sm:p-4 border rounded-lg bg-gray-50 border-dashed">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Lock className="w-4 h-4 text-gray-400" />
-                          <h4 className="text-sm font-medium text-gray-700">Custom Analysis</h4>
-                        </div>
-                        <p className="text-xs sm:text-sm text-gray-500">Upgrade to access</p>
-                      </div>
-                    </>
-                  )}
                 </div>
               </div>
             </TabsContent>
 
-            {userPlan !== "starter" && (
-              <TabsContent value="trends" className="p-4 sm:p-6 pt-4">
+            <TabsContent value="trends" className="p-4 sm:p-6 pt-4">
                 <div>
                   <h3 className="text-base sm:text-lg font-semibold mb-4">Performance Trends</h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={membershipData.length > 0 ? membershipData : engagementData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey={membershipData.length > 0 ? "month" : "day"}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <Tooltip />
-                      <Legend wrapperStyle={{ fontSize: '12px' }} />
-                      {membershipData.length > 0 ? (
-                        <>
+                  {membershipData.length > 0 || engagementData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <AreaChart data={membershipData.length > 0 ? membershipData : engagementData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey={membershipData.length > 0 ? "month" : "day"}
+                          tick={{ fontSize: 12 }}
+                        />
+                        <YAxis tick={{ fontSize: 12 }} />
+                        <Tooltip />
+                        <Legend wrapperStyle={{ fontSize: '12px' }} />
+                        {membershipData.length > 0 ? (
+                          <>
+                            <Area
+                              type="monotone"
+                              dataKey="totalMembers"
+                              name="Views"
+                              stroke="rgb(99, 102, 241)"
+                              fill="rgba(99, 102, 241, 0.1)"
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="activeMembers"
+                              name="Completions"
+                              stroke="rgb(34, 197, 94)"
+                              fill="rgba(34, 197, 94, 0.1)"
+                            />
+                          </>
+                        ) : (
                           <Area
                             type="monotone"
-                            dataKey="totalMembers"
-                            name="Views"
+                            dataKey="engagement"
+                            name="Engagement"
                             stroke="rgb(99, 102, 241)"
                             fill="rgba(99, 102, 241, 0.1)"
                           />
-                          <Area
-                            type="monotone"
-                            dataKey="activeMembers"
-                            name="Completions"
-                            stroke="rgb(34, 197, 94)"
-                            fill="rgba(34, 197, 94, 0.1)"
-                          />
-                        </>
-                      ) : (
-                        <Area
-                          type="monotone"
-                          dataKey="engagement"
-                          name="Engagement"
-                          stroke="rgb(99, 102, 241)"
-                          fill="rgba(99, 102, 241, 0.1)"
-                        />
-                      )}
-                    </AreaChart>
-                  </ResponsiveContainer>
+                        )}
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex flex-col items-center justify-center text-gray-500 space-y-2 border rounded-lg border-dashed">
+                      <TrendingUp className="w-8 h-8 text-gray-300" />
+                      <p>No trend data available for this period</p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
-            )}
           </Tabs>
         </Card>
       </div>

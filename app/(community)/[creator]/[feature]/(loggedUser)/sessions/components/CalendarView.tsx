@@ -41,7 +41,11 @@ export default function CalendarView({ sessions, userBookings }: CalendarViewPro
   }).length
 
   const totalSpent = allBookings.reduce((acc, booking) => {
-    return acc + (booking.session?.price || 0)
+    // Only count confirmed, completed, or pending (paid but waiting verification)
+    // Exclude 'cancelled' which is already filtered out in allBookings
+    // Use price paid if available, fallback to session price
+    const amount = booking.amountPaid ?? booking.session?.price ?? 0
+    return acc + amount
   }, 0)
 
   const getStatusIcon = (status: string) => {

@@ -43,6 +43,16 @@ export default function CoursePlayer({
   const [accessibleChapters, setAccessibleChapters] = useState<Record<string, boolean>>({})
   const [chapterAccessReason, setChapterAccessReason] = useState<Record<string, string | undefined>>({})
   const accessCheckInFlight = useRef<Record<string, Promise<boolean> | undefined>>({})
+  // Optimistic watch-time overrides so UI updates live without fetching backend every second
+  const [watchTimeOverride, setWatchTimeOverride] = useState<number | null>(null)
+  const [videoDurationOverride, setVideoDurationOverride] = useState<number | null>(null)
+  const lastProgressRefreshRef = useRef<number>(0)
+  const progressBackoffRef = useRef<{ attempts: number; nextAllowed: number }>({
+    attempts: 0,
+    nextAllowed: 0,
+  })
+  const currentChapterRef = useRef<any>(null)
+  const trackingSentRef = useRef<{ start: boolean; complete: boolean }>({ start: false, complete: false })
 
   const allChapters = course.sections.flatMap((s: any) => s.chapters)
   const hasEnrollment = Boolean(enrollment)
@@ -188,11 +198,104 @@ export default function CoursePlayer({
     accessCheckInFlight.current = {}
   }, [courseId, sequentialProgressionEnabled, unlockedChapters, hasEnrollment])
 
-  const handleWatchTimeUpdate = useCallback(() => {
-    // Avoid spamming full progress refresh on every second of watch time.
-    // The backend is updated via EnhancedVideoPlayer's direct API calls.
-    // Global progress will be refreshed upon chapter completion.
-  }, [])
+  // Handler called by EnhancedVideoPlayer with latest seconds (and optional duration)
+  const handleWatchTimeUpdate = useCallback(
+    async (seconds: number, duration?: number) => {
+      // Update optimistic overrides so progress UI updates immediately
+      const secs = Math.floor(seconds)
+      setWatchTimeOverride(secs)
+      if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
+        setVideoDurationOverride(Math.floor(duration))
+      }
+
+      // Build per-chapter contribution breakdown for logging
+      const chapters = Array.isArray(allChapters) ? allChapters : []
+      const contributions = chapters.map((ch: any) => {
+        const chapProgress = enrollment?.progress?.find((p: any) => String(p.chapterId) === String(ch.id))
+        const serverWatch = Number(chapProgress?.watchTime ?? 0)
+        const serverVideoDuration = Number((chapProgress as any)?.videoDuration ?? 0)
+
+        // Determine duration precedence:
+        // 1) If this is the current chapter and frontend provided duration, use it
+        // 2) Else use server-stored videoDuration
+        // 3) Else use chapter.duration
+        let dur = 0
+        if (String(ch.id) === String(currentChapterRef.current?.id) && typeof duration === 'number' && duration > 0) {
+          dur = duration
+        } else if (serverVideoDuration && serverVideoDuration > 0) {
+          dur = serverVideoDuration
+        } else {
+          dur = Number(ch.duration ?? 0)
+        }
+
+        // Determine watch time used for this chapter (optimistic for current chapter)
+        const watch = String(ch.id) === String(currentChapterRef.current?.id) ? secs : serverWatch
+
+        const isCompleted = Boolean(chapProgress?.isCompleted)
+        const pct = isCompleted ? 100 : (dur > 0 ? Math.min((watch / dur) * 100, 100) : 0)
+
+        return {
+          chapterId: ch.id,
+          title: ch.title || ch.titre || '',
+          watchTime: watch,
+          duration: dur,
+          pct: Number.isFinite(pct) ? Number(pct.toFixed(2)) : 0,
+          isCompleted,
+        }
+      })
+
+      const totalPctSum = contributions.reduce((acc: number, c: any) => acc + (c.isCompleted ? 100 : (Number(c.pct) || 0)), 0)
+      const overallCalculated = chapters.length > 0 ? totalPctSum / chapters.length : 0
+
+      console.debug('[Progress Live Math]', {
+        timestamp: new Date().toISOString(),
+        currentChapterId: currentChapterRef.current?.id ?? null,
+        secondsReported: secs,
+        contributions,
+        overallCalculated: Number(overallCalculated.toFixed(2)),
+        enrollmentId: enrollment?.id ?? null,
+      })
+
+      // Exponential backoff with jitter for refresh calls to avoid 429
+      const now = Date.now()
+      const THROTTLE_MS = 30_000
+      const BASE_BACKOFF_MS = 10_000
+      const MAX_BACKOFF_MS = 120_000
+
+      // Respect any in-flight backoff window
+      if (now < progressBackoffRef.current.nextAllowed) {
+        return
+      }
+
+      if (!onRefreshProgress) return
+      if (now - lastProgressRefreshRef.current <= THROTTLE_MS) return
+
+      lastProgressRefreshRef.current = now
+      try {
+        await onRefreshProgress()
+        // success -> reset backoff
+        progressBackoffRef.current.attempts = 0
+        progressBackoffRef.current.nextAllowed = 0
+      } catch (err: any) {
+        const status = err?.response?.status ?? (err && typeof err.status === 'number' ? err.status : null)
+        if (status === 429) {
+          // increase attempts and compute backoff
+          progressBackoffRef.current.attempts = Math.min((progressBackoffRef.current.attempts || 0) + 1, 6)
+          const exp = Math.pow(2, progressBackoffRef.current.attempts)
+          const backoff = Math.min(MAX_BACKOFF_MS, BASE_BACKOFF_MS * exp)
+          // jitter up to 50%
+          const jitter = Math.floor(Math.random() * Math.floor(backoff * 0.5))
+          const wait = backoff + jitter
+          progressBackoffRef.current.nextAllowed = now + wait
+          lastProgressRefreshRef.current = progressBackoffRef.current.nextAllowed
+          console.warn(`[Progress Refresh] 429 received - backing off for ${Math.round(wait/1000)}s (attempt ${progressBackoffRef.current.attempts})`)
+        } else {
+          console.error('[Progress Refresh] Failed to refresh progress:', err)
+        }
+      }
+    },
+    [onRefreshProgress, enrollment, videoDurationOverride],
+  )
 
   const defaultChapterId = useMemo(() => {
     const firstAccessible = allChapters.find((c: any) => isChapterAccessible(String(c.id)))
@@ -200,12 +303,43 @@ export default function CoursePlayer({
   }, [allChapters, isChapterAccessible])
 
   const currentChapter = selectedChapter
-    ? allChapters.find((c: any) => c.id === selectedChapter)
+    ? allChapters.find((c: any) => String(c.id) === String(selectedChapter))
     : defaultChapterId
-      ? allChapters.find((c: any) => c.id === defaultChapterId)
+      ? allChapters.find((c: any) => String(c.id) === String(defaultChapterId))
       : allChapters.length > 0
         ? allChapters[0]
         : null
+
+  useEffect(() => {
+    if (currentChapter) {
+      console.log(`📖 [CoursePlayer] Current chapter:`, {
+        id: currentChapter.id,
+        title: currentChapter.title,
+        titre: currentChapter.titre,
+        videoUrl: currentChapter.videoUrl,
+        fullObject: currentChapter
+      });
+      currentChapterRef.current = currentChapter
+    }
+  }, [currentChapter]);
+
+  useEffect(() => {
+    if (!currentChapter?.id) return
+    if (trackingSentRef.current.start) return
+    const accessAllowed = isChapterAccessible(String(currentChapter.id)) || Boolean(currentChapter?.isPreview)
+    if (!accessAllowed) return
+    trackingSentRef.current.start = true
+    const trackingId = String(course?.id || courseId)
+    void coursesApi.trackStart(trackingId).catch(() => {
+      // ignore tracking failures
+    })
+  }, [course?.id, courseId, currentChapter?.id, currentChapter?.isPreview, isChapterAccessible])
+
+  // Clear optimistic overrides when switching chapters
+  useEffect(() => {
+    setWatchTimeOverride(null)
+    setVideoDurationOverride(null)
+  }, [currentChapter?.id])
 
   const currentChapterIndex = currentChapter ? allChapters.findIndex((c: any) => c.id === currentChapter.id) : -1
 
@@ -215,18 +349,25 @@ export default function CoursePlayer({
 
     const chapterProgress = enrollment.progress.find((p: any) => String(p.chapterId) === String(currentChapter.id))
     if (chapterProgress?.isCompleted) return 100
-
-    // Use videoDuration from progress record (most accurate), fallback to chapter.duration
+    // Prefer optimistic overrides when available (live updates from the player)
     const videoDurationFromProgress = Number(chapterProgress?.videoDuration ?? 0)
-    const durationSeconds = videoDurationFromProgress > 0 
-      ? videoDurationFromProgress 
-      : Number(currentChapter.duration ?? 0)
-    
-    const watchTimeSeconds = Number(chapterProgress?.watchTime ?? 0)
+    const durationSeconds =
+      (videoDurationOverride && videoDurationOverride > 0)
+        ? videoDurationOverride
+        : videoDurationFromProgress > 0
+        ? videoDurationFromProgress
+        : Number(currentChapter.duration ?? 0)
+
+    const watchTimeSeconds =
+      watchTimeOverride !== null ? Number(watchTimeOverride) : Number(chapterProgress?.watchTime ?? 0)
+
     if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return 0
 
     return Math.min((watchTimeSeconds / durationSeconds) * 100, 100)
   }, [currentChapter?.id, currentChapter?.duration, enrollment?.progress])
+
+  // Use overall course progress from enrollment for header/sidebar display
+  const overallProgress = Number(enrollment?.progressPercentage ?? 0)
 
   const completedChaptersCount = useMemo(() => {
     if (!enrollment?.progress || !Array.isArray(enrollment.progress)) return 0
@@ -315,10 +456,31 @@ export default function CoursePlayer({
     return completedChaptersCount >= allChapters.length
   }, [allChapters, completedChaptersCount])
 
+  // Compute a single chapter percent to display (prefer optimistic/live values)
+  const currentChapterProgressData = currentChapter?.id
+    ? {
+        watchTime: watchTimeOverride ?? Number(enrollment?.progress?.find((p: any) => String(p.chapterId) === String(currentChapter.id))?.watchTime ?? 0),
+        duration: videoDurationOverride ?? (Number(enrollment?.progress?.find((p: any) => String(p.chapterId) === String(currentChapter.id))?.videoDuration ?? 0) || Number(currentChapter?.duration ?? 0)),
+      }
+    : null
+
+  const displayChapterPercent = currentChapterProgressData && currentChapterProgressData.duration > 0
+    ? Math.min((Number(currentChapterProgressData.watchTime) / Number(currentChapterProgressData.duration)) * 100, 100)
+    : progress
+
   const handleCompleteCourse = useCallback(async () => {
     if (!isCourseCompleted) return
     try {
       await coursesApi.completeCourseEnrollment(String(courseId))
+
+      if (!trackingSentRef.current.complete) {
+        trackingSentRef.current.complete = true
+        const trackingId = String(course?.id || courseId)
+        void coursesApi.trackComplete(trackingId).catch(() => {
+          // ignore tracking failures
+        })
+      }
+
       toast({ title: "Course completed" })
       if (onRefreshProgress) {
         await onRefreshProgress()
@@ -336,7 +498,7 @@ export default function CoursePlayer({
         variant: "destructive",
       })
     }
-  }, [courseId, isCourseCompleted, onRefreshProgress, onRefreshUnlockedChapters, toast])
+  }, [course?.id, courseId, isCourseCompleted, onRefreshProgress, onRefreshUnlockedChapters, toast])
 
   const handleEnrollNow = useCallback(async () => {
     if (enrollment) return
@@ -417,10 +579,11 @@ export default function CoursePlayer({
           creatorSlug={creatorSlug}
           slug={slug} 
           course={course} 
-          progress={progress} 
+          progress={displayChapterPercent} 
           allChapters={allChapters} 
           completedChaptersCount={completedChaptersCount}
           remainingChaptersCount={remainingChaptersCount}
+          currentChapterProgress={displayChapterPercent}
         />
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -452,6 +615,7 @@ export default function CoursePlayer({
               courseId={courseId}
               onWatchTimeUpdate={handleWatchTimeUpdate}
               onEnrollNow={handleEnrollNow}
+              onProgressSaved={onRefreshProgress}
             />
 
             <ChapterTabs 
@@ -480,12 +644,21 @@ export default function CoursePlayer({
             course={course}
             enrollment={enrollment}
             allChapters={allChapters}
-            progress={progress}
+            progress={displayChapterPercent}
             completedChaptersCount={completedChaptersCount}
             remainingChaptersCount={remainingChaptersCount}
             selectedChapter={selectedChapter}
             setSelectedChapter={handleSelectChapter}
             isChapterAccessible={isChapterAccessible}
+            courseId={courseId}
+            currentChapterProgress={
+              currentChapter?.id
+                ? {
+                    watchTime: watchTimeOverride ?? Number(enrollment?.progress?.find((p: any) => String(p.chapterId) === String(currentChapter.id))?.watchTime ?? 0),
+                    duration: videoDurationOverride ?? (Number(enrollment?.progress?.find((p: any) => String(p.chapterId) === String(currentChapter.id))?.videoDuration ?? 0) || Number(currentChapter?.duration ?? 0)),
+                  }
+                : undefined
+            }
           />
         </div>
       </div>

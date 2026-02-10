@@ -1,5 +1,6 @@
 import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } from './client';
 import type { Challenge, ChallengeParticipant } from './types';
+import { getDeviceInfo } from '@/lib/utils/device';
 
 // ==========================================
 // DTO Interfaces based on Backend
@@ -264,23 +265,23 @@ export const challengesApi = {
   // -------------------------------------------------------------------------
 
   trackView: async (id: string): Promise<void> => {
-    return apiClient.post(`/challenges/${id}/track/view`);
+    return apiClient.post(`/challenges/${id}/track/view`, { metadata: getDeviceInfo() });
   },
 
   trackStart: async (id: string): Promise<void> => {
-    return apiClient.post(`/challenges/${id}/track/start`);
+    return apiClient.post(`/challenges/${id}/track/start`, { metadata: getDeviceInfo() });
   },
 
   trackComplete: async (id: string): Promise<void> => {
-    return apiClient.post(`/challenges/${id}/track/complete`);
+    return apiClient.post(`/challenges/${id}/track/complete`, { metadata: getDeviceInfo() });
   },
 
   trackLike: async (id: string): Promise<void> => {
-    return apiClient.post(`/challenges/${id}/track/like`);
+    return apiClient.post(`/challenges/${id}/track/like`, { metadata: getDeviceInfo() });
   },
 
   trackShare: async (id: string): Promise<void> => {
-    return apiClient.post(`/challenges/${id}/track/share`);
+    return apiClient.post(`/challenges/${id}/track/share`, { metadata: getDeviceInfo() });
   },
 
   addBookmark: async (id: string, bookmarkId: string): Promise<void> => {

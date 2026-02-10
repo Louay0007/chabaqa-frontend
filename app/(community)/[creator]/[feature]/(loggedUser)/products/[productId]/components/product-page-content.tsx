@@ -33,7 +33,9 @@ export default function ProductPageContent({ creatorSlug, slug, product, purchas
     try {
       setDownloadProgress((prev) => ({ ...prev, [fileId]: 10 }))
       const response = await productsApi.download(String(product?.id || product?._id))
-      const url = (response as any)?.data?.url || (response as any)?.url
+      // Handle both nested and direct response structures
+      const data = (response as any)?.data || response
+      const url = data?.url
       if (!url) {
         throw new Error('Download URL missing')
       }

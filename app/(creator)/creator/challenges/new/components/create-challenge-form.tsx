@@ -21,10 +21,63 @@ export function CreateChallengeForm() {
   const [startDate, setStartDate] = useState<Date>()
   const [endDate, setEndDate] = useState<Date>()
   const [formData, setFormData] = useState(initialFormData)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   
   // Use the selected community from context
   const { selectedCommunity } = useCreatorCommunity()
   const communitySlug = selectedCommunity?.slug || ""
+
+  const validateCurrentStep = () => {
+    switch (currentStep) {
+      case 1:
+        if (!formData.title || formData.title.length < 3) {
+          toast({ title: 'Validation error', description: 'Title must be at least 3 characters.', variant: 'destructive' })
+          return false
+        }
+        if (!formData.description || formData.description.length < 10) {
+          toast({ title: 'Validation error', description: 'Description must be at least 10 characters.', variant: 'destructive' })
+          return false
+        }
+        if (!formData.category) {
+          toast({ title: 'Validation error', description: 'Please select a category.', variant: 'destructive' })
+          return false
+        }
+        break
+      case 2:
+        if (!startDate || !endDate) {
+          toast({ title: 'Validation error', description: 'Please select both start and end dates.', variant: 'destructive' })
+          return false
+        }
+        if (endDate < startDate) {
+          toast({ title: 'Validation error', description: 'End date must be after start date.', variant: 'destructive' })
+          return false
+        }
+        break
+      case 3:
+        if (formData.steps.length === 0) {
+          toast({ title: 'Validation error', description: 'Add at least one challenge step.', variant: 'destructive' })
+          return false
+        }
+        for (const step of formData.steps) {
+          if (!step.title || !step.description || !step.deliverable) {
+            toast({ title: 'Validation error', description: `Step for Day ${step.day} is incomplete.`, variant: 'destructive' })
+            return false
+          }
+        }
+        break
+    }
+    return true
+  }
+
+  const handleNextStep = () => {
+    if (validateCurrentStep()) {
+      setCurrentStep(Math.min(steps.length, currentStep + 1))
+    }
+  }
+
+  const handlePrevStep = () => {
+    setCurrentStep(Math.max(1, currentStep - 1))
+  }
 
   const steps = [
     { id: 1, title: "Basic Info", description: "Challenge title, description, and settings" },
@@ -34,6 +87,8 @@ export function CreateChallengeForm() {
   ]
 
   const handleSubmit = async () => {
+    if (isSubmitting) return
+
     try {
       if (!startDate || !endDate) {
         toast({ title: 'Missing dates', description: 'Please select start and end dates.', variant: 'destructive' as any })
@@ -89,6 +144,8 @@ export function CreateChallengeForm() {
         tasks: tasks || [],
       }
 
+      setIsSubmitting(true)
+
       const res = await challengesApi.create(payload)
       const created = (res as any)?.data || res
       toast({ title: 'Challenge created as draft', description: `${payload.title} - Publish it from the management page once you have an active subscription.` })
@@ -97,6 +154,8 @@ export function CreateChallengeForm() {
       else router.push('/creator/challenges')
     } catch (e: any) {
       toast({ title: 'Failed to create challenge', description: e?.message || 'Please review required fields.', variant: 'destructive' as any })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -144,12 +203,14 @@ export function CreateChallengeForm() {
         />
       )}
 
-      <ChallengeNavigation 
-        currentStep={currentStep} 
-        steps={steps} 
-        setCurrentStep={setCurrentStep}
+      <ChallengeNavigation
+        currentStep={currentStep}
+        steps={steps}
+        onNext={handleNextStep}
+        onBack={handlePrevStep}
         onSubmit={handleSubmit}
         isPublished={formData.isPublished}
+        isSubmitting={isSubmitting}
       />
     </div>
   )

@@ -116,79 +116,18 @@ export function CourseCard({ course }: CourseCardProps) {
 
       <CardHeader>
         <CardTitle className="line-clamp-2">{resolvedCourse.title}</CardTitle>
-        <CardDescription className="line-clamp-3">{resolvedCourse.description}</CardDescription>
+        <CardDescription className="line-clamp-2 text-sm">
+          {resolvedCourse.description}
+        </CardDescription>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="flex items-center text-muted-foreground">
-            <BookOpen className="h-4 w-4 mr-2" />
-            <div>
-              <div className="font-medium text-foreground">{sectionsCount}</div>
-              <div>Sections</div>
-            </div>
-          </div>
-          <div className="flex items-center text-muted-foreground">
-            <PlayCircle className="h-4 w-4 mr-2" />
-            <div>
-              <div className="font-medium text-foreground">{chaptersTotal}</div>
-              <div>Chapters</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="flex items-center text-muted-foreground">
-            <Users className="h-4 w-4 mr-2" />
-            <div>
-              <div className="font-medium text-foreground">{enrollmentsCount}</div>
-              <div>Enrolled</div>
-            </div>
-          </div>
-          <div className="flex items-center text-muted-foreground">
-            <Star className={`h-4 w-4 mr-2 ${(course.averageRating || 0) > 0 ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
-            <div>
-              <div className="font-medium text-foreground">
-                {(course.averageRating || 0) > 0 && (course.ratingCount || 0) > 0 
-                  ? `${Number(course.averageRating).toFixed(1)} (${course.ratingCount})` 
-                  : "No ratings"}
-              </div>
-              <div>Rating</div>
-            </div>
-          </div>
-        </div>
-
-        {pricing.type === "freemium" && (
-          <div className="bg-blue-50 rounded-lg p-3">
-            <div className="text-sm font-medium text-blue-800">Freemium Course</div>
-            <div className="text-xs text-blue-600 mt-1">
-              {pricing.paidChapters} premium chapters available
-            </div>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center space-x-2">
-            {resolvedCourse.category && (
-              <Badge variant="outline" className="text-xs">
-                {resolvedCourse.category}
-              </Badge>
-            )}
-            {resolvedCourse.level && (
-              <Badge variant="outline" className="text-xs">
-                {resolvedCourse.level}
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button size="sm" asChild>
-              <Link href={`/creator/courses/${resolvedCourse.id}/manage`}>
-                <Edit className="h-4 w-4 mr-1" />
-                Manage
-              </Link>
-            </Button>
-          </div>
-        </div>
+      <CardContent className="flex items-center justify-end pt-2">
+        <Button size="sm" asChild>
+          <Link href={`/creator/courses/${resolvedCourse.id}/manage`}>
+            <Edit className="h-4 w-4 mr-1" />
+            Manage
+          </Link>
+        </Button>
       </CardContent>
     </EnhancedCard>
   )

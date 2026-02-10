@@ -139,7 +139,7 @@ export default function ChallengeTasksTab({
     if (!newResource.title || !newResource.url) return
     setNewTask(prev => ({
       ...prev,
-      resources: [...prev.resources, { ...newResource }]
+      resources: [...prev.resources, { ...newResource, id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}` }]
     }))
     setNewResource({ title: '', type: 'article', url: '', description: '' })
   }
@@ -155,7 +155,7 @@ export default function ChallengeTasksTab({
     if (!editingTask || !newResource.title || !newResource.url) return
     setEditingTask(prev => prev ? ({
       ...prev,
-      resources: [...(prev.resources || []), { ...newResource }]
+      resources: [...(prev.resources || []), { ...newResource, id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}` }]
     }) : null)
     setNewResource({ title: '', type: 'article', url: '', description: '' })
   }
@@ -246,14 +246,14 @@ export default function ChallengeTasksTab({
           <Dialog open={isAddOpen} onOpenChange={(open) => {
             if (!open) resetNewTask()
             setIsAddOpen(open)
-          }}>
+          }} modal={true}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Task
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto pointer-events-auto">
               <DialogHeader>
                 <DialogTitle>Add New Task</DialogTitle>
                 <DialogDescription>Create a new daily task. Fields marked with * are required.</DialogDescription>
@@ -521,8 +521,8 @@ export default function ChallengeTasksTab({
       </CardContent>
 
       {/* Edit Task Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen} modal={true}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto pointer-events-auto">
           <DialogHeader>
             <DialogTitle>Edit Task</DialogTitle>
             <DialogDescription>Update the task details.</DialogDescription>

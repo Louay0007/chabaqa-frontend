@@ -10,6 +10,7 @@ interface NavigationButtonsProps {
   formData: {
     isPublished: boolean
   }
+  isSubmitting?: boolean
 }
 
 export function NavigationButtons({
@@ -18,13 +19,14 @@ export function NavigationButtons({
   setCurrentStep,
   handleSubmit,
   formData,
+  isSubmitting = false,
 }: NavigationButtonsProps) {
   return (
     <div className="flex items-center justify-between">
       <Button
         variant="outline"
-        onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-        disabled={currentStep === 1}
+        onClick={() => !isSubmitting && setCurrentStep(Math.max(1, currentStep - 1))}
+        disabled={currentStep === 1 || isSubmitting}
       >
         Previous
       </Button>
@@ -32,14 +34,23 @@ export function NavigationButtons({
       <div className="flex items-center space-x-2">
         {currentStep < stepsLength ? (
           <Button
-            onClick={() => setCurrentStep(Math.min(stepsLength, currentStep + 1))}
+            onClick={() => !isSubmitting && setCurrentStep(Math.min(stepsLength, currentStep + 1))}
             className="bg-courses-500 hover:bg-courses-600"
+            disabled={isSubmitting}
           >
             Next Step
           </Button>
         ) : (
-          <Button onClick={handleSubmit} className="bg-courses-500 hover:bg-courses-600">
-            {formData.isPublished ? "Create & Publish Course" : "Save as Draft"}
+          <Button
+            onClick={handleSubmit}
+            className="bg-courses-500 hover:bg-courses-600"
+            disabled={isSubmitting}
+          >
+            {isSubmitting
+              ? "Creating..."
+              : formData.isPublished
+              ? "Create & Publish Course"
+              : "Save as Draft"}
           </Button>
         )}
       </div>

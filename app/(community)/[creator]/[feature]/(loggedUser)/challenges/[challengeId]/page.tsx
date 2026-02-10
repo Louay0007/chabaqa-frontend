@@ -18,8 +18,8 @@ export default async function ChallengeDetailPage({
       challengesApi.getById(challengeId).catch(() => null),
     ])
 
-    const community = communityResponse?.data
-    const challenge = challengeResponse?.data || challengeResponse
+    const community = (communityResponse as any)?.data || communityResponse
+    const challenge = (challengeResponse as any)?.data || challengeResponse
 
     if (!community || !challenge) {
       console.log('[Challenge Detail] Not found - community:', !!community, 'challenge:', !!challenge)
@@ -57,26 +57,30 @@ export default async function ChallengeDetailPage({
         streak: p.streak || 0,
         isActive: p.isActive !== false,
       })),
-      tasks: (challenge.tasks || []).map((t: any, index: number) => ({
-        id: t._id || t.id || index,
-        day: t.ordre || t.order || index + 1,
-        title: t.title || `Task ${index + 1}`,
-        description: t.description || '',
-        points: t.points || 10,
-        order: t.ordre || t.order || index,
-        dueDate: t.dueDate,
-        deliverable: t.deliverable || t.description || '',
-        instructions: t.instructions || t.description || '',
-        resources: (t.resources || []).map((r: any) => ({
-          id: r._id || r.id,
-          title: r.title || r.name || 'Resource',
-          type: r.type || 'link',
-          url: r.url || r.link || '#',
-        })),
-        notes: t.notes || '',
-        isActive: false,
-        isCompleted: false,
-      })),
+      tasks: (challenge.tasks || []).map((t: any, index: number) => {
+        // Log individual task mapping for debugging
+        const taskId = t.id || t._id || `task-${index}`;
+        return {
+          id: taskId,
+          day: t.day || t.ordre || t.order || index + 1,
+          title: t.title || `Task ${index + 1}`,
+          description: t.description || '',
+          points: t.points || 10,
+          order: t.ordre || t.order || index,
+          dueDate: t.dueDate,
+          deliverable: t.deliverable || t.description || '',
+          instructions: t.instructions || t.description || '',
+          resources: (t.resources || []).map((r: any) => ({
+            id: r._id || r.id,
+            title: r.title || r.name || 'Resource',
+            type: r.type || 'link',
+            url: r.url || r.link || '#',
+          })),
+          notes: t.notes || '',
+          isActive: false,
+          isCompleted: false,
+        }
+      }),
       resources: (challenge.resources || []).map((r: any) => ({
         id: r._id || r.id,
         title: r.title || r.name || 'Resource',

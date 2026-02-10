@@ -33,7 +33,8 @@ export default function OverviewTab({
           <CurrentTask 
             challengeTasks={challengeTasks} 
             selectedTaskDay={selectedTaskDay} 
-            setSelectedTaskDay={setSelectedTaskDay} 
+            setSelectedTaskDay={setSelectedTaskDay}
+            challengeId={challenge.id || challenge._id}
           />
         ) : (
           <Card className="border-0 shadow-sm">

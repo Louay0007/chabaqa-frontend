@@ -15,14 +15,24 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build arguments for environment variables at build time
-ARG NEXT_PUBLIC_API_URL=http://51.254.132.77:3000/api
+ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build Next.js with increased timeout and retry
 RUN npm run build || npm run build || npm run build
 
-# Stage 3: Production runner
+# Stage 3: Development
+FROM base AS dev
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+EXPOSE 8080
+ENV PORT=8080
+CMD ["npm", "run", "dev"]
+
+# Stage 4: Production runner
 FROM base AS runner
 WORKDIR /app
 

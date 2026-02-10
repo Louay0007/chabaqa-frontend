@@ -36,6 +36,7 @@ export function CourseCreationContainer() {
   const router = useRouter()
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   
   // Use the selected community from context
   const { selectedCommunity, selectedCommunityId, isLoading: communityLoading } = useCreatorCommunity()
@@ -179,25 +180,74 @@ export function CourseCreationContainer() {
   }, [selectedCommunity])
 
   const handleSubmit = async () => {
+    if (isSubmitting) return
+
+    // Basic client-side validation before hitting the API
+    const errors: string[] = []
+    if (!selectedCommunityId || !formData.communitySlug) {
+      errors.push("Please select a community before creating a course.")
+    }
+    if (!formData.title.trim()) {
+      errors.push("Course title is required.")
+    }
+    if (!formData.description.trim()) {
+      errors.push("Course description is required.")
+    }
+    if (!formData.sections.length) {
+      errors.push("Add at least one section with chapters.")
+    } else {
+      const hasChapter = formData.sections.some((s) => s.chapters && s.chapters.length > 0)
+      if (!hasChapter) {
+        errors.push("Each course must have at least one chapter.")
+      }
+    }
+
+    if (errors.length) {
+      toast({
+        title: "Please fix the highlighted issues",
+        description: errors.join(" "),
+        variant: "destructive",
+      })
+      // Jump to content step if structure is missing
+      if (!formData.sections.length) {
+        setCurrentStep(3)
+      }
+      return
+    }
+
     try {
+      setIsSubmitting(true)
+      console.log('📤 [COURSE SUBMIT] Starting course submission')
+      console.log('   📚 Title:', formData.title)
+      console.log('   📁 Sections:', formData.sections.length)
+      
       // Build DTO mapping English -> French fields
       const prixNum = Number(formData.price || 0)
       const isPaid = prixNum > 0
-      const sections = (formData.sections || []).map((s, idx) => ({
-        titre: s.title || `Section ${idx + 1}`,
-        description: s.description || "",
-        ordre: s.order || (idx + 1),
-        chapitres: (s.chapters || []).map((c, jdx) => ({
-          titre: c.title || `Chapitre ${jdx + 1}`,
-          description: c.content || "",
-          videoUrl: c.videoUrl || undefined,
-          isPaid: !c.isPreview, // Use isPreview to determine if paid
-          prix: !c.isPreview ? (prixNum || 0) : 0, // If not preview, use course price
-          ordre: c.order || (jdx + 1),
-          duree: typeof c.duration === 'number' && c.duration > 0 ? `${c.duration}` : undefined,
-          notes: c.notes || undefined,
-        }))
-      }))
+      const sections = (formData.sections || []).map((s, idx) => {
+        console.log(`   📂 Section ${idx + 1}: "${s.title}" with ${s.chapters.length} chapters`)
+        
+        return {
+          titre: s.title || `Section ${idx + 1}`,
+          description: s.description || "",
+          ordre: s.order || (idx + 1),
+          chapitres: (s.chapters || []).map((c, jdx) => {
+            console.log(`      📄 Chapter ${jdx + 1}: "${c.title}"`)
+            console.log(`         🎬 Video URL: "${c.videoUrl || '(empty)'}"`)
+            
+            return {
+              titre: c.title || `Chapitre ${jdx + 1}`,
+              description: c.content || "",
+              videoUrl: c.videoUrl || undefined,
+              isPaid: !c.isPreview, // Use isPreview to determine if paid
+              prix: !c.isPreview ? (prixNum || 0) : 0, // If not preview, use course price
+              ordre: c.order || (jdx + 1),
+              duree: typeof c.duration === 'number' && c.duration > 0 ? `${c.duration}` : undefined,
+              notes: c.notes || undefined,
+            }
+          })
+        }
+      })
 
       // Map English level to French enum values
       const levelMapping: { [key: string]: string | undefined } = {
@@ -226,6 +276,8 @@ export function CourseCreationContainer() {
         sections,
       }
 
+      console.log('📤 [COURSE SUBMIT] Final payload:', JSON.stringify(payload, null, 2))
+
       const res = await apiClient.post<any>(`/cours/create-cours`, payload)
       const created = res?.data?.cours || res?.cours || res?.data || res
       toast({ title: 'Course created', description: payload.titre })
@@ -233,7 +285,10 @@ export function CourseCreationContainer() {
       if (id) router.push(`/creator/courses/${id}/manage`)
       else router.push('/creator/courses')
     } catch (e: any) {
+      console.error('❌ [COURSE SUBMIT] Failed:', e)
       toast({ title: 'Failed to create course', description: e?.message || 'Please review required fields.', variant: 'destructive' as any })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -287,6 +342,7 @@ export function CourseCreationContainer() {
         setCurrentStep={setCurrentStep}
         handleSubmit={handleSubmit}
         formData={formData}
+        isSubmitting={isSubmitting}
       />
     </div>
   )

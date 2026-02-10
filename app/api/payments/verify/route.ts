@@ -24,11 +24,18 @@ export async function GET(req: NextRequest) {
     }
 
     // Get the backend API URL (must include /api because Nest uses global prefix)
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    const backendUrl = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+
+    // Ensure URL is absolute for server-side fetch
+    const finalBackendUrl = backendUrl.startsWith('http') 
+      ? backendUrl 
+      : `http://localhost:3000${backendUrl}`;
+
+    console.log(`[Payment Verify] Verifying session ${sessionId} at ${finalBackendUrl}`);
 
     // Call the backend verification endpoint
     const response = await fetch(
-      `${backendUrl}/payment/stripe-link/verify?sessionId=${sessionId}`,
+      `${finalBackendUrl}/payment/stripe-link/verify?sessionId=${sessionId}`,
       {
         method: 'GET',
         headers: {
