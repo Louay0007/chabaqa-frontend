@@ -52,6 +52,7 @@ export default function CoursePlayer({
     nextAllowed: 0,
   })
   const currentChapterRef = useRef<any>(null)
+  const trackingSentRef = useRef<{ start: boolean; complete: boolean }>({ start: false, complete: false })
 
   const allChapters = course.sections.flatMap((s: any) => s.chapters)
   const hasEnrollment = Boolean(enrollment)
@@ -322,6 +323,18 @@ export default function CoursePlayer({
     }
   }, [currentChapter]);
 
+  useEffect(() => {
+    if (!currentChapter?.id) return
+    if (trackingSentRef.current.start) return
+    const accessAllowed = isChapterAccessible(String(currentChapter.id)) || Boolean(currentChapter?.isPreview)
+    if (!accessAllowed) return
+    trackingSentRef.current.start = true
+    const trackingId = String(course?.id || courseId)
+    void coursesApi.trackStart(trackingId).catch(() => {
+      // ignore tracking failures
+    })
+  }, [course?.id, courseId, currentChapter?.id, currentChapter?.isPreview, isChapterAccessible])
+
   // Clear optimistic overrides when switching chapters
   useEffect(() => {
     setWatchTimeOverride(null)
@@ -459,6 +472,15 @@ export default function CoursePlayer({
     if (!isCourseCompleted) return
     try {
       await coursesApi.completeCourseEnrollment(String(courseId))
+
+      if (!trackingSentRef.current.complete) {
+        trackingSentRef.current.complete = true
+        const trackingId = String(course?.id || courseId)
+        void coursesApi.trackComplete(trackingId).catch(() => {
+          // ignore tracking failures
+        })
+      }
+
       toast({ title: "Course completed" })
       if (onRefreshProgress) {
         await onRefreshProgress()
@@ -476,7 +498,7 @@ export default function CoursePlayer({
         variant: "destructive",
       })
     }
-  }, [courseId, isCourseCompleted, onRefreshProgress, onRefreshUnlockedChapters, toast])
+  }, [course?.id, courseId, isCourseCompleted, onRefreshProgress, onRefreshUnlockedChapters, toast])
 
   const handleEnrollNow = useCallback(async () => {
     if (enrollment) return

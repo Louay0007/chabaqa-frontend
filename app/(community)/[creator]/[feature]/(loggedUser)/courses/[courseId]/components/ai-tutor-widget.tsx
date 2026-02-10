@@ -1,5 +1,6 @@
 "use client"
 
+import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import { Send, Bot, User, Loader2, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -61,7 +62,7 @@ export default function AiTutorWidget({ courseId, chapterId }: AiTutorWidgetProp
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()

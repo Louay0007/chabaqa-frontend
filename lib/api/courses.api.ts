@@ -1,5 +1,6 @@
 import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } from './client';
 import type { Course, CourseSection, CourseChapter, CourseEnrollment } from './types';
+import { getDeviceInfo } from '@/lib/utils/device';
 
 export interface CreateCourseData {
   title: string;
@@ -102,6 +103,22 @@ export const coursesApi = {
 
   completeCourseEnrollment: async (courseId: string): Promise<any> => {
     return apiClient.put(`/course-enrollment/${courseId}/complete`);
+  },
+
+  // =========================================================================
+  // TRACKING (Creator Analytics)
+  // =========================================================================
+
+  trackView: async (courseId: string): Promise<any> => {
+    return apiClient.post(`/cours/${courseId}/track/view`, { metadata: getDeviceInfo() });
+  },
+
+  trackStart: async (courseId: string): Promise<any> => {
+    return apiClient.post(`/cours/${courseId}/track/start`, { metadata: getDeviceInfo() });
+  },
+
+  trackComplete: async (courseId: string): Promise<any> => {
+    return apiClient.post(`/cours/${courseId}/track/complete`, { metadata: getDeviceInfo() });
   },
 
   // Update course
@@ -250,12 +267,12 @@ export const coursesApi = {
 
   // Like a course
   likeCourse: async (courseId: string): Promise<any> => {
-    return apiClient.post(`/cours/${courseId}/track/like`);
+    return apiClient.post(`/cours/${courseId}/track/like`, { metadata: getDeviceInfo() });
   },
 
   // Share a course
   shareCourse: async (courseId: string): Promise<any> => {
-    return apiClient.post(`/cours/${courseId}/track/share`);
+    return apiClient.post(`/cours/${courseId}/track/share`, { metadata: getDeviceInfo() });
   },
 
   // Bookmark a course (using custom bookmark ID or generating one)

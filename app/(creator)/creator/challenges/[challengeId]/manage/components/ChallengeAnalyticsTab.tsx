@@ -60,6 +60,7 @@ import {
   TrendingDown
 } from "lucide-react"
 import { apiClient } from "@/lib/api"
+import { trackEvent } from "@/lib/ga4"
 
 interface ChallengeTask {
   id: string
@@ -180,6 +181,18 @@ export default function ChallengeAnalyticsTab({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dateRange, setDateRange] = useState("30")
+
+  useEffect(() => {
+    // Track when a creator views the challenge analytics tab
+    trackEvent("challenge_analytics_view", {
+      content_type: "challenge",
+      content_id: challenge?.id,
+      challenge_id: challenge?.id,
+      community_id: challenge?.communityId,
+      creator_id: challenge?.creatorId,
+      date_range_days: Number(dateRange),
+    })
+  }, [challenge?.id, challenge?.communityId, challenge?.creatorId, dateRange])
 
   useEffect(() => {
     fetchAnalytics()
