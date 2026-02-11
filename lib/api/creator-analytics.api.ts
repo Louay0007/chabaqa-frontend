@@ -34,9 +34,8 @@ export const creatorAnalyticsApi = {
   getReferrers: async (params?: CreatorAnalyticsParams): Promise<ApiSuccessResponse<any>> => {
     return apiClient.get<ApiSuccessResponse<any>>('/analytics/creator/referrers', params);
   },
-
-  backfill: async (days?: number): Promise<ApiSuccessResponse<any>> => {
-    return apiClient.get<ApiSuccessResponse<any>>('/analytics/creator/backfill', { days });
+  backfill: async (days: number = 90): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.post<ApiSuccessResponse<any>>(`/analytics/creator/backfill?days=${days}`, {});
   },
 
   // Payouts

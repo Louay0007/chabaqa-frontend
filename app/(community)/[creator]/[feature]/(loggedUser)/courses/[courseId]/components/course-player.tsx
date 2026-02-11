@@ -473,14 +473,6 @@ export default function CoursePlayer({
     try {
       await coursesApi.completeCourseEnrollment(String(courseId))
 
-      if (!trackingSentRef.current.complete) {
-        trackingSentRef.current.complete = true
-        const trackingId = String(course?.id || courseId)
-        void coursesApi.trackComplete(trackingId).catch(() => {
-          // ignore tracking failures
-        })
-      }
-
       toast({ title: "Course completed" })
       if (onRefreshProgress) {
         await onRefreshProgress()

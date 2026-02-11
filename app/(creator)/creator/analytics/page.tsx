@@ -36,7 +36,7 @@ export default function CommunityAnalyticsPage() {
   const { selectedCommunityId, setSelectedCommunityId, communities, isLoading: communityLoading } = useCreatorCommunity()
   const [selectedFeature, setSelectedFeature] = useState("courses")
   const [timeRange, setTimeRange] = useState("7d")
-  const [userPlan, setUserPlan] = useState<"starter"|"growth"|"pro">("starter")
+  const [userPlan, setUserPlan] = useState<"starter" | "growth" | "pro">("starter")
   const [overview, setOverview] = useState<any | null>(null)
   const [membershipData, setMembershipData] = useState<any[]>([])
   const [engagementData, setEngagementData] = useState<any[]>([])
@@ -101,16 +101,16 @@ export default function CommunityAnalyticsPage() {
         const now = new Date()
         const to = now.toISOString()
         const from = (() => {
-          if (timeRange === '28d') return new Date(now.getTime() - 28*24*3600*1000)
-          if (timeRange === '90d') return new Date(now.getTime() - 90*24*3600*1000)
-          if (timeRange === '1y') return new Date(now.getTime() - 365*24*3600*1000)
-          return new Date(now.getTime() - 7*24*3600*1000)
+          if (timeRange === '28d') return new Date(now.getTime() - 28 * 24 * 3600 * 1000)
+          if (timeRange === '90d') return new Date(now.getTime() - 90 * 24 * 3600 * 1000)
+          if (timeRange === '1y') return new Date(now.getTime() - 365 * 24 * 3600 * 1000)
+          return new Date(now.getTime() - 7 * 24 * 3600 * 1000)
         })().toISOString()
 
         // Overview, members and engagement
         // Fetch all analytics data in parallel
         const [overviewRes, devicesRes, referrersRes] = await Promise.all([
-          api.creatorAnalytics.getOverview({ from, to, communityId: selectedCommunityId }).catch((e:any) => { if (e?.statusCode===402||e?.statusCode===403) setAnalyticsGated(true); return null }),
+          api.creatorAnalytics.getOverview({ from, to, communityId: selectedCommunityId }).catch((e: any) => { if (e?.statusCode === 402 || e?.statusCode === 403) setAnalyticsGated(true); return null }),
           api.creatorAnalytics.getDevices({ from, to, communityId: selectedCommunityId }).catch(() => null),
           api.creatorAnalytics.getReferrers({ from, to, communityId: selectedCommunityId }).catch(() => null),
         ])
@@ -140,6 +140,7 @@ export default function CommunityAnalyticsPage() {
         }
 
         if (rawOverview) {
+          const revenue = (rawOverview as any).revenue || { total: 0, count: 0 }
           const totals = (rawOverview as any).totals || rawOverview
           const trend = (() => {
             const o: any = rawOverview
@@ -148,52 +149,52 @@ export default function CommunityAnalyticsPage() {
             return o.trendAll || o.trend28d || o.trend7d || o.trend || []
           })()
 
-          const views = Number(totals?.viewsTotal ?? totals?.views ?? totals?.total_views ?? 0) || 0
-          const starts = Number(totals?.starts ?? totals?.starts_count ?? 0) || 0
-          const completes = Number(totals?.completes ?? totals?.completions ?? totals?.completions_count ?? 0) || 0
-          const likes = Number(totals?.likes ?? totals?.likes_count ?? 0) || 0
-          const shares = Number(totals?.shares ?? totals?.shares_count ?? 0) || 0
-          const downloads = Number(totals?.downloads ?? totals?.downloads_count ?? 0) || 0
-          const bookmarks = Number(totals?.bookmarks ?? totals?.bookmarks_count ?? 0) || 0
-          
-          const revenue = (rawOverview as any).revenue || { total: 0, count: 0 }
+          const views = Number(totals?.viewsTotal ?? totals?.views ?? totals?.total_views ?? rawOverview?.views ?? 0) || 0
+          const starts = Number(totals?.starts ?? rawOverview?.starts ?? 0) || 0
+          const completes = Number(totals?.completes ?? totals?.completions ?? totals?.completions_count ?? rawOverview?.completes ?? rawOverview?.completions ?? 0) || 0
+          const likes = Number(totals?.likes ?? totals?.likes_count ?? rawOverview?.likes ?? 0) || 0
+          const shares = Number(totals?.shares ?? totals?.shares_count ?? rawOverview?.shares ?? 0) || 0
+          const downloads = Number(totals?.downloads ?? totals?.downloads_count ?? rawOverview?.downloads ?? 0) || 0
+          const watchTime = Number(totals?.watchTime ?? rawOverview?.watchTime ?? 0) || 0
 
-          const interactions = starts + completes + likes + shares + downloads + bookmarks
+          const interactions = starts + completes + likes + shares + downloads
           const engagementRate =
             Number((rawOverview as any).engagementRate ?? (rawOverview as any).avgEngagement ?? 0)
             || (views > 0 ? (interactions / views) * 100 : 0)
-          const completionRate = starts > 0 ? (completes / starts) * 100 : 0
+          const completionRate = Number(rawOverview?.completionRate) || (starts > 0 ? (completes / starts) * 100 : 0)
+          const avgDuration = Number(rawOverview?.avgDuration ?? rawOverview?.averageDuration) || (starts > 0 ? Math.round((watchTime / starts) / 60) : 0)
 
           const normalizedOverview = {
             ...rawOverview,
-            // Flatten commonly used fields so UI metrics don't show zeros
+            revenue,
             viewsTotal: views,
             views,
             starts,
             completions: completes,
+            completes,
             completionRate,
             engagementRate,
+            avgDuration,
+            averageDuration: avgDuration,
             totalRevenue: revenue.total ?? (rawOverview as any).totalRevenue ?? (rawOverview as any).salesTotal ?? 0,
             salesCount: revenue.count ?? (rawOverview as any).salesCount ?? 0,
             trend
           }
 
           setOverview(normalizedOverview)
-          
+
           // Populate charts with trend data
           const memData = trend.map((t: any) => ({
-             // We don't have member history in daily rollup yet, so using views as a proxy for activity
-             // Or better, just show views/completes trend
-             month: new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-             totalMembers: t.views || t.viewsTotal || 0, 
-             activeMembers: t.completes || t.completions || 0
+            month: new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            views: t.views || t.viewsTotal || 0,
+            completes: t.completes || t.completions || 0
           }))
           setMembershipData(memData)
 
           const engData = trend.map((t: any) => ({
-             day: new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-             posts: t.starts || 0, 
-             comments: t.completes || t.completions || 0 
+            day: new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            starts: t.starts || 0,
+            completes: t.completes || t.completions || 0
           }))
           setEngagementData(engData)
 
@@ -212,12 +213,12 @@ export default function CommunityAnalyticsPage() {
         // Top content for selected feature
         const topLoader = selectedFeature === 'courses' ? api.creatorAnalytics.getCourses
           : selectedFeature === 'challenges' ? api.creatorAnalytics.getChallenges
-          : selectedFeature === 'events' ? api.creatorAnalytics.getEvents
-          : selectedFeature === 'products' ? api.creatorAnalytics.getProducts
-          : api.creatorAnalytics.getCourses // default
+            : selectedFeature === 'events' ? api.creatorAnalytics.getEvents
+              : selectedFeature === 'products' ? api.creatorAnalytics.getProducts
+                : api.creatorAnalytics.getCourses // default
 
         const top = await topLoader({ from, to, communityId: selectedCommunityId }).catch(() => null as any)
-        
+
         const list =
           (top?.data?.items)
           || (top?.data?.byCourse)
@@ -232,40 +233,42 @@ export default function CommunityAnalyticsPage() {
           || (top?.byEvent)
           || (top?.byProduct)
           || []
-          
-        setTopItems(Array.isArray(list) ? list.slice(0,3) : [])
+
+        setTopItems(Array.isArray(list) ? list.slice(0, 10) : [])
 
         // Calculate feature-specific totals
         if (Array.isArray(list)) {
-           const featureTotals = list.reduce((acc: any, item: any) => ({
-             views: (acc.views || 0) + (item.views || 0),
-             starts: (acc.starts || 0) + (item.starts || 0),
-             completes: (acc.completes || 0) + (item.completes || 0),
-             likes: (acc.likes || 0) + (item.likes || 0),
-             shares: (acc.shares || 0) + (item.shares || 0),
-             downloads: (acc.downloads || 0) + (item.downloads || 0),
-             sales: (acc.sales || 0) + (item.sales || 0),
-             revenue: (acc.revenue || 0) + (item.revenue || 0),
-             participants: (acc.participants || 0) + (item.participants || item.starts || 0), // Estimate participants as starts
-             submissions: (acc.submissions || 0) + (item.completes || 0), // Estimate submissions as completes
-             registrations: (acc.registrations || 0) + (item.starts || 0), // Estimate registrations as starts
-           }), {})
+          const featureTotals = list.reduce((acc: any, item: any) => ({
+            views: (acc.views || 0) + (item.views || 0),
+            starts: (acc.starts || 0) + (item.starts || 0),
+            completes: (acc.completes || 0) + (item.completes || 0),
+            likes: (acc.likes || 0) + (item.likes || 0),
+            shares: (acc.shares || 0) + (item.shares || 0),
+            downloads: (acc.downloads || 0) + (item.downloads || 0),
+            sales: (acc.sales || 0) + (item.sales || 0),
+            revenue: (acc.revenue || 0) + (item.revenue || 0),
+            // Challenge-specific metrics
+            participants: (acc.participants || 0) + (item.participants || item.starts || 0),
+            submissions: (acc.submissions || 0) + (item.submissions || item.completes || 0),
+            winners: (acc.winners || 0) + (item.winners || 0),
+            registrations: (acc.registrations || 0) + (item.starts || 0),
+          }), {})
 
-           // Merge into overview for metrics display
-           setOverview((prev: any) => ({
-             ...prev,
-             ...featureTotals,
-             // Recalculate rates based on specific feature totals
-             completionRate: featureTotals.starts > 0 ? (featureTotals.completes / featureTotals.starts) * 100 : 0,
-             engagementRate: featureTotals.views > 0 ? ((featureTotals.likes + featureTotals.shares + featureTotals.downloads) / featureTotals.views) * 100 : 0,
-             // Custom fields for specific features
-             challengeCompletionRate: featureTotals.starts > 0 ? (featureTotals.completes / featureTotals.starts) * 100 : 0,
-             attendanceRate: featureTotals.views > 0 ? (featureTotals.starts / featureTotals.views) * 100 : 0, // Approx
-           }))
+          // Merge into overview for metrics display
+          setOverview((prev: any) => ({
+            ...prev,
+            ...featureTotals,
+            // Recalculate rates based on specific feature totals
+            completionRate: featureTotals.starts > 0 ? (featureTotals.completes / featureTotals.starts) * 100 : 0,
+            engagementRate: featureTotals.views > 0 ? ((featureTotals.likes + featureTotals.shares + featureTotals.downloads) / featureTotals.views) * 100 : 0,
+            // Custom fields for specific features
+            challengeCompletionRate: featureTotals.starts > 0 ? (featureTotals.completes / featureTotals.starts) * 100 : 0,
+            attendanceRate: featureTotals.views > 0 ? (featureTotals.starts / featureTotals.views) * 100 : 0,
+          }))
         }
 
-      } catch (e:any) {
-        if (e?.statusCode===402||e?.statusCode===403) setAnalyticsGated(true)
+      } catch (e: any) {
+        if (e?.statusCode === 402 || e?.statusCode === 403) setAnalyticsGated(true)
       }
     }
     loadAnalytics()
@@ -282,11 +285,17 @@ export default function CommunityAnalyticsPage() {
       ]
     }
     if (selectedFeature === 'challenges') {
+      // Use featureTotals from overview (computed from ALL items in the list, not just topItems)
+      const finalParticipants = o.participants || o.starts || 0;
+      const finalSubmissions = o.submissions || o.completes || 0;
+      const finalWinners = o.winners || 0;
+      const finalCompletionRate = o.challengeCompletionRate || o.completionRate || 0;
+
       return [
-        { title: 'Active Participants', value: (o.participants ?? 0).toLocaleString(), change: o.participantsChange || '+0%', icon: Users },
-        { title: 'Completion Rate', value: `${Math.round(o.challengeCompletionRate ?? 0)}%`, change: o.challengeCompletionChange || '+0%', icon: TrendingUp },
-        { title: 'Submissions', value: (o.submissions ?? 0).toLocaleString(), change: o.submissionsChange || '+0%', icon: MessageSquare },
-        { title: 'Winners', value: (o.winners ?? 0).toLocaleString(), change: o.winnersChange || '+0', icon: Crown },
+        { title: 'Active Participants', value: Number(finalParticipants).toLocaleString(), change: o.participantsChange || '+0%', icon: Users },
+        { title: 'Completion Rate', value: `${Math.round(finalCompletionRate)}%`, change: o.challengeCompletionChange || '+0%', icon: TrendingUp },
+        { title: 'Submissions', value: Number(finalSubmissions).toLocaleString(), change: o.submissionsChange || '+0%', icon: MessageSquare },
+        { title: 'Winners', value: Number(finalWinners).toLocaleString(), change: o.winnersChange || '+0', icon: Crown },
       ]
     }
     if (selectedFeature === 'events') {
@@ -298,7 +307,7 @@ export default function CommunityAnalyticsPage() {
       ]
     }
     return [
-      { title: 'Total Sales', value: `$${(o.salesTotal ?? 0).toLocaleString()}` , change: o.salesChange || '+0%', icon: DollarSign },
+      { title: 'Total Sales', value: `$${(o.salesTotal ?? 0).toLocaleString()}`, change: o.salesChange || '+0%', icon: DollarSign },
       { title: 'Orders', value: (o.orders ?? 0).toLocaleString(), change: o.ordersChange || '+0%', icon: TrendingUp },
       { title: 'Customer Rating', value: (o.customerRating ?? 0).toFixed?.(1) ?? String(o.customerRating ?? 0), change: o.customerRatingChange || '+0', icon: MessageSquare },
       { title: 'Revenue', value: `$${(o.totalRevenue ?? o.revenue?.total ?? 0).toLocaleString()}`, change: o.revenueChange || '+0%', icon: DollarSign },
@@ -336,7 +345,7 @@ export default function CommunityAnalyticsPage() {
                 Track and analyze your community performance
               </p>
             </div>
-            
+
             {/* Controls */}
             <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
               <Select value={selectedCommunityId || ""} onValueChange={setSelectedCommunityId}>
@@ -355,7 +364,7 @@ export default function CommunityAnalyticsPage() {
                   })}
                 </SelectContent>
               </Select>
-              
+
               <Select value={selectedFeature} onValueChange={setSelectedFeature}>
                 <SelectTrigger className="w-full sm:w-[140px]">
                   <SelectValue placeholder="Select Feature" />
@@ -367,7 +376,7 @@ export default function CommunityAnalyticsPage() {
                   <SelectItem value="products">Products</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <Select value={timeRange} onValueChange={setTimeRange}>
                 <SelectTrigger className="w-full sm:w-[140px]">
                   <SelectValue placeholder="Time Range" />
@@ -379,15 +388,15 @@ export default function CommunityAnalyticsPage() {
                   <SelectItem value="1y">Last year</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <Button variant="outline" className="w-full sm:w-auto">
                 <Download className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Export CSV</span>
                 <span className="sm:hidden">Export</span>
               </Button>
 
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full sm:w-auto"
                 onClick={() => syncAnalytics()}
                 disabled={isSyncing}
@@ -458,35 +467,35 @@ export default function CommunityAnalyticsPage() {
                   <AreaChart data={membershipData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="colorCompletions" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                    <XAxis 
-                      dataKey="month" 
+                    <XAxis
+                      dataKey="month"
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 12, fill: '#6b7280' }}
                       dy={10}
                     />
-                    <YAxis 
+                    <YAxis
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 12, fill: '#6b7280' }}
                     />
-                    <Tooltip 
+                    <Tooltip
                       contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                       itemStyle={{ fontSize: '13px' }}
                       cursor={{ stroke: '#9ca3af', strokeDasharray: '4 4' }}
                     />
                     <Area
                       type="monotone"
-                      dataKey="totalMembers"
+                      dataKey="views"
                       name="Views"
                       stroke="#6366f1"
                       strokeWidth={2}
@@ -495,7 +504,7 @@ export default function CommunityAnalyticsPage() {
                     />
                     <Area
                       type="monotone"
-                      dataKey="activeMembers"
+                      dataKey="completes"
                       name="Completions"
                       stroke="#10b981"
                       strokeWidth={2}
@@ -532,39 +541,39 @@ export default function CommunityAnalyticsPage() {
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={engagementData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barGap={4}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                    <XAxis 
-                      dataKey="day" 
+                    <XAxis
+                      dataKey="day"
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 12, fill: '#6b7280' }}
                       dy={10}
                     />
-                    <YAxis 
+                    <YAxis
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 12, fill: '#6b7280' }}
                     />
-                    <Tooltip 
+                    <Tooltip
                       cursor={{ fill: '#f9fafb' }}
                       contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     />
-                    <Legend 
-                      verticalAlign="top" 
-                      height={36} 
+                    <Legend
+                      verticalAlign="top"
+                      height={36}
                       iconType="circle"
                       formatter={(value) => <span className="text-sm text-gray-600 ml-1">{value}</span>}
                     />
-                    <Bar 
-                      dataKey="posts" 
-                      name="Starts" 
-                      fill="#818cf8" 
+                    <Bar
+                      dataKey="starts"
+                      name="Starts"
+                      fill="#818cf8"
                       radius={[4, 4, 0, 0]}
                       maxBarSize={40}
                     />
-                    <Bar 
-                      dataKey="comments" 
-                      name="Completions" 
-                      fill="#34d399" 
+                    <Bar
+                      dataKey="completes"
+                      name="Completions"
+                      fill="#34d399"
                       radius={[4, 4, 0, 0]}
                       maxBarSize={40}
                     />
@@ -610,7 +619,7 @@ export default function CommunityAnalyticsPage() {
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip 
+                        <Tooltip
                           contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', fontSize: '12px' }}
                           formatter={(value: number) => [value.toLocaleString(), 'Users']}
                         />
@@ -618,20 +627,20 @@ export default function CommunityAnalyticsPage() {
                     </ResponsiveContainer>
                     {/* Center Text */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                       <span className="text-2xl font-bold text-gray-900">
-                         {devicesData.reduce((acc, curr) => acc + (curr.value || 0), 0).toLocaleString()}
-                       </span>
-                       <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">Users</span>
+                      <span className="text-2xl font-bold text-gray-900">
+                        {devicesData.reduce((acc, curr) => acc + (curr.value || 0), 0).toLocaleString()}
+                      </span>
+                      <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">Users</span>
                     </div>
                   </div>
 
                   {/* List Section */}
                   <div className="space-y-4 flex-1 overflow-y-auto pr-1">
-                    {devicesData.sort((a,b) => b.value - a.value).map((device, index) => {
+                    {devicesData.sort((a, b) => b.value - a.value).map((device, index) => {
                       const total = devicesData.reduce((acc, curr) => acc + (curr.value || 0), 0);
                       const percentage = total > 0 ? (device.value / total) * 100 : 0;
                       const color = COLORS[index % COLORS.length];
-                      
+
                       let Icon = Smartphone;
                       if (device.name.toLowerCase().includes('desktop') || device.name.toLowerCase().includes('laptop')) Icon = Monitor;
                       if (device.name.toLowerCase().includes('tablet')) Icon = Smartphone; // Tablet often shares icon or similar
@@ -650,8 +659,8 @@ export default function CommunityAnalyticsPage() {
                             </div>
                           </div>
                           <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                            <div 
-                              className="h-full rounded-full transition-all duration-500" 
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
                               style={{ width: `${percentage}%`, backgroundColor: color }}
                             />
                           </div>
@@ -682,37 +691,37 @@ export default function CommunityAnalyticsPage() {
                   (() => {
                     const maxCount = Math.max(1, ...referrersData.map((r: any) => Number(r.count || 0)));
                     return referrersData.map((ref: any, idx: number) => {
-                    const percentage = (Number(ref.count || 0) / maxCount) * 100;
-                    
-                    return (
-                      <div key={idx} className="group">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                              <Globe className="w-4 h-4 text-blue-500" />
+                      const percentage = (Number(ref.count || 0) / maxCount) * 100;
+
+                      return (
+                        <div key={idx} className="group">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                                <Globe className="w-4 h-4 text-blue-500" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{ref.referrer || 'Direct'}</p>
+                                {ref.utm_source && (
+                                  <p className="text-xs text-gray-500 truncate max-w-[150px]">
+                                    via {ref.utm_source}
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{ref.referrer || 'Direct'}</p>
-                              {ref.utm_source && (
-                                <p className="text-xs text-gray-500 truncate max-w-[150px]">
-                                  via {ref.utm_source}
-                                </p>
-                              )}
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-gray-900">{ref.count}</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-bold text-gray-900">{ref.count}</p>
+                          <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                              style={{ width: `${percentage}%` }}
+                            />
                           </div>
                         </div>
-                        <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                          <div 
-                            className="bg-blue-500 h-1.5 rounded-full transition-all duration-500" 
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })
+                      );
+                    })
                   })()
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-3 bg-gray-50 rounded-lg border border-dashed border-gray-200">
@@ -731,10 +740,9 @@ export default function CommunityAnalyticsPage() {
         <Card>
           <Tabs defaultValue="overview" className="w-full">
             <CardHeader className="p-4 sm:p-6 pb-0">
-              <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:inline-grid">
+              <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:inline-grid">
                 <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
                 <TabsTrigger value="details" className="text-xs sm:text-sm">Details</TabsTrigger>
-                <TabsTrigger value="trends" className="text-xs sm:text-sm">Trends</TabsTrigger>
               </TabsList>
             </CardHeader>
 
@@ -764,7 +772,7 @@ export default function CommunityAnalyticsPage() {
                         <div className="w-24 text-right text-sm text-gray-600">{item.starts?.toLocaleString() || 0}</div>
                         <div className="w-24 text-right text-sm text-gray-600">{item.completes?.toLocaleString() || 0}</div>
                         <div className="w-20 text-right text-sm font-medium text-gray-900">
-                          {item.completionRate ? `${Math.round(item.completionRate * 100)}%` : '0%'}
+                          {item.completionRate ? `${Math.round(item.completionRate)}%` : '0%'}
                         </div>
                       </div>
                     ))
@@ -802,13 +810,13 @@ export default function CommunityAnalyticsPage() {
                       <div className="p-3 sm:p-4 border rounded-lg">
                         <h4 className="text-sm font-medium mb-2">Completion Rate</h4>
                         <p className="text-xl sm:text-2xl font-bold">
-                          {overview?.challengeCompletionRate || '0'}%
+                          {overview?.challengeCompletionRate || overview?.completionRate || '0'}%
                         </p>
                       </div>
                       <div className="p-3 sm:p-4 border rounded-lg">
                         <h4 className="text-sm font-medium mb-2">Average Submissions</h4>
                         <p className="text-xl sm:text-2xl font-bold">
-                          {overview?.avgSubmissions || overview?.averageSubmissions || '0'}
+                          {overview?.avgSubmissions || (overview?.submissions && topItems.length > 0 ? Math.round(overview.submissions / topItems.length) : 0) || '0'}
                         </p>
                       </div>
                     </>
@@ -849,57 +857,6 @@ export default function CommunityAnalyticsPage() {
                 </div>
               </div>
             </TabsContent>
-
-            <TabsContent value="trends" className="p-4 sm:p-6 pt-4">
-                <div>
-                  <h3 className="text-base sm:text-lg font-semibold mb-4">Performance Trends</h3>
-                  {membershipData.length > 0 || engagementData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <AreaChart data={membershipData.length > 0 ? membershipData : engagementData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey={membershipData.length > 0 ? "month" : "day"}
-                          tick={{ fontSize: 12 }}
-                        />
-                        <YAxis tick={{ fontSize: 12 }} />
-                        <Tooltip />
-                        <Legend wrapperStyle={{ fontSize: '12px' }} />
-                        {membershipData.length > 0 ? (
-                          <>
-                            <Area
-                              type="monotone"
-                              dataKey="totalMembers"
-                              name="Views"
-                              stroke="rgb(99, 102, 241)"
-                              fill="rgba(99, 102, 241, 0.1)"
-                            />
-                            <Area
-                              type="monotone"
-                              dataKey="activeMembers"
-                              name="Completions"
-                              stroke="rgb(34, 197, 94)"
-                              fill="rgba(34, 197, 94, 0.1)"
-                            />
-                          </>
-                        ) : (
-                          <Area
-                            type="monotone"
-                            dataKey="engagement"
-                            name="Engagement"
-                            stroke="rgb(99, 102, 241)"
-                            fill="rgba(99, 102, 241, 0.1)"
-                          />
-                        )}
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-[300px] flex flex-col items-center justify-center text-gray-500 space-y-2 border rounded-lg border-dashed">
-                      <TrendingUp className="w-8 h-8 text-gray-300" />
-                      <p>No trend data available for this period</p>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
           </Tabs>
         </Card>
       </div>
