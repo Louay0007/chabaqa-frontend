@@ -307,7 +307,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
   const [products, setProducts] = useState<any[]>([])
   const [productsPage, setProductsPage] = useState(1)
   const [productsTotalPages, setProductsTotalPages] = useState(1)
-  const [activeTab, setActiveTab] = useState<'courses' | 'challenges' | 'sessions' | 'products' | 'communities'>('courses')
+  const [activeTab, setActiveTab] = useState<'courses' | 'challenges' | 'sessions' | 'products' | 'communities'>('communities')
   const [courses, setCourses] = useState<any[]>([])
   const [coursesLoading, setCoursesLoading] = useState(false)
   const [coursesPage, setCoursesPage] = useState(1)
@@ -620,7 +620,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
               <div className="border border-border-color rounded-xl bg-white shadow-subtle">
                 <div className="pb-3">
                   <div className="flex border-b border-border-color px-6 gap-8">
-                    {(['courses', 'challenges', 'sessions', 'products', 'communities'] as const).map(tab => (
+                    {(['communities', 'courses', 'challenges', 'sessions', 'products'] as const).map(tab => (
                       <button
                         key={tab}
                         className={cn(
