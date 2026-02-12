@@ -24,6 +24,7 @@ import {
   Settings,
   LogOut,
   User as UserIcon,
+  Users,
   Home,
   Search,
   Menu,
@@ -37,7 +38,8 @@ import {
   ShoppingBag,
   Sparkles,
   Star,
-  LayoutDashboard
+  LayoutDashboard,
+  Loader2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { communitiesApi } from "@/lib/api/communities.api"
@@ -45,6 +47,8 @@ import { notificationsApi } from "@/lib/api/notifications.api"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import { authApi } from "@/lib/api/auth.api"
 import type { Community } from "@/lib/api/types"
+import { DMComponent } from "./dm-dropdown"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 
 interface CommunityHeaderProps {
@@ -71,6 +75,7 @@ const navigationItems = [
   { label: "Reviews", href: "/reviews", icon: Star },
   { label: "Progress", href: "/progress", icon: TrendingUp },
   { label: "Achievements", href: "/achievements", icon: Trophy },
+  { label: "Members", href: "/members", icon: Users },
 ]
 
 export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHeaderProps) {
@@ -358,62 +363,56 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
 
           {/* Right Actions */}
           <div className="flex items-center space-x-2">
-            {/* Create Button (Desktop Only) */}
-            <Button size="sm" className="hidden sm:flex rounded-full" onClick={handleCreatePost}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Post
-            </Button>
+            {/* DM Component */}
+            <DMComponent />
 
-            {/* Notifications */}
-            <Sheet>
-              <SheetTrigger asChild>
+            {/* Notifications Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative rounded-full">
                   <Bell className="h-5 w-5" />
                   {unreadCount > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] border-2 border-white rounded-full"
                     >
                       {unreadCount}
                     </Badge>
                   )}
                 </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <SheetHeader>
-                  <SheetTitle>Notifications</SheetTitle>
-                </SheetHeader>
-                <div className="mt-6 space-y-4">
-                  {notificationsLoading ? (
-                    <div className="text-center py-4 text-muted-foreground">Loading...</div>
-                  ) : notifications.length === 0 ? (
-                    <div className="text-center py-4 text-muted-foreground">No notifications</div>
-                  ) : (
-                    notifications.map((notification) => (
-                      <div
-                        key={notification.id}
-                        className={`p-3 rounded-lg border cursor-pointer hover:bg-muted/70 transition-colors ${notification.unread ? "bg-primary-50 border-primary-200" : "bg-muted/50"
-                          }`}
-                        onClick={() => notification.unread && markNotificationAsRead(notification.id)}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h4 className="text-sm font-medium">{notification.title}</h4>
-                            <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
-                            <p className="text-xs text-muted-foreground mt-2">{notification.time}</p>
-                          </div>
-                          {notification.unread && (
-                            <div className="w-2 h-2 bg-primary-500 rounded-full mt-1" />
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[380px] p-0 shadow-xl border border-gray-200 rounded-xl overflow-hidden">
+                <div className="p-4 border-b bg-white">
+                  <h2 className="font-bold text-lg text-gray-900">Notifications</h2>
                 </div>
-              </SheetContent>
-            </Sheet>
-
-            {/* Mobile Menu */}
+                <ScrollArea className="h-[400px]">
+                  {notificationsLoading ? (
+                    <div className="flex items-center justify-center p-10">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : notifications.length > 0 ? (
+                    <div className="divide-y divide-gray-50">
+                      {notifications.map((n) => (
+                        <div 
+                          key={n.id} 
+                          className={cn("p-4 hover:bg-gray-50 transition-colors cursor-pointer", n.unread && "bg-blue-50/30")}
+                          onClick={() => markNotificationAsRead(n.id)}
+                        >
+                          <div className="font-semibold text-sm text-gray-900">{n.title}</div>
+                          <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
+                          <div className="text-[10px] text-gray-400 mt-1">{n.time}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-10 text-center text-muted-foreground">
+                      <Bell className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                      <p className="text-sm">No notifications yet</p>
+                    </div>
+                  )}
+                </ScrollArea>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Mobile Menu */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>

@@ -548,6 +548,67 @@ export interface ProgressionOverview {
   items: ProgressionItem[];
 }
 
+// Messaging types
+export type ConversationType = 'COMMUNITY_DM' | 'HELP_DM' | 'PEER_DM';
+
+export interface MessageAttachment {
+  url: string;
+  type: 'image' | 'file' | 'video';
+  size: number;
+}
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  recipientId: string;
+  text?: string;
+  attachments: MessageAttachment[];
+  readAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  sender?: {
+    id: string;
+    name: string;
+    avatar?: string;
+    role?: string;
+  };
+}
+
+export interface Conversation {
+  id: string;
+  type: ConversationType;
+  participantA: string | User;
+  participantB?: string | User;
+  communityId?: string | Community;
+  lastMessageText: string;
+  lastMessageAt?: string;
+  unreadCountA: number;
+  unreadCountB: number;
+  isOpen: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InboxResponse {
+  conversations: Conversation[];
+  page: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+  limit: number;
+}
+
+export interface MessagesResponse {
+  messages: Message[];
+  conversation: Conversation;
+  page: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+  limit: number;
+}
+
 // Achievement types
 export interface AchievementCriteria {
   type: 'count_completed' | 'count_created' | 'time_spent' | 'streak_days' | 'points_earned' | 'community_join_date';
