@@ -131,79 +131,79 @@ const formatCurrency = (num: number): string => {
 const getStatsForUser = (user: any, isCreator: boolean) => {
   if (isCreator) {
     return [
-      { 
-        label: "Total Posts", 
-        value: user?.stats?.totalPosts?.toString() || "0", 
+      {
+        label: "Total Posts",
+        value: user?.stats?.totalPosts?.toString() || "0",
         icon: MessageSquare,
         description: "Content pieces shared with your community"
       },
-      { 
-        label: "Community Size", 
-        value: formatNumber(user?.stats?.totalMembers || 0), 
+      {
+        label: "Community Size",
+        value: formatNumber(user?.stats?.totalMembers || 0),
         icon: Users,
         description: "Active members across all communities"
       },
-      { 
-        label: "Courses Created", 
-        value: user?.stats?.coursesCreated?.toString() || "0", 
+      {
+        label: "Courses Created",
+        value: user?.stats?.coursesCreated?.toString() || "0",
         icon: GraduationCap,
         description: "Educational courses published"
       },
-      { 
-        label: "Success Rate", 
-        value: `${user?.stats?.successRate || 0}%`, 
+      {
+        label: "Success Rate",
+        value: `${user?.stats?.successRate || 0}%`,
         icon: Trophy,
         description: "Average course completion rate"
       },
-      { 
-        label: "Total Revenue", 
-        value: formatCurrency(user?.stats?.totalRevenue || 0), 
+      {
+        label: "Total Revenue",
+        value: formatCurrency(user?.stats?.totalRevenue || 0),
         icon: Sparkles,
         description: "Earnings from courses and products"
       },
-      { 
-        label: "Course Rating", 
-        value: (user?.stats?.courseRating || 0).toFixed(1), 
+      {
+        label: "Course Rating",
+        value: (user?.stats?.courseRating || 0).toFixed(1),
         icon: Star,
         description: "Average rating from students"
       },
     ]
   }
-  
+
   return [
-    { 
-      label: "Courses Completed", 
-      value: user?.stats?.coursesCompleted?.toString() || "0", 
+    {
+      label: "Courses Completed",
+      value: user?.stats?.coursesCompleted?.toString() || "0",
       icon: GraduationCap,
       description: "Finished learning journeys"
     },
-    { 
-      label: "Active Streak", 
-      value: user?.stats?.activeStreak?.toString() || "0", 
+    {
+      label: "Active Streak",
+      value: user?.stats?.activeStreak?.toString() || "0",
       icon: Flame,
       description: "Days of continuous learning"
     },
-    { 
-      label: "Achievements", 
-      value: user?.stats?.achievements?.toString() || "0", 
+    {
+      label: "Achievements",
+      value: user?.stats?.achievements?.toString() || "0",
       icon: Trophy,
       description: "Badges and certifications earned"
     },
-    { 
-      label: "Communities", 
-      value: user?.stats?.communitiesJoined?.toString() || "0", 
+    {
+      label: "Communities",
+      value: user?.stats?.communitiesJoined?.toString() || "0",
       icon: Users,
       description: "Active community memberships"
     },
-    { 
-      label: "Engagement", 
-      value: `${user?.stats?.engagementRate || 0}%`, 
+    {
+      label: "Engagement",
+      value: `${user?.stats?.engagementRate || 0}%`,
       icon: Target,
       description: "Participation and interaction rate"
     },
-    { 
-      label: "Trust Score", 
-      value: user?.stats?.trustScore?.toString() || "0", 
+    {
+      label: "Trust Score",
+      value: user?.stats?.trustScore?.toString() || "0",
       icon: ShieldCheck,
       description: "Community reputation score"
     },
@@ -213,7 +213,7 @@ const getStatsForUser = (user: any, isCreator: boolean) => {
 // Dynamic activity data (null-safe)
 const getActivityData = (user: any) => {
   const activityData = user?.activityData || []
-  
+
   // If no activity data, return empty data for the last 6 months
   if (activityData.length === 0) {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
@@ -262,7 +262,7 @@ const chartConfig = {
 const getAchievements = (user: any) => {
   // Get user achievements or return empty array
   const userAchievements = user?.achievements || []
-  
+
   // Map achievement types to icons
   const achievementIcons: { [key: string]: any } = {
     'early_adopter': Star,
@@ -284,7 +284,7 @@ const getAchievements = (user: any) => {
     title: achievement.title,
     description: achievement.description,
     icon: achievementIcons[achievement.type] || Star,
-    date: new Date(achievement.dateEarned).toLocaleDateString('default', { 
+    date: new Date(achievement.dateEarned).toLocaleDateString('default', {
       month: 'short',
       year: 'numeric'
     })
@@ -307,7 +307,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
   const [products, setProducts] = useState<any[]>([])
   const [productsPage, setProductsPage] = useState(1)
   const [productsTotalPages, setProductsTotalPages] = useState(1)
-  const [activeTab, setActiveTab] = useState<'courses'|'challenges'|'sessions'|'products'|'communities'>('courses')
+  const [activeTab, setActiveTab] = useState<'courses' | 'challenges' | 'sessions' | 'products' | 'communities'>('courses')
   const [courses, setCourses] = useState<any[]>([])
   const [coursesLoading, setCoursesLoading] = useState(false)
   const [coursesPage, setCoursesPage] = useState(1)
@@ -385,7 +385,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' }
         })
-        
+
         if (listRes.ok) {
           const data = await listRes.json()
           if (data.success && data.data) {
@@ -403,7 +403,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
         setProductsLoading(false)
       }
     }
-    
+
     fetchProducts()
   }, [user, productsPage])
 
@@ -411,13 +411,13 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
   useEffect(() => {
     const fetchCourses = async () => {
       if (!user?._id && !user?.id) return
-      
+
       try {
         setCoursesLoading(true)
         const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
         const coursesUrl = `${apiBase}/cours/by-user/${encodeURIComponent(user._id || user.id)}?page=${coursesPage}&limit=12&type=all`
         const response = await fetch(coursesUrl)
-        
+
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.data) {
@@ -435,7 +435,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
         setCoursesLoading(false)
       }
     }
-    
+
     fetchCourses()
   }, [user, coursesPage])
 
@@ -443,13 +443,13 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
   useEffect(() => {
     const fetchChallenges = async () => {
       if (!user?._id && !user?.id) return
-      
+
       try {
         setChallengesLoading(true)
         const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
         const challengesUrl = `${apiBase}/challenges/by-user/${encodeURIComponent(user._id || user.id)}?page=${challengesPage}&limit=12&type=all`
         const response = await fetch(challengesUrl)
-        
+
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.data) {
@@ -472,7 +472,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
         setChallengesLoading(false)
       }
     }
-    
+
     fetchChallenges()
   }, [user, challengesPage])
 
@@ -480,13 +480,13 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
   useEffect(() => {
     const fetchSessions = async () => {
       if (!user?._id && !user?.id) return
-      
+
       try {
         setSessionsLoading(true)
         const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
         const sessionsUrl = `${apiBase}/sessions/by-user/${encodeURIComponent(user._id || user.id)}?page=${sessionsPage}&limit=12&type=all`
         const response = await fetch(sessionsUrl)
-        
+
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.data) {
@@ -509,7 +509,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
         setSessionsLoading(false)
       }
     }
-    
+
     fetchSessions()
   }, [user, sessionsPage])
 
@@ -517,13 +517,13 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
   useEffect(() => {
     const fetchCommunities = async () => {
       if (!user?._id && !user?.id) return
-      
+
       try {
         setCommunitiesLoading(true)
         const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
         const communitiesUrl = `${apiBase}/communities/by-user/${encodeURIComponent(user._id || user.id)}?page=${communitiesPage}&limit=12&type=all`
         const response = await fetch(communitiesUrl)
-        
+
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.data) {
@@ -546,7 +546,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
         setCommunitiesLoading(false)
       }
     }
-    
+
     fetchCommunities()
   }, [user, communitiesPage])
 
@@ -603,7 +603,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                         <p className="text-text-secondary text-sm">{currentUser?.email}</p>
                       </div>
                       <p className="text-text-secondary text-base flex items-center gap-1.5 mt-1">
-                        <MapPin className="w-4 h-4" /> { [currentUser?.ville, currentUser?.pays].filter(Boolean).join(', ') || '—' }
+                        <MapPin className="w-4 h-4" /> {[currentUser?.ville, currentUser?.pays].filter(Boolean).join(', ') || '—'}
                       </p>
                     </div>
                   </div>
@@ -620,19 +620,19 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
               <div className="border border-border-color rounded-xl bg-white shadow-subtle">
                 <div className="pb-3">
                   <div className="flex border-b border-border-color px-6 gap-8">
-                    {(['courses','challenges','sessions','products','communities'] as const).map(tab => (
+                    {(['courses', 'challenges', 'sessions', 'products', 'communities'] as const).map(tab => (
                       <button
                         key={tab}
                         className={cn(
                           "flex flex-col items-center justify-center pb-[13px] pt-4 text-sm font-bold",
                           activeTab === tab
                             ? (
-                                tab === 'courses' ? "border-b-[3px] border-b-[#47c7ea] text-[#47c7ea]" :
+                              tab === 'courses' ? "border-b-[3px] border-b-[#47c7ea] text-[#47c7ea]" :
                                 tab === 'challenges' ? "border-b-[3px] border-b-[#ff9b28] text-[#ff9b28]" :
-                                tab === 'sessions' ? "border-b-[3px] border-b-[#f65887] text-[#f65887]" :
-                                tab === 'products' ? "border-b-[3px] border-b-[#8e78fb] text-[#8e78fb]" :
+                                  tab === 'sessions' ? "border-b-[3px] border-b-[#f65887] text-[#f65887]" :
+                                    tab === 'products' ? "border-b-[3px] border-b-[#8e78fb] text-[#8e78fb]" :
                                 /* communities */ "border-b-[3px] border-b-[#b07df8] text-[#b07df8]"
-                              )
+                            )
                             : "border-b-[3px] border-b-transparent text-text-tertiary hover:text-text-primary"
                         )}
                         onClick={() => setActiveTab(tab)}
@@ -682,9 +682,9 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                         <div className="h-2 rounded-full" style={{ width: `${course.progress}%`, background: '#47c7ea' }} />
                                       </div>
                                       <p className="text-text-secondary text-sm mt-1">
-                                        {course.status === 'completed' ? 'Completed' : 
-                                         course.status === 'in_progress' ? `${course.progress}% Complete` : 
-                                         'Not Started'}
+                                        {course.status === 'completed' ? 'Completed' :
+                                          course.status === 'in_progress' ? `${course.progress}% Complete` :
+                                            'Not Started'}
                                       </p>
                                     </>
                                   )}
@@ -695,7 +695,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                   )}
                                 </div>
                                 {course.slug && (
-                                  <a 
+                                  <a
                                     href={`/community/${course.slug}/home`}
                                     className="mt-4 pt-4 border-t border-border-color w-full text-center py-2 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-sm font-medium"
                                   >
@@ -706,11 +706,11 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                             </div>
                           ))}
                         </div>
-                        
+
                         {/* Pagination */}
                         {coursesTotalPages > 1 && (
                           <div className="flex justify-center items-center gap-2 mt-6">
-                            <button 
+                            <button
                               onClick={() => setCoursesPage(prev => Math.max(1, prev - 1))}
                               disabled={coursesPage === 1}
                               className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -720,7 +720,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                             <span className="text-sm text-gray-600">
                               Page {coursesPage} of {coursesTotalPages}
                             </span>
-                            <button 
+                            <button
                               onClick={() => setCoursesPage(prev => Math.min(coursesTotalPages, prev + 1))}
                               disabled={coursesPage === coursesTotalPages}
                               className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -800,7 +800,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                   )}
                                 </div>
                                 {challenge.slug && (
-                                  <a 
+                                  <a
                                     href={`/community/${challenge.slug}/challenges`}
                                     className="mt-4 pt-4 border-t border-border-color w-full text-center py-2 rounded-md bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors text-sm font-medium"
                                   >
@@ -811,11 +811,11 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                             </div>
                           ))}
                         </div>
-                        
+
                         {/* Pagination */}
                         {challengesTotalPages > 1 && (
                           <div className="flex justify-center items-center gap-2 mt-6">
-                            <button 
+                            <button
                               onClick={() => setChallengesPage(prev => Math.max(1, prev - 1))}
                               disabled={challengesPage === 1}
                               className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -825,7 +825,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                             <span className="text-sm text-gray-600">
                               Page {challengesPage} of {challengesTotalPages}
                             </span>
-                            <button 
+                            <button
                               onClick={() => setChallengesPage(prev => Math.min(challengesTotalPages, prev + 1))}
                               disabled={challengesPage === challengesTotalPages}
                               className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -878,10 +878,10 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                             const color = statusColors[session.status as keyof typeof statusColors] || '#8e78fb'
                             const startTime = new Date(session.startTime)
                             const isToday = startTime.toDateString() === new Date().toDateString()
-                            const timeStr = isToday ? 
+                            const timeStr = isToday ?
                               `Today ${startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` :
                               startTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-                            
+
                             return (
                               <div key={session.id} className="flex flex-col gap-3 group rounded-lg border border-border-color bg-white shadow-subtle overflow-hidden hover:shadow-md transition-shadow">
                                 <div className="relative w-full bg-center bg-no-repeat aspect-video bg-cover rounded-t-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" style={{ backgroundImage: `url(${session.thumbnail})` }}>
@@ -907,7 +907,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                     )}
                                   </div>
                                   {session.slug && (
-                                    <a 
+                                    <a
                                       href={`/community/${session.slug}/sessions`}
                                       className="mt-4 pt-4 border-t border-border-color w-full text-center py-2 rounded-md bg-pink-50 text-pink-600 hover:bg-pink-100 transition-colors text-sm font-medium"
                                     >
@@ -919,11 +919,11 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                             )
                           })}
                         </div>
-                        
+
                         {/* Pagination */}
                         {sessionsTotalPages > 1 && (
                           <div className="flex justify-center items-center gap-2 mt-6">
-                            <button 
+                            <button
                               onClick={() => setSessionsPage(prev => Math.max(1, prev - 1))}
                               disabled={sessionsPage === 1}
                               className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -933,7 +933,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                             <span className="text-sm text-gray-600">
                               Page {sessionsPage} of {sessionsTotalPages}
                             </span>
-                            <button 
+                            <button
                               onClick={() => setSessionsPage(prev => Math.min(sessionsTotalPages, prev + 1))}
                               disabled={sessionsPage === sessionsTotalPages}
                               className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -997,7 +997,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                 <div>
                                   <p className="text-base font-medium line-clamp-2">{product.title || product.name || 'Untitled product'}</p>
                                   {typeof product.price === 'number' && (
-                                    <p className="text-sm text-text-secondary">{new Intl.NumberFormat('en-US', { style: 'currency', currency: product.currency || 'USD'}).format(product.price)}</p>
+                                    <p className="text-sm text-text-secondary">{new Intl.NumberFormat('en-US', { style: 'currency', currency: product.currency || 'USD' }).format(product.price)}</p>
                                   )}
                                   {product.status && (
                                     <div className="mt-2 flex items-center gap-2">
@@ -1013,7 +1013,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                   )}
                                 </div>
                                 {product.slug && (
-                                  <a 
+                                  <a
                                     href={`/community/${product.slug}/home`}
                                     className="mt-4 pt-4 border-t border-border-color w-full text-center py-2 rounded-md bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors text-sm font-medium"
                                   >
@@ -1024,11 +1024,11 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                             </div>
                           ))}
                         </div>
-                        
+
                         {/* Pagination */}
                         {productsTotalPages > 1 && (
                           <div className="flex justify-center items-center gap-2 mt-6">
-                            <button 
+                            <button
                               onClick={() => setProductsPage(prev => Math.max(1, prev - 1))}
                               disabled={productsPage === 1}
                               className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -1038,7 +1038,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                             <span className="text-sm text-gray-600">
                               Page {productsPage} of {productsTotalPages}
                             </span>
-                            <button 
+                            <button
                               onClick={() => setProductsPage(prev => Math.min(productsTotalPages, prev + 1))}
                               disabled={productsPage === productsTotalPages}
                               className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -1085,12 +1085,12 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                           {communities.map((community) => {
                             const roleColors = {
                               'admin': 'bg-red-100 text-red-800 border-red-200',
-                              'moderator': 'bg-blue-100 text-blue-800 border-blue-200', 
+                              'moderator': 'bg-blue-100 text-blue-800 border-blue-200',
                               'member': 'bg-gray-100 text-gray-800 border-gray-200',
                               'owner': 'bg-purple-100 text-purple-800 border-purple-200'
                             }
                             const roleClass = roleColors[community.role?.toLowerCase() as keyof typeof roleColors] || roleColors.member
-                            
+
                             return (
                               <div key={community.id} className="group rounded-xl border border-border-color overflow-hidden bg-white shadow-subtle hover:shadow-md transition-shadow flex flex-col">
                                 <div className="relative aspect-[16/9] bg-center bg-cover" style={{ backgroundImage: `url(${community.coverImage || community.logo})` }}>
@@ -1113,16 +1113,26 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                       </p>
                                     )}
                                   </div>
-                                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-border-color">
-                                    <span className={`text-xs px-2 py-1 rounded-full border ${roleClass}`}>
-                                      {community.role || 'Member'}
-                                    </span>
-                                    {community.slug && (
-                                      <a 
-                                        href={`/community/${community.slug}/home`}
-                                        className="text-xs px-3 py-1 rounded-md bg-primary hover:bg-primary-dark text-white transition-colors"
+                                  <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-border-color">
+                                    <div className="flex items-center justify-between">
+                                      <span className={`text-xs px-2 py-1 rounded-full border ${roleClass}`}>
+                                        {community.role || 'Member'}
+                                      </span>
+                                      {community.slug && (
+                                        <a
+                                          href={`/community/${community.slug}/home`}
+                                          className="text-xs px-3 py-1 rounded-md bg-primary hover:bg-primary-dark text-white transition-colors"
+                                        >
+                                          Visit
+                                        </a>
+                                      )}
+                                    </div>
+                                    {community.role?.toLowerCase() === 'owner' && (
+                                      <a
+                                        href="/creator/dashboard"
+                                        className="w-full text-center text-xs px-3 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white transition-colors font-medium"
                                       >
-                                        Visit
+                                        Manage Dashboard
                                       </a>
                                     )}
                                   </div>
@@ -1131,11 +1141,11 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                             )
                           })}
                         </div>
-                        
+
                         {/* Pagination */}
                         {communitiesTotalPages > 1 && (
                           <div className="flex justify-center items-center gap-2 mt-6">
-                            <button 
+                            <button
                               onClick={() => setCommunitiesPage(prev => Math.max(1, prev - 1))}
                               disabled={communitiesPage === 1}
                               className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -1145,7 +1155,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                             <span className="text-sm text-gray-600">
                               Page {communitiesPage} of {communitiesTotalPages}
                             </span>
-                            <button 
+                            <button
                               onClick={() => setCommunitiesPage(prev => Math.min(communitiesTotalPages, prev + 1))}
                               disabled={communitiesPage === communitiesTotalPages}
                               className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
