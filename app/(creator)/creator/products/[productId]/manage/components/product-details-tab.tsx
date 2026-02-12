@@ -11,12 +11,12 @@ import { useProductForm } from "./product-form-context"
 import Image from "next/image"
 
 export function ProductDetailsTab() {
-  const { 
-    formData, 
-    handleInputChange, 
-    handleArrayChange, 
-    addArrayItem, 
-    removeArrayItem 
+  const {
+    formData,
+    handleInputChange,
+    handleArrayChange,
+    addArrayItem,
+    removeArrayItem
   } = useProductForm()
 
   return (
@@ -93,7 +93,7 @@ export function ProductDetailsTab() {
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
               <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
               <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
-              <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB (800x800 recommended)</p>
+              <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB (1920x1080 recommended - 16:9)</p>
             </div>
           </CardContent>
         </Card>

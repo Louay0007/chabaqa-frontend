@@ -166,7 +166,7 @@ export function ThumbnailUpload({ value, onChange }: ThumbnailUploadProps) {
                 <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                 <p className="text-sm text-gray-600 mb-2">Click to upload or drag and drop</p>
                 <p className="text-xs text-gray-500">PNG, JPG, JPEG, GIF, WebP up to 2MB</p>
-                <p className="text-xs text-gray-500 mt-1">Recommended: 1280x720px</p>
+                <p className="text-xs text-gray-500 mt-1">Recommended: 1920x1080px (16:9)</p>
               </div>
             )}
           </div>

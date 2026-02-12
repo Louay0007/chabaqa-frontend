@@ -63,7 +63,7 @@ export function BasicInfoStep({ formData, handleInputChange, errors = {} }: Basi
     try {
       const response = await storageApi.uploadImage(file)
       const imageUrl = response.url || (response as any)?.data?.url
-      
+
       if (imageUrl) {
         handleInputChange("image", imageUrl)
         toast({ title: 'Success', description: 'Image uploaded successfully' })
@@ -205,7 +205,7 @@ export function BasicInfoStep({ formData, handleInputChange, errors = {} }: Basi
             }}
             className="hidden"
           />
-          
+
           {formData.image ? (
             <div className="relative group">
               <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-gray-100 border-2 border-gray-300">
@@ -259,7 +259,7 @@ export function BasicInfoStep({ formData, handleInputChange, errors = {} }: Basi
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
-                      <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB (1280x720 recommended)</p>
+                      <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB (1920x1080 recommended - 16:9)</p>
                     </div>
                     <Button
                       type="button"

@@ -187,7 +187,7 @@ export function BasicInfoStep({ formData, setFormData }: BasicInfoStepProps) {
               <div className="p-8">
                 <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                 <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
-                <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB (1280x720 recommended)</p>
+                <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB (1920x1080 recommended - 16:9)</p>
               </div>
             )}
           </div>
