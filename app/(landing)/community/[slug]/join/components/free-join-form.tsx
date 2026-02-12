@@ -30,17 +30,17 @@ export function FreeJoinForm({ community }: FreeJoinFormProps) {
     try {
       const rawLocalToken = typeof window !== 'undefined'
         ? (
-            localStorage.getItem('accessToken') ||
-            localStorage.getItem('token') ||
-            localStorage.getItem('jwt') ||
-            localStorage.getItem('authToken') ||
-            localStorage.getItem('access_token')
-          )
+          localStorage.getItem('accessToken') ||
+          localStorage.getItem('token') ||
+          localStorage.getItem('jwt') ||
+          localStorage.getItem('authToken') ||
+          localStorage.getItem('access_token')
+        )
         : null
       const headerToken = rawLocalToken
         ? (rawLocalToken.toLowerCase().startsWith('bearer ')
-            ? rawLocalToken
-            : `Bearer ${rawLocalToken}`)
+          ? rawLocalToken
+          : `Bearer ${rawLocalToken}`)
         : null
       const response = await fetch('/api/community/join', {
         method: 'POST',
@@ -65,7 +65,7 @@ export function FreeJoinForm({ community }: FreeJoinFormProps) {
       // Redirect to community home after 2 seconds and mark as joined
       setTimeout(() => {
         router.push(`/community/${community.slug}/home?joined=1`)
-      }, 2000)
+      }, 1000)
 
     } catch (err: any) {
       console.error('Join error:', err)
@@ -88,7 +88,7 @@ export function FreeJoinForm({ community }: FreeJoinFormProps) {
         {/* Left Column - Community Info */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           {/* Back Button */}
-          <Link 
+          <Link
             href={`/community/${community.slug}/home`}
             className="inline-flex items-center text-sm text-gray-600 hover:text-chabaqa-primary transition-colors w-fit"
           >
@@ -229,8 +229,8 @@ export function FreeJoinForm({ community }: FreeJoinFormProps) {
                   <span>Join for Free</span>
                 )}
               </Button>
-              
-              <Link href={`/community/${community.slug}/home`}>
+
+              <Link href={`/community/${community.slug}`}>
                 <Button
                   variant="secondary"
                   className="w-full bg-gray-200 text-gray-900 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors"
