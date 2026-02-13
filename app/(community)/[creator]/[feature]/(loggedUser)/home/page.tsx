@@ -575,42 +575,32 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                 </Card>
               )}
 
-              {/* Quick Actions */}
+              {/* Community Info */}
               <Card className="border-0 shadow-sm">
                 <CardHeader className="pb-2 sm:pb-3">
-                  <CardTitle className="text-base sm:text-lg">Quick Actions</CardTitle>
+                  <CardTitle className="text-base sm:text-lg">About Community</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 sm:space-y-3 p-4 sm:p-6">
-                  <Button variant="outline" className="w-full justify-start bg-transparent text-xs sm:text-sm" asChild>
-                    <Link href={`${basePath}/courses`}>
-                      <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-2 sm:mr-3" />
-                      Browse Courses
-                    </Link>
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start bg-transparent text-xs sm:text-sm" asChild>
-                    <Link href={`${basePath}/sessions`}>
-                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2 sm:mr-3" />
-                      Book 1-on-1 Session
-                    </Link>
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start bg-transparent text-xs sm:text-sm" asChild>
-                    <Link href={`${basePath}/reviews`}>
-                      <Star className="h-3 w-3 sm:h-4 sm:w-4 mr-2 sm:mr-3" />
-                      Community Reviews
-                    </Link>
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start bg-transparent text-xs sm:text-sm" asChild>
-                    <Link href={`${basePath}/progress`}>
-                      <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-2 sm:mr-3" />
-                      View Progress
-                    </Link>
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start bg-transparent text-xs sm:text-sm" asChild>
-                    <Link href={`${basePath}/achievements`}>
-                      <Trophy className="h-3 w-3 sm:h-4 sm:w-4 mr-2 sm:mr-3" />
-                      Achievements
-                    </Link>
-                  </Button>
+                <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
+                  {/* Creator Info */}
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
+                      <AvatarImage src={community.creator.avatar || "/placeholder.svg"} />
+                      <AvatarFallback>
+                        {community.creator.name.split(" ").map((n) => n[0]).join("").toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm sm:text-base truncate">{community.creator.name}</h4>
+                      <p className="text-xs text-muted-foreground">Community Creator</p>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
+                      {community.description}
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
 
