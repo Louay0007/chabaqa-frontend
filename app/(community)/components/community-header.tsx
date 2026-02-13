@@ -298,12 +298,12 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
                         <Link
                           href={`/${creatorSlug}/${comm.slug}/home`}
                           className={cn(
-                            "flex items-center space-x-3 px-2 py-2",
+                            "flex items-center space-x-3 cursor-pointer",
                             comm.slug === currentCommunity && "bg-accent"
                           )}
                         >
                           <div
-                            className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-semibold"
+                            className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
                             style={{ backgroundColor: (comm as any).settings?.primaryColor || '#3b82f6' }}
                           >
                             {comm.name.charAt(0)}
@@ -327,14 +327,14 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/explore" className="flex items-center space-x-2 px-2 py-2">
-                      <Search className="h-4 w-4" />
+                    <Link href="/explore" className="cursor-pointer">
+                      <Search className="mr-2 h-4 w-4" />
                       <span>Explore Communities</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/create-community" className="flex items-center space-x-2 px-2 py-2">
-                      <Plus className="h-4 w-4" />
+                    <Link href="/create-community" className="cursor-pointer">
+                      <Plus className="mr-2 h-4 w-4" />
                       <span>Create Community</span>
                     </Link>
                   </DropdownMenuItem>
