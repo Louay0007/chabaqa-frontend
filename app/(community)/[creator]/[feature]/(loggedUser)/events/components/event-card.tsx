@@ -49,12 +49,12 @@ export default function EventCard({
   return (
     <Card key={event.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="pb-3 sm:pb-6">
-        {/* Event Image - Responsive */}
-        <div className="relative overflow-hidden rounded-lg mb-3 sm:mb-4">
+        {/* Event Image - Responsive 16:9 */}
+        <div className="relative w-full aspect-video overflow-hidden rounded-lg mb-3 sm:mb-4">
           <img
             src={event.image}
             alt={event.title}
-            className="w-full h-32 sm:h-40 lg:h-48 object-cover transition-transform hover:scale-105"
+            className="w-full h-full object-cover transition-transform hover:scale-105"
           />
           <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
             <Badge variant="secondary" className="text-xs px-2 py-1 bg-white/90 backdrop-blur-sm">

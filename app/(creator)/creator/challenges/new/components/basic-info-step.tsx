@@ -179,10 +179,12 @@ export function BasicInfoStep({ formData, setFormData }: BasicInfoStepProps) {
             onClick={onPick}
             onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
             onDrop={onDrop}
-            className="border-2 border-dashed border-gray-300 rounded-lg p-0 overflow-hidden text-center hover:border-challenges-500 transition-colors cursor-pointer"
+            className="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden text-center hover:border-challenges-500 transition-colors cursor-pointer"
           >
             {formData.thumbnail ? (
-              <img src={formData.thumbnail} alt="Challenge thumbnail" className="w-full h-52 object-cover" />
+              <div className="relative w-full aspect-video">
+                <img src={formData.thumbnail} alt="Challenge thumbnail" className="w-full h-full object-cover" />
+              </div>
             ) : (
               <div className="p-8">
                 <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />

@@ -177,13 +177,13 @@ export default function CommunitiesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCommunities.map((community) => (
             <EnhancedCard key={community.id} hover className="overflow-hidden">
-              <div className="relative">
+              <div className="relative w-full aspect-video overflow-hidden">
                 <Image
                   src={community.coverImage || "/placeholder.svg"}
                   alt={community.name}
-                  width={400}
-                  height={200}
-                  className="w-full h-48 object-cover"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
                 <div className="absolute bottom-3 right-3">
                   <div className="flex gap-2">

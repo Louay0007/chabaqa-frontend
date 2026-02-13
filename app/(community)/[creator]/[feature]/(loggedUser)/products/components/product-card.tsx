@@ -40,16 +40,15 @@ export default function ProductCard({
       onClick={onSelect}
     >
       <div className="flex flex-col md:flex-row">
-        <div className="relative md:w-64">
-          <div className="w-full h-full bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-            <Image
-              src={(productDetails.images && productDetails.images[0]) || "/placeholder.svg?height=200&width=256&query=digital-product"}
-              alt={productDetails.title}
-              width={256}
-              height={200}
-              className="w-full h-48 md:h-full object-contain p-4 rounded-t-lg md:rounded-l-lg md:rounded-t-none"
-            />
-          </div>
+        <div className="relative w-full md:w-80 aspect-video">
+          <Image
+            src={(productDetails.images && productDetails.images[0]) || "/placeholder.svg?height=1080&width=1920&query=digital-product"}
+            alt={productDetails.title}
+            fill
+            className="object-cover rounded-t-lg md:rounded-l-lg md:rounded-t-none"
+            sizes="(max-width: 768px) 100vw, 320px"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
           <div className="absolute top-3 right-3">
             {isPurchased ? (
               <Badge className="bg-green-500 text-white">

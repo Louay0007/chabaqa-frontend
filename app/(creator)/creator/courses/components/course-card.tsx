@@ -60,13 +60,13 @@ export function CourseCard({ course }: CourseCardProps) {
 
   return (
     <EnhancedCard key={resolvedCourse.id} hover className="overflow-hidden">
-      <div className="relative">
+      <div className="relative w-full aspect-video overflow-hidden">
         <Image
-          src={resolvedCourse.thumbnail || "/placeholder.svg?height=200&width=400&query=course+thumbnail"}
+          src={resolvedCourse.thumbnail || "/placeholder.svg?height=1080&width=1920&query=course+thumbnail"}
           alt={resolvedCourse.title || 'Course thumbnail'}
-          width={400}
-          height={200}
-          className="w-full h-48 object-cover"
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
         <div className="absolute top-3 left-3">
           <StatusBadge status={resolvedCourse.isPublished ? "published" : "draft"} />

@@ -97,9 +97,11 @@ export function BasicInfoStep() {
           <Label>Product Thumbnail</Label>
           <input ref={inputRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={(e) => onFiles(e.target.files)} />
           {formData.thumbnail ? (
-            <div className="relative border rounded-lg p-3">
-              <img src={formData.thumbnail} alt="Thumbnail" className="max-h-48 rounded object-contain mx-auto" />
-              <div className="flex gap-2 mt-3">
+            <div className="relative border rounded-lg overflow-hidden">
+              <div className="relative w-full aspect-video">
+                <img src={formData.thumbnail} alt="Thumbnail" className="w-full h-full object-cover" />
+              </div>
+              <div className="flex gap-2 p-3">
                 <Button type="button" variant="outline" size="sm" onClick={onPick} disabled={uploading}>
                   <Upload className="h-4 w-4 mr-1" /> Replace
                 </Button>

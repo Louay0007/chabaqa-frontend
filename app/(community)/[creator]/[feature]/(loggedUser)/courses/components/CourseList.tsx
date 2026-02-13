@@ -76,17 +76,17 @@ return (
     onClick={() => setSelectedCourse(course.id)}
   >
     <div className="flex flex-col md:flex-row">
-      {/* Thumbnail */}
-      <div className="relative w-full md:w-80">
+      {/* Thumbnail - 16:9 aspect ratio */}
+      <div className="relative w-full md:w-80 aspect-video">
         <Image
           src={
             course.thumbnail ||
-            "/placeholder.svg?height=200&width=320&query=course+thumbnail"
+            "/placeholder.svg?height=1080&width=1920&query=course+thumbnail"
           }
           alt={course.title}
-          width={320}
-          height={200}
-          className="w-full h-48 md:h-full object-cover rounded-t-lg md:rounded-l-lg md:rounded-t-none"
+          fill
+          className="object-cover rounded-t-lg md:rounded-l-lg md:rounded-t-none"
+          sizes="(max-width: 768px) 100vw, 320px"
         />
 
         {/* Badges */}

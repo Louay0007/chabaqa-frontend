@@ -32,13 +32,13 @@ export function ProductCard({ product }: { product: any }) {
 
   return (
     <EnhancedCard key={product.id} hover className="overflow-hidden">
-      <div className="relative">
+      <div className="relative w-full aspect-video overflow-hidden">
         <Image
-          src={product.images[0] || "/placeholder.svg?height=200&width=400&query=product"}
+          src={product.images[0] || "/placeholder.svg?height=1080&width=1920&query=product"}
           alt={product.title}
-          width={400}
-          height={200}
-          className="w-full h-48 object-cover"
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
         <div className="absolute top-3 left-3">
           <StatusBadge status={product.isPublished ? "published" : "draft"} />
