@@ -578,8 +578,8 @@ export default function CoursePlayer({
           currentChapterProgress={displayChapterPercent}
         />
         
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-3 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-4">
             {isCourseCompleted ? (
               <div className="rounded-lg border bg-white p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

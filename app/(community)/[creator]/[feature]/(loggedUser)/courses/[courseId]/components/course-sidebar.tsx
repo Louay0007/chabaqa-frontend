@@ -171,18 +171,7 @@ export default function CourseSidebar({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex gap-2 justify-center pb-2">
-        <Button variant="outline" size="sm" onClick={() => handleSocialAction('like')}>
-          <ThumbsUp className="h-4 w-4 mr-1" /> Like
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => handleSocialAction('bookmark')}>
-          <Bookmark className="h-4 w-4 mr-1" /> Save
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => handleSocialAction('share')}>
-          <Share2 className="h-4 w-4 mr-1" /> Share
-        </Button>
-      </div>
+    <div className="space-y-4">
 
       <Tabs value={activeTab} onValueChange={(v) => {
         setActiveTab(v)
@@ -190,15 +179,15 @@ export default function CourseSidebar({
       }}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="content">Content</TabsTrigger>
-          <TabsTrigger value="notes">My Notes</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="content" className="space-y-6 mt-4">
+        <TabsContent value="content" className="space-y-4 mt-4">
           <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">Chapter Progress</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Current Progress</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               {/* Current chapter inline progress (allChapters is flat list of chapters from CoursePlayer) */}
               {(() => {
                 const currentId = selectedChapter || (allChapters?.[0]?.id ?? null)
@@ -262,57 +251,65 @@ export default function CourseSidebar({
                 const canGoNext = effectiveIsCompleted && nextChapter;
 
                 return (
-                  <div className="text-sm text-muted-foreground text-center">
-                    <div className="mb-1">
-                      <div className="flex justify-between items-center mb-1 text-xs">
-                        <span>Progress</span>
-                        <span className="font-medium">{Math.round(currentPct)}%</span>
+                  <>
+                    <div>
+                      {currentChapter?.title && (
+                        <p className="text-xs font-medium text-foreground mb-2 line-clamp-2">
+                          {currentChapter.title}
+                        </p>
+                      )}
+                      <div className="flex justify-between items-center mb-1.5 text-xs">
+                        <span className="text-muted-foreground">Chapter Progress</span>
+                        <span className="font-semibold text-foreground">{Math.round(currentPct)}%</span>
                       </div>
-                      <Progress value={currentPct} className="h-1.5 mb-2" />
-                      {currentChapter?.title ? (
-                         <span className="block truncate text-xs font-medium text-gray-700">{currentChapter.title}</span>
-                      ) : ''}
+                      <Progress value={currentPct} className="h-2" />
                     </div>
-                    <div className="text-xs mt-2 pt-2 border-t border-dashed">
-                      {adjustedCompletedCount} completed • {adjustedRemainingCount} remaining
+                    
+                    <div className="flex items-center justify-between text-xs pt-2 border-t">
+                      <div className="flex items-center gap-1">
+                        <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                        <span className="text-muted-foreground">{adjustedCompletedCount} completed</span>
+                      </div>
+                      <div className="text-muted-foreground">
+                        {adjustedRemainingCount} remaining
+                      </div>
                     </div>
 
                     {/* NEXT CHAPTER BUTTON */}
                     {nextChapter && (
-                      <div className="mt-4">
-                        <Button 
-                          className="w-full gap-2" 
-                          disabled={!effectiveIsCompleted || purchasing}
-                          variant={effectiveIsCompleted ? "default" : "secondary"}
-                          onClick={() => handleNextChapter(nextChapter)}
-                        >
-                          {purchasing ? (
-                            "Processing..."
-                          ) : !effectiveIsCompleted ? (
-                            <>
-                              <Lock className="h-4 w-4" />
-                              Complete to Unlock Next
-                            </>
-                          ) : nextChapter.isPaidChapter && !isChapterAccessible(nextChapter.id) && !nextChapter.isPreview ? (
-                            <>
-                              <ShoppingCart className="h-4 w-4" />
-                              Buy Next Chapter
-                            </>
-                          ) : (
-                            <>
-                              Next Chapter
-                              <ArrowRight className="h-4 w-4" />
-                            </>
-                          )}
-                        </Button>
-                        {effectiveIsCompleted && nextChapter.isPaidChapter && !isChapterAccessible(nextChapter.id) && !nextChapter.isPreview && (
-                           <p className="text-xs text-muted-foreground mt-1">
-                             Premium content - Purchase required
-                           </p>
+                      <Button 
+                        className="w-full gap-2 mt-2" 
+                        size="sm"
+                        disabled={!effectiveIsCompleted || purchasing}
+                        variant={effectiveIsCompleted ? "default" : "secondary"}
+                        onClick={() => handleNextChapter(nextChapter)}
+                      >
+                        {purchasing ? (
+                          "Processing..."
+                        ) : !effectiveIsCompleted ? (
+                          <>
+                            <Lock className="h-3.5 w-3.5" />
+                            Complete to Unlock
+                          </>
+                        ) : nextChapter.isPaidChapter && !isChapterAccessible(nextChapter.id) && !nextChapter.isPreview ? (
+                          <>
+                            <ShoppingCart className="h-3.5 w-3.5" />
+                            Buy Next Chapter
+                          </>
+                        ) : (
+                          <>
+                            Next Chapter
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </>
                         )}
-                      </div>
+                      </Button>
                     )}
-                  </div>
+                    {nextChapter && effectiveIsCompleted && nextChapter.isPaidChapter && !isChapterAccessible(nextChapter.id) && !nextChapter.isPreview && (
+                      <p className="text-xs text-muted-foreground text-center mt-1">
+                        Premium content
+                      </p>
+                    )}
+                  </>
                 )
               })()}
             </CardContent>
@@ -320,53 +317,121 @@ export default function CourseSidebar({
 
 
           <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">Course Content</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Course Content</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                {allChapters.length} chapters • {course.sections.length} sections
+              </p>
             </CardHeader>
-            <CardContent className="space-y-4 max-h-96 overflow-y-auto">
-              {course.sections.map((section: any) => (
-                <div key={section.id} className="space-y-2">
-                  <h4 className="font-medium text-sm">{section.title}</h4>
-                  <div className="space-y-1 ml-2">
-                    {section.chapters.map((chapter: any) => {
-                      const isCompleted = enrollment?.progress.find((p: any) => p.chapterId === chapter.id)?.isCompleted
-                      const isActive = selectedChapter === chapter.id
-                      const accessible = isChapterAccessible(chapter.id)
+            <CardContent className="p-0">
+              <ScrollArea className="h-[500px]">
+                <div className="space-y-1 px-4 pb-4">
+                  {course.sections.map((section: any, sectionIndex: number) => (
+                    <div key={section.id} className="space-y-1">
+                      <div className="flex items-center gap-2 py-2 px-2 bg-muted/30 rounded-md mt-2">
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          Section {sectionIndex + 1}
+                        </span>
+                        <h4 className="font-medium text-sm flex-1">{section.title}</h4>
+                        <span className="text-xs text-muted-foreground">
+                          {section.chapters.length} chapters
+                        </span>
+                      </div>
+                      <div className="space-y-0.5">
+                        {section.chapters.map((chapter: any, chapterIndex: number) => {
+                          const chapterProgress = enrollment?.progress?.find((p: any) => String(p.chapterId) === String(chapter.id))
+                          const isCompleted = chapterProgress?.isCompleted
+                          const isActive = String(selectedChapter) === String(chapter.id)
+                          const accessible = isChapterAccessible(String(chapter.id))
+                          
+                          // Calculate chapter progress percentage
+                          const watchTime = Number(chapterProgress?.watchTime ?? 0)
+                          const duration = Number(chapterProgress?.videoDuration ?? chapter.duration ?? 0)
+                          const progressPct = isCompleted ? 100 : (duration > 0 ? Math.min((watchTime / duration) * 100, 100) : 0)
 
-                      return (
-                        <button
-                          key={chapter.id}
-                          onClick={() => {
-                            if (!accessible) return
-                            void setSelectedChapter(chapter.id)
-                          }}
-                          className={`w-full flex items-center space-x-2 p-2 rounded text-left text-sm transition-colors ${
-                            isActive
-                              ? "bg-courses-100 text-courses-700"
-                              : accessible
-                                ? "hover:bg-gray-50"
-                                : "cursor-not-allowed opacity-70"
-                          }`}
-                        >
-                          {isCompleted ? (
-                            <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-                          ) : accessible ? (
-                            <PlayCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          ) : (
-                            <Lock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          )}
-                          <span className="flex-1 truncate">{chapter.title}</span>
-                          {chapter.duration && (
-                            <span className="text-xs text-muted-foreground">
-                              {Math.floor(chapter.duration / 60)}m
-                            </span>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
+                          return (
+                            <button
+                              key={chapter.id}
+                              onClick={() => {
+                                if (!accessible) return
+                                void setSelectedChapter(String(chapter.id))
+                              }}
+                              className={`w-full flex flex-col p-2.5 rounded-md text-left transition-all ${
+                                isActive
+                                  ? "bg-primary/10 border border-primary/20 shadow-sm"
+                                  : accessible
+                                    ? "hover:bg-muted/50 border border-transparent"
+                                    : "cursor-not-allowed opacity-60 border border-transparent"
+                              }`}
+                            >
+                              <div className="flex items-start gap-2.5 w-full">
+                                <div className="flex-shrink-0 mt-0.5">
+                                  {isCompleted ? (
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                  ) : accessible ? (
+                                    <PlayCircle className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                                  ) : (
+                                    <Lock className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                </div>
+                                
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-2 mb-1">
+                                    <div className="flex-1 min-w-0">
+                                      <span className={`text-xs font-medium block ${isActive ? 'text-primary' : 'text-foreground'}`}>
+                                        {chapterIndex + 1}. {chapter.title}
+                                      </span>
+                                      {chapter.description && (
+                                        <span className="text-xs text-muted-foreground line-clamp-2 mt-0.5 block">
+                                          {chapter.description}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {chapter.duration && (
+                                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                        {Math.floor(chapter.duration / 60)}:{String(chapter.duration % 60).padStart(2, '0')}
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Progress bar for in-progress chapters */}
+                                  {!isCompleted && progressPct > 0 && (
+                                    <div className="mt-1.5">
+                                      <Progress value={progressPct} className="h-1" />
+                                      <span className="text-xs text-muted-foreground mt-0.5 block">
+                                        {Math.round(progressPct)}% complete
+                                      </span>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Chapter badges */}
+                                  <div className="flex items-center gap-1.5 mt-1.5">
+                                    {chapter.isPreview && (
+                                      <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">
+                                        Preview
+                                      </span>
+                                    )}
+                                    {chapter.isPaidChapter && !accessible && (
+                                      <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">
+                                        Premium
+                                      </span>
+                                    )}
+                                    {isCompleted && (
+                                      <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 rounded">
+                                        Completed
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>
@@ -436,32 +501,31 @@ export default function CourseSidebar({
       </Tabs>
 
       <Card className="border-0 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg">Instructor</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Instructor</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <div className="flex items-center space-x-3">
-            <Avatar className="h-12 w-12">
+            <Avatar className="h-10 w-10">
               <AvatarImage src={course.creator.avatar || "/placeholder.svg"} />
-              <AvatarFallback>
+              <AvatarFallback className="text-xs">
                 {course.creator.name
                   .split(" ")
                   .map((n: string) => n[0])
                   .join("")}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <p className="font-medium">{course.creator.name}</p>
-              <p className="text-sm text-muted-foreground">Web Development Expert</p>
-              <div className="flex items-center mt-1">
-                <Star className="h-3 w-3 text-yellow-500 mr-1" />
-                <span className="text-xs">4.9 instructor rating</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm truncate">{course.creator.name}</p>
+              <div className="flex items-center mt-0.5">
+                <Star className="h-3 w-3 text-yellow-500 mr-1 flex-shrink-0" />
+                <span className="text-xs text-muted-foreground">4.9 rating</span>
               </div>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="w-full mt-4 bg-transparent">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Message Instructor
+          <Button variant="outline" size="sm" className="w-full">
+            <MessageSquare className="h-3.5 w-3.5 mr-2" />
+            Message
           </Button>
         </CardContent>
       </Card>
