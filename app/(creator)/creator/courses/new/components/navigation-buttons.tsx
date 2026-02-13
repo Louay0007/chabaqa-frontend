@@ -11,6 +11,8 @@ interface NavigationButtonsProps {
     isPublished: boolean
   }
   isSubmitting?: boolean
+  handleNextStep?: () => void
+  handlePrevStep?: () => void
 }
 
 export function NavigationButtons({
@@ -20,12 +22,18 @@ export function NavigationButtons({
   handleSubmit,
   formData,
   isSubmitting = false,
+  handleNextStep,
+  handlePrevStep,
 }: NavigationButtonsProps) {
   return (
     <div className="flex items-center justify-between">
       <Button
         variant="outline"
-        onClick={() => !isSubmitting && setCurrentStep(Math.max(1, currentStep - 1))}
+        onClick={() => {
+          if (isSubmitting) return
+          if (handlePrevStep) handlePrevStep()
+          else setCurrentStep(Math.max(1, currentStep - 1))
+        }}
         disabled={currentStep === 1 || isSubmitting}
       >
         Previous
@@ -34,7 +42,11 @@ export function NavigationButtons({
       <div className="flex items-center space-x-2">
         {currentStep < stepsLength ? (
           <Button
-            onClick={() => !isSubmitting && setCurrentStep(Math.min(stepsLength, currentStep + 1))}
+            onClick={() => {
+              if (isSubmitting) return
+              if (handleNextStep) handleNextStep()
+              else setCurrentStep(Math.min(stepsLength, currentStep + 1))
+            }}
             className="bg-courses-500 hover:bg-courses-600"
             disabled={isSubmitting}
           >

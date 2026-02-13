@@ -275,10 +275,10 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
                 <span className="text-xs text-gray-600">Password strength:</span>
                 <span className="text-xs font-semibold text-gray-700">{getPasswordStrengthLabel(passwordStrength.score)}</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                 <div
                   className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrengthColor(passwordStrength.score)}`}
-                  style={{ width: `${(passwordStrength.score / 6) * 100}%` }}
+                  style={{ width: `${Math.min(100, (passwordStrength.score / 6) * 100)}%` }}
                 />
               </div>
               {passwordStrength.feedback.length > 0 && (
@@ -348,6 +348,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
           <input
             type="checkbox"
             id="agreeToTerms"
+            aria-label="Agree to terms and conditions"
             checked={agreeToTerms}
             onChange={(e) => {
               setAgreeToTerms(e.target.checked)

@@ -59,8 +59,16 @@ export const authApi = {
       const response = await apiClient.post<ApiSuccessResponse<AuthResponse>>('/auth/register', data);
       return response;
     } catch (error: any) {
-      if (error.statusCode === 409 || error.message?.includes('already exists')) {
-        throw new AuthApiError(409, 'Email already in use', error.data);
+      const errorMessage = typeof error.message === 'string' ? error.message : '';
+      if (error.statusCode === 409 || errorMessage.includes('already exists')) {
+        throw new AuthApiError(409, 'This email is already registered. Please use another email or sign in.', error.data);
+      }
+      // Handle other common errors
+      if (error.statusCode === 400) {
+        throw new AuthApiError(400, 'Invalid registration data. Please check your information.', error.data);
+      }
+      if (error.statusCode === 500) {
+        throw new AuthApiError(500, 'Server error. Please try again later.', error.data);
       }
       throw error;
     }

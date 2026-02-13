@@ -21,6 +21,7 @@ interface BasicInfoStepProps {
     duration: string
   }
   setFormData: (data: any) => void
+  validationErrors?: Record<string, boolean>
 }
 
 const categories = [
@@ -37,7 +38,7 @@ const categories = [
 const difficulties = ["Beginner", "Intermediate", "Advanced", "All Levels"]
 const durations = ["7 days", "14 days", "21 days", "30 days", "60 days", "90 days"]
 
-export function BasicInfoStep({ formData, setFormData }: BasicInfoStepProps) {
+export function BasicInfoStep({ formData, setFormData, validationErrors = {} }: BasicInfoStepProps) {
   const { toast } = useToast()
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -93,7 +94,11 @@ export function BasicInfoStep({ formData, setFormData }: BasicInfoStepProps) {
             placeholder="e.g., 30-Day Coding Challenge"
             value={formData.title}
             onChange={(e) => handleInputChange("title", e.target.value)}
+            className={validationErrors.title ? "border-red-500 focus-visible:ring-red-500" : ""}
           />
+          {validationErrors.title && (
+            <p className="text-sm text-red-500">Title must be at least 3 characters</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -104,7 +109,11 @@ export function BasicInfoStep({ formData, setFormData }: BasicInfoStepProps) {
             rows={4}
             value={formData.description}
             onChange={(e) => handleInputChange("description", e.target.value)}
+            className={validationErrors.description ? "border-red-500 focus-visible:ring-red-500" : ""}
           />
+          {validationErrors.description && (
+            <p className="text-sm text-red-500">Description must be at least 10 characters</p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -114,7 +123,7 @@ export function BasicInfoStep({ formData, setFormData }: BasicInfoStepProps) {
               value={formData.category}
               onValueChange={(value) => handleInputChange("category", value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className={validationErrors.category ? "border-red-500" : ""}>
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
@@ -125,6 +134,9 @@ export function BasicInfoStep({ formData, setFormData }: BasicInfoStepProps) {
                 ))}
               </SelectContent>
             </Select>
+            {validationErrors.category && (
+              <p className="text-sm text-red-500">Please select a category</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -133,7 +145,7 @@ export function BasicInfoStep({ formData, setFormData }: BasicInfoStepProps) {
               value={formData.difficulty}
               onValueChange={(value) => handleInputChange("difficulty", value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className={validationErrors.difficulty ? "border-red-500" : ""}>
                 <SelectValue placeholder="Select difficulty level" />
               </SelectTrigger>
               <SelectContent>
@@ -144,6 +156,9 @@ export function BasicInfoStep({ formData, setFormData }: BasicInfoStepProps) {
                 ))}
               </SelectContent>
             </Select>
+            {validationErrors.difficulty && (
+              <p className="text-sm text-red-500">Please select a difficulty level</p>
+            )}
           </div>
         </div>
 
@@ -153,7 +168,7 @@ export function BasicInfoStep({ formData, setFormData }: BasicInfoStepProps) {
             value={formData.duration}
             onValueChange={(value) => handleInputChange("duration", value)}
           >
-            <SelectTrigger>
+            <SelectTrigger className={validationErrors.duration ? "border-red-500" : ""}>
               <SelectValue placeholder="Select duration" />
             </SelectTrigger>
             <SelectContent>
@@ -164,6 +179,9 @@ export function BasicInfoStep({ formData, setFormData }: BasicInfoStepProps) {
               ))}
             </SelectContent>
           </Select>
+          {validationErrors.duration && (
+            <p className="text-sm text-red-500">Please select a duration</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -174,6 +192,7 @@ export function BasicInfoStep({ formData, setFormData }: BasicInfoStepProps) {
             accept="image/*"
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
+            aria-label="Upload challenge thumbnail"
           />
           <div
             onClick={onPick}

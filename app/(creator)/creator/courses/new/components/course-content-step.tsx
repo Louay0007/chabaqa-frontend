@@ -40,6 +40,7 @@ interface CourseContentStepProps {
   addChapter: (sectionId: string) => void
   updateChapter: (sectionId: string, chapterId: string, field: string, value: any) => void
   removeChapter: (sectionId: string, chapterId: string) => void
+  validationErrors?: Record<string, boolean>
 }
 
 export function CourseContentStep({
@@ -50,8 +51,10 @@ export function CourseContentStep({
   addChapter,
   updateChapter,
   removeChapter,
+  validationErrors = {},
 }: CourseContentStepProps) {
   const totalChapters = formData.sections.reduce((acc, section) => acc + section.chapters.length, 0)
+  const hasValidationError = validationErrors?.courseContent || false
 
   const [uploadingChapterIds, setUploadingChapterIds] = useState<Record<string, boolean>>({})
 
@@ -79,7 +82,7 @@ export function CourseContentStep({
   }
 
   return (
-    <EnhancedCard>
+    <EnhancedCard className={hasValidationError ? "border-2 border-red-500" : ""}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center">
@@ -100,11 +103,34 @@ export function CourseContentStep({
       </CardHeader>
       <CardContent className="space-y-6">
         {formData.sections.length === 0 ? (
-          <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-            <BookOpen className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No sections added yet</h3>
-            <p className="text-muted-foreground mb-6">Start building your course by adding your first section</p>
-            <Button onClick={addSection}>
+          <div className={`text-center py-12 border-2 border-dashed rounded-lg ${
+            hasValidationError 
+              ? "border-red-300 bg-red-50" 
+              : "border-gray-300 bg-gray-50"
+          }`}>
+            <BookOpen className={`h-16 w-16 mx-auto mb-4 ${
+              hasValidationError ? "text-red-400" : "text-gray-400"
+            }`} />
+            <h3 className={`text-lg font-semibold mb-2 ${
+              hasValidationError ? "text-red-700" : "text-gray-700"
+            }`}>
+              No sections added yet
+            </h3>
+            <p className={`mb-2 ${
+              hasValidationError ? "text-red-600" : "text-muted-foreground"
+            }`}>
+              Start building your course by adding your first section
+            </p>
+            {hasValidationError && (
+              <p className="text-sm text-red-500 mb-6">At least one section with one chapter is required</p>
+            )}
+            <Button 
+              onClick={addSection}
+              className={hasValidationError 
+                ? "bg-red-500 hover:bg-red-600" 
+                : ""
+              }
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add First Section
             </Button>

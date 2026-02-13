@@ -33,6 +33,7 @@ import {
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { getProfile } from "@/lib/auth"
 import { Header } from "@/components/header"
@@ -738,9 +739,11 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                           {isOwnProfile ? "You haven't enrolled in or created any courses yet." : "This user hasn't enrolled in or created any courses yet."}
                         </p>
                         {isOwnProfile && (
-                          <button className="text-white px-4 py-2 rounded-lg" style={{ background: '#47c7ea' }}>
-                            Explore Courses
-                          </button>
+                          <Link href="/explore">
+                            <button className="text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity" style={{ background: '#47c7ea' }}>
+                              Explore Courses
+                            </button>
+                          </Link>
                         )}
                       </div>
                     )}
@@ -843,9 +846,11 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                           {isOwnProfile ? "You haven't participated in or created any challenges yet." : "This user hasn't participated in or created any challenges yet."}
                         </p>
                         {isOwnProfile && (
-                          <button className="text-white px-4 py-2 rounded-lg" style={{ background: '#ff9b28' }}>
-                            Explore Challenges
-                          </button>
+                          <Link href="/explore">
+                            <button className="text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity" style={{ background: '#ff9b28' }}>
+                              Explore Challenges
+                            </button>
+                          </Link>
                         )}
                       </div>
                     )}
@@ -951,9 +956,11 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                           {isOwnProfile ? "You haven't booked or created any sessions yet." : "This user hasn't booked or created any sessions yet."}
                         </p>
                         {isOwnProfile && (
-                          <button className="text-white px-4 py-2 rounded-lg" style={{ background: '#f65887' }}>
-                            Browse Sessions
-                          </button>
+                          <Link href="/explore">
+                            <button className="text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity" style={{ background: '#f65887' }}>
+                              Browse Sessions
+                            </button>
+                          </Link>
                         )}
                       </div>
                     )}
@@ -1056,9 +1063,11 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                           {isOwnProfile ? "You haven't created or purchased any products yet." : "This user hasn't created any products yet."}
                         </p>
                         {isOwnProfile && (
-                          <button className="text-white px-4 py-2 rounded-lg" style={{ background: '#8e78fb' }}>
-                            Create Product
-                          </button>
+                          <Link href="/explore">
+                            <button className="text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity" style={{ background: '#8e78fb' }}>
+                              Explore Products
+                            </button>
+                          </Link>
                         )}
                       </div>
                     )}
@@ -1163,9 +1172,11 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                           {isOwnProfile ? "You haven't joined or created any communities yet." : "This user hasn't joined or created any communities yet."}
                         </p>
                         {isOwnProfile && (
-                          <button className="text-white px-4 py-2 rounded-lg" style={{ background: '#b07df8' }}>
-                            Explore Communities
-                          </button>
+                          <Link href="/explore">
+                            <button className="text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity" style={{ background: '#b07df8' }}>
+                              Explore Communities
+                            </button>
+                          </Link>
                         )}
                       </div>
                     )}

@@ -7,12 +7,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CalendarIcon, Users } from "lucide-react"
-import { format } from "date-fns"
+import { format, addDays } from "date-fns"
 import { cn } from "@/lib/utils"
-import { Dispatch, SetStateAction } from "react"
+import { Dispatch, SetStateAction, useEffect } from "react"
 
 interface TimelinePricingStepProps {
   formData: {
+    duration: string
     currency?: string
     depositAmount: string
     participationFee?: string
@@ -28,6 +29,7 @@ interface TimelinePricingStepProps {
   setStartDate: Dispatch<SetStateAction<Date | undefined>>
   endDate?: Date
   setEndDate: Dispatch<SetStateAction<Date | undefined>>
+  validationErrors?: Record<string, boolean>
 }
 
 export function TimelinePricingStep({
@@ -36,7 +38,8 @@ export function TimelinePricingStep({
   startDate,
   setStartDate,
   endDate,
-  setEndDate
+  setEndDate,
+  validationErrors = {}
 }: TimelinePricingStepProps) {
   const handleInputChange = (field: string, value: any) => {
     if (field.includes(".")) {
@@ -49,6 +52,22 @@ export function TimelinePricingStep({
       setFormData((prev: any) => ({ ...prev, [field]: value }))
     }
   }
+
+  // Calculer automatiquement la date de fin en fonction de la durée et de la date de début
+  useEffect(() => {
+    if (startDate && formData.duration) {
+      // Extraire le nombre de jours de la durée (par exemple "7 days" -> 7)
+      const durationMatch = formData.duration.match(/(\d+)\s*days?/)
+      if (durationMatch) {
+        const numberOfDays = parseInt(durationMatch[1], 10)
+        // Calculer la date de fin : startDate + (numberOfDays - 1)
+        // On soustrait 1 parce que si on commence le 13 et la durée est 7 jours,
+        // le dernier jour est le 19 (13, 14, 15, 16, 17, 18, 19 = 7 jours)
+        const calculatedEndDate = addDays(startDate, numberOfDays - 1)
+        setEndDate(calculatedEndDate)
+      }
+    }
+  }, [startDate, formData.duration, setEndDate])
 
   return (
     <EnhancedCard>
@@ -70,6 +89,7 @@ export function TimelinePricingStep({
                   className={cn(
                     "w-full justify-start text-left font-normal",
                     !startDate && "text-muted-foreground",
+                    validationErrors.startDate && "border-red-500"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
@@ -85,6 +105,9 @@ export function TimelinePricingStep({
                 />
               </PopoverContent>
             </Popover>
+            {validationErrors.startDate && (
+              <p className="text-sm text-red-500">Please select a start date</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -97,20 +120,16 @@ export function TimelinePricingStep({
                     "w-full justify-start text-left font-normal",
                     !endDate && "text-muted-foreground",
                   )}
+                  disabled
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, "PPP") : "Pick a date"}
+                  {endDate ? format(endDate, "PPP") : "Automatically calculated"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar 
-                  mode="single" 
-                  selected={endDate} 
-                  onSelect={setEndDate} 
-                  initialFocus 
-                />
-              </PopoverContent>
             </Popover>
+            <p className="text-xs text-muted-foreground">
+              Automatically calculated based on the start date and duration
+            </p>
           </div>
         </div>
 

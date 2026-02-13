@@ -1,6 +1,8 @@
-import useSWR, { useSWRConfig } from 'swr'
-// If default import continues to fail, use named export or check build config
+import useSWROriginal from 'swr'
+import { useSWRConfig } from 'swr'
 import { authenticatedFetch } from '@/lib/authenticated-fetch'
+
+const useSWR = useSWROriginal
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.170:3000/api'
 const apiOrigin = apiBase.replace(/\/api$/, '')

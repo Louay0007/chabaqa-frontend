@@ -196,6 +196,7 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
             <input
               type="checkbox"
               id="rememberMe"
+              aria-label="Remember me for 30 days"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
               disabled={isLoading}
