@@ -1,13 +1,7 @@
 "use client"
 
-import { Card } from "@/components/ui/card"
-import { ChartContainer } from "@/components/ui/chart"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import * as RechartsPrimitive from "recharts"
-import { Badge } from "@/components/ui/badge"
+
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
 import {
   Calendar,
   Trophy,
