@@ -13,7 +13,7 @@ import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 
 export function DeliveryStep() {
-    const { formData, handleInputChange, handleArrayChange, addArrayItem, removeArrayItem } = useProductForm()
+    const { formData, errors, handleInputChange, handleArrayChange, addArrayItem, removeArrayItem } = useProductForm()
     const { toast } = useToast()
     const [uploading, setUploading] = useState(false)
     const inputRef = useRef<HTMLInputElement | null>(null)

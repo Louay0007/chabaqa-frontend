@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 export function PricingStep() {
   const {
     formData,
+    errors,
     handleInputChange,
     addVariant,
     updateVariant,
@@ -51,11 +52,14 @@ export function PricingStep() {
                 id="price"
                 type="number"
                 placeholder="29.99"
-                className="rounded-l-none"
+                className={`rounded-l-none ${errors.price ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                 value={formData.price}
                 onChange={(e) => handleInputChange("price", Number(e.target.value))}
               />
             </div>
+            {errors.price && (
+              <p className="text-sm text-red-500 mt-1">{errors.price}</p>
+            )}
           </div>
 
           <div className="flex items-center space-x-2 pt-7">
@@ -136,8 +140,11 @@ export function PricingStep() {
                         placeholder="e.g., Standard License"
                         value={variant.name}
                         onChange={(e) => updateVariant(variant.id, "name", e.target.value)}
-                        className="h-8 text-sm"
+                        className={`h-8 text-sm ${errors[`variant_${variant.id}_name`] ? "border-red-500" : ""}`}
                       />
+                      {errors[`variant_${variant.id}_name`] && (
+                        <p className="text-xs text-red-500">{errors[`variant_${variant.id}_name`]}</p>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Price *</Label>
@@ -146,8 +153,11 @@ export function PricingStep() {
                         placeholder="29.99"
                         value={variant.price}
                         onChange={(e) => updateVariant(variant.id, "price", Number(e.target.value))}
-                        className="h-8 text-sm"
+                        className={`h-8 text-sm ${errors[`variant_${variant.id}_price`] ? "border-red-500" : ""}`}
                       />
+                      {errors[`variant_${variant.id}_price`] && (
+                        <p className="text-xs text-red-500">{errors[`variant_${variant.id}_price`]}</p>
+                      )}
                     </div>
                   </div>
 

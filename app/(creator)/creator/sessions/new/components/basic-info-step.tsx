@@ -27,9 +27,10 @@ interface BasicInfoStepProps {
     requirements: string
   }
   handleInputChange: (field: string, value: any) => void
+  validationErrors?: Record<string, string>
 }
 
-export function BasicInfoStep({ formData, handleInputChange }: BasicInfoStepProps) {
+export function BasicInfoStep({ formData, handleInputChange, validationErrors = {} }: BasicInfoStepProps) {
   return (
     <EnhancedCard>
       <CardHeader>
@@ -47,7 +48,11 @@ export function BasicInfoStep({ formData, handleInputChange }: BasicInfoStepProp
             placeholder="e.g., 1-on-1 Code Review Session"
             value={formData.title}
             onChange={(e) => handleInputChange("title", e.target.value)}
+            className={validationErrors.title ? "border-red-500 focus-visible:ring-red-500" : ""}
           />
+          {validationErrors.title && (
+            <p className="text-sm text-red-500">{validationErrors.title}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -58,14 +63,18 @@ export function BasicInfoStep({ formData, handleInputChange }: BasicInfoStepProp
             rows={4}
             value={formData.description}
             onChange={(e) => handleInputChange("description", e.target.value)}
+            className={validationErrors.description ? "border-red-500 focus-visible:ring-red-500" : ""}
           />
+          {validationErrors.description && (
+            <p className="text-sm text-red-500">{validationErrors.description}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="category">Session Category *</Label>
             <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
-              <SelectTrigger>
+              <SelectTrigger className={validationErrors.category ? "border-red-500" : ""}>
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
@@ -76,6 +85,9 @@ export function BasicInfoStep({ formData, handleInputChange }: BasicInfoStepProp
                 ))}
               </SelectContent>
             </Select>
+            {validationErrors.category && (
+              <p className="text-sm text-red-500">{validationErrors.category}</p>
+            )}
           </div>
 
           <div className="space-y-2">

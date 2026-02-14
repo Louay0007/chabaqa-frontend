@@ -6,6 +6,7 @@ interface NavigationButtonsProps {
   stepsLength: number
   setCurrentStep: (step: number) => void
   handleSubmit: () => void
+  onNextStep: () => void
 }
 
 export function NavigationButtons({
@@ -13,6 +14,7 @@ export function NavigationButtons({
   stepsLength,
   setCurrentStep,
   handleSubmit,
+  onNextStep,
 }: NavigationButtonsProps) {
   return (
     <div className="flex items-center justify-between">
@@ -27,7 +29,7 @@ export function NavigationButtons({
       <div className="flex items-center space-x-2">
         {currentStep < stepsLength ? (
           <Button
-            onClick={() => setCurrentStep(Math.min(stepsLength, currentStep + 1))}
+            onClick={onNextStep}
             className="bg-sessions-500 hover:bg-sessions-600"
           >
             Next Step

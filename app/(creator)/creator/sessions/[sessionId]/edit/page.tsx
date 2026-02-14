@@ -35,10 +35,9 @@ export default async function EditSessionPage({
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="ghost" size="icon" asChild>
               <Link href="/creator/sessions">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Sessions
+                <ArrowLeft className="h-4 w-4" />
               </Link>
             </Button>
             <div>

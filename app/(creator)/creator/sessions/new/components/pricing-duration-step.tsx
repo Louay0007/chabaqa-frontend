@@ -1,4 +1,5 @@
 
+import { useEffect } from "react"
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -31,9 +32,28 @@ interface PricingDurationStepProps {
   }
   handleInputChange: (field: string, value: any) => void
   handleDayToggle: (day: string) => void
+  validationErrors?: Record<string, string>
 }
 
-export function PricingDurationStep({ formData, handleInputChange, handleDayToggle }: PricingDurationStepProps) {
+export function PricingDurationStep({ formData, handleInputChange, handleDayToggle, validationErrors }: PricingDurationStepProps) {
+  // Auto-calculate end time when duration or start time changes
+  useEffect(() => {
+    if (formData.duration && formData.availableHours.start) {
+      const [hours, minutes] = formData.availableHours.start.split(':').map(Number)
+      const durationMinutes = Number(formData.duration)
+      
+      const totalMinutes = hours * 60 + minutes + durationMinutes
+      const endHours = Math.floor(totalMinutes / 60) % 24
+      const endMinutes = totalMinutes % 60
+      
+      const endTime = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`
+      
+      if (formData.availableHours.end !== endTime) {
+        handleInputChange("availableHours.end", endTime)
+      }
+    }
+  }, [formData.duration, formData.availableHours.start])
+
   return (
     <EnhancedCard>
       <CardHeader>
@@ -48,7 +68,7 @@ export function PricingDurationStep({ formData, handleInputChange, handleDayTogg
           <div className="space-y-2">
             <Label htmlFor="duration">Session Duration *</Label>
             <Select value={formData.duration} onValueChange={(value) => handleInputChange("duration", value)}>
-              <SelectTrigger>
+              <SelectTrigger className={validationErrors?.duration ? "border-red-500" : ""}>
                 <SelectValue placeholder="Select duration" />
               </SelectTrigger>
               <SelectContent>
@@ -59,6 +79,9 @@ export function PricingDurationStep({ formData, handleInputChange, handleDayTogg
                 ))}
               </SelectContent>
             </Select>
+            {validationErrors?.duration && (
+              <p className="text-sm text-red-500">{validationErrors.duration}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -78,11 +101,14 @@ export function PricingDurationStep({ formData, handleInputChange, handleDayTogg
                 id="price"
                 type="number"
                 placeholder="150"
-                className="rounded-l-none"
+                className={`rounded-l-none ${validationErrors?.price ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                 value={formData.price}
                 onChange={(e) => handleInputChange("price", e.target.value)}
               />
             </div>
+            {validationErrors?.price && (
+              <p className="text-sm text-red-500">{validationErrors.price}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -141,9 +167,9 @@ export function PricingDurationStep({ formData, handleInputChange, handleDayTogg
               <Input
                 id="endTime"
                 type="time"
-                className="pl-10"
+                className="pl-10 bg-muted"
                 value={formData.availableHours.end}
-                onChange={(e) => handleInputChange("availableHours.end", e.target.value)}
+                readOnly
               />
             </div>
           </div>

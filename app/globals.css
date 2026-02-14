@@ -94,6 +94,14 @@
     @apply bg-gradient-to-r from-sessions-600 via-sessions-500 to-sessions-400 bg-clip-text text-transparent;
   }
 
+  .gradient-text-events {
+    @apply bg-gradient-to-r from-events-600 via-events-500 to-events-400 bg-clip-text text-transparent;
+  }
+
+  .gradient-text-products {
+    @apply bg-gradient-to-r from-products-600 via-products-500 to-products-400 bg-clip-text text-transparent;
+  }
+
   .hover-lift {
     @apply transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-lg;
   }

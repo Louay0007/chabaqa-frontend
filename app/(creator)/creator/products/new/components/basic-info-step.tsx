@@ -25,7 +25,7 @@ const categories = [
 ]
 
 export function BasicInfoStep() {
-  const { formData, handleInputChange, handleArrayChange, addArrayItem, removeArrayItem } = useProductForm()
+  const { formData, errors, handleInputChange, handleArrayChange, addArrayItem, removeArrayItem } = useProductForm()
   const { toast } = useToast()
   const [uploading, setUploading] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -79,7 +79,11 @@ export function BasicInfoStep() {
             placeholder="e.g., Ultimate Photoshop Toolkit"
             value={formData.title}
             onChange={(e) => handleInputChange("title", e.target.value)}
+            className={errors.title ? "border-red-500 focus-visible:ring-red-500" : ""}
           />
+          {errors.title && (
+            <p className="text-sm text-red-500 mt-1">{errors.title}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -90,7 +94,11 @@ export function BasicInfoStep() {
             rows={4}
             value={formData.description}
             onChange={(e) => handleInputChange("description", e.target.value)}
+            className={errors.description ? "border-red-500 focus-visible:ring-red-500" : ""}
           />
+          {errors.description && (
+            <p className="text-sm text-red-500 mt-1">{errors.description}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -127,7 +135,7 @@ export function BasicInfoStep() {
         <div className="space-y-2">
           <Label htmlFor="category">Category *</Label>
           <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
-            <SelectTrigger>
+            <SelectTrigger className={errors.category ? "border-red-500" : ""}>
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent>
@@ -138,6 +146,9 @@ export function BasicInfoStep() {
               ))}
             </SelectContent>
           </Select>
+          {errors.category && (
+            <p className="text-sm text-red-500 mt-1">{errors.category}</p>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -148,12 +159,16 @@ export function BasicInfoStep() {
               Add Feature
             </Button>
           </div>
+          {errors.features && (
+            <p className="text-sm text-red-500">{errors.features}</p>
+          )}
           {formData.features.map((feature: any, index: number) => (
             <div key={index} className="flex space-x-2">
               <Input
                 placeholder="e.g., 50+ high-quality templates"
                 value={feature}
                 onChange={(e) => handleArrayChange("features", index, e.target.value)}
+                className={errors.features && !feature.trim() ? "border-red-500" : ""}
               />
               {formData.features.length > 1 && (
                 <Button

@@ -18,6 +18,7 @@ export function SessionCreationContainer() {
   const router = useRouter()
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   
   // Use the selected community from context
   const { selectedCommunity } = useCreatorCommunity()
@@ -103,43 +104,107 @@ export function SessionCreationContainer() {
     }))
   }
 
+  const validateCurrentStep = () => {
+    const errors: Record<string, string> = {}
+    
+    // Step 1: Basic Info validation
+    if (currentStep === 1) {
+      if (!formData.title || formData.title.trim().length < 2) {
+        errors.title = 'Session title must be at least 2 characters.'
+      }
+      if (!formData.description || formData.description.trim().length < 10) {
+        errors.description = 'Session description must be at least 10 characters.'
+      }
+      if (!formData.category) {
+        errors.category = 'Session category is required.'
+      }
+    }
+    
+    // Step 2: Pricing & Duration validation
+    if (currentStep === 2) {
+      const duration = Number(formData.duration || 0)
+      if (!duration || duration < 15 || duration > 480) {
+        errors.duration = 'Session duration must be between 15 and 480 minutes.'
+      }
+      const price = Number(formData.price || 0)
+      if (!Number.isFinite(price) || price < 0) {
+        errors.price = 'Session price must be zero or greater.'
+      }
+      if (!formData.currency) {
+        errors.currency = 'Session currency is required.'
+      }
+      if (formData.maxBookingsPerWeek) {
+        const maxBookings = Number(formData.maxBookingsPerWeek)
+        if (!Number.isFinite(maxBookings) || maxBookings < 1 || maxBookings > 50) {
+          errors.maxBookingsPerWeek = 'Max bookings per week must be between 1 and 50.'
+        }
+      }
+    }
+    
+    // Step 3 and 4: No validation required (Session Details and Weekly Availability are optional)
+    
+    setValidationErrors(errors)
+    
+    if (Object.keys(errors).length > 0) {
+      toast({ 
+        title: 'Please complete required fields', 
+        description: Object.values(errors)[0], 
+        variant: 'destructive' as any 
+      })
+      return false
+    }
+    
+    return true
+  }
+
+  const handleNextStep = () => {
+    if (validateCurrentStep()) {
+      setCurrentStep(Math.min(steps.length, currentStep + 1))
+      setValidationErrors({}) // Clear errors when moving to next step
+    }
+  }
+
   const validateForm = () => {
+    const errors: Record<string, string> = {}
+    
     const trimmedTitle = formData.title.trim()
     if (trimmedTitle.length < 2) {
-      return 'Session title must be at least 2 characters.'
+      errors.title = 'Session title must be at least 2 characters.'
     }
     if (!formData.description.trim()) {
-      return 'Session description is required.'
+      errors.description = 'Session description is required.'
     }
     const duration = Number(formData.duration || 0)
     if (!Number.isFinite(duration) || duration < 15 || duration > 480) {
-      return 'Session duration must be between 15 and 480 minutes.'
+      errors.duration = 'Session duration must be between 15 and 480 minutes.'
     }
 
     const price = Number(formData.price || 0)
     if (!Number.isFinite(price) || price < 0) {
-      return 'Session price must be zero or greater.'
+      errors.price = 'Session price must be zero or greater.'
     }
     if (!formData.currency) {
-      return 'Session currency is required.'
+      errors.currency = 'Session currency is required.'
     }
     if (!formData.category) {
-      return 'Session category is required.'
+      errors.category = 'Session category is required.'
     }
     if (formData.maxBookingsPerWeek) {
       const maxBookings = Number(formData.maxBookingsPerWeek)
       if (!Number.isFinite(maxBookings) || maxBookings < 1 || maxBookings > 50) {
-        return 'Max bookings per week must be between 1 and 50.'
+        errors.maxBookingsPerWeek = 'Max bookings per week must be between 1 and 50.'
       }
     }
 
     if (formData.recurringAvailability?.length) {
       const invalidSlot = formData.recurringAvailability.find((slot) => !slot.startTime || !slot.endTime)
       if (invalidSlot) {
-        return 'Each availability slot needs a start and end time.'
+        errors.availability = 'Each availability slot needs a start and end time.'
       }
     }
-    return null
+    
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0 ? null : Object.values(errors)[0]
   }
 
   const handleSubmit = async () => {
@@ -223,7 +288,7 @@ export function SessionCreationContainer() {
       <SessionProgress currentStep={currentStep} setCurrentStep={setCurrentStep} steps={steps} />
       
       {currentStep === 1 && (
-        <BasicInfoStep formData={formData} handleInputChange={handleInputChange} />
+        <BasicInfoStep formData={formData} handleInputChange={handleInputChange} validationErrors={validationErrors} />
       )}
 
       {currentStep === 2 && (
@@ -231,6 +296,7 @@ export function SessionCreationContainer() {
           formData={formData}
           handleInputChange={handleInputChange}
           handleDayToggle={handleDayToggle}
+          validationErrors={validationErrors}
         />
       )}
 
@@ -263,6 +329,7 @@ export function SessionCreationContainer() {
         stepsLength={steps.length}
         setCurrentStep={setCurrentStep}
         handleSubmit={handleSubmit}
+        onNextStep={handleNextStep}
       />
     </div>
   )

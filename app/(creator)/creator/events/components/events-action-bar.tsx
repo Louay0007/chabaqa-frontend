@@ -32,7 +32,7 @@ export function EventsActionBar({
           <TabsTrigger value="past">Past ({totalPast})</TabsTrigger>
         </TabsList>
       </Tabs>
-      <Button onClick={handleCreateEvent}>
+      <Button onClick={handleCreateEvent} className="bg-events-500 hover:bg-events-600">
         <Plus className="h-4 w-4 mr-2" />
         Create Event
       </Button>

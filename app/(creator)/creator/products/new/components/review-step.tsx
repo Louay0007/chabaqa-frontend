@@ -5,11 +5,14 @@ import { CardHeader, CardContent, CardDescription, CardTitle } from "@/component
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Eye, Package, FileText } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Eye, Package, FileText, AlertTriangle } from "lucide-react"
 import { useProductForm } from "./product-form-context"
 
 export function ReviewStep() {
-  const { formData, handleInputChange } = useProductForm()
+  const { formData, errors, handleInputChange } = useProductForm()
+  
+  const hasErrors = Object.keys(errors).length > 0
 
   return (
     <EnhancedCard>
@@ -21,6 +24,21 @@ export function ReviewStep() {
         <CardDescription>Review your product details before publishing</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {hasErrors && (
+          <Alert variant="destructive" className="bg-red-50 border-red-200">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Attention :</strong> Certains champs requis sont manquants ou invalides. 
+              Veuillez les corriger avant de publier le produit.
+              <ul className="mt-2 ml-4 list-disc text-sm">
+                {Object.entries(errors).map(([key, value]) => (
+                  <li key={key}>{value}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-6">
             <div>

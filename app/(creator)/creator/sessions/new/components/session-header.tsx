@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Eye, Save } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
 export function SessionHeader() {
@@ -16,16 +16,6 @@ export function SessionHeader() {
           <h1 className="text-3xl font-bold gradient-text-sessions">Create New Session</h1>
           <p className="text-muted-foreground mt-1">Set up a 1-on-1 mentoring session for your community</p>
         </div>
-      </div>
-      <div className="flex items-center space-x-2">
-        <Button variant="outline" size="sm">
-          <Save className="h-4 w-4 mr-2" />
-          Save Draft
-        </Button>
-        <Button variant="outline" size="sm">
-          <Eye className="h-4 w-4 mr-2" />
-          Preview
-        </Button>
       </div>
     </div>
   )

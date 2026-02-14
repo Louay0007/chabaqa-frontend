@@ -22,10 +22,15 @@ interface DownloadFileForm {
   size?: string
 }
 
+interface ValidationErrors {
+  [key: string]: string
+}
+
 interface ProductFormContextType {
   currentStep: number
   setCurrentStep: (step: number) => void
   formData: any
+  errors: ValidationErrors
   handleInputChange: (field: string, value: any) => void
   handleArrayChange: (field: string, index: number, value: string) => void
   addArrayItem: (field: string) => void
@@ -36,6 +41,8 @@ interface ProductFormContextType {
   addFile: () => void
   updateFile: (fileId: string, field: string, value: any) => void
   removeFile: (fileId: string) => void
+  validateStep: (step: number) => boolean
+  clearFieldError: (field: string) => void
   handleSubmit: () => void
 }
 
@@ -45,6 +52,7 @@ export function ProductFormProvider({ children }: { children: React.ReactNode })
   const router = useRouter()
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
+  const [errors, setErrors] = useState<ValidationErrors>({})
   
   // Use the selected community from context
   const { selectedCommunityId } = useCreatorCommunity()
@@ -71,6 +79,85 @@ export function ProductFormProvider({ children }: { children: React.ReactNode })
 
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
+  }
+
+  const clearFieldError = (field: string) => {
+    setErrors((prev) => {
+      const newErrors = { ...prev }
+      delete newErrors[field]
+      return newErrors
+    })
+  }
+
+  const validateStep = (step: number): boolean => {
+    const newErrors: ValidationErrors = {}
+
+    if (step === 1) {
+      // Basic Info validation
+      if (!formData.title?.trim()) {
+        newErrors.title = "Le nom du produit est requis"
+      }
+      if (!formData.description?.trim()) {
+        newErrors.description = "La description du produit est requise"
+      }
+      if (!formData.category) {
+        newErrors.category = "La catégorie est requise"
+      }
+      if (!formData.features || formData.features.length === 0 || !formData.features.some((f: string) => f.trim())) {
+        newErrors.features = "Au moins une fonctionnalité est requise"
+      }
+    } else if (step === 2) {
+      // Pricing validation
+      if (formData.price === undefined || formData.price === null || formData.price < 0) {
+        newErrors.price = "Le prix doit être supérieur ou égal à 0"
+      }
+      
+      // Validate variants if they exist
+      if (formData.variants && formData.variants.length > 0) {
+        formData.variants.forEach((variant: ProductVariantForm, index: number) => {
+          if (!variant.name?.trim()) {
+            newErrors[`variant_${variant.id}_name`] = "Le nom du variant est requis"
+          }
+          if (variant.price === undefined || variant.price === null || variant.price < 0) {
+            newErrors[`variant_${variant.id}_price`] = "Le prix du variant doit être >= 0"
+          }
+        })
+      }
+    } else if (step === 3) {
+      // Delivery validation - files are optional but validated if provided
+      if (formData.files && formData.files.length > 0) {
+        formData.files.forEach((file: DownloadFileForm, index: number) => {
+          if (!file.name?.trim()) {
+            newErrors[`file_${file.id}_name`] = "Le nom du fichier est requis"
+          }
+          if (!file.url?.trim()) {
+            newErrors[`file_${file.id}_url`] = "L'URL du fichier est requise"
+          }
+        })
+      }
+    }
+
+    setErrors(newErrors)
+
+    if (Object.keys(newErrors).length > 0) {
+      const errorMessages = Object.values(newErrors)
+      toast({
+        title: "Erreurs de validation",
+        description: errorMessages[0],
+        variant: "destructive" as any
+      })
+      return false
+    }
+
+    return true
   }
 
 const handleArrayChange = (field: string, index: number, value: string) => {
@@ -170,17 +257,26 @@ const handleArrayChange = (field: string, index: number, value: string) => {
   }
 
   const handleSubmit = async () => {
+    // Validate all steps before submitting
+    const step1Valid = validateStep(1)
+    if (!step1Valid) {
+      setCurrentStep(1)
+      return
+    }
+    const step2Valid = validateStep(2)
+    if (!step2Valid) {
+      setCurrentStep(2)
+      return
+    }
+    const step3Valid = validateStep(3)
+    if (!step3Valid) {
+      setCurrentStep(3)
+      return
+    }
+
     try {
       if (!communityId) {
-        toast({ title: 'Missing community', description: 'No community found for this creator.', variant: 'destructive' as any })
-        return
-      }
-      if (!formData.title?.trim() || !formData.description?.trim()) {
-        toast({ title: 'Missing fields', description: 'Title and description are required.', variant: 'destructive' as any })
-        return
-      }
-      if (Number(formData.price) < 0) {
-        toast({ title: 'Invalid price', description: 'Price must be >= 0.', variant: 'destructive' as any })
+        toast({ title: 'Communauté manquante', description: 'Aucune communauté trouvée pour ce créateur.', variant: 'destructive' as any })
         return
       }
 
@@ -241,6 +337,7 @@ const handleArrayChange = (field: string, index: number, value: string) => {
         currentStep,
         setCurrentStep,
         formData,
+        errors,
         handleInputChange,
         handleArrayChange,
         addArrayItem,
@@ -251,6 +348,8 @@ const handleArrayChange = (field: string, index: number, value: string) => {
         addFile,
         updateFile,
         removeFile,
+        validateStep,
+        clearFieldError,
         handleSubmit,
       }}
     >

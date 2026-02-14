@@ -173,7 +173,6 @@ export default function ClientSessionsView({
               <ClipboardList className="h-4 w-4 mr-2" /> All Bookings
             </Link>
           </Button>
-          <Button variant="outline" size="sm"><Search className="h-4 w-4 mr-2" /> Filters</Button>
           <Button size="sm" className="bg-sessions-500 hover:bg-sessions-600" asChild>
             <Link href="/creator/sessions/new"><Search className="h-4 w-4 mr-2" /> Create Session</Link>
           </Button>

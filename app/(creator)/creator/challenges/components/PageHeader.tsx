@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button"
-import { Filter, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 import Link from "next/link"
 
 export default function PageHeader() {
@@ -13,10 +13,6 @@ export default function PageHeader() {
         </p>
       </div>
       <div className="flex items-center space-x-3 mt-4 sm:mt-0">
-        <Button variant="outline" size="sm">
-          <Filter className="h-4 w-4 mr-2" />
-          Filters
-        </Button>
         <Button
           size="sm"
           className="bg-challenges-500 hover:bg-challenges-600"
