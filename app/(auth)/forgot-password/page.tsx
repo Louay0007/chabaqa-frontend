@@ -19,24 +19,22 @@ export default async function ForgotPasswordPage() {
         <Image src="/gradient-background.png" alt="Gradient Background" fill className="object-cover" priority />
       </div>
 
-      {/* Main Content */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          {/* Logo */}
-          <div className="text-center mb-8 animate-fade-in-delay-200">
-            <div className="flex justify-center">
-              <Image 
-                src="/logo_chabaqa.png" 
-                alt="Chabaqa Logo" 
-                width={280} 
-                height={112} 
-                className="drop-shadow-lg"
-                priority
-              />
-            </div>
-            <div className="w-16 h-1 bg-gradient-to-r from-[#8e78fb] to-[#47c7ea] mx-auto mt-2 rounded-full"></div>
-          </div>
 
+      {/* Logo - Top Left */}
+      <div className="absolute top-8 left-8 z-20 animate-fade-in">
+        <Image
+          src="/logo_chabaqa.png"
+          alt="Chabaqa Logo"
+          width={140}
+          height={56}
+          className="drop-shadow-lg"
+          priority
+        />
+      </div>
+
+      {/* Main Content */}
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4 py-24">
+        <div className="w-full max-w-md">
           {/* Forgot Password Form */}
           <ForgotPasswordForm />
 

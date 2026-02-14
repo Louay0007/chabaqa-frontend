@@ -14,9 +14,10 @@ interface BasicInfoStepProps {
     thumbnail: string
   }
   handleInputChange: (field: string, value: any) => void
+  validationErrors?: Record<string, boolean>
 }
 
-export function BasicInfoStep({ formData, handleInputChange }: BasicInfoStepProps) {
+export function BasicInfoStep({ formData, handleInputChange, validationErrors = {} }: BasicInfoStepProps) {
   return (
     <EnhancedCard>
       <CardHeader>
@@ -34,7 +35,11 @@ export function BasicInfoStep({ formData, handleInputChange }: BasicInfoStepProp
             placeholder="e.g., Complete Web Development Bootcamp"
             value={formData.title}
             onChange={(e) => handleInputChange("title", e.target.value)}
+            className={validationErrors.title ? "border-red-500 focus-visible:ring-red-500" : ""}
           />
+          {validationErrors.title && (
+            <p className="text-sm text-red-500">Title must be at least 3 characters</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -45,7 +50,11 @@ export function BasicInfoStep({ formData, handleInputChange }: BasicInfoStepProp
             rows={4}
             value={formData.description}
             onChange={(e) => handleInputChange("description", e.target.value)}
+            className={validationErrors.description ? "border-red-500 focus-visible:ring-red-500" : ""}
           />
+          {validationErrors.description && (
+            <p className="text-sm text-red-500">Description must be at least 10 characters</p>
+          )}
         </div>
 
         <div className="space-y-2">

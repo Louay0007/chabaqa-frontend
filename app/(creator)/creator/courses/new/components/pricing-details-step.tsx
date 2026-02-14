@@ -36,6 +36,7 @@ interface PricingDetailsStepProps {
   handleArrayChange: (field: string, index: number, value: string) => void
   addArrayItem: (field: string) => void
   removeArrayItem: (field: string, index: number) => void
+  validationErrors?: Record<string, boolean>
 }
 
 export function PricingDetailsStep({
@@ -44,6 +45,7 @@ export function PricingDetailsStep({
   handleArrayChange,
   addArrayItem,
   removeArrayItem,
+  validationErrors = {},
 }: PricingDetailsStepProps) {
   return (
     <EnhancedCard>
@@ -73,11 +75,14 @@ export function PricingDetailsStep({
                 id="price"
                 type="number"
                 placeholder="99"
-                className="rounded-l-none"
+                className={validationErrors.price ? "rounded-l-none border-red-500 focus-visible:ring-red-500" : "rounded-l-none"}
                 value={formData.price}
                 onChange={(e) => handleInputChange("price", e.target.value)}
               />
             </div>
+            {validationErrors.price && (
+              <p className="text-sm text-red-500">Please enter a valid price</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -95,7 +100,7 @@ export function PricingDetailsStep({
           <div className="space-y-2">
             <Label htmlFor="category">Category *</Label>
             <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
-              <SelectTrigger>
+              <SelectTrigger className={validationErrors.category ? "border-red-500" : ""}>
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
@@ -106,12 +111,15 @@ export function PricingDetailsStep({
                 ))}
               </SelectContent>
             </Select>
+            {validationErrors.category && (
+              <p className="text-sm text-red-500">Please select a category</p>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="level">Difficulty Level *</Label>
             <Select value={formData.level} onValueChange={(value) => handleInputChange("level", value)}>
-              <SelectTrigger>
+              <SelectTrigger className={validationErrors.level ? "border-red-500" : ""}>
                 <SelectValue placeholder="Select difficulty level" />
               </SelectTrigger>
               <SelectContent>
@@ -122,6 +130,9 @@ export function PricingDetailsStep({
                 ))}
               </SelectContent>
             </Select>
+            {validationErrors.level && (
+              <p className="text-sm text-red-500">Please select a difficulty level</p>
+            )}
           </div>
         </div>
 
@@ -139,6 +150,7 @@ export function PricingDetailsStep({
                 placeholder="e.g., Build responsive websites with HTML, CSS, and JavaScript"
                 value={objective}
                 onChange={(e) => handleArrayChange("learningObjectives", index, e.target.value)}
+                className={validationErrors.learningObjectives && !objective.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}
               />
               {formData.learningObjectives.length > 1 && (
                 <Button
@@ -152,6 +164,9 @@ export function PricingDetailsStep({
               )}
             </div>
           ))}
+          {validationErrors.learningObjectives && (
+            <p className="text-sm text-red-500">Please add at least one learning objective</p>
+          )}
         </div>
 
         <div className="space-y-4">

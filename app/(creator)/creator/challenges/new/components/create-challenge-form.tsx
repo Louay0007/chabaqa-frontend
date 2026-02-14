@@ -22,51 +22,114 @@ export function CreateChallengeForm() {
   const [endDate, setEndDate] = useState<Date>()
   const [formData, setFormData] = useState(initialFormData)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({})
   
   // Use the selected community from context
   const { selectedCommunity } = useCreatorCommunity()
   const communitySlug = selectedCommunity?.slug || ""
 
   const validateCurrentStep = () => {
+    const errors: Record<string, boolean> = {}
+    let isValid = true
+
     switch (currentStep) {
       case 1:
-        if (!formData.title || formData.title.length < 3) {
-          toast({ title: 'Validation error', description: 'Title must be at least 3 characters.', variant: 'destructive' })
-          return false
+        if (!formData.title || formData.title.trim().length < 3) {
+          errors.title = true
+          isValid = false
         }
-        if (!formData.description || formData.description.length < 10) {
-          toast({ title: 'Validation error', description: 'Description must be at least 10 characters.', variant: 'destructive' })
-          return false
+        if (!formData.description || formData.description.trim().length < 10) {
+          errors.description = true
+          isValid = false
         }
         if (!formData.category) {
-          toast({ title: 'Validation error', description: 'Please select a category.', variant: 'destructive' })
-          return false
+          errors.category = true
+          isValid = false
+        }
+        if (!formData.difficulty) {
+          errors.difficulty = true
+          isValid = false
+        }
+        if (!formData.duration) {
+          errors.duration = true
+          isValid = false
+        }
+        
+        if (!isValid) {
+          toast({ 
+            title: 'Validation Error', 
+            description: 'Please fill in all required fields correctly.', 
+            variant: 'destructive' 
+          })
         }
         break
+        
       case 2:
-        if (!startDate || !endDate) {
-          toast({ title: 'Validation error', description: 'Please select both start and end dates.', variant: 'destructive' })
-          return false
+        if (!startDate) {
+          errors.startDate = true
+          isValid = false
         }
-        if (endDate < startDate) {
-          toast({ title: 'Validation error', description: 'End date must be after start date.', variant: 'destructive' })
-          return false
+        if (!endDate) {
+          errors.endDate = true
+          isValid = false
+        }
+        if (startDate && endDate && endDate < startDate) {
+          errors.endDate = true
+          isValid = false
+          toast({ 
+            title: 'Validation Error', 
+            description: 'End date must be after start date.', 
+            variant: 'destructive' 
+          })
+        }
+        
+        if (!isValid && !(endDate && startDate && endDate < startDate)) {
+          toast({ 
+            title: 'Validation Error', 
+            description: 'Please select both start and end dates.', 
+            variant: 'destructive' 
+          })
         }
         break
+        
       case 3:
         if (formData.steps.length === 0) {
-          toast({ title: 'Validation error', description: 'Add at least one challenge step.', variant: 'destructive' })
+          toast({ 
+            title: 'Validation Error', 
+            description: 'Please add at least one challenge step.', 
+            variant: 'destructive' 
+          })
           return false
         }
-        for (const step of formData.steps) {
-          if (!step.title || !step.description || !step.deliverable) {
-            toast({ title: 'Validation error', description: `Step for Day ${step.day} is incomplete.`, variant: 'destructive' })
-            return false
+        
+        for (let i = 0; i < formData.steps.length; i++) {
+          const step = formData.steps[i]
+          if (!step.title || step.title.trim().length < 3) {
+            errors[`step_${i}_title`] = true
+            isValid = false
           }
+          if (!step.description || step.description.trim().length < 10) {
+            errors[`step_${i}_description`] = true
+            isValid = false
+          }
+          if (!step.deliverable || step.deliverable.trim().length < 5) {
+            errors[`step_${i}_deliverable`] = true
+            isValid = false
+          }
+        }
+        
+        if (!isValid) {
+          toast({ 
+            title: 'Validation Error', 
+            description: 'Please complete all required fields in all challenge steps.', 
+            variant: 'destructive' 
+          })
         }
         break
     }
-    return true
+    
+    setValidationErrors(errors)
+    return isValid
   }
 
   const handleNextStep = () => {
@@ -172,7 +235,8 @@ export function CreateChallengeForm() {
       {currentStep === 1 && (
         <BasicInfoStep 
           formData={formData} 
-          setFormData={setFormData} 
+          setFormData={setFormData}
+          validationErrors={validationErrors}
         />
       )}
 
@@ -184,13 +248,15 @@ export function CreateChallengeForm() {
           setStartDate={setStartDate}
           endDate={endDate}
           setEndDate={setEndDate}
+          validationErrors={validationErrors}
         />
       )}
 
       {currentStep === 3 && (
         <ChallengeStepsStep 
           formData={formData} 
-          setFormData={setFormData} 
+          setFormData={setFormData}
+          validationErrors={validationErrors}
         />
       )}
 

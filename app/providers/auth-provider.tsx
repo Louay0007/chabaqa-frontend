@@ -85,11 +85,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log(`Attempting login to: ${apiBase}/auth/login`);
 
-      const res = await fetch(`${apiBase}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
+      let res;
+      try {
+        res = await fetch(`${apiBase}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (fetchError: any) {
+        console.error('Network error:', fetchError);
+        throw new Error('Unable to connect to server. Please check your internet connection or try again later.');
+      }
 
       const data = await res.json()
 
@@ -124,7 +130,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     } catch (e: any) {
       console.error("Login error:", e);
-      setError(e?.message || 'Login failed')
+      const errorMessage = e?.message || 'Login failed';
+      setError(errorMessage);
+      // Show user-friendly message for connection errors
+      if (errorMessage.includes('Unable to connect') || errorMessage.includes('Failed to fetch')) {
+        setError('Unable to connect to server. Please check your internet connection.');
+      }
       throw e
     }
   }, [router])
@@ -133,11 +144,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setError(null)
       const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
-      const res = await fetch(`${apiBase}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
+      
+      let res;
+      try {
+        res = await fetch(`${apiBase}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (fetchError: any) {
+        console.error('Network error during registration:', fetchError);
+        throw new Error('Unable to connect to server. Please check your internet connection or try again later.');
+      }
 
       const data = await res.json()
 
@@ -158,7 +176,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
     } catch (e: any) {
-      setError(e?.message || 'Registration failed')
+      const errorMessage = e?.message || 'Registration failed';
+      setError(errorMessage);
+      // Show user-friendly message for connection errors
+      if (errorMessage.includes('Unable to connect') || errorMessage.includes('Failed to fetch')) {
+        setError('Unable to connect to server. Please check your internet connection.');
+      }
       throw e
     }
   }, [router])

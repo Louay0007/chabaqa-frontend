@@ -37,6 +37,7 @@ export function CourseCreationContainer() {
   const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({})
   
   // Use the selected community from context
   const { selectedCommunity, selectedCommunityId, isLoading: communityLoading } = useCreatorCommunity()
@@ -179,6 +180,95 @@ export function CourseCreationContainer() {
     }
   }, [selectedCommunity])
 
+  const validateCurrentStep = () => {
+    const errors: Record<string, boolean> = {}
+    let isValid = true
+
+    switch (currentStep) {
+      case 1:
+        if (!formData.title || formData.title.trim().length < 3) {
+          errors.title = true
+          isValid = false
+        }
+        if (!formData.description || formData.description.trim().length < 10) {
+          errors.description = true
+          isValid = false
+        }
+        
+        if (!isValid) {
+          toast({ 
+            title: 'Validation Error', 
+            description: 'Please fill in all required fields correctly.', 
+            variant: 'destructive' 
+          })
+        }
+        break
+        
+      case 2:
+        if (!formData.price || Number(formData.price) < 0) {
+          errors.price = true
+          isValid = false
+        }
+        if (!formData.category) {
+          errors.category = true
+          isValid = false
+        }
+        if (!formData.level) {
+          errors.level = true
+          isValid = false
+        }
+        if (!formData.learningObjectives.some(obj => obj.trim().length > 0)) {
+          errors.learningObjectives = true
+          isValid = false
+        }
+        
+        if (!isValid) {
+          toast({ 
+            title: 'Validation Error', 
+            description: 'Please complete all required fields.', 
+            variant: 'destructive' 
+          })
+        }
+        break
+        
+      case 3:
+        if (formData.sections.length === 0) {
+          errors.courseContent = true
+          toast({ 
+            title: 'Validation Error', 
+            description: 'Please add at least one section with chapters.', 
+            variant: 'destructive' 
+          })
+          isValid = false
+        } else {
+          const hasChapter = formData.sections.some((s) => s.chapters && s.chapters.length > 0)
+          if (!hasChapter) {
+            errors.courseContent = true
+            toast({ 
+              title: 'Validation Error', 
+              description: 'Please add at least one chapter to your course.', 
+              variant: 'destructive' 
+            })
+            isValid = false
+          }
+        }
+        break
+    }
+    
+    setValidationErrors(errors)
+    return isValid
+  }
+
+  const handleNextStep = () => {
+    if (validateCurrentStep()) {
+      setCurrentStep((prev) => Math.min(prev + 1, 4))
+    }
+  }
+
+  const handlePrevStep = () => {
+    setCurrentStep(Math.max(1, currentStep - 1))
+  }
+
   const handleSubmit = async () => {
     if (isSubmitting) return
 
@@ -304,7 +394,11 @@ export function CourseCreationContainer() {
       <CourseCreationProgress currentStep={currentStep} setCurrentStep={setCurrentStep} />
 
       {currentStep === 1 && (
-        <BasicInfoStep formData={formData} handleInputChange={handleInputChange} />
+        <BasicInfoStep 
+          formData={formData} 
+          handleInputChange={handleInputChange}
+          validationErrors={validationErrors}
+        />
       )}
 
       {currentStep === 2 && (
@@ -314,6 +408,7 @@ export function CourseCreationContainer() {
           handleArrayChange={handleArrayChange}
           addArrayItem={addArrayItem}
           removeArrayItem={removeArrayItem}
+          validationErrors={validationErrors}
         />
       )}
 
@@ -326,6 +421,7 @@ export function CourseCreationContainer() {
           addChapter={addChapter}
           updateChapter={updateChapter}
           removeChapter={removeChapter}
+          validationErrors={validationErrors}
         />
       )}
 
@@ -343,6 +439,8 @@ export function CourseCreationContainer() {
         handleSubmit={handleSubmit}
         formData={formData}
         isSubmitting={isSubmitting}
+        handleNextStep={handleNextStep}
+        handlePrevStep={handlePrevStep}
       />
     </div>
   )
