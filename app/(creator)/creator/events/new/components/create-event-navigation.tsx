@@ -25,6 +25,16 @@ export function CreateEventNavigation({
     }
   }
 
+  const isLastStep = currentStep >= steps.length
+  
+  // Debug: log to see what's happening
+  console.log('Navigation Debug:', { 
+    currentStep, 
+    stepsLength: steps.length, 
+    isLastStep,
+    steps: steps 
+  })
+
   return (
     <div className="flex items-center justify-between">
       <Button
@@ -36,15 +46,15 @@ export function CreateEventNavigation({
       </Button>
 
       <div className="flex items-center space-x-2">
-        {currentStep < steps.length ? (
+        {!isLastStep ? (
           <Button
             onClick={handleNext}
-            className="bg-events-500 hover:bg-events-600"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             Next Step
           </Button>
         ) : (
-          <Button onClick={handleSubmit} className="bg-events-500 hover:bg-events-600">
+          <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700 text-white">
             Save Event Draft
           </Button>
         )}
