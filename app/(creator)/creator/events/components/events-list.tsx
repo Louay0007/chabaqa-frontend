@@ -354,9 +354,9 @@ function EventDetails({ event }: { event: Event }) {
             </div>
           )}
           {event.onlineUrl && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Online URL:</span>
-              <span className="truncate max-w-[180px]">{event.onlineUrl}</span>
+            <div className="flex justify-between gap-2">
+              <span className="text-muted-foreground flex-shrink-0">Online URL:</span>
+              <span className="truncate text-right">{event.onlineUrl}</span>
             </div>
           )}
         </div>

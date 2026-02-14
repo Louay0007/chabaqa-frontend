@@ -78,8 +78,9 @@ export function ReviewPublishStep({
                   <strong>Venue:</strong> {formData.location || "Not set"}
                 </div>
                 {formData.onlineUrl && (
-                  <div>
-                    <strong>Online URL:</strong> {formData.onlineUrl}
+                  <div className="break-all">
+                    <strong>Online URL:</strong>{" "}
+                    <span className="text-blue-600 hover:underline">{formData.onlineUrl}</span>
                   </div>
                 )}
               </div>
