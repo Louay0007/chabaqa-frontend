@@ -22,12 +22,14 @@ interface AuthContextValue {
   login: (payload: { email: string; password: string }) => Promise<void>
   logout: () => Promise<void>
   fetchMe: () => Promise<User | null>
+  token?: string | null
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
@@ -37,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchMe = useCallback(async () => {
     try {
       const token = localStorage.getItem('accessToken')
+      setToken(token)
       if (!token) {
         setUser(null)
         setLoading(false)
@@ -105,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       localStorage.setItem('accessToken', accessToken)
       localStorage.setItem('user', JSON.stringify(user))
+      setToken(accessToken)
       const normalizedUser = normalizeUser(user)
       setUser(normalizedUser)
 
@@ -147,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.user && data.accessToken) {
         localStorage.setItem('accessToken', data.accessToken)
         localStorage.setItem('user', JSON.stringify(data.user))
+        setToken(data.accessToken)
         const normalizedUser = normalizeUser(data.user)
         setUser(normalizedUser)
         router.push('/explore')
@@ -166,6 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('user')
       localStorage.removeItem('auth-preferences')
       localStorage.removeItem('user-session')
+      setToken(null)
 
       // Clear anything else that might have been set
       if (typeof window !== 'undefined') {
@@ -210,7 +216,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     fetchMe,
-  }), [user, loading, error, isAuthenticated, register, login, logout, fetchMe])
+    token,
+  }), [user, loading, error, isAuthenticated, register, login, logout, fetchMe, token])
 
   return (
     <AuthContext.Provider value={value}>

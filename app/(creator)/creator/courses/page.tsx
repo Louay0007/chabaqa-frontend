@@ -17,6 +17,10 @@ export default function CreatorCoursesPage() {
   const [loading, setLoading] = useState(true)
   const [topCourses, setTopCourses] = useState<any[]>([])
 
+  const handleDeleted = (courseId: string) => {
+    setCourses((prev) => prev.filter((c) => String(c._id || c.mongoId || c.id) !== String(courseId)))
+  }
+
   // Reload when community changes
   useEffect(() => {
     if (communityLoading || !selectedCommunityId) return
@@ -66,7 +70,7 @@ export default function CreatorCoursesPage() {
       <CreatorCoursesHeader />
       <CreatorCoursesStats allCourses={courses} />
       <CreatorCoursesSearch />
-      <CreatorCoursesTabs allCourses={courses} />
+      <CreatorCoursesTabs allCourses={courses} onDeleted={handleDeleted} />
       {topCourses.length > 0 && <CreatorCoursesPerformance topCourses={topCourses} />}
       {(!loading && courses.length === 0) && (
         <div className="text-sm text-muted-foreground">No courses yet. Create your first course.</div>

@@ -11,6 +11,30 @@ import { Switch } from "@/components/ui/switch"
 import { useState } from "react"
 import { apiClient } from "@/lib/api/client"
 
+function ensureAbsoluteUploadUrl(value: unknown): string {
+  const v = typeof value === 'string' ? value.trim() : ''
+  if (!v) return ''
+  if (/^https?:\/\//i.test(v)) return v
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || ""
+  const inferredOrigin = apiBase ? apiBase.replace(/\/api$/, "") : ""
+  const origin = inferredOrigin && !/^https?:\/\/localhost(:\d+)?$/i.test(inferredOrigin)
+    ? inferredOrigin
+    : "https://api.chabaqa.io"
+  if (v.startsWith("/")) return `${origin}${v}`
+  return `${origin}/${v}`
+}
+
+function extractUploadedUrl(result: any): string {
+  return (
+    result?.url ||
+    result?.data?.url ||
+    result?.data?.data?.url ||
+    result?.file?.url ||
+    result?.data?.file?.url ||
+    ""
+  )
+}
+
 interface CourseChapterForm {
   id: string
   title: string
@@ -63,11 +87,13 @@ export function CourseContentStep({
     try {
       const result = await apiClient.uploadFile<{ url: string }>("/upload/video", file, "video")
       console.log('✅ [VIDEO UPLOAD] Upload successful:', result)
-      console.log('   🔗 URL received:', result?.url)
+      const rawUrl = extractUploadedUrl(result)
+      const url = ensureAbsoluteUploadUrl(rawUrl)
+      console.log('   🔗 URL received:', url)
       
-      if (result?.url) {
-        updateChapter(sectionId, chapterId, "videoUrl", result.url)
-        console.log('✅ [VIDEO UPLOAD] Video URL set in chapter state:', result.url)
+      if (url) {
+        updateChapter(sectionId, chapterId, "videoUrl", url)
+        console.log('✅ [VIDEO UPLOAD] Video URL set in chapter state:', url)
       } else {
         console.error('❌ [VIDEO UPLOAD] No URL in response:', result)
       }

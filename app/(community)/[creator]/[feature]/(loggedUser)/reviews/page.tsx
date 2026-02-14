@@ -8,13 +8,14 @@ import { Button } from "@/components/ui/button"
 import { CommunityReviewsSection } from "@/components/reviews/community-reviews-section"
 import { communitiesApi } from "@/lib/api/communities.api"
 import { StarRating } from "@/components/reviews/star-rating"
+import { feedbackApi, FeedbackStats } from "@/lib/api/feedback.api"
 
 interface Community {
-  id: string
-  _id?: string
-  name: string
-  averageRating?: number
-  ratingCount?: number
+  id: string;
+  _id?: string;
+  name: string;
+  averageRating?: number;
+  ratingCount?: number;
 }
 
 export default function CommunityReviewsPage({ params }: { params: Promise<{ creator?: string; feature: string }> }) {
@@ -24,13 +25,23 @@ export default function CommunityReviewsPage({ params }: { params: Promise<{ cre
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [community, setCommunity] = useState<Community | null>(null)
+  const [stats, setStats] = useState<FeedbackStats | null>(null)
 
   const fetchCommunity = async () => {
     try {
       setLoading(true)
       setError(null)
       const response = await communitiesApi.getBySlug(feature)
-      setCommunity(response.data)
+      const communityData = response.data
+      setCommunity(communityData)
+
+      const communityId = communityData?._id || communityData?.id
+      if (communityId) {
+        const statsData = await feedbackApi.getStats('Community', String(communityId))
+        setStats(statsData)
+      } else {
+        setStats(null)
+      }
     } catch (err: any) {
       console.error('Error fetching community:', err)
       setError(err.message || 'Failed to load community')
@@ -72,6 +83,8 @@ export default function CommunityReviewsPage({ params }: { params: Promise<{ cre
   }
 
   const communityId = community._id || community.id
+  const averageRating = stats?.averageRating ?? community.averageRating ?? 0
+  const ratingCount = stats?.ratingCount ?? community.ratingCount ?? 0
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -82,12 +95,12 @@ export default function CommunityReviewsPage({ params }: { params: Promise<{ cre
             {community.name} Reviews
           </h1>
           <div className="flex items-center gap-3">
-            {community.averageRating !== undefined && community.averageRating > 0 ? (
+            {averageRating > 0 ? (
               <>
-                <StarRating rating={community.averageRating} size="md" />
-                <span className="text-lg font-semibold">{community.averageRating.toFixed(1)}</span>
+                <StarRating rating={averageRating} size="md" />
+                <span className="text-lg font-semibold">{averageRating.toFixed(1)}</span>
                 <span className="text-muted-foreground">
-                  ({community.ratingCount || 0} {community.ratingCount === 1 ? 'review' : 'reviews'})
+                  ({ratingCount} {ratingCount === 1 ? 'review' : 'reviews'})
                 </span>
               </>
             ) : (

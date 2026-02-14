@@ -145,84 +145,122 @@ export default function CourseDetailsSidebar({
 
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center">
+          <CardTitle className="flex items-center text-lg">
             <Award className="h-5 w-5 mr-2 text-yellow-500" />
             What You'll Learn
           </CardTitle>
         </CardHeader>
         <CardContent>
           {course.learningObjectives && course.learningObjectives.length > 0 ? (
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-3">
               {course.learningObjectives.map((objective: string, index: number) => (
-                <li key={index} className="flex items-start">
+                <li key={index} className="flex items-start text-sm text-muted-foreground">
                   <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                  {objective}
+                  <span>{objective}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground italic">
-              No learning objectives specified for this course yet.
-            </p>
+            <ul className="space-y-3">
+              {[
+                "Master the core concepts and advanced techniques",
+                "Build real-world projects from scratch",
+                "Best practices and industry standards",
+                "Troubleshooting and debugging skills"
+              ].map((objective, index) => (
+                <li key={index} className="flex items-start text-sm text-muted-foreground">
+                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                  <span>{objective}</span>
+                </li>
+              ))}
+            </ul>
           )}
         </CardContent>
       </Card>
 
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center">
+          <CardTitle className="flex items-center text-lg">
             <FileText className="h-5 w-5 mr-2 text-blue-500" />
             Course Resources
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
           {course.ressources && course.ressources.length > 0 ? (
-            course.ressources.map((resource: any) => (
-              <div key={resource.id} className="flex items-center justify-between text-sm">
-                <span className="flex items-center">
-                  <Download className="h-4 w-4 mr-2" />
-                  {resource.titre || resource.title}
-                </span>
-                {resource.url && (
-                  <Button variant="ghost" size="sm" asChild disabled={!isEnrolled}>
-                    <a href={resource.url} target="_blank" rel="noopener noreferrer">
-                      {resource.type === 'link' || resource.type === 'lien' ? 'Open' : 'Download'}
-                    </a>
-                  </Button>
-                )}
-              </div>
-            ))
+            <div className="space-y-3">
+              {course.ressources.map((resource: any, index: number) => (
+                <div key={resource.id || index} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="h-8 w-8 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0">
+                      {resource.type === 'video' ? <PlayCircle className="h-4 w-4 text-blue-600" /> : 
+                       resource.type === 'link' ? <Link className="h-4 w-4 text-blue-600" /> :
+                       <FileText className="h-4 w-4 text-blue-600" />}
+                    </div>
+                    <span className="text-sm font-medium truncate">
+                      {resource.titre || resource.title || `Resource ${index + 1}`}
+                    </span>
+                  </div>
+                  {resource.url && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8" asChild disabled={!isEnrolled}>
+                      <a href={resource.url} target="_blank" rel="noopener noreferrer">
+                        {resource.type === 'link' || resource.type === 'lien' ? 
+                          <Link className="h-4 w-4" /> : 
+                          <Download className="h-4 w-4" />
+                        }
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
           ) : (
-            <>
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center">
-                  <Download className="h-4 w-4 mr-2" />
-                  Source Code
-                </span>
-                <Button variant="ghost" size="sm" disabled={!isEnrolled}>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">Source Code</span>
+                    <span className="text-xs text-muted-foreground">Complete project files</span>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" className="h-8" disabled={!isEnrolled}>
                   Download
                 </Button>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Course Notes
-                </span>
-                <Button variant="ghost" size="sm" disabled={!isEnrolled}>
+              
+              <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-md bg-purple-50 flex items-center justify-center flex-shrink-0">
+                    <BookOpen className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">Course Slides</span>
+                    <span className="text-xs text-muted-foreground">PDF presentation decks</span>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" className="h-8" disabled={!isEnrolled}>
                   View
                 </Button>
               </div>
-            </>
+
+              <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-md bg-yellow-50 flex items-center justify-center flex-shrink-0">
+                    <Award className="h-4 w-4 text-yellow-600" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">Certificate</span>
+                    <span className="text-xs text-muted-foreground">Upon completion</span>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" className="h-8" disabled={!isEnrolled}>
+                  View
+                </Button>
+              </div>
+            </div>
           )}
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center">
-              <Award className="h-4 w-4 mr-2" />
-              Certificate
-            </span>
-            <Button variant="ghost" size="sm" disabled={!isEnrolled}>
-              Earn
-            </Button>
-          </div>
         </CardContent>
       </Card>
 

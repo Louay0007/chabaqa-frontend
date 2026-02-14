@@ -4,6 +4,7 @@ import Script from "next/script"
 import "../globals.css"
 import { AuthProvider } from "@/app/providers/auth-provider"
 import { CommunityProvider } from "@/app/providers/community-context"
+import { SocketProvider } from "@/lib/socket-context"
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
@@ -41,10 +42,12 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning>
         <AuthProvider>
-          <CommunityProvider>
-            {children}
-            <Toaster />
-          </CommunityProvider>
+          <SocketProvider>
+            <CommunityProvider>
+              {children}
+              <Toaster />
+            </CommunityProvider>
+          </SocketProvider>
         </AuthProvider>
       </body>
     </html>

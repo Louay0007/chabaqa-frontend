@@ -5,7 +5,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Upload, X, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { apiClient } from "@/lib/api/client"
+import { storageApi } from "@/lib/api/storage.api"
 
 interface ThumbnailUploadProps {
   value: string
@@ -47,10 +47,11 @@ export function ThumbnailUpload({ value, onChange }: ThumbnailUploadProps) {
     setIsUploading(true)
 
     try {
-      // Use apiClient for authenticated upload with correct field name
-      const result = await apiClient.uploadFile('/upload/image', file, 'image') as { url: string }
-
-      const imageUrl = result.url
+      const uploaded = await storageApi.uploadImage(file)
+      const imageUrl = uploaded.url
+      if (!imageUrl) {
+        throw new Error('Upload succeeded but no URL was returned')
+      }
       setPreview(imageUrl)
       onChange(imageUrl)
 

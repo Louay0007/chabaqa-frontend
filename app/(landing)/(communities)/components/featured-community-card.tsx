@@ -19,9 +19,14 @@ export function FeaturedCommunityCard({ community, index, slug }: FeaturedCommun
   const router = useRouter()
 
   const formatMembers = (count: number) => (count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count.toString())
-  const formatPrice = (price: number, type: string) => {
-    if (type === "free") return "Free"
-    return `$${price}/${type === "monthly" ? "mo" : type}`
+  const formatPrice = (price: number | undefined, type: string) => {
+    const p = typeof price === "number" && Number.isFinite(price) ? price : 0
+    if (type === "free" || p === 0) return "Free"
+    if (type === "paid") return `$${p}`
+    if (type === "monthly") return `$${p}/mo`
+    if (type === "yearly") return `$${p}/yr`
+    if (type === "hourly") return `$${p}/hr`
+    return `$${p}`
   }
 
   // Get type-specific styling and CTA text

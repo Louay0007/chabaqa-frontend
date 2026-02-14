@@ -42,26 +42,34 @@ export interface UpdateFeedbackData {
  * Feedback API Service
  */
 export const feedbackApi = {
+  unwrap: <T>(response: any): T => {
+    if (response && typeof response === 'object' && 'data' in response) {
+      return (response as ApiSuccessResponse<T>).data;
+    }
+    return response as T;
+  },
   /**
    * Create new feedback
    */
-  create: async (data: CreateFeedbackData): Promise<ApiSuccessResponse<Feedback>> => {
-    return apiClient.post<ApiSuccessResponse<Feedback>>('/feedback', data);
+  create: async (data: CreateFeedbackData): Promise<Feedback> => {
+    const response = await apiClient.post<ApiSuccessResponse<Feedback> | Feedback>('/feedback', data);
+    return feedbackApi.unwrap<Feedback>(response);
   },
 
   /**
    * Update existing feedback
    */
-  update: async (feedbackId: string, data: UpdateFeedbackData): Promise<ApiSuccessResponse<Feedback>> => {
-    return apiClient.put<ApiSuccessResponse<Feedback>>(`/feedback/${feedbackId}`, data);
+  update: async (feedbackId: string, data: UpdateFeedbackData): Promise<Feedback> => {
+    const response = await apiClient.put<ApiSuccessResponse<Feedback> | Feedback>(`/feedback/${feedbackId}`, data);
+    return feedbackApi.unwrap<Feedback>(response);
   },
 
   /**
    * Get all feedback for an item
    */
   getByRelated: async (relatedModel: string, relatedTo: string): Promise<Feedback[]> => {
-    const response = await apiClient.get<Feedback[]>(`/feedback/${relatedModel}/${relatedTo}`);
-    return response as unknown as Feedback[];
+    const response = await apiClient.get<ApiSuccessResponse<Feedback[]> | Feedback[]>(`/feedback/${relatedModel}/${relatedTo}`);
+    return feedbackApi.unwrap<Feedback[]>(response);
   },
 
   /**
@@ -69,8 +77,8 @@ export const feedbackApi = {
    */
   getMyFeedback: async (relatedModel: string, relatedTo: string): Promise<Feedback | null> => {
     try {
-      const response = await apiClient.get<Feedback>(`/feedback/${relatedModel}/${relatedTo}/my`);
-      return response as unknown as Feedback;
+      const response = await apiClient.get<ApiSuccessResponse<Feedback> | Feedback>(`/feedback/${relatedModel}/${relatedTo}/my`);
+      return feedbackApi.unwrap<Feedback>(response);
     } catch {
       return null;
     }
@@ -80,7 +88,7 @@ export const feedbackApi = {
    * Get feedback statistics for an item
    */
   getStats: async (relatedModel: string, relatedTo: string): Promise<FeedbackStats> => {
-    const response = await apiClient.get<FeedbackStats>(`/feedback/${relatedModel}/${relatedTo}/stats`);
-    return response as unknown as FeedbackStats;
+    const response = await apiClient.get<ApiSuccessResponse<FeedbackStats> | FeedbackStats>(`/feedback/${relatedModel}/${relatedTo}/stats`);
+    return feedbackApi.unwrap<FeedbackStats>(response);
   },
 };

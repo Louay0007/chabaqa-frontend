@@ -32,6 +32,31 @@ const mapPriceType = (type: string): "free" | "paid" | "monthly" | "yearly" | "h
   return "paid" // default fallback
 }
 
+function normalizePrice(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const n = Number(value)
+    if (Number.isFinite(n)) return n
+  }
+  return 0
+}
+
+async function getFeedbackAverageRatingForCommunity(communityId: string): Promise<number | null> {
+  try {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+    const url = `${apiBase}/feedback/Community/${encodeURIComponent(communityId)}/stats`
+
+    const res = await fetch(url, { cache: 'no-store' })
+    if (!res.ok) return null
+
+    const json = await res.json()
+    const avg = json?.data?.averageRating
+    return typeof avg === 'number' ? avg : null
+  } catch {
+    return null
+  }
+}
+
 // Transform API Community to Explore format
 function transformCommunityToExplore(community: Community): Explore {
   const primaryImage = resolveImageUrl(
@@ -46,7 +71,7 @@ function transformCommunityToExplore(community: Community): Explore {
   )
 
   return {
-    id: community.id,
+    id: String((community as any)._id || community.id),
     type: "community",
     name: community.name,
     slug: community.slug,
@@ -58,8 +83,8 @@ function transformCommunityToExplore(community: Community): Explore {
     rating: (community as any).averageRating || community.rating || 0,
     tags: community.tags,
     verified: community.verified,
-    price: community.price,
-    priceType: mapPriceType(community.priceType),
+    price: normalizePrice((community as any).price),
+    priceType: mapPriceType(String((community as any).priceType || 'free')),
     image: primaryImage,
     featured: community.featured,
     link: `/${community.creator?.name || (community as any).creator}/${community.slug}`
@@ -81,11 +106,11 @@ function transformCourseToExplore(course: Course): Explore {
     description: course.description,
     category: (course as any).category || 'Education',
     members: course.enrollmentCount || 0,
-    rating: course.rating || 0,
+    rating: (course as any).averageRating || course.rating || 0,
     tags: (course as any).tags || [course.level],
     verified: (course as any).verified || false,
-    price: course.price,
-    priceType: course.priceType === "free" ? "free" : "paid",
+    price: normalizePrice((course as any).price),
+    priceType: (String((course as any).priceType || '').toLowerCase() === 'free' || normalizePrice((course as any).price) === 0) ? "free" : "paid",
     image,
     featured: (course as any).featured || false,
     link: `/courses/${course.slug}`
@@ -107,11 +132,11 @@ function transformChallengeToExplore(challenge: Challenge): Explore {
     description: challenge.description,
     category: challenge.category || 'Challenge',
     members: challenge.participantCount || 0,
-    rating: (challenge as any).rating || 0,
+    rating: (challenge as any).averageRating || (challenge as any).rating || 0,
     tags: (challenge as any).tags || [challenge.difficulty],
     verified: (challenge as any).verified || false,
-    price: challenge.pricing?.participationFee || 0,
-    priceType: challenge.pricing?.participationFee ? "paid" : "free",
+    price: normalizePrice((challenge as any).pricing?.participationFee),
+    priceType: normalizePrice((challenge as any).pricing?.participationFee) > 0 ? "paid" : "free",
     image,
     featured: (challenge as any).featured || false,
     link: `/challenges/${challenge.slug || challenge.id}`
@@ -133,10 +158,10 @@ function transformProductToExplore(product: Product): Explore {
     description: product.description,
     category: (product as any).category || 'Product',
     members: 0,
-    rating: product.rating || 0,
+    rating: (product as any).averageRating || product.rating || 0,
     tags: (product as any).tags || [product.type],
     verified: (product as any).verified || false,
-    price: product.price,
+    price: normalizePrice((product as any).price),
     priceType: "paid",
     image,
     featured: (product as any).featured || false,
@@ -159,10 +184,10 @@ function transformSessionToExplore(session: Session): Explore {
     description: session.description,
     category: (session as any).category || 'Mentorship',
     members: session.bookedSlots || 0,
-    rating: (session as any).rating || 0,
+    rating: (session as any).averageRating || (session as any).rating || 0,
     tags: (session as any).tags || ['1-on-1', 'Mentorship'],
     verified: (session as any).verified || false,
-    price: session.price,
+    price: normalizePrice((session as any).price),
     priceType: "hourly",
     image,
     featured: (session as any).featured || false,
@@ -185,11 +210,11 @@ function transformEventToExplore(event: Event): Explore {
     description: event.description,
     category: event.category || 'Event',
     members: event.currentAttendees || event.attendeesCount || 0,
-    rating: (event as any).rating || 0,
+    rating: (event as any).averageRating || (event as any).rating || 0,
     tags: event.tags || [event.type || 'Event'],
     verified: (event as any).verified || false,
-    price: event.price || 0,
-    priceType: event.price ? "paid" : "free",
+    price: normalizePrice((event as any).price),
+    priceType: normalizePrice((event as any).price) > 0 ? "paid" : "free",
     image,
     featured: (event as any).featured || false,
     link: `/events/${event.slug}`
@@ -291,7 +316,16 @@ export default async function CommunitiesPage() {
     if (communitiesRes.status === 'fulfilled') {
       const data = extractArray(communitiesRes.value, 'Communities')
       const communities = data.map(transformCommunityToExplore)
-      allExploreItems.push(...communities)
+
+      // Override rating using feedback stats to keep Explore perfectly synced with Reviews
+      const enrichedCommunities = await Promise.all(
+        communities.map(async (c) => {
+          const avg = await getFeedbackAverageRatingForCommunity(String(c.id))
+          return avg === null ? c : { ...c, rating: avg }
+        })
+      )
+
+      allExploreItems.push(...enrichedCommunities)
       console.log(`✓ Added ${communities.length} communities`)
     } else {
       console.error('Communities fetch failed:', communitiesRes.reason)

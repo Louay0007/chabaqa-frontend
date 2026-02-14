@@ -11,9 +11,10 @@ import { Course } from "@/lib/models"
 
 interface CreatorCoursesTabsProps {
   allCourses: Course[]
+  onDeleted?: (courseId: string) => void
 }
 
-export function CreatorCoursesTabs({ allCourses }: CreatorCoursesTabsProps) {
+export function CreatorCoursesTabs({ allCourses, onDeleted }: CreatorCoursesTabsProps) {
   const [activeTab, setActiveTab] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
 
@@ -71,7 +72,7 @@ export function CreatorCoursesTabs({ allCourses }: CreatorCoursesTabsProps) {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredCourses.map((course) => (
-              <CourseCard key={course.id} course={course} />
+              <CourseCard key={course.id} course={course} onDeleted={onDeleted} />
             ))}
           </div>
         )}

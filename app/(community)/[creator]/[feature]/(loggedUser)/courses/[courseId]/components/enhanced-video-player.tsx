@@ -87,12 +87,21 @@ export default function EnhancedVideoPlayer({
            return rawVideoUrl
          }
          
-         // If it's a full URL (production), strip origin to force relative path
+         // If it's a full URL, only strip origin when it's same-origin.
+         // Cross-origin absolute URLs (e.g. https://api.chabaqa.io/uploads/...) must remain absolute
+         // otherwise the browser will request the file from the frontend domain.
          if (rawVideoUrl.startsWith('http')) {
-            const urlObj = new URL(rawVideoUrl);
-            const relativePath = urlObj.pathname + urlObj.search;
-            console.log('🔧 [VideoPlayer] Converting to relative path:', relativePath)
-            return relativePath;
+            const urlObj = new URL(rawVideoUrl)
+            if (typeof window !== 'undefined') {
+              const sameOrigin = urlObj.origin === window.location.origin
+              if (sameOrigin) {
+                const relativePath = urlObj.pathname + urlObj.search
+                console.log('🔧 [VideoPlayer] Converting to relative path:', relativePath)
+                return relativePath
+              }
+            }
+            console.log('🔧 [VideoPlayer] Keeping absolute URL:', rawVideoUrl)
+            return rawVideoUrl
          }
          
          // Ensure it starts with /

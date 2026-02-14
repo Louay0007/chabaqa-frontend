@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Star } from "lucide-react"
 
@@ -55,11 +54,6 @@ return (
         <Star className="h-4 w-4 text-yellow-500 mr-1 fill-yellow-500" />
         {ratingCount > 0 ? `${averageRating.toFixed(1)} (${ratingCount} ${ratingCount === 1 ? 'review' : 'reviews'})` : "No reviews yet"}
       </div>
-    </div>
-
-    {/* Progress Bar */}
-    <div className="w-full sm:w-32 mt-2 sm:mt-0">
-      <Progress value={displayProgress} className="h-2" />
     </div>
   </div>
 );

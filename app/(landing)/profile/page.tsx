@@ -35,6 +35,7 @@ import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { getProfile } from "@/lib/auth"
+import { tokenManager } from "@/lib/token-manager"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { LoginForm } from "@/components/login-form"
@@ -325,6 +326,11 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
   const [communitiesPage, setCommunitiesPage] = useState(1)
   const [communitiesTotalPages, setCommunitiesTotalPages] = useState(1)
 
+  const [fetchedAchievements, setFetchedAchievements] = useState<any[]>([])
+  const [achievementsLoading, setAchievementsLoading] = useState(false)
+  const [fetchedActivity, setFetchedActivity] = useState<any[]>([])
+  const [activityLoading, setActivityLoading] = useState(false)
+
   // Fetch user data
   useEffect(() => {
     const fetchUser = async () => {
@@ -550,6 +556,58 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
     fetchCommunities()
   }, [user, communitiesPage])
 
+  // Fetch user achievements
+  useEffect(() => {
+    const fetchAchievements = async () => {
+      if (!user?._id && !user?.id) return
+      try {
+        setAchievementsLoading(true)
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+        const token = tokenManager.getAccessToken()
+        const headers: HeadersInit = { 'Content-Type': 'application/json' }
+        if (token) headers['Authorization'] = `Bearer ${token}`
+
+        const res = await fetch(`${apiBase}/achievements/user`, { headers })
+        if (res.ok) {
+          const data = await res.json()
+          // Filter for unlocked ones
+          const unlocked = (Array.isArray(data) ? data : []).filter((a: any) => a.isUnlocked)
+          setFetchedAchievements(unlocked)
+        }
+      } catch (error) {
+        console.error("Error fetching achievements:", error)
+      } finally {
+        setAchievementsLoading(false)
+      }
+    }
+    fetchAchievements()
+  }, [user])
+
+  // Fetch user recent activity
+  useEffect(() => {
+    const fetchActivity = async () => {
+      if (!user?._id && !user?.id) return
+      try {
+        setActivityLoading(true)
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+        const token = tokenManager.getAccessToken()
+        const headers: HeadersInit = { 'Content-Type': 'application/json' }
+        if (token) headers['Authorization'] = `Bearer ${token}`
+
+        const res = await fetch(`${apiBase}/tracking/user/actions/recent?limit=5`, { headers })
+        if (res.ok) {
+          const data = await res.json()
+          setFetchedActivity(Array.isArray(data) ? data : [])
+        }
+      } catch (error) {
+        console.error("Error fetching activity:", error)
+      } finally {
+        setActivityLoading(false)
+      }
+    }
+    fetchActivity()
+  }, [user])
+
 
   // Current authenticated user only (no mock fallback)
   const currentUser = user
@@ -605,6 +663,9 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                       <p className="text-text-secondary text-base flex items-center gap-1.5 mt-1">
                         <MapPin className="w-4 h-4" /> {[currentUser?.ville, currentUser?.pays].filter(Boolean).join(', ') || '—'}
                       </p>
+                      {currentUser?.bio && (
+                        <p className="text-text-secondary text-sm mt-3 max-w-lg leading-relaxed">{currentUser.bio}</p>
+                      )}
                     </div>
                   </div>
                   {isOwnProfile && (
@@ -1188,42 +1249,97 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
             <aside className="w-full max-w-xs hidden lg:flex flex-col gap-6">
               <div className="border border-border-color rounded-xl p-6 bg-white shadow-subtle">
                 <h2 className="text-xl font-bold">Achievements</h2>
-                <div className="grid grid-cols-4 gap-4 mt-4">
-                  <div className="bg-gray-100 p-3 rounded-lg flex items-center justify-center aspect-square"><GraduationCap className="w-7 h-7" style={{ color: '#47c7ea' }} /></div>
-                  <div className="bg-gray-100 p-3 rounded-lg flex items-center justify-center aspect-square"><Award className="w-7 h-7" style={{ color: '#ff9b28' }} /></div>
-                  <div className="bg-gray-100 p-3 rounded-lg flex items-center justify-center aspect-square"><ShieldCheck className="w-7 h-7" style={{ color: '#f65887' }} /></div>
-                  <div className="bg-gray-100 p-3 rounded-lg flex items-center justify-center aspect-square"><Calendar className="w-7 h-7 text-primary" /></div>
-                  <div className="bg-gray-100 p-3 rounded-lg flex items-center justify-center aspect-square"><Lock className="w-7 h-7 text-gray-400" /></div>
-                  <div className="bg-gray-100 p-3 rounded-lg flex items-center justify-center aspect-square"><Lock className="w-7 h-7 text-gray-400" /></div>
-                  <div className="bg-gray-100 p-3 rounded-lg flex items-center justify-center aspect-square"><Lock className="w-7 h-7 text-gray-400" /></div>
-                  <div className="bg-gray-100 p-3 rounded-lg flex items-center justify-center aspect-square"><Lock className="w-7 h-7 text-gray-400" /></div>
-                </div>
+                {achievementsLoading ? (
+                  <div className="grid grid-cols-4 gap-4 mt-4 animate-pulse">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="bg-gray-200 rounded-lg aspect-square" />
+                    ))}
+                  </div>
+                ) : fetchedAchievements.length > 0 ? (
+                  <div className="grid grid-cols-4 gap-4 mt-4">
+                    {fetchedAchievements.slice(0, 8).map((ach) => (
+                      <div key={ach.id} className="bg-gray-50 p-3 rounded-lg flex items-center justify-center aspect-square group relative hover:bg-gray-100 transition-colors" title={ach.name}>
+                        {ach.icon ? (
+                          <img src={ach.icon} alt={ach.name} className="w-7 h-7 object-contain" />
+                        ) : (
+                          <Trophy className="w-7 h-7 text-primary" />
+                        )}
+                        {/* Tooltip on hover */}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                          {ach.name}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-text-secondary text-sm mt-4">No achievements yet.</p>
+                )}
               </div>
               <div className="border border-border-color rounded-xl p-6 bg-white shadow-subtle">
                 <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
-                <ul className="space-y-4">
-                  <li className="flex items-start gap-3">
-                    <div className="bg-[#47c7ea]/10 text-[#47c7ea] rounded-full p-2 flex items-center justify-center"><Check className="w-4 h-4" /></div>
-                    <div>
-                      <p className="text-sm font-medium">Completed 'Advanced CSS' course</p>
-                      <p className="text-xs text-muted-foreground">2 hours ago</p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <div className="bg-[#ff9b28]/10 text-[#ff9b28] rounded-full p-2 flex items-center justify-center"><Flag className="w-4 h-4" /></div>
-                    <div>
-                      <p className="text-sm font-medium">Joined the 'JS Masters' challenge</p>
-                      <p className="text-xs text-muted-foreground">1 day ago</p>
-                    </div>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <div className="bg-[#f65887]/10 text-[#f65887] rounded-full p-2 flex items-center justify-center"><Users className="w-4 h-4" /></div>
-                    <div>
-                      <p className="text-sm font-medium">Attended 'Design Systems' session</p>
-                      <p className="text-xs text-muted-foreground">3 days ago</p>
-                    </div>
-                  </li>
-                </ul>
+                {activityLoading ? (
+                  <div className="space-y-4 animate-pulse">
+                     {Array.from({ length: 3 }).map((_, i) => (
+                       <div key={i} className="flex items-start gap-3">
+                         <div className="w-8 h-8 bg-gray-200 rounded-full" />
+                         <div className="flex-1 space-y-2">
+                           <div className="h-3 bg-gray-200 rounded w-3/4" />
+                           <div className="h-2 bg-gray-200 rounded w-1/4" />
+                         </div>
+                       </div>
+                     ))}
+                  </div>
+                ) : fetchedActivity.length > 0 ? (
+                  <ul className="space-y-4">
+                    {fetchedActivity.map((action) => {
+                      const actionMap: any = {
+                        'view': { label: 'Viewed', icon: Users, color: '#47c7ea' },
+                        'start': { label: 'Started', icon: Flag, color: '#ff9b28' },
+                        'complete': { label: 'Completed', icon: Check, color: '#10b981' },
+                        'like': { label: 'Liked', icon: Star, color: '#f65887' },
+                        'share': { label: 'Shared', icon: MessageSquare, color: '#8e78fb' },
+                        'download': { label: 'Downloaded', icon: Trophy, color: '#6366f1' },
+                        'bookmark': { label: 'Bookmarked', icon: Lock, color: '#f59e0b' },
+                        'comment': { label: 'Commented on', icon: MessageSquare, color: '#ec4899' },
+                        'rate': { label: 'Rated', icon: Star, color: '#eab308' },
+                      };
+                      const config = actionMap[action.actionType] || { label: 'Acted on', icon: Zap, color: '#9ca3af' };
+                      const Icon = config.icon;
+                      
+                      // Calculate time ago
+                      const timeAgo = (date: string) => {
+                        const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
+                        let interval = seconds / 31536000;
+                        if (interval > 1) return Math.floor(interval) + " years ago";
+                        interval = seconds / 2592000;
+                        if (interval > 1) return Math.floor(interval) + " months ago";
+                        interval = seconds / 86400;
+                        if (interval > 1) return Math.floor(interval) + " days ago";
+                        interval = seconds / 3600;
+                        if (interval > 1) return Math.floor(interval) + " hours ago";
+                        interval = seconds / 60;
+                        if (interval > 1) return Math.floor(interval) + " minutes ago";
+                        return Math.floor(seconds) + " seconds ago";
+                      };
+
+                      return (
+                        <li key={action.id || action._id} className="flex items-start gap-3">
+                          <div className={`rounded-full p-2 flex items-center justify-center bg-opacity-10`} style={{ backgroundColor: `${config.color}20`, color: config.color }}>
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">
+                              {config.label} {action.contentDetails?.title ? `'${action.contentDetails.title}'` : 'an item'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{timeAgo(action.timestamp || action.createdAt)}</p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="text-text-secondary text-sm">No recent activity.</p>
+                )}
               </div>
             </aside>
           </div>

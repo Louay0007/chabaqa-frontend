@@ -47,6 +47,27 @@ type ContentTabProps = {
   ) => Promise<void>
 }
 
+function ensureAbsoluteUploadUrl(value: unknown): string {
+  const v = typeof value === 'string' ? value.trim() : ''
+  if (!v) return ''
+  if (/^https?:\/\//i.test(v)) return v
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+  const origin = apiBase.replace(/\/api$/, "")
+  if (v.startsWith("/")) return `${origin}${v}`
+  return `${origin}/${v}`
+}
+
+function extractUploadedUrl(result: any): string {
+  return (
+    result?.url ||
+    result?.data?.url ||
+    result?.data?.data?.url ||
+    result?.file?.url ||
+    result?.data?.file?.url ||
+    ""
+  )
+}
+
 export function ContentTab({
   course,
   courseId,
@@ -96,7 +117,9 @@ export function ContentTab({
     setIsUploading(true)
     try {
       const result = await apiClient.uploadFile<{ url: string }>("/upload/video", file, "video")
-      return result?.url ?? null
+      const rawUrl = extractUploadedUrl(result)
+      const url = ensureAbsoluteUploadUrl(rawUrl)
+      return url || null
     } finally {
       setIsUploading(false)
     }

@@ -6,14 +6,15 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://YOUR_VPS_IP:3000/api}
+        NEXT_PUBLIC_API_URL: https://api.chabaqa.io/api
     container_name: chabaqa-frontend
     restart: always
     ports:
       - "8080:8080"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://YOUR_VPS_IP:3000/api}
+      - NEXT_PUBLIC_API_URL=https://api.chabaqa.io/api
+      - NEXT_PUBLIC_APP_URL=https://chabaqa.io
       - HOSTNAME=0.0.0.0
     networks:
       - chabaqa-network

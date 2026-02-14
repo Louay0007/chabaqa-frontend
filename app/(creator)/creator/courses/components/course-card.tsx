@@ -14,13 +14,18 @@ import {
 import { BookOpen, Eye, Edit, Trash2, MoreHorizontal, Star, Users, PlayCircle } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { api } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
 
 interface CourseCardProps {
   course: any
+  onDeleted?: (courseId: string) => void
 }
 
-export function CourseCard({ course }: CourseCardProps) {
+export function CourseCard({ course, onDeleted }: CourseCardProps) {
+  const { toast } = useToast()
   const id = course.id || course._id
+  const deleteId = course._id || course.mongoId || course.id
   const sectionsCount: number = Array.isArray(course.sections) ? course.sections.length : (course.sectionsCount ?? 0)
   const chaptersTotal: number = Array.isArray(course.sections)
     ? course.sections.reduce((acc: number, s: any) => acc + (Array.isArray(s.chapitres) ? s.chapitres.length : (Array.isArray(s.chapters) ? s.chapters.length : 0)), 0)
@@ -58,6 +63,22 @@ export function CourseCard({ course }: CourseCardProps) {
     return { type: "paid", basePrice: coursePrice }
   }
 
+  const handleDelete = async () => {
+    if (!deleteId) {
+      toast({ title: 'Delete failed', description: 'Missing course id.', variant: 'destructive' as any })
+      return
+    }
+    const ok = typeof window !== 'undefined' ? window.confirm('Delete this course permanently?') : false
+    if (!ok) return
+    try {
+      await api.courses.delete(String(deleteId))
+      toast({ title: 'Course deleted' })
+      onDeleted?.(String(deleteId))
+    } catch (e: any) {
+      toast({ title: 'Delete failed', description: e?.message || 'Unable to delete course.', variant: 'destructive' as any })
+    }
+  }
+
   return (
     <EnhancedCard key={resolvedCourse.id} hover className="overflow-hidden">
       <div className="relative w-full aspect-video overflow-hidden">
@@ -93,19 +114,19 @@ export function CourseCard({ course }: CourseCardProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link href={`/creator/courses/${resolvedCourse.id}`}>
+                <Link href={`/creator/courses/${resolvedCourse.id}/manage`}>
                   <Eye className="mr-2 h-4 w-4" />
                   View Course
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href={`/creator/courses/${resolvedCourse.id}/edit`}>
+                <Link href={`/creator/courses/${resolvedCourse.id}/manage`}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Course
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">
+              <DropdownMenuItem className="text-red-600" onClick={handleDelete}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete Course
               </DropdownMenuItem>
