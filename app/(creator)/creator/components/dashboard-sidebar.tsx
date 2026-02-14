@@ -137,14 +137,21 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
       ],
     },
     {
-      title: "Automation",
+      title: "Marketing",
       icon: Zap,
       expandable: true,
-      section: "automation",
+      section: "marketing",
       items: [
-        { title: "Workflows", href: "/creator/automation/workflows", badge: 'soon' },
-        { title: "Email Campaigns", href: "/creator/automation/emails", badge: null },
+        { title: "Email Campaigns", href: "/creator/marketing/emails", badge: null },
+        { title: "Messages", href: "/creator/marketing/messages", badge: null },
+        { title: "WhatsApp", href: "/creator/marketing/whatsapp", badge: null },
       ],
+    },
+    {
+      title: "Integrations",
+      icon: Globe,
+      href: "/creator/integrations",
+      badge: 'soon',
     },
     {
       title: "Notifications",
@@ -294,13 +301,13 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
                     )}
                   </Button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-1 mt-1">
+                <CollapsibleContent className="space-y-1 mt-1 pl-2">
                   {item.items?.map((subItem) => (
                     <Link key={subItem.href} href={subItem.href}>
                       <Button
                         variant="ghost"
                         className={cn(
-                          "w-full justify-start text-left font-normal h-8 pl-8 text-xs",
+                          "w-full justify-start text-left font-normal h-8 pl-6 text-xs",
                           isActive(subItem.href) &&
                           "bg-chabaqa-primary/10 text-chabaqa-primary border-r-2 border-chabaqa-primary",
                         )}
