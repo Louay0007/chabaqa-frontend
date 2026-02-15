@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation"
 import { Loader2, AlertCircle, CheckCircle, Eye, EyeOff } from "lucide-react"
 import { signupAction } from "../signup/actions"
 import { signUpSchema, validatePasswordStrength, getPasswordStrengthLabel, getPasswordStrengthColor } from "@/lib/validation/auth.validation"
+import { PrivacyPolicyModal } from "./privacy-policy-modal"
+import { TermsModal } from "./terms-modal"
 
 interface SignUpFormProps {
   onSuccess?: () => void
@@ -30,6 +32,8 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
   const [error, setError] = useState("")
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] as string[] })
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false)
+  const [showTermsModal, setShowTermsModal] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -359,13 +363,27 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
           />
           <Label htmlFor="agreeToTerms" className="text-sm text-gray-700 cursor-pointer">
             I agree to the{" "}
-            <Link href="/terms" className="text-[#86e4fd] hover:text-[#74d4f0] font-medium">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                setShowTermsModal(true)
+              }}
+              className="text-[#86e4fd] hover:text-[#74d4f0] font-medium underline"
+            >
               Terms and Conditions
-            </Link>
+            </button>
             {" "}and{" "}
-            <Link href="/privacy" className="text-[#86e4fd] hover:text-[#74d4f0] font-medium">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                setShowPrivacyModal(true)
+              }}
+              className="text-[#86e4fd] hover:text-[#74d4f0] font-medium underline"
+            >
               Privacy Policy
-            </Link>
+            </button>
           </Label>
         </div>
         {fieldErrors.agreeToTerms && (
@@ -409,6 +427,10 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
           </Link>
         </div>
       </div>
+
+      {/* Modals */}
+      <PrivacyPolicyModal open={showPrivacyModal} onOpenChange={setShowPrivacyModal} />
+      <TermsModal open={showTermsModal} onOpenChange={setShowTermsModal} />
     </div>
   )
 }
