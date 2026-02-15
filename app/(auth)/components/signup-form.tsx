@@ -7,11 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Loader2, AlertCircle, CheckCircle, Eye, EyeOff } from "lucide-react"
+import { Loader2, AlertCircle, CheckCircle, Eye, EyeOff, X } from "lucide-react"
 import { signupAction } from "../signup/actions"
 import { signUpSchema, validatePasswordStrength, getPasswordStrengthLabel, getPasswordStrengthColor } from "@/lib/validation/auth.validation"
-import { PrivacyPolicyModal } from "./privacy-policy-modal"
-import { TermsModal } from "./terms-modal"
 
 interface SignUpFormProps {
   onSuccess?: () => void
@@ -33,7 +31,6 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] as string[] })
   const [showPrivacyModal, setShowPrivacyModal] = useState(false)
-  const [showTermsModal, setShowTermsModal] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -363,23 +360,13 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
           />
           <Label htmlFor="agreeToTerms" className="text-sm text-gray-700 cursor-pointer">
             I agree to the{" "}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault()
-                setShowTermsModal(true)
-              }}
-              className="text-[#86e4fd] hover:text-[#74d4f0] font-medium underline"
-            >
+            <Link href="/terms" className="text-[#86e4fd] hover:text-[#74d4f0] font-medium">
               Terms and Conditions
-            </button>
+            </Link>
             {" "}and{" "}
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault()
-                setShowPrivacyModal(true)
-              }}
+              onClick={() => setShowPrivacyModal(true)}
               className="text-[#86e4fd] hover:text-[#74d4f0] font-medium underline"
             >
               Privacy Policy
@@ -428,9 +415,137 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
         </div>
       </div>
 
-      {/* Modals */}
-      <PrivacyPolicyModal open={showPrivacyModal} onOpenChange={setShowPrivacyModal} />
-      <TermsModal open={showTermsModal} onOpenChange={setShowTermsModal} />
+      {/* Privacy Policy Modal */}
+      {showPrivacyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-[95vw] max-w-[1400px] max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="sticky top-0 bg-white p-8 flex items-center justify-between border-b-4 border-gray-900">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900">Privacy Policy</h2>
+                <p className="text-gray-600 text-base mt-2">Effective Date: January 25, 2026</p>
+              </div>
+              <button
+                onClick={() => setShowPrivacyModal(false)}
+                className="p-3 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6 text-gray-900" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-10 overflow-y-auto max-h-[calc(90vh-180px)] bg-gray-50">
+              <div className="space-y-10 text-gray-800 max-w-5xl mx-auto">
+                <div className="bg-white p-8 rounded-lg shadow-sm border-l-4 border-gray-900">
+                  <p className="text-lg leading-relaxed text-gray-700">
+                    By using <span className="font-bold text-gray-900">Chabaqa</span>, you agree to our data practices. We collect and use your information to provide our services, improve your experience, and keep your account secure.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Section 1 */}
+                  <div className="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                      <span className="w-8 h-8 bg-gray-900 text-white rounded-full flex items-center justify-center mr-3 text-sm">1</span>
+                      What We Collect
+                    </h3>
+                    <div className="text-base space-y-3 text-gray-700 ml-11">
+                      <p><strong className="text-gray-900">Account info:</strong> name, email, phone, profile details</p>
+                      <p><strong className="text-gray-900">Content:</strong> posts, messages, uploaded media</p>
+                      <p><strong className="text-gray-900">Usage data:</strong> device info, analytics via Google Analytics</p>
+                    </div>
+                  </div>
+
+                  {/* Section 2 */}
+                  <div className="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                      <span className="w-8 h-8 bg-gray-900 text-white rounded-full flex items-center justify-center mr-3 text-sm">2</span>
+                      How We Use It
+                    </h3>
+                    <div className="text-base text-gray-700 ml-11">
+                      <p>To manage your account, enable community features, process bookings, send notifications, improve the app, and maintain security.</p>
+                    </div>
+                  </div>
+
+                  {/* Section 4 */}
+                  <div className="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                      <span className="w-8 h-8 bg-gray-900 text-white rounded-full flex items-center justify-center mr-3 text-sm">4</span>
+                      Your Rights
+                    </h3>
+                    <div className="text-base space-y-3 text-gray-700 ml-11">
+                      <p>• Update your profile anytime</p>
+                      <p>• Delete your account anytime</p>
+                      <p>• Control notification settings</p>
+                    </div>
+                  </div>
+
+                  {/* Section 5 */}
+                  <div className="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                      <span className="w-8 h-8 bg-gray-900 text-white rounded-full flex items-center justify-center mr-3 text-sm">5</span>
+                      Data Security
+                    </h3>
+                    <div className="text-base text-gray-700 ml-11">
+                      <p>We use industry-standard security measures to protect your data and retain information for legal compliance.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 3 - Full Width Highlight */}
+                <div className="bg-gray-900 text-white p-8 rounded-lg shadow-lg">
+                  <h3 className="text-2xl font-bold mb-5 flex items-center">
+                    <span className="w-10 h-10 bg-white text-gray-900 rounded-full flex items-center justify-center mr-3">3</span>
+                    Your Privacy Matters
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ml-13">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                        <span className="text-gray-900 font-bold">✓</span>
+                      </div>
+                      <p className="text-lg font-semibold">We don't sell your data</p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                        <span className="text-gray-900 font-bold">✓</span>
+                      </div>
+                      <p className="text-lg font-semibold">No ads or tracking</p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                        <span className="text-gray-900 font-bold">✓</span>
+                      </div>
+                      <p className="text-lg font-semibold">You control your info</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Important Notes */}
+                <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-gray-400">
+                  <p className="text-base text-gray-700"><strong className="text-gray-900">Important:</strong> Chabaqa is not intended for children under 13. We may update this policy occasionally.</p>
+                </div>
+
+                {/* Contact */}
+                <div className="text-center pt-6">
+                  <p className="text-lg text-gray-700">
+                    Questions? Contact us at <a href="mailto:support@chabaqa.com" className="text-gray-900 font-bold underline hover:text-gray-700 transition-colors">support@chabaqa.com</a>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 bg-white p-8 border-t-4 border-gray-900 flex justify-center">
+              <Button
+                onClick={() => setShowPrivacyModal(false)}
+                className="px-16 py-4 bg-gray-900 text-white text-lg font-bold hover:bg-gray-800 transition-all hover:scale-105 shadow-lg"
+              >
+                I Understand
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
