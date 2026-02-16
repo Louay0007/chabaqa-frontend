@@ -24,6 +24,7 @@ interface CommunityCardProps {
     tags: string[]
     verified: boolean
     type?: ItemType
+    community?: string // Community name for non-community content types
   }
   viewMode?: "grid" | "list"
 }
@@ -164,9 +165,16 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
                   height={32}
                   className="rounded-full ring-2 ring-[#8e78fb]/20 shadow-md"
                 />
-                <p className="text-xs sm:text-sm text-gray-600">
-                  Created by <span className="font-semibold text-gray-800">{community.creator}</span>
-                </p>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">
+                    Created by <span className="font-semibold text-gray-800">{community.creator}</span>
+                  </p>
+                  {community.community && community.type !== 'community' && (
+                    <p className="text-[11px] sm:text-xs text-gray-500 truncate">
+                      Community: <span className="font-medium text-chabaqa-primary">{community.community}</span>
+                    </p>
+                  )}
+                </div>
               </div>
 
               <p className="text-gray-600 leading-relaxed line-clamp-2 text-xs sm:text-sm text-pretty">
@@ -253,13 +261,20 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
           <Image
             src={community.creatorAvatar || getAvatarPlaceholder()}
             alt={community.creator}
-            width={20}
-            height={20}
-            className="rounded-full ring-1 ring-gray-200"
+            width={32}
+            height={32}
+            className="rounded-full ring-2 ring-[#8e78fb]/20 shadow-md"
           />
-          <p className="text-xs sm:text-sm text-gray-600 truncate">
-            by <span className="font-medium text-gray-800">{community.creator}</span>
-          </p>
+          <div className="min-w-0">
+            <p className="text-xs sm:text-sm text-gray-600 truncate">
+              Created by <span className="font-semibold text-gray-800">{community.creator}</span>
+            </p>
+            {community.community && community.type !== "community" && (
+              <p className="text-[11px] sm:text-xs text-gray-500 truncate">
+                Community: <span className="font-medium text-chabaqa-primary">{community.community}</span>
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-1.5 sm:gap-2">

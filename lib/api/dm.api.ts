@@ -9,19 +9,39 @@ function resolveImageUrl(value?: string): string | undefined {
   if (!value) return undefined;
   const v = value.trim();
   if (!v) return undefined;
-  if (/^https?:\/\//i.test(v)) return v;
-  if (v.startsWith('/')) {
-    if (v.startsWith('/uploads') || v.startsWith('/storage') || v.startsWith('/images')) {
-      return `${API_ORIGIN}${v}`;
+  
+  // If it's already a full URL
+  if (/^https?:\/\//i.test(v)) {
+    // Force HTTPS for production
+    if (v.startsWith('http://')) {
+      // If it's an IP address, use the API domain instead
+      if (/^http:\/\/\d+\.\d+\.\d+\.\d+/.test(v)) {
+        const path = v.replace(/^http:\/\/[^/]+/, '');
+        return `https://api.chabaqa.io${path}`;
+      }
+      return v.replace('http://', 'https://');
     }
     return v;
   }
+  
+  if (v.startsWith('/')) {
+    if (v.startsWith('/uploads') || v.startsWith('/storage') || v.startsWith('/images')) {
+      const secureOrigin = API_ORIGIN.replace('http://', 'https://').replace(/^https?:\/\/\d+\.\d+\.\d+\.\d+:\d+/, 'https://api.chabaqa.io');
+      return `${secureOrigin}${v}`;
+    }
+    return v;
+  }
+  
   if (v.startsWith('uploads') || v.startsWith('storage') || v.startsWith('images')) {
-    return `${API_ORIGIN}/${v.replace(/^\/+/, '')}`;
+    const secureOrigin = API_ORIGIN.replace('http://', 'https://').replace(/^https?:\/\/\d+\.\d+\.\d+\.\d+:\d+/, 'https://api.chabaqa.io');
+    return `${secureOrigin}/${v.replace(/^\/+/, '')}`;
   }
+  
   if (v && !v.includes('://')) {
-    return `${API_ORIGIN}/uploads/image/${v}`;
+    const secureOrigin = API_ORIGIN.replace('http://', 'https://').replace(/^https?:\/\/\d+\.\d+\.\d+\.\d+:\d+/, 'https://api.chabaqa.io');
+    return `${secureOrigin}/uploads/image/${v}`;
   }
+  
   return undefined;
 }
 

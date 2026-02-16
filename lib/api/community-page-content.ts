@@ -191,6 +191,7 @@ export interface PageContent {
   communityId: string;
   communitySlug: string;
   communityName: string;
+  source?: "published" | "generated";
   hero: {
     customTitle?: string;
     customSubtitle?: string;

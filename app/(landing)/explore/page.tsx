@@ -5,22 +5,41 @@ import { communitiesApi, coursesApi, challengesApi, productsApi, sessionsApi, ev
 import type { Community, Course, Challenge, Product, Session, Event } from "@/lib/api/types"
 import type { Explore } from "@/lib/data-communities"
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+// Enable caching for better performance
+export const revalidate = 300 // Revalidate every 5 minutes
+export const dynamic = 'force-static'
 
 // Resolve image url safely (absolute or local placeholder)
 function resolveImageUrl(value?: string): string {
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
   const v = (value || "").trim()
   if (!v) return "/placeholder.svg"
-  // absolute http(s)
-  if (/^https?:\/\//i.test(v)) return v
+  
+  // absolute http(s) - force HTTPS for production
+  if (/^https?:\/\//i.test(v)) {
+    // If it's HTTP, convert to HTTPS
+    if (v.startsWith('http://')) {
+      // If it's an IP address, use the API domain instead
+      if (/^http:\/\/\d+\.\d+\.\d+\.\d+/.test(v)) {
+        const path = v.replace(/^http:\/\/[^/]+/, '')
+        return `https://api.chabaqa.io${path}`
+      }
+      return v.replace('http://', 'https://')
+    }
+    return v
+  }
+  
   // static or public root path
   if (v.startsWith("/")) return v
-  // common uploads path from backend
+  
+  // common uploads path from backend - ensure HTTPS in production
   if (v.startsWith("uploads") || v.startsWith("storage") || v.startsWith("images")) {
-    return `${apiBase.replace(/\/api$/, "")}/${v.replace(/^\/+/, "")}`
+    const baseUrl = apiBase.replace(/\/api$/, "")
+    // Force HTTPS and replace IP with domain
+    const secureBaseUrl = baseUrl.replace('http://', 'https://').replace(/^https?:\/\/\d+\.\d+\.\d+\.\d+:\d+/, 'https://api.chabaqa.io')
+    return `${secureBaseUrl}/${v.replace(/^\/+/, "")}`
   }
+  
   // invalid (like "600x400"): fallback
   return "/placeholder.svg"
 }
@@ -41,17 +60,70 @@ function normalizePrice(value: unknown): number {
   return 0
 }
 
-async function getFeedbackAverageRatingForCommunity(communityId: string): Promise<number | null> {
+// Fetch all community ratings in a single batch to avoid rate limiting
+async function fetchAllCommunityRatings(communityIds: string[]): Promise<Map<string, number>> {
+  const ratingsMap = new Map<string, number>()
+  
+  if (communityIds.length === 0) return ratingsMap
+  
   try {
     const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
-    const url = `${apiBase}/feedback/Community/${encodeURIComponent(communityId)}/stats`
+    
+    // Fetch ratings one by one with proper error handling and delays
+    for (let i = 0; i < communityIds.length; i++) {
+      const communityId = communityIds[i]
+      
+      try {
+        const url = `${apiBase}/feedback/Community/${encodeURIComponent(communityId)}/stats`
+        const res = await fetch(url, { 
+          cache: 'force-cache',
+          next: { revalidate: 300 } // Cache for 5 minutes
+        })
+        
+        if (res.ok) {
+          const json = await res.json()
+          const avg = json?.data?.averageRating
+          if (typeof avg === 'number') {
+            ratingsMap.set(communityId, avg)
+          }
+        } else if (res.status === 429) {
+          console.warn(`Rate limit hit at community ${i + 1}/${communityIds.length}, stopping rating fetch`)
+          break // Stop fetching if we hit rate limit
+        }
+        
+        // Add delay between requests (2 seconds to be safe)
+        if (i < communityIds.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 2000))
+        }
+      } catch (error) {
+        console.error(`Error fetching rating for community ${communityId}:`, error)
+      }
+    }
+    
+    console.log(`Successfully fetched ${ratingsMap.size} ratings out of ${communityIds.length} communities`)
+  } catch (error) {
+    console.error('Error in batch rating fetch:', error)
+  }
+  
+  return ratingsMap
+}
 
-    const res = await fetch(url, { cache: 'no-store' })
-    if (!res.ok) return null
-
-    const json = await res.json()
-    const avg = json?.data?.averageRating
-    return typeof avg === 'number' ? avg : null
+// Helper function to fetch community by ID
+async function getCommunityById(communityId: string): Promise<{ name: string; slug: string } | null> {
+  try {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+    const response = await communitiesApi.getById(communityId)
+    
+    // Handle API response wrapper
+    const community = response?.data || response
+    
+    if (community && community.name) {
+      return {
+        name: community.name,
+        slug: community.slug
+      }
+    }
+    return null
   } catch {
     return null
   }
@@ -70,12 +142,14 @@ function transformCommunityToExplore(community: Community): Explore {
     (community as any).creator?.photo_profil
   )
 
+  const creatorName = community.creator?.name || (community as any).creator || 'Unknown'
+  
   return {
     id: String((community as any)._id || community.id),
     type: "community",
     name: community.name,
     slug: community.slug,
-    creator: community.creator?.name || (community as any).creator || 'Unknown',
+    creator: creatorName,
     creatorAvatar: avatar,
     description: community.description,
     category: community.category,
@@ -87,40 +161,53 @@ function transformCommunityToExplore(community: Community): Explore {
     priceType: mapPriceType(String((community as any).priceType || 'free')),
     image: primaryImage,
     featured: community.featured,
-    link: `/${community.creator?.name || (community as any).creator}/${community.slug}`
+    link: `/${encodeURIComponent(creatorName)}/${community.slug}`
   }
 }
 
 // Transform API Course to Explore format
-function transformCourseToExplore(course: Course): Explore {
+async function transformCourseToExplore(course: Course): Promise<Explore> {
   const image = resolveImageUrl(course.thumbnail || (course as any).image)
   const avatar = resolveImageUrl((course as any).creator?.avatar || (course as any).creatorAvatar)
+  
+  // The API returns 'titre' (French) instead of 'title'
+  const courseTitle = course.title || (course as any).titre || (course as any).name || 'Untitled Course'
+  
+  // Use community data from API response (now populated by backend)
+  const communityName = (course as any).communityName || 'Unknown Community'
+  const communitySlug = (course as any).communitySlug || (course as any).community?.slug || ''
 
   return {
     id: course.id,
     type: "course",
-    name: course.title,
-    slug: course.slug,
+    name: courseTitle,
+    slug: course.slug || (course as any).id, // Fallback to ID if no slug
     creator: (course as any).creator?.name || (course as any).creatorName || 'Unknown',
     creatorAvatar: avatar,
-    description: course.description,
+    description: course.description || '',
     category: (course as any).category || 'Education',
     members: course.enrollmentCount || 0,
     rating: (course as any).averageRating || course.rating || 0,
     tags: (course as any).tags || [course.level],
     verified: (course as any).verified || false,
-    price: normalizePrice((course as any).price),
-    priceType: (String((course as any).priceType || '').toLowerCase() === 'free' || normalizePrice((course as any).price) === 0) ? "free" : "paid",
+    price: normalizePrice((course as any).price || (course as any).prix),
+    priceType: (String((course as any).priceType || '').toLowerCase() === 'free' || normalizePrice((course as any).price || (course as any).prix) === 0) ? "free" : "paid",
     image,
     featured: (course as any).featured || false,
-    link: `/courses/${course.slug}`
+    link: `/courses/${course.slug || course.id}`,
+    communityName: communityName,
+    communitySlug: communitySlug
   }
 }
 
 // Transform API Challenge to Explore format
-function transformChallengeToExplore(challenge: Challenge): Explore {
+async function transformChallengeToExplore(challenge: Challenge): Promise<Explore> {
   const image = resolveImageUrl(challenge.thumbnail || (challenge as any).image)
   const avatar = resolveImageUrl((challenge as any).creator?.avatar || (challenge as any).creatorAvatar)
+  
+  // Use community data from API response (already populated by backend)
+  const communityName = (challenge as any).community?.name || 'Unknown Community'
+  const communitySlug = (challenge as any).community?.slug || (challenge as any).communitySlug || ''
 
   return {
     id: challenge.id,
@@ -139,40 +226,52 @@ function transformChallengeToExplore(challenge: Challenge): Explore {
     priceType: normalizePrice((challenge as any).pricing?.participationFee) > 0 ? "paid" : "free",
     image,
     featured: (challenge as any).featured || false,
-    link: `/challenges/${challenge.slug || challenge.id}`
+    link: `/challenges/${challenge.slug || challenge.id}`,
+    communityName: communityName,
+    communitySlug: communitySlug
   }
 }
 
 // Transform API Product to Explore format
-function transformProductToExplore(product: Product): Explore {
-  const image = resolveImageUrl(product.thumbnail || (product as any).images?.[0])
+async function transformProductToExplore(product: Product): Promise<Explore> {
+  const image = resolveImageUrl((product as any).images?.[0] || product.thumbnail)
   const avatar = resolveImageUrl((product as any).creator?.avatar || (product as any).creatorAvatar)
+  
+  // Use community data from API response (already populated by backend)
+  const communityName = (product as any).community?.name || product.community?.name || 'Unknown Community'
+  const communitySlug = (product as any).community?.slug || product.community?.slug || ''
 
   return {
     id: product.id,
     type: "product",
-    name: product.name,
+    name: (product as any).title || product.name,
     slug: product.slug,
     creator: (product as any).creator?.name || (product as any).creatorName || 'Unknown',
     creatorAvatar: avatar,
     description: product.description,
     category: (product as any).category || 'Product',
-    members: 0,
+    members: (product as any).sales || product.salesCount || 0,
     rating: (product as any).averageRating || product.rating || 0,
     tags: (product as any).tags || [product.type],
     verified: (product as any).verified || false,
-    price: normalizePrice((product as any).price),
+    price: normalizePrice((product as any).price || product.price),
     priceType: "paid",
     image,
     featured: (product as any).featured || false,
-    link: `/products/${product.slug}`
+    link: `/products/${product.slug}`,
+    communityName: communityName,
+    communitySlug: communitySlug
   }
 }
 
 // Transform API Session to Explore format
-function transformSessionToExplore(session: Session): Explore {
+async function transformSessionToExplore(session: Session): Promise<Explore> {
   const image = resolveImageUrl((session as any).thumbnail || (session as any).image)
   const avatar = resolveImageUrl((session as any).creator?.avatar || (session as any).creatorAvatar)
+  
+  // Use community data from API response (already populated by backend)
+  const communityName = (session as any).community?.name || 'Unknown Community'
+  const communitySlug = (session as any).communitySlug || (session as any).community?.slug || ''
 
   return {
     id: session.id,
@@ -191,14 +290,20 @@ function transformSessionToExplore(session: Session): Explore {
     priceType: "hourly",
     image,
     featured: (session as any).featured || false,
-    link: `/sessions/${(session as any).slug || session.id}`
+    link: `/sessions/${(session as any).slug || session.id}`,
+    communityName: communityName,
+    communitySlug: communitySlug
   }
 }
 
 // Transform API Event to Explore format
-function transformEventToExplore(event: Event): Explore {
+async function transformEventToExplore(event: Event): Promise<Explore> {
   const image = resolveImageUrl(event.thumbnail || event.image)
   const avatar = resolveImageUrl((event as any).creator?.avatar || (event as any).creatorAvatar)
+  
+  // Use community data from API response (already populated by backend)
+  const communityName = (event as any).community?.name || 'Unknown Community'
+  const communitySlug = (event as any).community?.slug || (event as any).communitySlug || ''
 
   return {
     id: event.id,
@@ -217,7 +322,9 @@ function transformEventToExplore(event: Event): Explore {
     priceType: normalizePrice((event as any).price) > 0 ? "paid" : "free",
     image,
     featured: (event as any).featured || false,
-    link: `/events/${event.slug}`
+    link: `/events/${event.slug}`,
+    communityName: communityName,
+    communitySlug: communitySlug
   }
 }
 
@@ -317,13 +424,20 @@ export default async function CommunitiesPage() {
       const data = extractArray(communitiesRes.value, 'Communities')
       const communities = data.map(transformCommunityToExplore)
 
-      // Override rating using feedback stats to keep Explore perfectly synced with Reviews
-      const enrichedCommunities = await Promise.all(
-        communities.map(async (c) => {
-          const avg = await getFeedbackAverageRatingForCommunity(String(c.id))
-          return avg === null ? c : { ...c, rating: avg }
-        })
-      )
+      // Fetch ratings from feedback API with proper rate limiting
+      console.log(`Fetching ratings for ${communities.length} communities...`)
+      const communityIds = communities.map(c => String(c.id))
+      const ratingsMap = await fetchAllCommunityRatings(communityIds)
+      
+      // Apply fetched ratings to communities
+      const enrichedCommunities = communities.map(c => {
+        const fetchedRating = ratingsMap.get(String(c.id))
+        if (fetchedRating !== undefined) {
+          console.log(`Community ${c.name}: API rating=${c.rating}, Feedback rating=${fetchedRating}`)
+          return { ...c, rating: fetchedRating }
+        }
+        return c
+      })
 
       allExploreItems.push(...enrichedCommunities)
       console.log(`✓ Added ${communities.length} communities`)
@@ -334,7 +448,7 @@ export default async function CommunitiesPage() {
     // Transform courses
     if (coursesRes.status === 'fulfilled') {
       const data = extractArray(coursesRes.value, 'Courses')
-      const courses = data.map(transformCourseToExplore)
+      const courses = await Promise.all(data.map(transformCourseToExplore))
       allExploreItems.push(...courses)
       console.log(`✓ Added ${courses.length} courses`)
     } else {
@@ -344,7 +458,7 @@ export default async function CommunitiesPage() {
     // Transform challenges
     if (challengesRes.status === 'fulfilled') {
       const data = extractArray(challengesRes.value, 'Challenges')
-      const challenges = data.map(transformChallengeToExplore)
+      const challenges = await Promise.all(data.map(transformChallengeToExplore))
       allExploreItems.push(...challenges)
       console.log(`✓ Added ${challenges.length} challenges`)
     } else {
@@ -354,7 +468,7 @@ export default async function CommunitiesPage() {
     // Transform products
     if (productsRes.status === 'fulfilled') {
       const data = extractArray(productsRes.value, 'Products')
-      const products = data.map(transformProductToExplore)
+      const products = await Promise.all(data.map(transformProductToExplore))
       allExploreItems.push(...products)
       console.log(`✓ Added ${products.length} products`)
     } else {
@@ -364,7 +478,7 @@ export default async function CommunitiesPage() {
     // Transform sessions
     if (sessionsRes.status === 'fulfilled') {
       const data = extractArray(sessionsRes.value, 'Sessions')
-      const sessions = data.map(transformSessionToExplore)
+      const sessions = await Promise.all(data.map(transformSessionToExplore))
       allExploreItems.push(...sessions)
       console.log(`✓ Added ${sessions.length} sessions`)
     } else {
@@ -374,7 +488,7 @@ export default async function CommunitiesPage() {
     // Transform events
     if (eventsRes.status === 'fulfilled') {
       const data = extractArray(eventsRes.value, 'Events')
-      const events = data.map(transformEventToExplore)
+      const events = await Promise.all(data.map(transformEventToExplore))
       allExploreItems.push(...events)
       console.log(`✓ Added ${events.length} events`)
     } else {

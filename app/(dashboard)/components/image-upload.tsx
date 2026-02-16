@@ -6,6 +6,7 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Upload, X, ImageIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 interface ImageUploadProps {
   currentImage?: string
@@ -44,7 +45,7 @@ export function ImageUpload({
       const response = await storageApi.upload(file)
 
       if (response && response.url) {
-        onImageChange(response.url)
+        onImageChange(resolveImageUrl(response.url) || response.url)
       } else {
         throw new Error('No URL returned from upload')
       }
@@ -83,14 +84,15 @@ export function ImageUpload({
     wide: "aspect-[16/9]",
     tall: "aspect-[9/16]",
   }
+  const previewImage = resolveImageUrl(currentImage) || currentImage || ""
 
   return (
     <div className={cn("space-y-4", className)}>
-      {showPreview && currentImage ? (
+      {showPreview && previewImage ? (
         <div className="relative group">
           <div className={cn("relative w-full overflow-hidden rounded-lg bg-gray-100", aspectRatioClasses[aspectRatio])}>
             <img
-              src={currentImage}
+              src={previewImage}
               alt="Current image"
               className="w-full h-full object-contain"
             />

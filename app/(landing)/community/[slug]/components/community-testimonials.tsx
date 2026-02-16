@@ -2,6 +2,8 @@ import Image from "next/image"
 import { Star } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import type { PageContent } from "@/lib/api/community-page-content"
+import type { CommunityThemeTokens } from "@/lib/community-theme"
+import { cn } from "@/lib/utils"
 
 interface CommunityTestimonialsProps {
   community: {
@@ -9,9 +11,16 @@ interface CommunityTestimonialsProps {
     category: string
   }
   testimonialsContent?: PageContent["testimonials"] | null
+  themeTokens?: CommunityThemeTokens
+  contentWidthClass?: string
 }
 
-export function CommunityTestimonials({ community, testimonialsContent }: CommunityTestimonialsProps) {
+export function CommunityTestimonials({
+  community,
+  testimonialsContent,
+  themeTokens,
+  contentWidthClass = "max-w-7xl",
+}: CommunityTestimonialsProps) {
   const defaultTestimonials = [
     {
       name: "Michael Rodriguez",
@@ -56,8 +65,8 @@ export function CommunityTestimonials({ community, testimonialsContent }: Commun
   const showRatings = testimonialsContent?.showRatings ?? true
 
   return (
-    <section className="py-16 sm:py-20 bg-gradient-to-b from-gray-50/50 via-white to-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-16 sm:py-20 bg-white">
+      <div className={cn("mx-auto px-4 sm:px-6 lg:px-8", contentWidthClass)}>
         <div className="text-center max-w-3xl mx-auto mb-12">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-gray-900">{title}</h2>
           <p className="mt-3 text-sm sm:text-base text-gray-600 font-light">{subtitle}</p>
@@ -65,7 +74,18 @@ export function CommunityTestimonials({ community, testimonialsContent }: Commun
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
           {testimonials.map((testimonial, index) => (
-            <Card key={index} className="bg-gradient-to-br from-white to-gray-50/50 border border-gray-200 hover:border-purple-200 p-5 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
+            <Card
+              key={index}
+              className="bg-white border border-gray-200 p-5 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
+              style={
+                themeTokens
+                  ? {
+                      borderColor: themeTokens.mutedBorder,
+                      backgroundColor: "#ffffff",
+                    }
+                  : undefined
+              }
+            >
               {showRatings && (
                 <div className="flex text-amber-400 mb-3 gap-0.5">
                   {[...Array(5)].map((_, i) => (
@@ -74,7 +94,9 @@ export function CommunityTestimonials({ community, testimonialsContent }: Commun
                 </div>
               )}
 
-              <p className="text-gray-600 text-sm mb-4 leading-relaxed">"{testimonial.text}"</p>
+              <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                &ldquo;{testimonial.text}&rdquo;
+              </p>
 
               <div className="flex items-center">
                 <div className="relative h-9 w-9 rounded-full overflow-hidden mr-3 flex-shrink-0 ring-2 ring-purple-100">

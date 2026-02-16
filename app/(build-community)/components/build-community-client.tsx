@@ -139,13 +139,23 @@ export default function CommunityPage() {
       // Call API using typed client
       const response = await communitiesApi.create(communityData)
 
-      setSuccess(true)
-      console.log("Community created successfully:", response.data)
+      if (response.success) {
+        setSuccess(true)
+        console.log("Community created successfully:", response.data)
 
-      // Redirect to community selector after short delay
-      setTimeout(() => {
-        router.push('/creator/select-community')
-      }, 1500)
+        // If the backend returned a new token (role upgrade), apply it immediately
+        // Note: BuildCommunityClient doesn't have access to AuthContext directly here 
+        // because it's not using the hook, but we can handle it or let the next page load handle it.
+        if (response.accessToken && response.user) {
+          localStorage.setItem('accessToken', response.accessToken)
+          localStorage.setItem('user', JSON.stringify(response.user))
+        }
+
+        // Redirect to community selector after short delay
+        setTimeout(() => {
+          router.push('/creator/dashboard')
+        }, 1500)
+      }
 
     } catch (err: any) {
       setError(err.message || "Failed to create community. Please try again.")

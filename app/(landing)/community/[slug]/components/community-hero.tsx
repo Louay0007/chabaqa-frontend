@@ -1,8 +1,12 @@
+"use client"
+
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Users, Star, CheckCircle, Tag, ArrowLeft, Verified } from "lucide-react"
 import Link from "next/link"
 import type { PageContent } from "@/lib/api/community-page-content"
+import type { CommunityThemeTokens } from "@/lib/community-theme"
+import { cn } from "@/lib/utils"
 
 interface CommunityHeroProps {
   community: {
@@ -28,24 +32,43 @@ interface CommunityHeroProps {
     tags: string[]
     isMember?: boolean
   }
-  formatPrice: (price: number, priceType: string) => string
-  formatMembers: (count: number) => string
   heroContent?: PageContent["hero"] | null
+  themeTokens?: CommunityThemeTokens
+  contentWidthClass?: string
+  headerStyle?: "default" | "centered" | "minimal"
+  showStats?: boolean
 }
 
 export function CommunityHero({
   community,
-  formatPrice,
-  formatMembers,
   heroContent,
+  themeTokens,
+  contentWidthClass = "max-w-7xl",
+  headerStyle = "default",
+  showStats = true,
 }: CommunityHeroProps) {
+  // Helpers moved inside client component
+  const formatPrice = (price: number, priceType: string) => {
+    const normalizedType = String(priceType || "free").toLowerCase()
+    const p = typeof price === "number" && Number.isFinite(price) ? price : 0
+
+    if (normalizedType === "free" || p <= 0) return "Free"
+    if (normalizedType === "one-time" || normalizedType === "paid") return `$${p}`
+    if (normalizedType === "monthly") return `$${p}/mo`
+    if (normalizedType === "yearly") return `$${p}/yr`
+    return `$${p}/${normalizedType}`
+  }
+
+  const formatMembers = (count: number) => (count >= 1000 ? `${(count / 1000).toFixed(1)}k` : String(count))
+
   const displayImage =
     heroContent?.customBanner || community.coverImage || community.image || "/placeholder.svg"
   const creatorName = community.creator?.name || "Unknown Creator"
   const creatorAvatar = community.creator?.avatar
   const creatorInitial = creatorName.charAt(0).toUpperCase()
-  const showMemberCount = heroContent ? heroContent.showMemberCount !== false : true
-  const showRating = heroContent ? heroContent.showRating !== false : true
+  const allowStats = showStats !== false
+  const showMemberCount = allowStats && (heroContent ? heroContent.showMemberCount !== false : true)
+  const showRating = allowStats && (heroContent ? heroContent.showRating !== false : true)
   const showCreator = heroContent ? heroContent.showCreator !== false : true
   const heroTitle = heroContent?.customTitle?.trim() || community.name
   const heroSubtitle =
@@ -60,19 +83,37 @@ export function CommunityHero({
 
   const ctaLink = isMember
     ? `/community/${community.slug}/home`
-    : `/community/${community.slug}/checkout`
+    : `#join-section`
+
+  const handleCTAClick = (e: React.MouseEvent) => {
+    if (!isMember) {
+      // If not a member, prevent default Link behavior and trigger the modal event
+      e.preventDefault()
+      window.dispatchEvent(new CustomEvent("open-community-checkout"))
+      
+      // Also update hash for scroll if needed, though event handles modal
+      window.location.hash = "join-section"
+    }
+  }
+
+  const isCentered = headerStyle === "centered"
+  const isMinimal = headerStyle === "minimal"
+  const primary = themeTokens?.primary || "#8e78fb"
+  const secondary = themeTokens?.secondary || "#f48fb1"
+  const gradient = themeTokens?.gradient || `linear-gradient(90deg, ${primary}, ${secondary})`
 
   return (
-    <section className="relative bg-gradient-to-b from-white via-white to-gray-50/50 pb-12 sm:pb-16 border-b border-gray-100">
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Logo & Navigation Bar */}
-        <div className="flex items-center justify-between mb-10 sm:mb-14">
-          <Link href="/" className="-ml-3 p-0.5 flex items-center" aria-label="Chabaqa">
-              <Image src="/Logos/PNG/frensh1.png" alt="Chabaqa Logo" width={150} height={28} priority style={{ objectFit: 'contain' }} />
-          </Link>
+    <section
+      className="relative bg-white pb-12 sm:pb-16 border-b border-gray-100"
+      style={{ borderColor: themeTokens?.mutedBorder || undefined }}
+    >
+      <div className={cn("relative mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8", contentWidthClass)}>
+        {/* Navigation Bar */}
+        <div className="flex items-center justify-end mb-10 sm:mb-14">
           <Link
             href="/explore"
-            className="inline-flex items-center gap-2 text-xs sm:text-sm text-gray-600 hover:text-[#8e78fb] transition-colors font-medium"
+            className="inline-flex items-center gap-2 text-xs sm:text-sm text-gray-600 transition-colors font-medium"
+            style={{ color: themeTokens ? "#4b5563" : undefined }}
           >
             <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span className="hidden sm:inline">Back to Communities</span>
@@ -81,12 +122,22 @@ export function CommunityHero({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-stretch">
-          <div className="flex flex-col space-y-2 sm:space-y-3 justify-between">
+          <div
+            className={cn(
+              "flex flex-col space-y-2 sm:space-y-3 justify-between",
+              isCentered && "items-center text-center",
+            )}
+          >
             {/* Badges */}
-            <div className="flex items-center gap-1.5 flex-wrap">
+            {!isMinimal && <div className={cn("flex items-center gap-1.5 flex-wrap", isCentered && "justify-center")}>
               <Badge
                 variant="outline"
-                className="bg-blue-50 text-blue-700 border-blue-200 px-2 py-0.5 text-xs font-medium"
+                className="px-2 py-0.5 text-xs font-medium"
+                style={{
+                  backgroundColor: "#ffffff",
+                  borderColor: themeTokens?.mutedBorder || undefined,
+                  color: primary,
+                }}
               >
                 <Users className="w-2.5 h-2.5 mr-0.5" />
                 <span className="hidden sm:inline">Community</span>
@@ -95,13 +146,13 @@ export function CommunityHero({
               {community.verified && (
                 <Badge
                   variant="outline"
-                  className="bg-green-50 text-green-700 border-green-200 px-2 py-0.5 text-xs font-medium"
+                  className="bg-white text-green-700 border-green-200 px-2 py-0.5 text-xs font-medium"
                 >
                   <Verified className="w-2.5 h-2.5 mr-0.5" />
                   Verified
                 </Badge>
               )}
-            </div>
+            </div>}
 
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-gray-900 leading-snug">
               {heroTitle}
@@ -113,7 +164,10 @@ export function CommunityHero({
 
             {/* Creator Info */}
             {showCreator && (
-              <div className="bg-gradient-to-br from-white to-gray-50/50 p-2.5 sm:p-3.5 rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:border-purple-200 transition-all duration-300">
+              <div
+                className="bg-white p-2.5 sm:p-3.5 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300"
+                style={{ borderColor: themeTokens?.mutedBorder || undefined }}
+              >
                 <div className="flex items-center gap-2 sm:gap-3">
                   {creatorAvatar ? (
                     <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden ring-2 ring-[#8e78fb]/20 flex-shrink-0">
@@ -144,25 +198,30 @@ export function CommunityHero({
             )}
 
             {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+            {!isMinimal && <div className={cn("grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3", isCentered && "w-full")}>
               {showMemberCount && (
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-2.5 sm:p-3 rounded-lg border border-blue-200/50 hover:border-blue-300 hover:shadow-sm transition-all duration-300">
+                <div
+                  className="p-2.5 sm:p-3 rounded-lg border bg-white hover:shadow-sm transition-all duration-300"
+                  style={{
+                    borderColor: themeTokens?.mutedBorder || undefined,
+                  }}
+                >
                   <div className="flex items-center gap-1.5">
-                    <div className="p-1.5 sm:p-2 bg-gradient-to-br from-blue-100 to-blue-50 rounded-md">
-                      <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
+                    <div className="p-1.5 sm:p-2 bg-white border border-gray-200 rounded-md">
+                      <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: primary }} />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs text-blue-600 font-light">Members</p>
-                      <p className="font-semibold text-sm text-blue-900">{formatMembers(community.members)}</p>
+                      <p className="text-xs font-light" style={{ color: primary }}>Members</p>
+                      <p className="font-semibold text-sm text-gray-900">{formatMembers(community.members)}</p>
                     </div>
                   </div>
                 </div>
               )}
 
               {showRating && (
-                <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 p-2.5 sm:p-3 rounded-lg border border-amber-200/50 hover:border-amber-300 hover:shadow-sm transition-all duration-300">
+                <div className="bg-white p-2.5 sm:p-3 rounded-lg border border-amber-200/50 hover:border-amber-300 hover:shadow-sm transition-all duration-300">
                   <div className="flex items-center gap-1.5">
-                    <div className="p-1.5 sm:p-2 bg-gradient-to-br from-amber-100 to-amber-50 rounded-md">
+                    <div className="p-1.5 sm:p-2 bg-white border border-amber-200/70 rounded-md">
                       <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 fill-amber-600" />
                     </div>
                     <div className="min-w-0">
@@ -173,27 +232,33 @@ export function CommunityHero({
                 </div>
               )}
 
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-2.5 sm:p-3 rounded-lg border border-purple-200/50 hover:border-purple-300 hover:shadow-sm transition-all duration-300">
+              <div
+                className="p-2.5 sm:p-3 rounded-lg border bg-white hover:shadow-sm transition-all duration-300"
+                style={{
+                  borderColor: themeTokens?.mutedBorder || undefined,
+                }}
+              >
                 <div className="flex items-center gap-1.5">
-                  <div className="p-1.5 sm:p-2 bg-gradient-to-br from-purple-100 to-purple-50 rounded-md">
-                    <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600" />
+                  <div className="p-1.5 sm:p-2 bg-white border border-gray-200 rounded-md">
+                    <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: secondary }} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-purple-600 font-light">Category</p>
-                    <p className="font-semibold text-xs text-purple-900 capitalize truncate">{community.category}</p>
+                    <p className="text-xs font-light" style={{ color: secondary }}>Category</p>
+                    <p className="font-semibold text-xs text-gray-900 capitalize truncate">{community.category}</p>
                   </div>
                 </div>
               </div>
-            </div>
+            </div>}
 
             {/* Tags */}
-            {community.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+            {!isMinimal && community.tags.length > 0 && (
+              <div className={cn("flex flex-wrap gap-2", isCentered && "justify-center")}>
                 {community.tags.slice(0, 5).map((tag, index) => (
                   <Badge
                     key={index}
                     variant="secondary"
-                    className="bg-gray-50 border border-gray-300 text-gray-700 hover:bg-purple-50 hover:border-[#8e78fb] hover:text-[#8e78fb] px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-all duration-200 cursor-pointer"
+                    className="bg-white border text-gray-700 px-2.5 sm:px-3 py-1 rounded-md text-xs font-medium transition-all duration-200 cursor-pointer"
+                    style={{ borderColor: themeTokens?.mutedBorder || undefined, color: primary }}
                   >
                     {tag}
                   </Badge>
@@ -210,10 +275,19 @@ export function CommunityHero({
             )}
 
             {/* Pricing & CTA */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pt-3 sm:pt-4 border-t-2 border-gray-200">
+            <div
+              className={cn(
+                "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pt-3 sm:pt-4 border-t-2 border-gray-200",
+                isCentered && "w-full",
+              )}
+              style={{ borderColor: themeTokens?.mutedBorder || undefined }}
+            >
               <div>
                 <div className="flex items-baseline gap-1">
-                  <p className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-[#8e78fb] to-[#f48fb1] bg-clip-text text-transparent">
+                  <p
+                    className="text-3xl sm:text-4xl font-bold bg-clip-text text-transparent"
+                    style={{ backgroundImage: gradient }}
+                  >
                     {formatPrice(community.price, community.priceType)}
                   </p>
                   {community.priceType !== "free" && community.priceType !== "one-time" && (
@@ -227,7 +301,12 @@ export function CommunityHero({
 
               <Link
                 href={ctaLink}
-                className="group w-full sm:w-auto text-center text-white font-semibold py-2.5 sm:py-3 px-6 sm:px-8 rounded-lg bg-gradient-to-r from-[#8e78fb] to-[#f48fb1] hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-md text-xs sm:text-sm"
+                onClick={handleCTAClick}
+                className="group w-full sm:w-auto text-center font-semibold py-2.5 sm:py-3 px-6 sm:px-8 rounded-lg hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-md text-xs sm:text-sm"
+                style={{
+                  backgroundImage: gradient,
+                  color: themeTokens?.primaryText || "#fff",
+                }}
               >
                 <span className="flex items-center justify-center gap-1.5">
                   {heroCTA}
@@ -241,7 +320,10 @@ export function CommunityHero({
 
           {/* Community Image */}
           <div className="relative hidden lg:block">
-            <div className="absolute -inset-2 sm:-inset-4 bg-gradient-to-r from-[#8e78fb]/20 to-[#f48fb1]/20 rounded-2xl sm:rounded-3xl blur-2xl" />
+            <div
+              className="absolute -inset-2 sm:-inset-4 rounded-2xl sm:rounded-3xl blur-2xl"
+              style={{ backgroundImage: gradient, opacity: 0.18 }}
+            />
             <div className="relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl border-2 sm:border-4 border-white">
               <Image
                 src={displayImage}

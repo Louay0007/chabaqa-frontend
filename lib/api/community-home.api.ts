@@ -6,6 +6,7 @@ import { coursesApi } from './courses.api';
 import { getMe } from './user.api';
 import { normalizeUser } from '@/lib/hooks/useUser';
 import type { Community, Post, Challenge, Course, User } from './types';
+import { resolveImageUrl } from '@/lib/resolve-image-url';
 
 export interface CommunityHomeData {
   community: Community;
@@ -39,22 +40,42 @@ export interface CommunityStats {
  */
 function transformCommunity(backendCommunity: any): Community {
   const rawCreator = backendCommunity?.creator || backendCommunity?.createur || null;
-  const rawMembers = backendCommunity?.members || backendCommunity?.membersCount || 0;
+  const rawMembers = backendCommunity?.members;
+  const rawMembersCount =
+    typeof backendCommunity?.membersCount === 'number' ? backendCommunity.membersCount : 0;
 
-  const normalizedMembers = typeof rawMembers === 'number'
+  const derivedMembers = typeof rawMembers === 'number'
     ? rawMembers
     : Array.isArray(rawMembers)
       ? rawMembers.length
       : typeof rawMembers === 'object' && rawMembers !== null && typeof rawMembers.count === 'number'
         ? rawMembers.count
         : 0;
+  const normalizedMembers = Math.max(rawMembersCount, derivedMembers, 0);
+  const normalizedCreator = rawCreator ? normalizeUser(rawCreator) : null;
+  const creatorAvatar =
+    resolveImageUrl(backendCommunity?.creatorAvatar) ||
+    resolveImageUrl(normalizedCreator?.avatar) ||
+    resolveImageUrl(rawCreator?.profile_picture) ||
+    resolveImageUrl(rawCreator?.photo_profil) ||
+    resolveImageUrl(rawCreator?.photo) ||
+    '/placeholder.svg';
+  const averageRating =
+    typeof backendCommunity?.averageRating === 'number'
+      ? backendCommunity.averageRating
+      : typeof backendCommunity?.rating === 'number'
+        ? backendCommunity.rating
+        : 0;
+  const ratingCount =
+    typeof backendCommunity?.ratingCount === 'number' ? backendCommunity.ratingCount : 0;
 
   return {
     id: String(backendCommunity._id || backendCommunity.id || ''),
     name: backendCommunity.name || '',
     slug: backendCommunity.slug || '',
     description: backendCommunity.short_description || backendCommunity.description || '',
-    longDescription: backendCommunity.long_description || backendCommunity.description || '',
+    longDescription:
+      backendCommunity.longDescription || backendCommunity.long_description || backendCommunity.description || '',
     category: typeof backendCommunity.category === 'string'
       ? backendCommunity.category
       : backendCommunity.category?.name || '',
@@ -66,22 +87,51 @@ function transformCommunity(backendCommunity: any): Community {
     price: backendCommunity.fees_of_join || backendCommunity.price || 0,
     priceType: backendCommunity.priceType || (backendCommunity.fees_of_join > 0 ? 'one-time' : 'free'),
     members: normalizedMembers,
-    rating: backendCommunity.averageRating || backendCommunity.rating || 0,
+    rating: averageRating,
+    averageRating,
+    ratingCount,
     verified: backendCommunity.isVerified || backendCommunity.verified || false,
     featured: backendCommunity.featured || false,
     creator: rawCreator ? {
       id: String(rawCreator._id || rawCreator.id || ''),
       name: String(rawCreator.name || ''),
-      avatar: normalizeUser(rawCreator).avatar || '/placeholder.svg',
+      avatar: creatorAvatar,
       verified: Boolean(rawCreator.verified)
     } : {
       id: '',
       name: 'Unknown',
+      avatar: creatorAvatar,
       verified: false
     },
     createdAt: backendCommunity.createdAt || new Date().toISOString(),
     updatedAt: backendCommunity.updatedAt || new Date().toISOString(),
   };
+}
+
+async function fetchCommunityFeedbackStats(communityId: string): Promise<{
+  averageRating: number;
+  ratingCount: number;
+} | null> {
+  const endpoints = [
+    `/feedback/Community/${encodeURIComponent(communityId)}/stats`,
+    `/feedback/community/${encodeURIComponent(communityId)}/stats`,
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await apiClient.get<ApiSuccessResponse<{ averageRating: number; ratingCount: number }> | { averageRating: number; ratingCount: number }>(endpoint);
+      const payload: any = (response as any)?.data && typeof (response as any).data === 'object'
+        ? (response as any).data
+        : response;
+      const averageRating = typeof payload?.averageRating === 'number' ? payload.averageRating : 0;
+      const ratingCount = typeof payload?.ratingCount === 'number' ? payload.ratingCount : 0;
+      return { averageRating, ratingCount };
+    } catch {
+      // try next endpoint
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -247,6 +297,15 @@ export const communityHomeApi = {
         throw new Error(`Failed to fetch community: ${communityResponse.reason}`);
       }
       const community = transformCommunity(communityResponse.value.data);
+      const feedbackStats = await fetchCommunityFeedbackStats(community.id);
+      const communityWithStats: Community = feedbackStats
+        ? {
+            ...community,
+            rating: feedbackStats.averageRating,
+            averageRating: feedbackStats.averageRating,
+            ratingCount: feedbackStats.ratingCount,
+          }
+        : community;
 
       // Fetch posts with community ID
       let posts: Post[] = [];
@@ -322,10 +381,10 @@ export const communityHomeApi = {
         : null;
 
       // Calculate statistics
-      const stats = await calculateStats(community.id, community, posts);
+      const stats = await calculateStats(communityWithStats.id, communityWithStats, posts);
 
       return {
-        community,
+        community: communityWithStats,
         posts,
         activeChallenges,
         courses,

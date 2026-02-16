@@ -9,15 +9,18 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft, CheckCircle, Tag, Users, Star, Loader2, ShieldCheck, Percent, UploadCloud } from "lucide-react"
 import { communitiesApi } from "@/lib/api"
+import type { CommunityThemeTokens } from "@/lib/community-theme"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CreditCard, Wallet } from "lucide-react"
 
 interface CheckoutFormProps {
   community: any
+  embedded?: boolean
+  themeTokens?: CommunityThemeTokens
 }
 
-export function CheckoutForm({ community }: CheckoutFormProps) {
+export function CheckoutForm({ community, embedded = false, themeTokens }: CheckoutFormProps) {
   const router = useRouter()
 
   const [promoCode, setPromoCode] = useState("")
@@ -30,6 +33,9 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
   const [paymentMethod, setPaymentMethod] = useState<"stripe" | "manual">("stripe")
 
   const pricing = community as any
+  const gradient = themeTokens?.gradient || "linear-gradient(90deg, #8e78fb, #f48fb1)"
+  const primary = themeTokens?.primary || "#8e78fb"
+  const mutedBorder = themeTokens?.mutedBorder
 
   const basePrice = useMemo(() => {
     const value =
@@ -79,6 +85,21 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
     return count.toString()
   }
 
+  const getAuthHeaderToken = () => {
+    if (typeof window === "undefined") return null
+    const rawLocalToken =
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("jwt") ||
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("access_token")
+
+    if (!rawLocalToken) return null
+    return rawLocalToken.toLowerCase().startsWith("bearer ")
+      ? rawLocalToken
+      : `Bearer ${rawLocalToken}`
+  }
+
   const handleCompletePurchase = async () => {
     if (isProcessing) return
 
@@ -94,8 +115,25 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
     try {
       // Check if community is free
       if (basePrice <= 0) {
-        // Free community: join directly
-        const result = await communitiesApi.checkoutCommunity(community.id, promoCode || undefined)
+        // Free community: use join endpoint directly
+        const headerToken = getAuthHeaderToken()
+        const joinResponse = await fetch("/api/community/join", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(headerToken ? { Authorization: headerToken } : {}),
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            communityId: community.id,
+          }),
+        })
+
+        const result = await joinResponse.json()
+        if (!joinResponse.ok) {
+          throw new Error(result?.message || "Failed to join community")
+        }
+
         const message = (result.message || "").toLowerCase()
 
         if (message.includes("déjà") || message.includes("already")) {
@@ -214,7 +252,12 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
   }
 
   const handleBackToCommunity = () => {
-    router.push(`/community/${community.slug}/home`)
+    if (embedded) {
+      // In embedded mode, we might want to just close the modal via event or direct prop
+      // For now, if it's the modal, we don't necessarily want to navigate away
+      return
+    }
+    router.push(`/community/${community.slug}`)
   }
 
   return (
@@ -222,17 +265,19 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
         {/* Left Column - Community Info */}
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <button
-            type="button"
-            onClick={handleBackToCommunity}
-            className="inline-flex items-center text-sm text-gray-600 hover:text-chabaqa-primary transition-colors w-fit"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Community
-          </button>
+          {!embedded && (
+            <button
+              type="button"
+              onClick={handleBackToCommunity}
+              className="inline-flex items-center text-sm text-gray-600 hover:text-chabaqa-primary transition-colors w-fit"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Community
+            </button>
+          )}
 
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative h-32 w-32 flex-shrink-0">
+          <div className={`flex flex-col sm:flex-row gap-4 ${embedded ? 'items-center sm:items-start text-center sm:text-left' : ''}`}>
+            <div className={`relative flex-shrink-0 ${embedded ? 'h-24 w-24' : 'h-32 w-32'}`}>
               <Image
                 src={community.logo || community.image || "/placeholder.svg"}
                 alt={`${community.name} logo`}
@@ -242,7 +287,10 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
               />
             </div>
             <div className="flex flex-col justify-center">
-              <h1 className="text-3xl md:text-4xl font-black tracking-tight bg-gradient-to-r from-chabaqa-primary to-chabaqa-secondary1 bg-clip-text text-transparent">
+              <h1
+                className={`${embedded ? 'text-2xl md:text-3xl' : 'text-3xl md:text-4xl'} font-black tracking-tight bg-clip-text text-transparent`}
+                style={{ backgroundImage: gradient }}
+              >
                 {community.name}
               </h1>
               <p className="text-gray-500 text-base font-normal leading-normal">
@@ -275,21 +323,21 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
 
           <div className="flex gap-2 flex-wrap mt-2">
             <div className="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-chabaqa-primary/10 px-3">
-              <Tag className="w-4 h-4 text-chabaqa-primary" />
-              <p className="text-chabaqa-primary text-sm font-medium leading-normal">
+              <Tag className="w-4 h-4" style={{ color: primary }} />
+              <p className="text-sm font-medium leading-normal" style={{ color: primary }}>
                 {community.category}
               </p>
             </div>
             <div className="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-chabaqa-primary/10 px-3">
-              <Users className="w-4 h-4 text-chabaqa-primary" />
-              <p className="text-chabaqa-primary text-sm font-medium leading-normal">
+              <Users className="w-4 h-4" style={{ color: primary }} />
+              <p className="text-sm font-medium leading-normal" style={{ color: primary }}>
                 {formatMembers(Array.isArray(community.members) ? community.members.length : (community.members || 0))} Members
               </p>
             </div>
             <div className="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-chabaqa-primary/10 px-3">
               <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-              <p className="text-chabaqa-primary text-sm font-medium leading-normal">
-                {community.rating.toFixed(1) || 0}/5 Rating
+              <p className="text-sm font-medium leading-normal" style={{ color: primary }}>
+                {Number(community.rating || 0).toFixed(1)}/5 Rating
               </p>
             </div>
           </div>
@@ -310,7 +358,7 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
 
         {/* Right Column - Checkout */}
         <div className="lg:col-span-1 lg:sticky top-16 h-fit">
-          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200" style={{ borderColor: mutedBorder || undefined }}>
             <h2 className="text-gray-900 text-2xl font-bold leading-tight tracking-tight">
               Complete your purchase
             </h2>
@@ -323,7 +371,10 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
                 <p className="text-sm text-gray-500">Membership price</p>
                 <p className="text-2xl font-bold text-gray-900">{formatCurrency(basePrice)}</p>
               </div>
-              <Badge className="bg-chabaqa-primary/10 text-chabaqa-primary border border-chabaqa-primary/30 flex items-center gap-1">
+              <Badge
+                className="bg-chabaqa-primary/10 border flex items-center gap-1"
+                style={{ color: primary, borderColor: mutedBorder || undefined }}
+              >
                 <Percent className="w-3 h-3" />
                 No hidden fees
               </Badge>
@@ -344,6 +395,7 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
                   }}
                   placeholder="Enter promo code"
                   className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-chabaqa-primary focus:border-chabaqa-primary bg-white"
+                  style={{ borderColor: mutedBorder || undefined }}
                   disabled={isProcessing || success}
                 />
               </div>
@@ -438,7 +490,7 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
                   <p className="mb-1"><span className="font-semibold">Banque:</span> {community.creatorBankDetails?.bankName || "Banque Tunisienne"}</p>
                   <p><span className="font-semibold">RIB:</span> {community.creatorBankDetails?.rib || "0000 0000 0000 0000 0000"}</p>
                 </div>
-                <p className="mt-2 text-xs">Une fois le virement effectué, veuillez télécharger la preuve de paiement (capture d'écran ou reçu) ci-dessous.</p>
+                <p className="mt-2 text-xs">Une fois le virement effectué, veuillez télécharger la preuve de paiement (capture d&apos;écran ou reçu) ci-dessous.</p>
               </div>
             )}
 
@@ -448,12 +500,13 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
                   Preuve de paiement (Requis)
                 </Label>
                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-chabaqa-primary transition-colors cursor-pointer relative bg-white"
+                  style={{ borderColor: mutedBorder || undefined }}
                   onClick={() => document.getElementById('proof-upload')?.click()}>
                   <div className="space-y-1 text-center">
                     <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
                     <div className="flex text-sm text-gray-600 justify-center">
                       <label htmlFor="proof-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-chabaqa-primary hover:text-chabaqa-primary/80 focus-within:outline-none">
-                        <span>Upload a file</span>
+                        <span style={{ color: primary }}>Upload a file</span>
                         <input id="proof-upload" name="proof-upload" type="file" className="sr-only" accept="image/*,application/pdf" onChange={(e) => {
                           if (e.target.files && e.target.files[0]) {
                             setPaymentProof(e.target.files[0])
@@ -480,7 +533,8 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
               <Button
                 onClick={handleCompletePurchase}
                 disabled={isProcessing || success}
-                className="w-full bg-chabaqa-primary text-white font-bold py-3 px-4 rounded-lg hover:bg-chabaqa-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-chabaqa-primary transition-transform hover:scale-[1.02] flex items-center justify-center disabled:bg-opacity-70 disabled:cursor-wait"
+                className="w-full font-bold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-transform hover:scale-[1.02] flex items-center justify-center disabled:bg-opacity-70 disabled:cursor-wait"
+                style={{ backgroundImage: gradient, color: themeTokens?.primaryText || "#fff" }}
               >
                 {isProcessing ? (
                   <>
@@ -494,7 +548,7 @@ export function CheckoutForm({ community }: CheckoutFormProps) {
                 )}
               </Button>
 
-              <Link href={`/community/${community.slug}/home`}>
+              <Link href={`/community/${community.slug}`}>
                 <Button
                   variant="secondary"
                   className="w-full bg-gray-200 text-gray-900 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors"
