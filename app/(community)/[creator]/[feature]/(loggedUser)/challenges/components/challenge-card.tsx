@@ -140,7 +140,13 @@ export default function ChallengeCard({ creatorSlug, slug, challenge, setSelecte
                   View Details <ArrowRight className="h-4 w-4 ml-1" />
                 </Link>
               </Button>
+              
             )}
+                          <Button size="sm" variant="outline" asChild>
+                                <Link href={`/challenge-promo/${challenge.id}`}>
+                  <ArrowRight className="h-4 w-4 ml-1" />
+                </Link>
+              </Button>
           </div>
         </div>
       </CardContent>

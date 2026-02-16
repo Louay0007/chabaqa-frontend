@@ -209,31 +209,31 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
 
           {/* Action Buttons - Enhanced */}
           <div className="flex gap-3 pt-2">
-            <Button
-              className="flex-1 h-12 text-sm font-semibold bg-gradient-to-r from-challenges-600 to-orange-500 hover:from-challenges-700 hover:to-orange-600 shadow-lg hover:shadow-xl transition-all duration-200 group"
-              onClick={handleJoin}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <span className="flex items-center gap-2">
-                  <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Processing...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  {paymentAmount > 0 ? "Proceed to Payment" : "Join Challenge Free"}
-                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </span>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              className="h-12 px-6 text-sm font-medium border-gray-300 hover:bg-gray-50"
-              onClick={() => setSelectedChallenge(null)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
+              <Button
+                className="flex-1 h-12 text-sm font-semibold bg-gradient-to-r from-challenges-600 to-orange-500 hover:from-challenges-700 hover:to-orange-600 shadow-lg hover:shadow-xl transition-all duration-200 group"
+                onClick={handleJoin}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Processing...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    {paymentAmount > 0 ? "Proceed to Payment" : "Join Challenge Free"}
+                    <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                className="h-12 px-6 text-sm font-medium border-gray-300 hover:bg-gray-50"
+                onClick={() => setSelectedChallenge(null)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
           </div>
         </div>
       </DialogContent>
