@@ -20,6 +20,7 @@ interface AuthContextValue {
   isAuthenticated: boolean
   register: (payload: any) => Promise<void>
   login: (payload: { email: string; password: string }) => Promise<void>
+  updateAuth: (accessToken: string, user: any) => void
   logout: () => Promise<void>
   fetchMe: () => Promise<User | null>
   token?: string | null
@@ -140,6 +141,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [router])
 
+  const updateAuth = useCallback((accessToken: string, userData: any) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('accessToken', accessToken)
+      localStorage.setItem('user', JSON.stringify(userData))
+    }
+    setToken(accessToken)
+    const normalizedUser = normalizeUser(userData)
+    setUser(normalizedUser)
+  }, [])
+
   const register = useCallback(async (payload: any) => {
     try {
       setError(null)
@@ -237,10 +248,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated,
     register,
     login,
+    updateAuth,
     logout,
     fetchMe,
     token,
-  }), [user, loading, error, isAuthenticated, register, login, logout, fetchMe, token])
+  }), [user, loading, error, isAuthenticated, register, login, updateAuth, logout, fetchMe, token])
 
   return (
     <AuthContext.Provider value={value}>

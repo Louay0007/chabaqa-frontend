@@ -72,8 +72,8 @@ export function CommunityDetailsSidebar({ community }: CommunityDetailsSidebarPr
       return
     }
 
-    // For free communities, redirect to join page
-    router.push(`/community/${community.slug}/join`)
+    // For free communities, use the embedded join section on the details page
+    router.push(`/community/${community.slug}#join-section`)
   }
 
   const isFree = community.priceType === 'free' || community.price === 0

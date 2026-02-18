@@ -1,5 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+async function parseBackendResponse(response: Response): Promise<any> {
+  const contentType = response.headers.get('content-type') || ''
+  if (contentType.includes('application/json')) {
+    try {
+      return await response.json()
+    } catch {
+      return null
+    }
+  }
+
+  try {
+    const text = await response.text()
+    return text ? { message: text } : null
+  } catch {
+    return null
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -50,7 +68,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({}),
     })
 
-    const data = await response.json()
+    const data = await parseBackendResponse(response)
 
     if (!response.ok) {
       if (response.status === 409) {
@@ -64,7 +82,9 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const message = data.message || 'Failed to process checkout'
+      const message =
+        (data && typeof data === 'object' && data.message) ||
+        `Checkout request failed (${response.status})`
 
       return NextResponse.json(
         { success: false, message },
@@ -74,8 +94,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: data.message || 'Payment completed successfully',
-      data: data.data ?? null,
+      message:
+        (data && typeof data === 'object' && data.message) ||
+        'Payment completed successfully',
+      data: (data && typeof data === 'object' && data.data) ?? null,
     })
   } catch (error) {
     console.error('Community checkout error:', error)

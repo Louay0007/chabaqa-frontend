@@ -233,7 +233,7 @@ export function AppHeader({ userType, currentCommunity, showCommunitySelector = 
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
-                        <Link href="/creator/communities/new" className="flex items-center px-2 py-2">
+                        <Link href="/dashboard/create-community" className="flex items-center px-2 py-2">
                           <Plus className="mr-2 h-4 w-4" />
                           Create New Community
                         </Link>

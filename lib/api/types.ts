@@ -28,10 +28,12 @@ export interface Community {
   longDescription?: string;
   category: string;
   tags: string[];
+  logo?: string;
   image?: string;
   coverImage?: string;
   price: number;
   priceType: 'free' | 'monthly' | 'yearly' | 'one-time';
+  type?: 'community' | 'course' | 'challenge' | 'event' | 'oneToOne' | 'product';
   members: number;
   rating: number;
   averageRating?: number;
@@ -44,18 +46,65 @@ export interface Community {
     avatar?: string;
     verified: boolean;
   };
+  settings?: CommunitySettings;
+  fees_of_join?: number;
+  currency?: string;
   createdAt: string;
   updatedAt: string;
 }
 
+export interface CommunitySocialLinks {
+  twitter?: string;
+  instagram?: string;
+  linkedin?: string;
+  discord?: string;
+  behance?: string;
+  github?: string;
+  facebook?: string;
+  youtube?: string;
+  tiktok?: string;
+  website?: string;
+}
+
 export interface CommunitySettings {
-  id: string;
-  communityId: string;
-  allowMemberPosts: boolean;
-  requireApproval: boolean;
-  allowInvites: boolean;
-  visibility: 'public' | 'private' | 'hidden';
-  updatedAt: string;
+  id?: string;
+  communityId?: string;
+  allowMemberPosts?: boolean;
+  requireApproval?: boolean;
+  allowInvites?: boolean;
+  visibility?: 'public' | 'private' | 'hidden';
+  updatedAt?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  welcomeMessage?: string;
+  features?: string[];
+  benefits?: string[];
+  template?: string;
+  fontFamily?: string;
+  borderRadius?: number;
+  backgroundStyle?: string;
+  heroLayout?: string;
+  headerStyle?: 'default' | 'centered' | 'minimal';
+  contentWidth?: 'narrow' | 'normal' | 'wide' | 'full';
+  showStats?: boolean;
+  showHero?: boolean;
+  showFeatures?: boolean;
+  showBenefits?: boolean;
+  showTestimonials?: boolean;
+  showPosts?: boolean;
+  showFAQ?: boolean;
+  enableAnimations?: boolean;
+  enableParallax?: boolean;
+  logo?: string;
+  heroBackground?: string;
+  gallery?: string[];
+  videoUrl?: string;
+  socialLinks?: CommunitySocialLinks;
+  customSections?: any[];
+  metaTitle?: string;
+  metaDescription?: string;
+  customDomain?: string;
+  headerScripts?: string;
 }
 
 export interface CommunityMember {
@@ -325,13 +374,28 @@ export interface Product {
   slug: string;
   description: string;
   communityId: string;
+  community?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
   creatorId: string;
+  creator?: {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
   thumbnail?: string;
+  images?: string[];
   price: number;
   type: 'digital' | 'physical';
   isPublished: boolean;
-  salesCount: number;
+  salesCount?: number;
+  sales?: number;
   rating: number;
+  averageRating?: number;
+  ratingCount?: number;
   createdAt: string;
 }
 

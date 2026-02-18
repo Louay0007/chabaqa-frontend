@@ -1,6 +1,62 @@
 import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } from './client';
 import type { Community, CommunitySettings, CommunityMember, CommunityFilters } from './types';
 
+const isRouteNotFound = (error: any): boolean => {
+  const statusCode = Number(error?.statusCode ?? error?.status ?? 0);
+  const code = String(error?.code || error?.error?.code || "").toUpperCase();
+  const message =
+    typeof error?.message === "string"
+      ? error.message
+      : typeof error?.message?.message === "string"
+        ? error.message.message
+        : typeof error?.error?.message === "string"
+          ? error.error.message
+          : "";
+  return (
+    statusCode === 404 ||
+    code === "NOT_FOUND" ||
+    /cannot\s+(get|patch|put)\s+/i.test(message)
+  );
+};
+
+const asNumber = (value: unknown, fallback = 0): number => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+};
+
+const normalizeCommunityMetrics = (community: any) => {
+  if (!community || typeof community !== "object") {
+    return community;
+  }
+
+  const rawMembers = community.members;
+  const membersCount = asNumber(community.membersCount, 0);
+  const derivedMembers =
+    typeof rawMembers === "number"
+      ? rawMembers
+      : Array.isArray(rawMembers)
+        ? rawMembers.length
+        : typeof rawMembers === "object" && rawMembers !== null
+          ? asNumber((rawMembers as any).count, 0)
+          : 0;
+  const normalizedMembers = Math.max(membersCount, derivedMembers, 0);
+  const rating = asNumber(community.averageRating ?? community.rating, 0);
+  const ratingCount = asNumber(community.ratingCount, 0);
+
+  return {
+    ...community,
+    members: normalizedMembers,
+    membersCount: normalizedMembers,
+    rating,
+    averageRating: rating,
+    ratingCount,
+  };
+};
+
 export interface GetCommunitiesParams extends PaginationParams {
   category?: string;
   featured?: boolean;
@@ -40,9 +96,29 @@ export interface CreateCommunityData {
   coverImage?: string;
 }
 
-export interface UpdateCommunityData extends Partial<CreateCommunityData> { }
+export interface UpdateCommunityData
+  extends Partial<
+    Omit<CreateCommunityData, "currency"> & {
+      currency: string;
+      description: string;
+      price: number;
+      priceType: "free" | "one-time" | "monthly" | "yearly";
+      type: "community" | "course" | "challenge" | "event" | "oneToOne" | "product";
+      settings: CommunitySettings;
+    }
+  > {}
 
 export interface UpdateCommunitySettingsData extends Partial<Omit<CommunitySettings, 'id' | 'communityId' | 'updatedAt'>> { }
+
+export interface CreateCommunityResponse extends ApiSuccessResponse<Community> {
+  accessToken?: string;
+  user?: {
+    _id: string;
+    name: string;
+    email: string;
+    role: string;
+  };
+}
 
 // Communities API
 export const communitiesApi = {
@@ -52,23 +128,88 @@ export const communitiesApi = {
   },
 
   // Create community
-  create: async (data: CreateCommunityData): Promise<ApiSuccessResponse<Community>> => {
-    return apiClient.post<ApiSuccessResponse<Community>>('/community-aff-crea-join/create', data);
+  create: async (data: CreateCommunityData): Promise<CreateCommunityResponse> => {
+    return apiClient.post<CreateCommunityResponse>('/community-aff-crea-join/create', data);
   },
 
   // Get community by ID
   getById: async (id: string): Promise<ApiSuccessResponse<Community>> => {
-    return apiClient.get<ApiSuccessResponse<Community>>(`/community-aff-crea-join/${id}`);
+    try {
+      const response = await apiClient.get<ApiSuccessResponse<Community>>(`/community-aff-crea-join/${id}`);
+      return {
+        ...response,
+        data: normalizeCommunityMetrics(response.data),
+      };
+    } catch (error) {
+      if (!isRouteNotFound(error)) {
+        throw error;
+      }
+      const response = await apiClient.get<ApiSuccessResponse<Community>>(`/communities/${id}`);
+      return {
+        ...response,
+        data: normalizeCommunityMetrics(response.data),
+      };
+    }
   },
 
   // Get community by slug or ID
   getBySlug: async (slug: string): Promise<ApiSuccessResponse<Community>> => {
-    return apiClient.get<ApiSuccessResponse<Community>>(`/community-aff-crea-join/${slug}`);
+    try {
+      const response = await apiClient.get<ApiSuccessResponse<Community>>(`/community-aff-crea-join/${slug}`);
+      return {
+        ...response,
+        data: normalizeCommunityMetrics(response.data),
+      };
+    } catch (error) {
+      if (!isRouteNotFound(error)) {
+        throw error;
+      }
+      const response = await apiClient.get<ApiSuccessResponse<Community>>(`/communities/${slug}`);
+      return {
+        ...response,
+        data: normalizeCommunityMetrics(response.data),
+      };
+    }
   },
 
-  // Update community
-  update: async (id: string, data: UpdateCommunityData): Promise<ApiSuccessResponse<Community>> => {
-    return apiClient.patch<ApiSuccessResponse<Community>>(`/community-aff-crea-join/${id}`, data);
+  // Update community with method/route fallback for backward-compatible backend deployments
+  update: async (
+    idOrSlug: string,
+    data: UpdateCommunityData,
+    fallbackIdOrSlug?: string,
+  ): Promise<ApiSuccessResponse<Community>> => {
+    const identifiers = Array.from(
+      new Set(
+        [idOrSlug, fallbackIdOrSlug]
+          .map((value) => String(value || "").trim())
+          .filter(Boolean),
+      ),
+    );
+
+    const attempts = identifiers.flatMap((identifier) => [
+      { method: "patch" as const, endpoint: `/community-aff-crea-join/${encodeURIComponent(identifier)}` },
+      { method: "put" as const, endpoint: `/community-aff-crea-join/${encodeURIComponent(identifier)}` },
+      { method: "patch" as const, endpoint: `/community-aff-crea-join/update/${encodeURIComponent(identifier)}` },
+      { method: "put" as const, endpoint: `/community-aff-crea-join/update/${encodeURIComponent(identifier)}` },
+    ]);
+
+    let lastError: any = null;
+
+    for (const attempt of attempts) {
+      try {
+        if (attempt.method === "patch") {
+          return await apiClient.patch<ApiSuccessResponse<Community>>(attempt.endpoint, data);
+        }
+        return await apiClient.put<ApiSuccessResponse<Community>>(attempt.endpoint, data);
+      } catch (error) {
+        lastError = error;
+        if (!isRouteNotFound(error)) {
+          throw error;
+        }
+      }
+    }
+
+    throw lastError || new Error("Failed to update community");
   },
 
   // Delete community
@@ -93,7 +234,28 @@ export const communitiesApi = {
 
   // Update community settings
   updateSettings: async (id: string, settings: UpdateCommunitySettingsData): Promise<ApiSuccessResponse<CommunitySettings>> => {
-    return apiClient.patch<ApiSuccessResponse<CommunitySettings>>(`/community-aff-crea-join/${id}/settings`, settings);
+    const identifier = encodeURIComponent(id);
+    const attempts = [
+      { method: "patch" as const, endpoint: `/community-aff-crea-join/${identifier}/settings` },
+      { method: "put" as const, endpoint: `/community-aff-crea-join/${identifier}/settings` },
+    ];
+
+    let lastError: any = null;
+    for (const attempt of attempts) {
+      try {
+        if (attempt.method === "patch") {
+          return await apiClient.patch<ApiSuccessResponse<CommunitySettings>>(attempt.endpoint, settings);
+        }
+        return await apiClient.put<ApiSuccessResponse<CommunitySettings>>(attempt.endpoint, settings);
+      } catch (error) {
+        lastError = error;
+        if (!isRouteNotFound(error)) {
+          throw error;
+        }
+      }
+    }
+
+    throw lastError || new Error("Failed to update community settings");
   },
 
   // Get community stats

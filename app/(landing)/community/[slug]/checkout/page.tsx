@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation"
+import { notFound } from "next/navigation"
 import { communitiesApi } from "@/lib/api"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
@@ -8,15 +8,6 @@ interface CheckoutPageProps {
   params: {
     slug: string
   }
-}
-
-type CommunityPricingFields = {
-  fees_of_join?: number | null
-  price?: number | null
-  priceType?: string | null
-  pricing?: {
-    price?: number | null
-  } | null
 }
 
 export default async function CheckoutPage({ params }: CheckoutPageProps) {
@@ -34,25 +25,6 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
 
   if (!community) {
     notFound()
-  }
-
-  const pricing = community as CommunityPricingFields
-
-  const hasFeesOfJoin = typeof pricing.fees_of_join === "number" && pricing.fees_of_join > 0
-  const hasPrice = typeof pricing.price === "number" && pricing.price > 0
-  const hasPricingPrice =
-    pricing.pricing !== null &&
-    typeof pricing.pricing?.price === "number" &&
-    pricing.pricing.price > 0
-
-  const priceType = pricing.priceType
-  const hasExplicitPriceType = typeof priceType === "string" && priceType.length > 0
-  const isPaidByPriceType = hasExplicitPriceType && priceType !== "free"
-
-  const isPaidCommunity = hasFeesOfJoin || hasPrice || hasPricingPrice || isPaidByPriceType
-
-  if (!isPaidCommunity) {
-    redirect(`/community/${slug}/join`)
   }
 
   const rawCreator = (community as any)?.creator || (community as any)?.createur || null

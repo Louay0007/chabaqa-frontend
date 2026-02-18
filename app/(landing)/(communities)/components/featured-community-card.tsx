@@ -51,7 +51,7 @@ export function FeaturedCommunityCard({ community, index, slug }: FeaturedCommun
       },
       product: {
         badgeColor: "border-purple-500/50 text-purple-600 bg-purple-50",
-        ctaText: "Join",
+        ctaText: "Buy",
         ctaColors: "#9333ea, #a855f7"
       },
       oneToOne: {
@@ -71,6 +71,19 @@ export function FeaturedCommunityCard({ community, index, slug }: FeaturedCommun
 
   const itemType = (((community as any).type ?? "community") as ItemType)
   const typeConfig = getTypeConfig(itemType)
+
+  // Fix: Use communitySlug if available (for courses/challenges/etc) otherwise use community.slug
+  const targetSlug = (community as any).communitySlug || community.slug
+
+  const ctaHref = itemType === "community"
+    ? (community.isMember
+      ? (community.link || `/${community.creator}/${community.slug}`)
+      : `/community/${community.slug}#join-section`)
+    : (community.link || `/community/${targetSlug}#join-section`)
+
+  const ctaLabel = itemType === "community"
+    ? (community.isMember ? typeConfig.ctaText : "Join")
+    : typeConfig.ctaText
 
   return (
     <div className="group hover:shadow-lg transition-all duration-300 border border-gray-200/60 rounded-2xl shadow-sm overflow-hidden bg-gradient-to-br from-white to-gray-50/30 hover:scale-[1.01]">
@@ -105,7 +118,7 @@ export function FeaturedCommunityCard({ community, index, slug }: FeaturedCommun
       {/* Compact Content Section */}
       <div className="px-3 pb-3 space-y-2">
         {/* Simple Title */}
-        <h3 className="text-sm font-semibold text-gray-900 group-hover:text-chabaqa-primary transition-colors duration-300 line-clamp-2">
+        <h3 className="text-sm font-bold text-gray-900 group-hover:text-chabaqa-primary transition-colors duration-300 line-clamp-2 break-words">
           {community.name}
         </h3>
 
@@ -123,9 +136,16 @@ export function FeaturedCommunityCard({ community, index, slug }: FeaturedCommun
               <CheckCircle className="w-3 h-3 text-blue-500 absolute -bottom-0.5 -right-0.5 bg-white rounded-full" />
             )}
           </div>
-          <p className="text-xs text-gray-600">
-            by <span className="font-medium text-gray-800">{community.creator}</span>
-          </p>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-600 truncate">
+              by <span className="font-medium text-gray-800">{community.creator}</span>
+            </p>
+            {community.communityName && community.type !== "community" && (
+              <p className="text-[11px] text-gray-500 truncate">
+                Community: <span className="font-medium text-chabaqa-primary">{community.communityName}</span>
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Compact Stats */}
@@ -148,19 +168,17 @@ export function FeaturedCommunityCard({ community, index, slug }: FeaturedCommun
         </div>
 
         {/* Simple CTA Button */}
-        <Link href={community.isMember ? (community.link || `/${community.creator}/${community.slug}`) : `/community/${community.slug}/join`}>
+        <Link href={ctaHref}>
           <button
             className="w-full mt-2 py-1.5 text-xs font-semibold rounded-lg text-white shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-300"
             style={{
               background: "linear-gradient(to right, #8e78fb, #8e78fb)"
             }}
           >
-            {community.isMember ? typeConfig.ctaText : "Join"}
+            {ctaLabel}
           </button>
         </Link>
       </div>
-
-
     </div>
   )
 }

@@ -117,6 +117,8 @@ export type Explore = {
   featured: boolean;
   link: string
   isMember?: boolean
+  communityName?: string // Community name for non-community content types
+  communitySlug?: string // Community slug for non-community content types
 }
 
 export const ExploreData: { 

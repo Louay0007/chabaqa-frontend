@@ -74,6 +74,21 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
 
   const typeConfig = getTypeConfig(community.type)
 
+  const itemType = ((community.type ?? "community") as ItemType)
+  
+  // Fix: Use communitySlug if available (for courses/challenges/etc) otherwise use community.slug
+  const slug = (community as any).communitySlug || community.slug
+  
+  const ctaHref = itemType === "community"
+    ? (community.isMember
+      ? (community.link || `/${community.creator}/${community.slug}`)
+      : `/community/${community.slug}#join-section`)
+    : (community.link || `/community/${slug}#join-section`)
+
+  const ctaLabel = itemType === "community"
+    ? (community.isMember ? typeConfig.ctaText : "Join")
+    : typeConfig.ctaText
+
   if (viewMode === "list") {
     return (
       <Card className="group hover:shadow-xl transition-all duration-300 border border-gray-100 rounded-2xl shadow-sm overflow-hidden bg-white hover:scale-[1.01]">
@@ -127,7 +142,7 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
             <div className="space-y-1.5">
               {/* Title & Verified */}
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-900 group-hover:text-chabaqa-primary transition-colors duration-300 leading-tight line-clamp-2">
+                <h3 className="text-xl font-bold text-gray-900 group-hover:text-chabaqa-primary transition-colors duration-300 leading-tight line-clamp-2 break-words">
                   {community.name}
                 </h3>
                 {community.verified && (
@@ -148,15 +163,18 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
                     className="rounded-full ring-2 ring-chabaqa-primary/20 shadow-md object-cover"
                     sizes="32px"
                     unoptimized
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement
-                      target.src = "/placeholder.svg"
-                    }}
                   />
                 </div>
-                <p className="text-xs text-gray-600">
-                  Created by <span className="font-semibold text-gray-800">{community.creator}</span>
-                </p>
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-600 truncate">
+                    Created by <span className="font-semibold text-gray-800">{community.creator}</span>
+                  </p>
+                  {community.communityName && community.type !== 'community' && (
+                    <p className="text-[11px] text-gray-500 truncate">
+                      Community: <span className="font-medium text-chabaqa-primary">{community.communityName}</span>
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Description */}
@@ -200,7 +218,7 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
               </div>
 
               {/* CTA Button with type-specific styling */}
-              <Link href={community.isMember ? (community.link || `/${community.creator}/${community.slug}`) : `/community/${community.slug}/join`}>
+              <Link href={ctaHref}>
                 <button
                   className="px-8 py-1.5 text-sm font-semibold rounded-lg text-white shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300"
                   style={{
@@ -212,7 +230,7 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
                       })`
                   }}
                 >
-                  {community.isMember ? typeConfig.ctaText : "Join"}
+                  {ctaLabel}
                 </button>
               </Link>
             </div>
@@ -255,7 +273,7 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
       {/* Content */}
       <CardContent className="px-3 pb-3 space-y-2">
         {/* Title */}
-        <h3 className="text-sm font-semibold text-gray-900 group-hover:text-chabaqa-primary transition-colors duration-300 line-clamp-2">
+        <h3 className="text-sm font-bold text-gray-900 group-hover:text-chabaqa-primary transition-colors duration-300 line-clamp-2 break-words">
           {community.name}
         </h3>
 
@@ -275,9 +293,16 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
               }}
             />
           </div>
-          <p className="text-xs text-gray-600">
-            by <span className="font-medium text-gray-800">{community.creator}</span>
-          </p>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-600 truncate">
+              Created by <span className="font-semibold text-gray-800">{community.creator}</span>
+            </p>
+            {community.communityName && community.type !== "community" && (
+              <p className="text-[11px] text-gray-500 truncate">
+                Community: <span className="font-medium text-chabaqa-primary">{community.communityName}</span>
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Stats */}
@@ -300,14 +325,14 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
         </div>
 
         {/* CTA with type-specific styling */}
-        <Link href={community.isMember ? (community.link || `/${community.creator}/${community.slug}`) : `/community/${community.slug}/join`}>
+        <Link href={ctaHref}>
           <button
             className="w-full mt-2 py-1.5 text-xs font-semibold rounded-lg text-white shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300"
             style={{
               background: "linear-gradient(to right, #8e78fb, #8e78fb)"
             }}
           >
-            {community.isMember ? typeConfig.ctaText : "Join"}
+            {ctaLabel}
           </button>
         </Link>
       </CardContent>

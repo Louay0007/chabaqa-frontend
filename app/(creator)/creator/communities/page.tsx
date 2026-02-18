@@ -2,17 +2,28 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, Filter, Grid, List, CheckCircle } from "lucide-react"
+import { Plus, Search, Filter, Grid, List, CheckCircle, Trash2, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import Link from "next/link"
 import Image from "next/image"
 import { api } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
 
 export default function CommunitiesPage() {
+  const { toast } = useToast()
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [searchQuery, setSearchQuery] = useState("")
   const [visibilityStates, setVisibilityStates] = useState<Record<string, boolean>>({})
@@ -20,6 +31,8 @@ export default function CommunitiesPage() {
   const [error, setError] = useState<string | null>(null)
   const [communities, setCommunities] = useState<any[]>([])
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [deleteCommunityId, setDeleteCommunityId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -110,6 +123,36 @@ export default function CommunitiesPage() {
   const getCommunityUrl = (community: any) => {
     const creatorName = currentUser?.name || currentUser?.username || 'creator'
     return `/${encodeURIComponent(creatorName)}/${community.slug}/home`
+  }
+
+  const handleDeleteCommunity = async (communityId: string) => {
+    if (isDeleting) return
+
+    setIsDeleting(true)
+    try {
+      await api.communities.delete(communityId as any)
+
+      setCommunities((prev) => prev.filter((c) => String(c.id) !== String(communityId)))
+      setVisibilityStates((prev) => {
+        const next = { ...prev }
+        delete next[String(communityId)]
+        return next
+      })
+
+      toast({
+        title: "Success",
+        description: "Community deleted successfully",
+      })
+      setDeleteCommunityId(null)
+    } catch (e: any) {
+      toast({
+        title: "Error",
+        description: e?.message || e?.response?.data?.message || "Failed to delete community",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -217,11 +260,21 @@ export default function CommunitiesPage() {
                       <span className="text-sm font-medium">{community.stats?.engagementRate ?? 0}% engagement</span>
                       <span className="text-xs text-gray-500">{community.stats?.monthlyGrowth ?? 0}% monthly growth</span>
                     </div>
-                    <Button asChild variant="outline">
-                      <Link href={getCommunityUrl(community)}>
-                        View Community
-                      </Link>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button asChild variant="outline">
+                        <Link href={getCommunityUrl(community)}>
+                          View Community
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setDeleteCommunityId(String(community.id))}
+                        className="border-red-200 hover:border-red-300 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between border-t pt-4">
                     <span className="text-sm text-gray-600">Community visibility</span>
@@ -278,11 +331,21 @@ export default function CommunitiesPage() {
                         onCheckedChange={(checked) => handleVisibilityChange(community.id, checked)}
                       />
                     </div>
-                    <Button asChild variant="outline">
-                      <Link href={getCommunityUrl(community)}>
-                        View Community
-                      </Link>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button asChild variant="outline">
+                        <Link href={getCommunityUrl(community)}>
+                          View Community
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setDeleteCommunityId(String(community.id))}
+                        className="border-red-200 hover:border-red-300 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -290,6 +353,34 @@ export default function CommunitiesPage() {
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!deleteCommunityId} onOpenChange={(open) => !open && setDeleteCommunityId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete community?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the community.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-2">
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteCommunityId && handleDeleteCommunity(deleteCommunityId)}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <span className="inline-flex items-center">
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </span>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Empty State */}
       {(!loading && filteredCommunities.length === 0) && (

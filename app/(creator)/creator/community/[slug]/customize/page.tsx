@@ -11,21 +11,223 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Save, Palette, Type, Layout, Zap } from "lucide-react"
+import { ArrowLeft, Save, Palette, Type, Layout, Zap, Eye } from "lucide-react"
 import { ImageUpload } from "@/app/(dashboard)/components/image-upload"
 import { ColorPicker } from "@/app/(dashboard)/components/color-picker"
-import { cn } from "@/lib/utils"
 import { communitiesApi } from "@/lib/api/communities.api"
-import { Select, SelectItem, SelectValue, SelectTrigger, SelectContent } from "@radix-ui/react-select"
+import type { UpdateCommunityData } from "@/lib/api/communities.api"
+import {
+  Select,
+  SelectItem,
+  SelectValue,
+  SelectTrigger,
+  SelectContent,
+} from "@/components/ui/select"
+import type { Community } from "@/lib/api/types"
+import { isValidCustomDomain, normalizeCommunitySettings } from "@/lib/community-settings"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
+
+type EditableCommunity = Community & {
+  _id?: string
+  settings: ReturnType<typeof normalizeCommunitySettings>
+}
+
+function resolveCommunityIdentifier(
+  community: { id?: string; _id?: string; slug?: string } | null | undefined,
+  fallbackSlug?: string,
+): string {
+  const value = community?.id || community?._id || community?.slug || fallbackSlug || ""
+  return String(value).trim()
+}
+
+function isRouteNotFoundError(error: any): boolean {
+  const statusCode = Number(error?.statusCode ?? error?.status ?? 0)
+  const code = String(error?.code || error?.error?.code || "").toUpperCase()
+  const nestedMessage =
+    typeof error?.message === "string"
+      ? error.message
+      : typeof error?.message?.message === "string"
+        ? error.message.message
+        : typeof error?.error?.message === "string"
+          ? error.error.message
+          : ""
+
+  return (
+    statusCode === 404 ||
+    code === "NOT_FOUND" ||
+    /cannot\s+(patch|put)\s+/i.test(nestedMessage)
+  )
+}
+
+function extractStatusCode(error: any): number {
+  return Number(error?.statusCode ?? error?.status ?? 0)
+}
+
+function toOptionalTrimmedString(value: unknown, maxLength: number): string | undefined {
+  if (typeof value !== "string") {
+    return undefined
+  }
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return undefined
+  }
+  return trimmed.slice(0, maxLength)
+}
+
+function toOptionalLongDescription(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    return value.trim().slice(0, 5000)
+  }
+  if (value && typeof value === "object") {
+    const text =
+      typeof (value as any).text === "string"
+        ? (value as any).text
+        : typeof (value as any).content === "string"
+          ? (value as any).content
+          : undefined
+    if (text) {
+      return text.trim().slice(0, 5000)
+    }
+  }
+  return undefined
+}
+
+function toStringArray(value: unknown, maxItems: number, maxItemLength: number): string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value
+    .filter((item) => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, maxItems)
+    .map((item) => item.slice(0, maxItemLength))
+}
+
+function sanitizeSocialLinks(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return undefined
+  }
+
+  const social = value as Record<string, unknown>
+  const normalized = {
+    twitter: toOptionalTrimmedString(social.twitter, 500),
+    instagram: toOptionalTrimmedString(social.instagram, 500),
+    linkedin: toOptionalTrimmedString(social.linkedin, 500),
+    discord: toOptionalTrimmedString(social.discord, 500),
+    behance: toOptionalTrimmedString(social.behance, 500),
+    github: toOptionalTrimmedString(social.github, 500),
+    facebook: toOptionalTrimmedString(social.facebook, 500),
+    youtube: toOptionalTrimmedString(social.youtube, 500),
+    tiktok: toOptionalTrimmedString(social.tiktok, 500),
+    website: toOptionalTrimmedString(social.website, 500),
+  }
+
+  return Object.values(normalized).some(Boolean) ? normalized : undefined
+}
+
+function buildCustomizationPayload(community: EditableCommunity): UpdateCommunityData {
+  const features = toStringArray(community.settings.features, 20, 160)
+  const benefits = toStringArray(community.settings.benefits, 20, 220)
+  const tags = toStringArray(community.tags, 20, 40)
+
+  return {
+    name: toOptionalTrimmedString(community.name, 100),
+    description: toOptionalTrimmedString(community.description, 500),
+    longDescription: toOptionalLongDescription(community.longDescription),
+    category: toOptionalTrimmedString(community.category, 100),
+    tags,
+    coverImage: toOptionalTrimmedString(
+      resolveImageUrl(community.coverImage) || community.coverImage,
+      1000,
+    ),
+    logo: toOptionalTrimmedString(resolveImageUrl(community.logo) || community.logo, 1000),
+    price:
+      typeof community.price === "number" && Number.isFinite(community.price)
+        ? Math.max(0, Math.min(1_000_000, community.price))
+        : undefined,
+    priceType:
+      community.priceType === "free" ||
+      community.priceType === "one-time" ||
+      community.priceType === "monthly" ||
+      community.priceType === "yearly"
+        ? community.priceType
+        : undefined,
+    type:
+      community.type === "community" ||
+      community.type === "course" ||
+      community.type === "challenge" ||
+      community.type === "event" ||
+      community.type === "oneToOne" ||
+      community.type === "product"
+        ? community.type
+        : "community",
+    settings: {
+      primaryColor: toOptionalTrimmedString(community.settings.primaryColor, 7),
+      secondaryColor: toOptionalTrimmedString(community.settings.secondaryColor, 7),
+      welcomeMessage: toOptionalTrimmedString(community.settings.welcomeMessage, 1000),
+      features,
+      benefits,
+      logo: toOptionalTrimmedString(
+        resolveImageUrl(community.settings.logo) || community.settings.logo,
+        1000,
+      ),
+      heroBackground: toOptionalTrimmedString(
+        resolveImageUrl(community.settings.heroBackground) || community.settings.heroBackground,
+        1000,
+      ),
+      headerStyle:
+        community.settings.headerStyle === "default" ||
+        community.settings.headerStyle === "centered" ||
+        community.settings.headerStyle === "minimal"
+          ? community.settings.headerStyle
+          : "default",
+      contentWidth:
+        community.settings.contentWidth === "narrow" ||
+        community.settings.contentWidth === "normal" ||
+        community.settings.contentWidth === "wide" ||
+        community.settings.contentWidth === "full"
+          ? community.settings.contentWidth
+          : "normal",
+      showHero: Boolean(community.settings.showHero),
+      showFeatures: Boolean(community.settings.showFeatures),
+      showPosts: Boolean(community.settings.showPosts),
+      showBenefits: Boolean(community.settings.showBenefits),
+      showTestimonials: Boolean(community.settings.showTestimonials),
+      showStats: Boolean(community.settings.showStats),
+      customDomain: toOptionalTrimmedString(community.settings.customDomain, 253)?.toLowerCase(),
+      headerScripts: toOptionalTrimmedString(community.settings.headerScripts, 10000),
+      socialLinks: sanitizeSocialLinks(community.settings.socialLinks),
+    },
+  }
+}
+
+function extractValidationMessage(error: any): string | null {
+  const details = error?.details || error?.message?.details || error?.error?.details
+  if (!Array.isArray(details) || details.length === 0) {
+    return null
+  }
+  const lines = details
+    .map((item: any) => {
+      const field = typeof item?.field === "string" ? item.field : "field"
+      const messages = Array.isArray(item?.messages) ? item.messages.filter(Boolean) : []
+      return messages.length > 0 ? `${field}: ${messages.join(", ")}` : null
+    })
+    .filter(Boolean)
+  return lines.length > 0 ? lines.join(" | ") : null
+}
 
 export default function CustomizeCommunityPage() {
   const params = useParams()
   const router = useRouter()
-  const [community, setCommunity] = useState<any>(null)
+  const [community, setCommunity] = useState<EditableCommunity | null>(null)
   const [activeTab, setActiveTab] = useState("design")
   const [hasChanges, setHasChanges] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isPreviewing, setIsPreviewing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [customDomainStatus, setCustomDomainStatus] = useState<"idle" | "valid" | "invalid" | "taken">("idle")
 
   useEffect(() => {
     const fetchCommunity = async () => {
@@ -40,7 +242,22 @@ export default function CustomizeCommunityPage() {
 
         const response = await communitiesApi.getBySlug(slug)
         if (response && response.data) {
-          setCommunity(response.data)
+          const normalizedSettings = normalizeCommunitySettings(
+            response.data.settings,
+            response.data.name,
+          )
+          const fetchedCommunity = response.data as Community & { _id?: string }
+          setCommunity({
+            ...fetchedCommunity,
+            id: resolveCommunityIdentifier(fetchedCommunity, slug),
+            _id: fetchedCommunity._id || fetchedCommunity.id,
+            coverImage: resolveImageUrl(fetchedCommunity.coverImage) || fetchedCommunity.coverImage,
+            logo: resolveImageUrl(fetchedCommunity.logo) || fetchedCommunity.logo,
+            settings: normalizedSettings,
+          } as EditableCommunity)
+          if (normalizedSettings.customDomain) {
+            setCustomDomainStatus("valid")
+          }
         } else {
           setError("Community not found")
         }
@@ -55,50 +272,261 @@ export default function CustomizeCommunityPage() {
     fetchCommunity()
   }, [params.slug])
 
-  const handleSave = async () => {
+  const saveCommunityCustomization = async (): Promise<boolean> => {
     try {
-      setLoading(true)
-      const { id } = community
-
-      if (!id) {
+      if (!community) {
+        return false
+      }
+      if (customDomainStatus === "invalid") {
+        setError("Please enter a valid custom domain before saving.")
+        return false
+      }
+      const fallbackSlug = Array.isArray(params.slug) ? params.slug[0] : String(params.slug || "")
+      const persistedIdentifier = resolveCommunityIdentifier(community, "")
+      const communityIdentifier = fallbackSlug || persistedIdentifier
+      if (!communityIdentifier) {
         setError("Community ID not found")
+        return false
+      }
+
+      setIsSaving(true)
+      setError(null)
+
+      // Send only backend-allowed customization fields.
+      const updateData = buildCustomizationPayload(community)
+
+      let response
+      try {
+        response = await communitiesApi.update(
+          communityIdentifier,
+          updateData,
+          persistedIdentifier && persistedIdentifier !== communityIdentifier ? persistedIdentifier : undefined,
+        )
+      } catch (primaryUpdateError) {
+        // Backward compatibility fallback: some deployed APIs expose only settings update routes.
+        if (!isRouteNotFoundError(primaryUpdateError)) {
+          throw primaryUpdateError
+        }
+
+        const settingsIdentifierCandidates = Array.from(
+          new Set(
+            [communityIdentifier, persistedIdentifier]
+              .map((value) => String(value || "").trim())
+              .filter(Boolean),
+          ),
+        )
+
+        let settingsSaved = false
+        let settingsResponse: any = null
+        let settingsError: any = null
+
+        for (const candidate of settingsIdentifierCandidates) {
+          try {
+            settingsResponse = await communitiesApi.updateSettings(candidate, updateData.settings)
+            settingsSaved = true
+            break
+          } catch (fallbackError) {
+            settingsError = fallbackError
+          }
+        }
+
+        if (!settingsSaved || !settingsResponse?.data) {
+          throw settingsError || primaryUpdateError
+        }
+
+        const normalizedFallbackSettings = normalizeCommunitySettings(
+          settingsResponse.data as any,
+          updateData.name || community.name,
+        )
+
+        setCommunity((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            name: updateData.name ?? prev.name,
+            description: updateData.description ?? prev.description,
+            longDescription: updateData.longDescription ?? prev.longDescription,
+            category: updateData.category ?? prev.category,
+            tags: updateData.tags ?? prev.tags,
+            coverImage:
+              (resolveImageUrl(updateData.coverImage) || updateData.coverImage || prev.coverImage) as string,
+            logo: (resolveImageUrl(updateData.logo) || updateData.logo || prev.logo) as string,
+            price: typeof updateData.price === "number" ? updateData.price : prev.price,
+            priceType: (updateData.priceType || prev.priceType) as any,
+            type: (updateData.type || prev.type) as any,
+            settings: normalizedFallbackSettings,
+          }
+        })
+        setCustomDomainStatus(normalizedFallbackSettings.customDomain ? "valid" : "idle")
+        setHasChanges(false)
+        return true
+      }
+
+      if (!response || !response.data) {
+        setError("Failed to save changes. Please try again.")
+        return false
+      }
+
+      const normalizedSettings = normalizeCommunitySettings(
+        response.data.settings,
+        response.data.name,
+      )
+      const updatedCommunity = response.data as Community & { _id?: string }
+      setCommunity({
+        ...updatedCommunity,
+        id: resolveCommunityIdentifier(updatedCommunity, fallbackSlug),
+        _id: updatedCommunity._id || updatedCommunity.id,
+        coverImage: resolveImageUrl(updatedCommunity.coverImage) || updatedCommunity.coverImage,
+        logo: resolveImageUrl(updatedCommunity.logo) || updatedCommunity.logo,
+        settings: normalizedSettings,
+      } as EditableCommunity)
+      if (normalizedSettings.customDomain) {
+        setCustomDomainStatus("valid")
+      } else {
+        setCustomDomainStatus("idle")
+      }
+      setHasChanges(false)
+      console.log("Community updated successfully")
+      return true
+    } catch (err) {
+      console.error("Error saving community:", err)
+      const statusCode = extractStatusCode(err)
+      const rawMessage = (err as any)?.message
+      const validationMessage = extractValidationMessage(err)
+      const message =
+        statusCode === 401
+          ? "Session expired. Please sign in again."
+          : statusCode === 403
+            ? "You are not allowed to edit this community."
+            : statusCode === 404
+              ? "Save route not available on server. Please redeploy backend."
+            : statusCode === 400
+                ? (validationMessage || (typeof rawMessage === "string" ? rawMessage : "Some fields are invalid. Please review and try again."))
+                : (typeof rawMessage === "string" ? rawMessage : "Failed to save changes. Please try again.")
+      setError(message)
+      const normalizedMessage = String(message).toLowerCase()
+      if (normalizedMessage.includes("domaine") || normalizedMessage.includes("domain")) {
+        setCustomDomainStatus("taken")
+      }
+      return false
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleSave = async () => {
+    await saveCommunityCustomization()
+  }
+
+  const handlePreview = async () => {
+    if (!community) {
+      return
+    }
+    if (customDomainStatus === "invalid") {
+      setError("Please enter a valid custom domain before previewing.")
+      return
+    }
+
+    const fallbackSlug = Array.isArray(params.slug) ? params.slug[0] : String(params.slug || "")
+    const previewSlug = community.slug || fallbackSlug
+    if (!previewSlug) {
+      setError("Community slug not found")
+      return
+    }
+
+    setIsPreviewing(true)
+    const previewUrl = `/community/${previewSlug}?preview=creator&t=${Date.now()}`
+    let previewWindow: Window | null = null
+
+    try {
+      if (hasChanges) {
+        previewWindow = window.open("", "_blank")
+        if (previewWindow && previewWindow.document) {
+          previewWindow.document.write(
+            '<!doctype html><html><head><title>Opening preview...</title></head><body style="font-family:system-ui;padding:24px;">Opening community preview...</body></html>',
+          )
+          previewWindow.document.close()
+        }
+      }
+
+      const saveSucceeded = hasChanges ? await saveCommunityCustomization() : true
+      if (!saveSucceeded) {
+        if (previewWindow && !previewWindow.closed) {
+          previewWindow.close()
+        }
         return
       }
 
-      // The community state has the correct structure, just remove fields that shouldn't be sent.
-      const { _id, id: communityId, ...updateData } = community
-
-      const response = await communitiesApi.update(id, updateData)
-      if (response && response.data) {
-        setCommunity(response.data)
-        setHasChanges(false)
-        // Show success toast/notification
-        console.log("Community updated successfully")
+      if (previewWindow && !previewWindow.closed) {
+        previewWindow.location.assign(previewUrl)
+      } else {
+        const opened = window.open(previewUrl, "_blank")
+        if (!opened) {
+          setError("Preview popup was blocked. Please allow popups and try again.")
+        }
       }
-    } catch (err) {
-      console.error("Error saving community:", err)
-      setError("Failed to save changes. Please try again.")
     } finally {
-      setLoading(false)
+      setIsPreviewing(false)
     }
   }
 
   const handleInputChange = (field: string, value: any) => {
-    setCommunity((prev: any) => ({
-      ...prev,
-      [field]: value,
-    }))
+    setCommunity((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        [field]: value,
+      }
+    })
     setHasChanges(true)
   }
 
-  const handleSettingsChange = (field: string, value: any) => {
-    setCommunity((prev: any) => ({
-      ...prev,
-      settings: {
-        ...prev.settings,
-        [field]: value,
-      },
-    }))
+  const handleSettingsChange = <K extends keyof EditableCommunity["settings"]>(
+    field: K,
+    value: EditableCommunity["settings"][K],
+  ) => {
+    setCommunity((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          [field]: value,
+        },
+      }
+    })
+    if (field === "customDomain") {
+      const nextDomain = String(value || "")
+      if (!nextDomain) {
+        setCustomDomainStatus("idle")
+      } else if (isValidCustomDomain(nextDomain)) {
+        setCustomDomainStatus("valid")
+      } else {
+        setCustomDomainStatus("invalid")
+      }
+    }
+    setHasChanges(true)
+  }
+
+  const handleDomainChange = (value: string) => {
+    const normalized = value.trim().toLowerCase()
+    setCommunity((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          customDomain: normalized,
+        },
+      }
+    })
+    if (!normalized) {
+      setCustomDomainStatus("idle")
+    } else if (isValidCustomDomain(normalized)) {
+      setCustomDomainStatus("valid")
+    } else {
+      setCustomDomainStatus("invalid")
+    }
     setHasChanges(true)
   }
 
@@ -151,8 +579,18 @@ export default function CustomizeCommunityPage() {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
           <div className="flex space-x-2">
             <Button
+              type="button"
+              variant="outline"
+              onClick={handlePreview}
+              disabled={loading || isSaving || isPreviewing || customDomainStatus === "invalid"}
+              className="flex items-center space-x-2"
+            >
+              <Eye className="w-4 h-4" />
+              <span>{isPreviewing ? "Opening..." : "Preview"}</span>
+            </Button>
+            <Button
               onClick={handleSave}
-              disabled={!hasChanges}
+              disabled={!hasChanges || customDomainStatus === "invalid" || loading || isSaving || isPreviewing}
               className="flex items-center space-x-2"
               style={{
                 backgroundColor: hasChanges ? community.settings.primaryColor : undefined,
@@ -160,7 +598,7 @@ export default function CustomizeCommunityPage() {
               }}
             >
               <Save className="w-4 h-4" />
-              <span>Save Changes</span>
+              <span>{isSaving ? "Saving..." : "Save Changes"}</span>
             </Button>
           </div>
         </div>
@@ -328,7 +766,7 @@ export default function CustomizeCommunityPage() {
                             size="icon"
                             className="h-6 w-6 rounded-full"
                             onClick={() => {
-                              const newTags = [...community.tags]
+                              const newTags = [...(community.tags || [])]
                               newTags.splice(index, 1)
                               handleInputChange("tags", newTags)
                             }}
@@ -343,9 +781,10 @@ export default function CustomizeCommunityPage() {
                         id="newTagInput"
                         placeholder="Add a tag and press Enter"
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" && e.currentTarget.value) {
+                          const nextTag = e.currentTarget.value.trim()
+                          if (e.key === "Enter" && nextTag) {
                             e.preventDefault()
-                            const newTags = [...(community.tags || []), e.currentTarget.value]
+                            const newTags = [...(community.tags || []), nextTag]
                             handleInputChange("tags", newTags)
                             e.currentTarget.value = ""
                           }
@@ -373,12 +812,12 @@ export default function CustomizeCommunityPage() {
                   <div className="space-y-4">
                     <Label className="text-lg font-semibold">Community Features</Label>
                     <div className="space-y-3">
-                      {community.settings.features.map((feature: string, index: number) => (
+                      {(community.settings.features || []).map((feature: string, index: number) => (
                         <div key={index} className="flex items-center space-x-3">
                           <Input
                             value={feature}
                             onChange={(e) => {
-                              const newFeatures = [...community.settings.features]
+                              const newFeatures = [...(community.settings.features || [])]
                               newFeatures[index] = e.target.value
                               handleSettingsChange("features", newFeatures)
                             }}
@@ -387,7 +826,7 @@ export default function CustomizeCommunityPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              const newFeatures = community.settings.features.filter(
+                              const newFeatures = (community.settings.features || []).filter(
                                 (_: any, i: number) => i !== index,
                               )
                               handleSettingsChange("features", newFeatures)
@@ -400,7 +839,14 @@ export default function CustomizeCommunityPage() {
                       <Button
                         variant="outline"
                         onClick={() => {
-                          const newFeatures = [...community.settings.features, "New Feature"]
+                          const currentFeatures = (community.settings.features || [])
+                            .filter((item) => typeof item === "string")
+                            .map((item) => item.trim())
+                            .filter(Boolean)
+                          if (currentFeatures.length >= 20) {
+                            return
+                          }
+                          const newFeatures = [...currentFeatures, "New Feature"]
                           handleSettingsChange("features", newFeatures)
                         }}
                         style={{
@@ -419,12 +865,12 @@ export default function CustomizeCommunityPage() {
                   <div className="space-y-4">
                     <Label className="text-lg font-semibold">Member Benefits</Label>
                     <div className="space-y-3">
-                      {community.settings.benefits.map((benefit: string, index: number) => (
+                      {(community.settings.benefits || []).map((benefit: string, index: number) => (
                         <div key={index} className="flex items-center space-x-3">
                           <Textarea
                             value={benefit}
                             onChange={(e) => {
-                              const newBenefits = [...community.settings.benefits]
+                              const newBenefits = [...(community.settings.benefits || [])]
                               newBenefits[index] = e.target.value
                               handleSettingsChange("benefits", newBenefits)
                             }}
@@ -434,7 +880,7 @@ export default function CustomizeCommunityPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              const newBenefits = community.settings.benefits.filter(
+                              const newBenefits = (community.settings.benefits || []).filter(
                                 (_: any, i: number) => i !== index,
                               )
                               handleSettingsChange("benefits", newBenefits)
@@ -447,7 +893,14 @@ export default function CustomizeCommunityPage() {
                       <Button
                         variant="outline"
                         onClick={() => {
-                          const newBenefits = [...community.settings.benefits, "New benefit for members"]
+                          const currentBenefits = (community.settings.benefits || [])
+                            .filter((item) => typeof item === "string")
+                            .map((item) => item.trim())
+                            .filter(Boolean)
+                          if (currentBenefits.length >= 20) {
+                            return
+                          }
+                          const newBenefits = [...currentBenefits, "New benefit for members"]
                           handleSettingsChange("benefits", newBenefits)
                         }}
                         style={{
@@ -466,7 +919,7 @@ export default function CustomizeCommunityPage() {
                   <div className="space-y-6">
                     <Label className="text-lg font-semibold">Page Sections</Label>
                     <div className="space-y-4">
-                      {[
+                      {([
                         { key: "showHero", label: "Hero Section", description: "Main banner with community info" },
                         {
                           key: "showFeatures",
@@ -477,7 +930,7 @@ export default function CustomizeCommunityPage() {
                         { key: "showBenefits", label: "Benefits Section", description: "Member benefits and perks" },
                         { key: "showTestimonials", label: "Testimonials", description: "Member success stories" },
                         { key: "showStats", label: "Statistics", description: "Community metrics and numbers" },
-                      ].map((section) => (
+                      ] as const).map((section) => (
                         <div
                           key={section.key}
                           className="flex items-center justify-between p-4 border rounded-lg"
@@ -506,7 +959,12 @@ export default function CustomizeCommunityPage() {
                         <Label>Header Style</Label>
                         <select
                           value={community.settings.headerStyle || "default"}
-                          onChange={(e) => handleSettingsChange("headerStyle", e.target.value)}
+                          onChange={(e) =>
+                            handleSettingsChange(
+                              "headerStyle",
+                              e.target.value as "default" | "centered" | "minimal",
+                            )
+                          }
                           className="w-full p-2 border border-gray-300 rounded-md"
                         >
                           <option value="default">Default</option>
@@ -518,7 +976,12 @@ export default function CustomizeCommunityPage() {
                         <Label>Content Width</Label>
                         <select
                           value={community.settings.contentWidth || "normal"}
-                          onChange={(e) => handleSettingsChange("contentWidth", e.target.value)}
+                          onChange={(e) =>
+                            handleSettingsChange(
+                              "contentWidth",
+                              e.target.value as "narrow" | "normal" | "wide" | "full",
+                            )
+                          }
                           className="w-full p-2 border border-gray-300 rounded-md"
                         >
                           <option value="narrow">Narrow</option>
@@ -559,7 +1022,7 @@ export default function CustomizeCommunityPage() {
                             <SelectItem value="free">Free</SelectItem>
                             <SelectItem value="one-time">One-time</SelectItem>
                             <SelectItem value="monthly">Monthly</SelectItem>
-                            <SelectItem value="per session">Per Session</SelectItem>
+                            <SelectItem value="yearly">Yearly</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -600,8 +1063,23 @@ export default function CustomizeCommunityPage() {
                         id="customDomain"
                         placeholder="e.g., community.yourdomain.com"
                         value={community.settings?.customDomain || ''}
-                        onChange={(e) => handleSettingsChange("customDomain", e.target.value)}
+                        onChange={(e) => handleDomainChange(e.target.value)}
                       />
+                      {customDomainStatus === "invalid" && (
+                        <p className="text-xs text-red-600 mt-1">
+                          Enter a valid hostname only (example: ai.chabaqa.io)
+                        </p>
+                      )}
+                      {customDomainStatus === "taken" && (
+                        <p className="text-xs text-red-600 mt-1">
+                          This custom domain is already used by another community.
+                        </p>
+                      )}
+                      {customDomainStatus === "valid" && (
+                        <p className="text-xs text-emerald-600 mt-1">
+                          Valid custom domain format.
+                        </p>
+                      )}
                     </div>
                   </div>
 
