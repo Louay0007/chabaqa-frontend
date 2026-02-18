@@ -35,7 +35,6 @@ export function About() {
       className={cn(
         "relative bg-white overflow-hidden",
         "py-12 sm:py-16 lg:py-20",
-        "md:min-h-[80vh] lg:min-h-screen"
       )}
     >
       {/* Video Modal (with transition) */}
