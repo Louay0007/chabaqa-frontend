@@ -14,6 +14,7 @@ import {
   Rocket, MessageCircle, GraduationCap, Zap as Lightning
 } from "lucide-react"
 import { challengesApi } from "@/lib/api/challenges.api"
+import { trackChallengeViewOnce } from "@/lib/api/challenge-tracking"
 import { formatDate } from "@/lib/utils"
 import type { Challenge } from "@/lib/api/types"
 import Image from "next/image"
@@ -111,11 +112,7 @@ export default function ChallengePromoPage() {
         }
         
         // Track view
-        try {
-          await challengesApi.trackView(challengeId)
-        } catch (trackError) {
-          console.log('[Promo Page] View tracking failed:', trackError)
-        }
+        await trackChallengeViewOnce(challengeId)
         
       } catch (error: any) {
         console.error("[Promo Page] Error fetching challenge:", error)

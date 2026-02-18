@@ -29,7 +29,7 @@ interface TimelinePricingStepProps {
   setStartDate: Dispatch<SetStateAction<Date | undefined>>
   endDate?: Date
   setEndDate: Dispatch<SetStateAction<Date | undefined>>
-  validationErrors?: Record<string, boolean>
+  validationErrors?: Record<string, string>
 }
 
 export function TimelinePricingStep({
@@ -41,6 +41,7 @@ export function TimelinePricingStep({
   setEndDate,
   validationErrors = {}
 }: TimelinePricingStepProps) {
+  const getError = (key: string) => validationErrors[key]
   const handleInputChange = (field: string, value: any) => {
     if (field.includes(".")) {
       const [parent, child] = field.split(".")
@@ -89,7 +90,7 @@ export function TimelinePricingStep({
                   className={cn(
                     "w-full justify-start text-left font-normal",
                     !startDate && "text-muted-foreground",
-                    validationErrors.startDate && "border-red-500"
+                    getError("startDate") && "border-red-500"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
@@ -105,8 +106,8 @@ export function TimelinePricingStep({
                 />
               </PopoverContent>
             </Popover>
-            {validationErrors.startDate && (
-              <p className="text-sm text-red-500">Please select a start date</p>
+            {getError("startDate") && (
+              <p className="text-sm text-red-500">{getError("startDate")}</p>
             )}
           </div>
 
@@ -119,6 +120,7 @@ export function TimelinePricingStep({
                   className={cn(
                     "w-full justify-start text-left font-normal",
                     !endDate && "text-muted-foreground",
+                    getError("endDate") && "border-red-500"
                   )}
                   disabled
                 >
@@ -130,6 +132,9 @@ export function TimelinePricingStep({
             <p className="text-xs text-muted-foreground">
               Automatically calculated based on the start date and duration
             </p>
+            {getError("endDate") && (
+              <p className="text-sm text-red-500">{getError("endDate")}</p>
+            )}
           </div>
         </div>
 
@@ -138,7 +143,7 @@ export function TimelinePricingStep({
             <Label htmlFor="participationFee">Participation Fee (Price to Join)</Label>
             <div className="flex">
               <Select value={formData.currency || 'TND'} onValueChange={(value) => handleInputChange('currency', value)}>
-                <SelectTrigger className="w-20">
+                <SelectTrigger className={cn("w-20", getError("currency") && "border-red-500")}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -151,12 +156,14 @@ export function TimelinePricingStep({
                 id="participationFee"
                 type="number"
                 placeholder="0 (Free)"
-                className="rounded-l-none"
+                className={cn("rounded-l-none", getError("participationFee") && "border-red-500")}
                 value={formData.participationFee || ''}
                 onChange={(e) => handleInputChange("participationFee", e.target.value)}
               />
             </div>
             <p className="text-xs text-muted-foreground">Set to 0 or leave empty for free challenges</p>
+            {getError("currency") && <p className="text-sm text-red-500">{getError("currency")}</p>}
+            {getError("participationFee") && <p className="text-sm text-red-500">{getError("participationFee")}</p>}
           </div>
 
           <div className="space-y-2">
@@ -176,12 +183,13 @@ export function TimelinePricingStep({
                 id="depositAmount"
                 type="number"
                 placeholder="0"
-                className="rounded-l-none"
+                className={cn("rounded-l-none", getError("depositAmount") && "border-red-500")}
                 value={formData.depositAmount}
                 onChange={(e) => handleInputChange("depositAmount", e.target.value)}
               />
             </div>
             <p className="text-xs text-muted-foreground">Optional deposit returned on completion</p>
+            {getError("depositAmount") && <p className="text-sm text-red-500">{getError("depositAmount")}</p>}
           </div>
         </div>
 
@@ -194,11 +202,12 @@ export function TimelinePricingStep({
                 id="maxParticipants"
                 type="number"
                 placeholder="100"
-                className="pl-10"
+                className={cn("pl-10", getError("maxParticipants") && "border-red-500")}
                 value={formData.maxParticipants}
                 onChange={(e) => handleInputChange("maxParticipants", e.target.value)}
               />
             </div>
+            {getError("maxParticipants") && <p className="text-sm text-red-500">{getError("maxParticipants")}</p>}
           </div>
         </div>
 
@@ -217,7 +226,6 @@ export function TimelinePricingStep({
                   <SelectContent>
                     <SelectItem value="USD">USD</SelectItem>
                     <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
                     <SelectItem value="TND">TND</SelectItem>
                   </SelectContent>
                 </Select>
@@ -225,11 +233,12 @@ export function TimelinePricingStep({
                   id="completionReward"
                   type="number"
                   placeholder="25"
-                  className="rounded-l-none"
+                  className={cn("rounded-l-none", getError("completionReward") && "border-red-500")}
                   value={formData.rewards.completionReward}
                   onChange={(e) => handleInputChange("rewards.completionReward", e.target.value)}
                 />
               </div>
+              {getError("completionReward") && <p className="text-sm text-red-500">{getError("completionReward")}</p>}
             </div>
 
             <div className="space-y-2">
@@ -251,11 +260,12 @@ export function TimelinePricingStep({
                   id="topPerformerBonus"
                   type="number"
                   placeholder="100"
-                  className="rounded-l-none"
+                  className={cn("rounded-l-none", getError("topPerformerBonus") && "border-red-500")}
                   value={formData.rewards.topPerformerBonus}
                   onChange={(e) => handleInputChange("rewards.topPerformerBonus", e.target.value)}
                 />
               </div>
+              {getError("topPerformerBonus") && <p className="text-sm text-red-500">{getError("topPerformerBonus")}</p>}
             </div>
 
             <div className="space-y-2">
@@ -277,11 +287,12 @@ export function TimelinePricingStep({
                   id="streakBonus"
                   type="number"
                   placeholder="10"
-                  className="rounded-l-none"
+                  className={cn("rounded-l-none", getError("streakBonus") && "border-red-500")}
                   value={formData.rewards.streakBonus}
                   onChange={(e) => handleInputChange("rewards.streakBonus", e.target.value)}
                 />
               </div>
+              {getError("streakBonus") && <p className="text-sm text-red-500">{getError("streakBonus")}</p>}
             </div>
           </div>
         </div>

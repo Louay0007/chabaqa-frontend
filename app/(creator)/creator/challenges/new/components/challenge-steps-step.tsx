@@ -10,7 +10,7 @@ import { useEffect } from "react"
 interface ChallengeStepsStepProps {
   formData: any
   setFormData: (data: any) => void
-  validationErrors?: Record<string, boolean>
+  validationErrors?: Record<string, string>
 }
 
 export function ChallengeStepsStep({ formData, setFormData, validationErrors = {} }: ChallengeStepsStepProps) {
@@ -65,6 +65,9 @@ export function ChallengeStepsStep({ formData, setFormData, validationErrors = {
         <CardDescription>Define daily tasks and deliverables for your challenge</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {validationErrors.tasks && (
+          <p className="text-sm text-red-500">{validationErrors.tasks}</p>
+        )}
         {formData.steps.length === 0 ? (
           <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
             <Target className="h-12 w-12 mx-auto text-gray-400 mb-4" />

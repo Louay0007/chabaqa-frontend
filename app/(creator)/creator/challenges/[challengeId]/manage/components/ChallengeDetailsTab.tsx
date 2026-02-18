@@ -16,10 +16,12 @@ export default function ChallengeDetailsTab({
   challenge,
   formData,
   onInputChange,
+  fieldErrors = {},
 }: {
   challenge: any
   formData: any
   onInputChange: (field: string, value: any) => void
+  fieldErrors?: Record<string, string>
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -71,7 +73,9 @@ export default function ChallengeDetailsTab({
                 id="title"
                 value={formData.title}
                 onChange={(e) => onInputChange("title", e.target.value)}
+                className={fieldErrors.title ? "border-red-500 focus-visible:ring-red-500" : ""}
               />
+              {fieldErrors.title && <p className="text-sm text-red-500">{fieldErrors.title}</p>}
             </div>
 
             <div className="space-y-2">
@@ -81,7 +85,9 @@ export default function ChallengeDetailsTab({
                 rows={4}
                 value={formData.description}
                 onChange={(e) => onInputChange("description", e.target.value)}
+                className={fieldErrors.description ? "border-red-500 focus-visible:ring-red-500" : ""}
               />
+              {fieldErrors.description && <p className="text-sm text-red-500">{fieldErrors.description}</p>}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -92,7 +98,9 @@ export default function ChallengeDetailsTab({
                   type="date"
                   value={formData.startDate}
                   onChange={(e) => onInputChange("startDate", e.target.value)}
+                  className={fieldErrors.startDate ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
+                {fieldErrors.startDate && <p className="text-sm text-red-500">{fieldErrors.startDate}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="endDate">End Date</Label>
@@ -101,7 +109,9 @@ export default function ChallengeDetailsTab({
                   type="date"
                   value={formData.endDate}
                   onChange={(e) => onInputChange("endDate", e.target.value)}
+                  className={fieldErrors.endDate ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
+                {fieldErrors.endDate && <p className="text-sm text-red-500">{fieldErrors.endDate}</p>}
               </div>
             </div>
 

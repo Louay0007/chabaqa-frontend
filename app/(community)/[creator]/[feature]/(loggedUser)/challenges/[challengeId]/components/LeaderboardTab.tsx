@@ -22,31 +22,18 @@ export default function LeaderboardTab({ challenge }: LeaderboardTabProps) {
     }
   }, [])
 
-  // Debug: Log participant data to see what we're receiving
-  useEffect(() => {
-    console.log('[LeaderboardTab] Challenge participants:', challenge.participants)
-    if (challenge.participants?.length > 0) {
-      console.log('[LeaderboardTab] First participant:', JSON.stringify(challenge.participants[0], null, 2))
-    }
-  }, [challenge.participants])
-
   // Sort participants by score (descending)
   const sortedParticipants = [...(challenge.participants || [])]
     .sort((a, b) => (b.score || 0) - (a.score || 0))
-    .map((p, index) => {
-      // Debug: Log each participant's avatar field
-      const resolvedAvatar = resolveImageUrl(p.avatar)
-      console.log(`[LeaderboardTab] Participant ${p.name}: avatar="${p.avatar}", resolved="${resolvedAvatar}"`)
-      return {
-        ...p,
-        rank: index + 1,
-        resolvedAvatar, // Store resolved avatar
-        isCurrentUser: currentUserId && (
-          String(p.userId) === String(currentUserId) ||
-          String(p.userId?._id) === String(currentUserId)
-        ),
-      }
-    })
+    .map((p, index) => ({
+      ...p,
+      rank: index + 1,
+      resolvedAvatar: resolveImageUrl(p.avatar),
+      isCurrentUser: currentUserId && (
+        String(p.userId) === String(currentUserId) ||
+        String(p.userId?._id) === String(currentUserId)
+      ),
+    }))
 
   // Get top 10 and current user if not in top 10
   const topParticipants = sortedParticipants.slice(0, 10)

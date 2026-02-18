@@ -38,25 +38,32 @@ export function CommunityContentSection({
   return (
     <section className={cn("mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12", contentWidthClass)}>
       <Card
-        className="rounded-2xl border shadow-sm"
-        style={{ borderColor: themeTokens?.mutedBorder || undefined }}
+        className="overflow-hidden rounded-2xl border shadow-sm"
+        style={{
+          borderColor: themeTokens?.mutedBorder || undefined,
+          background:
+            themeTokens?.softPrimary && themeTokens?.softSecondary
+              ? `linear-gradient(135deg, ${themeTokens.softPrimary} 0%, #ffffff 48%, ${themeTokens.softSecondary} 100%)`
+              : undefined,
+        }}
       >
-        <div className="p-6 sm:p-8 space-y-6">
+        <div className="space-y-6 p-5 sm:p-7 lg:p-8">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+            <h2 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl lg:text-3xl">
               About {community.name}
             </h2>
             {description && (
-              <p className="mt-3 text-sm sm:text-base text-gray-600 leading-relaxed">{description}</p>
+              <p className="mt-3 text-sm leading-relaxed text-gray-600 sm:text-base break-words [overflow-wrap:anywhere]">
+                {description}
+              </p>
             )}
           </div>
 
           {hasWelcome && (
             <div
-              className="rounded-xl border p-4 sm:p-5"
+              className="rounded-xl border bg-white/90 p-4 backdrop-blur-[1px] sm:p-5"
               style={{
                 borderColor: themeTokens?.mutedBorder || undefined,
-                backgroundColor: "#ffffff",
               }}
             >
               <div className="flex items-start gap-3">
@@ -66,7 +73,9 @@ export function CommunityContentSection({
                 />
                 <div>
                   <p className="text-xs uppercase tracking-wide text-gray-500">Welcome Message</p>
-                  <p className="mt-1 text-sm sm:text-base text-gray-700">{welcomeMessage}</p>
+                  <p className="mt-1 text-sm sm:text-base text-gray-700 break-words [overflow-wrap:anywhere]">
+                    {welcomeMessage}
+                  </p>
                 </div>
               </div>
             </div>

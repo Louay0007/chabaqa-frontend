@@ -23,10 +23,8 @@ export default function ChallengesPageContent({ creatorSlug, slug, community, al
   useEffect(() => {
     const fetchParticipations = async () => {
       const token = tokenStorage.getAccessToken()
-      console.log('[Challenges Page] Token from storage:', token ? 'present' : 'missing')
       
       if (!token) {
-        console.log('[Challenges Page] No token, checking participants array instead')
         // Even without token, we can check if user is in participants array
         // But we need user ID for that, so skip if no token
         return
@@ -34,10 +32,8 @@ export default function ChallengesPageContent({ creatorSlug, slug, community, al
 
       // Get user info from token
       const userInfo = tokenStorage.getUserInfo()
-      console.log('[Challenges Page] User info:', userInfo)
       
       if (!userInfo?.id) {
-        console.log('[Challenges Page] No user ID in token')
         return
       }
 
@@ -46,53 +42,44 @@ export default function ChallengesPageContent({ creatorSlug, slug, community, al
       setChallenges(prevChallenges => 
         prevChallenges.map(challenge => {
           const participants = challenge.participants || []
-          const isParticipating = participants.some((p: any) => 
+          const matchingParticipant = participants.find((p: any) => 
             String(p.userId) === String(userInfo.id) ||
             String(p.userId?._id) === String(userInfo.id) ||
             String(p.userId?.id) === String(userInfo.id)
           )
-          if (isParticipating) {
-            console.log('[Challenges Page] User is participating in (from participants array):', challenge.title)
-          }
           return {
             ...challenge,
-            isParticipating: isParticipating || challenge.isParticipating,
+            isParticipating: Boolean(matchingParticipant) || challenge.isParticipating,
+            progress: matchingParticipant?.progress ?? challenge.progress ?? 0,
+            completedTasks: matchingParticipant?.completedTasks?.length ?? challenge.completedTasks ?? 0,
+            joinedAt: matchingParticipant?.joinedAt ?? challenge.joinedAt,
           }
         })
       )
 
       // Also try to fetch from API for more detailed progress info
       try {
-        console.log('[Challenges Page] Fetching participations for community:', slug)
         const response = await fetch(`/api/challenges/user/my-participations?communitySlug=${slug}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         })
-        
-        console.log('[Challenges Page] Response status:', response.status)
-        
+
         if (!response.ok) {
-          console.log('[Challenges Page] Failed to fetch participations from API')
           return // Failed to fetch, keep data from participants array
         }
         
         const data = await response.json()
-        console.log('[Challenges Page] Participations data:', data)
         const participations = data?.participations || data?.data?.participations || []
-        
-        console.log('[Challenges Page] Found participations from API:', participations.length)
         
         // Update challenges with participation data
         setChallenges(prevChallenges => 
           prevChallenges.map(challenge => {
             const participation = participations.find((p: any) => 
               String(p.challengeId) === String(challenge.id) || 
+              String(p.challengeId) === String(challenge.mongoId) || 
               String(p.challengeId) === String(challenge._id)
             )
-            if (participation) {
-              console.log('[Challenges Page] User is participating in (from API):', challenge.title)
-            }
             return {
               ...challenge,
               isParticipating: !!participation || challenge.isParticipating,
@@ -103,7 +90,7 @@ export default function ChallengesPageContent({ creatorSlug, slug, community, al
           })
         )
       } catch (error) {
-        console.log('[Challenges Page] Error fetching participations:', error)
+        console.error('[Challenges Page] Error fetching participations:', error)
       }
     }
 

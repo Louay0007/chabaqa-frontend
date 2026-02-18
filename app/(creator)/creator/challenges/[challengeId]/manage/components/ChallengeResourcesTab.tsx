@@ -30,6 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { validateManageResource } from "@/app/(creator)/creator/challenges/_validation/challenge-validation"
 
 interface Resource {
   id: string
@@ -50,6 +51,8 @@ interface Props {
   }) => Promise<void>
   onUpdateResource: (resourceId: string, resource: Partial<Resource>) => Promise<void>
   onDeleteResource: (resourceId: string) => Promise<void>
+  isProcessing?: boolean
+  fieldErrors?: Record<string, string>
 }
 
 export default function ChallengeResourcesTab({
@@ -57,6 +60,8 @@ export default function ChallengeResourcesTab({
   onAddResource,
   onUpdateResource,
   onDeleteResource,
+  isProcessing = false,
+  fieldErrors = {},
 }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -69,6 +74,8 @@ export default function ChallengeResourcesTab({
     url: "",
     description: "",
   })
+  const [newResourceErrors, setNewResourceErrors] = useState<Record<string, string>>({})
+  const [editResourceErrors, setEditResourceErrors] = useState<Record<string, string>>({})
 
   const resetNewResource = () => {
     setNewResource({
@@ -77,10 +84,15 @@ export default function ChallengeResourcesTab({
       url: "",
       description: "",
     })
+    setNewResourceErrors({})
   }
 
   const handleAddResource = async () => {
-    if (!newResource.title || !newResource.url) return
+    const validation = validateManageResource(newResource)
+    if (!validation.isValid) {
+      setNewResourceErrors(validation.fieldErrors)
+      return
+    }
     setIsSubmitting(true)
     try {
       await onAddResource({
@@ -98,6 +110,11 @@ export default function ChallengeResourcesTab({
 
   const handleEditResource = async () => {
     if (!editingResource) return
+    const validation = validateManageResource(editingResource)
+    if (!validation.isValid) {
+      setEditResourceErrors(validation.fieldErrors)
+      return
+    }
     setIsSubmitting(true)
     try {
       await onUpdateResource(editingResource.id, {
@@ -119,6 +136,7 @@ export default function ChallengeResourcesTab({
 
   const openEditDialog = (resource: Resource) => {
     setEditingResource({ ...resource })
+    setEditResourceErrors({})
     setIsEditOpen(true)
   }
 
@@ -150,7 +168,11 @@ export default function ChallengeResourcesTab({
                     placeholder="e.g., Challenge Starter Kit"
                     value={newResource.title}
                     onChange={(e) => setNewResource((prev) => ({ ...prev, title: e.target.value }))}
+                    className={newResourceErrors.title || fieldErrors.title ? "border-red-500 focus-visible:ring-red-500" : ""}
                   />
+                  {(newResourceErrors.title || fieldErrors.title) && (
+                    <p className="text-sm text-red-500">{newResourceErrors.title || fieldErrors.title}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="resourceType">Resource Type</Label>
@@ -158,7 +180,7 @@ export default function ChallengeResourcesTab({
                     value={newResource.type}
                     onValueChange={(value: any) => setNewResource((prev) => ({ ...prev, type: value }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={newResourceErrors.type || fieldErrors.type ? "border-red-500" : ""}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -170,6 +192,9 @@ export default function ChallengeResourcesTab({
                       <SelectItem value="link">Link</SelectItem>
                     </SelectContent>
                   </Select>
+                  {(newResourceErrors.type || fieldErrors.type) && (
+                    <p className="text-sm text-red-500">{newResourceErrors.type || fieldErrors.type}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="resourceUrl">URL</Label>
@@ -178,7 +203,11 @@ export default function ChallengeResourcesTab({
                     placeholder="https://example.com/resource"
                     value={newResource.url}
                     onChange={(e) => setNewResource((prev) => ({ ...prev, url: e.target.value }))}
+                    className={newResourceErrors.url || fieldErrors.url ? "border-red-500 focus-visible:ring-red-500" : ""}
                   />
+                  {(newResourceErrors.url || fieldErrors.url) && (
+                    <p className="text-sm text-red-500">{newResourceErrors.url || fieldErrors.url}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="resourceDescription">Description</Label>
@@ -191,7 +220,7 @@ export default function ChallengeResourcesTab({
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleAddResource} disabled={isSubmitting}>
+                <Button onClick={handleAddResource} disabled={isSubmitting || isProcessing}>
                   {isSubmitting ? "Adding..." : "Add Resource"}
                 </Button>
               </DialogFooter>
@@ -238,7 +267,7 @@ export default function ChallengeResourcesTab({
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete Resource</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete "{resource.title}"? This action cannot be undone.
+                          Are you sure you want to delete &quot;{resource.title}&quot;? This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -271,7 +300,11 @@ export default function ChallengeResourcesTab({
                   id="editResourceTitle"
                   value={editingResource.title}
                   onChange={(e) => setEditingResource((prev) => prev ? { ...prev, title: e.target.value } : null)}
+                  className={editResourceErrors.title || fieldErrors.title ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
+                {(editResourceErrors.title || fieldErrors.title) && (
+                  <p className="text-sm text-red-500">{editResourceErrors.title || fieldErrors.title}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editResourceType">Resource Type</Label>
@@ -279,7 +312,7 @@ export default function ChallengeResourcesTab({
                   value={editingResource.type}
                   onValueChange={(value: any) => setEditingResource((prev) => prev ? { ...prev, type: value } : null)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={editResourceErrors.type || fieldErrors.type ? "border-red-500" : ""}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -291,6 +324,9 @@ export default function ChallengeResourcesTab({
                     <SelectItem value="link">Link</SelectItem>
                   </SelectContent>
                 </Select>
+                {(editResourceErrors.type || fieldErrors.type) && (
+                  <p className="text-sm text-red-500">{editResourceErrors.type || fieldErrors.type}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editResourceUrl">URL</Label>
@@ -298,7 +334,11 @@ export default function ChallengeResourcesTab({
                   id="editResourceUrl"
                   value={editingResource.url}
                   onChange={(e) => setEditingResource((prev) => prev ? { ...prev, url: e.target.value } : null)}
+                  className={editResourceErrors.url || fieldErrors.url ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
+                {(editResourceErrors.url || fieldErrors.url) && (
+                  <p className="text-sm text-red-500">{editResourceErrors.url || fieldErrors.url}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editResourceDescription">Description</Label>
@@ -312,7 +352,7 @@ export default function ChallengeResourcesTab({
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleEditResource} disabled={isSubmitting}>
+            <Button onClick={handleEditResource} disabled={isSubmitting || isProcessing}>
               {isSubmitting ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>

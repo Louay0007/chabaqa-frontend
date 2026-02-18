@@ -281,8 +281,23 @@ export interface Challenge {
   completionReward?: number;
   pricing?: ChallengePricing;
   sequentialProgression?: boolean;
+  unlockMessage?: string;
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface ChallengeUnlockedTask {
+  id: string;
+  title: string;
+  day: number;
+  isCompleted: boolean;
+  isUnlocked: boolean;
+}
+
+export interface ChallengeUnlockedTasksResponse {
+  unlockedTasks: ChallengeUnlockedTask[];
+  sequentialProgressionEnabled: boolean;
+  unlockMessage?: string;
 }
 
 // Session types

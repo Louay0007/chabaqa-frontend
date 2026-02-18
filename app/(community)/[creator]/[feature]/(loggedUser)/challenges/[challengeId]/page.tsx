@@ -4,10 +4,13 @@ import ChallengeDetailPageContent from '@/app/(community)/[creator]/[feature]/(l
 import { challengesApi } from '@/lib/api/challenges.api'
 import { communitiesApi } from '@/lib/api/communities.api'
 
-export default async function ChallengeDetailPage({ 
-  params 
-}: { 
-  params: Promise<{ creator: string, feature: string, challengeId: string }> 
+// Always fetch fresh data — prevents Next.js from caching stale challenge tasks
+export const dynamic = 'force-dynamic'
+
+export default async function ChallengeDetailPage({
+  params
+}: {
+  params: Promise<{ creator: string, feature: string, challengeId: string }>
 }) {
   const { creator, feature, challengeId } = await params
 
@@ -22,16 +25,18 @@ export default async function ChallengeDetailPage({
     const challenge = (challengeResponse as any)?.data || challengeResponse
 
     if (!community || !challenge) {
-      console.log('[Challenge Detail] Not found - community:', !!community, 'challenge:', !!challenge)
       notFound()
     }
 
-    // Debug: Log raw participant data from backend
-    console.log('[Challenge Detail] Raw participants from backend:', JSON.stringify(challenge.participants?.slice(0, 2), null, 2))
+    const creatorRaw = challenge.creatorId
+    const creatorId =
+      typeof creatorRaw === 'string'
+        ? creatorRaw
+        : creatorRaw?._id || creatorRaw?.id || creatorRaw
 
     // Transform challenge data for the component
     const transformedChallenge = {
-      id: challenge._id || challenge.id,
+      id: challenge.id || challenge._id,
       title: challenge.title || '',
       description: challenge.description || '',
       thumbnail: challenge.thumbnail || challenge.image || null,
@@ -44,7 +49,7 @@ export default async function ChallengeDetailPage({
       duration: challenge.duration || calculateDuration(challenge.startDate, challenge.endDate),
       participantCount: challenge.participantCount || challenge.participants?.length || 0,
       participants: (challenge.participants || []).map((p: any, index: number) => ({
-        id: p._id || p.id || index,
+        id: p.id || p._id || index,
         oderId: p.oderId || p.id,
         userId: p.userId?._id || p.userId,
         // Backend returns userName and userAvatar, fallback to nested userId object
@@ -58,8 +63,7 @@ export default async function ChallengeDetailPage({
         isActive: p.isActive !== false,
       })),
       tasks: (challenge.tasks || []).map((t: any, index: number) => {
-        // Log individual task mapping for debugging
-        const taskId = t.id || t._id || `task-${index}`;
+        const taskId = String(t.id || t._id || "")
         return {
           id: taskId,
           day: t.day || t.ordre || t.order || index + 1,
@@ -77,8 +81,8 @@ export default async function ChallengeDetailPage({
             url: r.url || r.link || '#',
           })),
           notes: t.notes || '',
-          isActive: false,
-          isCompleted: false,
+          isActive: t.isActive ?? false,
+          isCompleted: t.isCompleted ?? false,
         }
       }),
       resources: (challenge.resources || []).map((r: any) => ({
@@ -90,33 +94,28 @@ export default async function ChallengeDetailPage({
       rules: challenge.rules || [],
       prizes: challenge.prizes || [],
       creator: challenge.creatorId ? {
-        id: challenge.creatorId._id || challenge.creatorId.id || challenge.creatorId,
-        name: challenge.creatorId.name || 'Creator',
-        avatar: challenge.creatorId.avatar || challenge.creatorId.profile_picture,
+        id: creatorId,
+        name: typeof creatorRaw === 'string'
+          ? challenge.creatorName || 'Creator'
+          : creatorRaw?.name || challenge.creatorName || 'Creator',
+        avatar: typeof creatorRaw === 'string'
+          ? challenge.creatorAvatar
+          : creatorRaw?.avatar || creatorRaw?.profile_picture || challenge.creatorAvatar,
       } : null,
       communityId: challenge.communityId,
       isActive: challenge.isActive !== false,
+      sequentialProgression: challenge.sequentialProgression || false,
+      unlockMessage: challenge.unlockMessage,
       notes: challenge.notes || '',
     }
 
-    // Mark the first incomplete task as active
-    const now = new Date()
-    const startDate = new Date(transformedChallenge.startDate)
-    const daysSinceStart = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-    
-    transformedChallenge.tasks = transformedChallenge.tasks.map((task: any, index: number) => ({
-      ...task,
-      isActive: index === Math.min(daysSinceStart, transformedChallenge.tasks.length - 1),
-      isCompleted: index < daysSinceStart,
-    }))
-
     return (
-      <ChallengeDetailPageContent 
+      <ChallengeDetailPageContent
         slug={feature}
         creatorSlug={creator}
-        community={community} 
-        challenge={transformedChallenge} 
-        challengeTasks={transformedChallenge.tasks} 
+        community={community}
+        challenge={transformedChallenge}
+        challengeTasks={transformedChallenge.tasks}
       />
     )
   } catch (error) {

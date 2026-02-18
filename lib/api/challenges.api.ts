@@ -1,5 +1,5 @@
 import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } from './client';
-import type { Challenge, ChallengeParticipant } from './types';
+import type { Challenge, ChallengeParticipant, ChallengeUnlockedTasksResponse } from './types';
 import { getDeviceInfo } from '@/lib/utils/device';
 
 // ==========================================
@@ -15,6 +15,7 @@ export interface CreateChallengeResourceData {
 }
 
 export interface CreateChallengeTaskResourceData {
+  id?: string;
   title: string;
   type: 'video' | 'article' | 'code' | 'tool';
   url: string;
@@ -28,6 +29,7 @@ export interface CreateChallengeTaskData {
   description: string;
   deliverable: string;
   points: number;
+  isActive?: boolean;
   instructions?: string;
   notes?: string;
   resources: CreateChallengeTaskResourceData[];
@@ -50,6 +52,8 @@ export interface CreateChallengeData {
   thumbnail?: string;
   notes?: string;
   isActive?: boolean;
+  sequentialProgression?: boolean;
+  unlockMessage?: string;
   resources: CreateChallengeResourceData[];
   tasks: CreateChallengeTaskData[];
   participationFee?: number;
@@ -169,6 +173,14 @@ export const challengesApi = {
     return apiClient.patch<ApiSuccessResponse<Challenge>>(`/challenges/${id}`, data);
   },
 
+  updateTasks: async (id: string, tasks: CreateChallengeTaskData[]): Promise<ApiSuccessResponse<Challenge>> => {
+    return apiClient.put<ApiSuccessResponse<Challenge>>(`/challenges/${id}/tasks`, { tasks });
+  },
+
+  publish: async (id: string): Promise<ApiSuccessResponse<Challenge>> => {
+    return apiClient.post<ApiSuccessResponse<Challenge>>(`/challenges/${id}/publish`, {});
+  },
+
   // Delete challenge
   delete: async (id: string): Promise<ApiSuccessResponse<void>> => {
     return apiClient.delete<ApiSuccessResponse<void>>(`/challenges/${id}`);
@@ -182,6 +194,10 @@ export const challengesApi = {
   // Get challenges by user (participated + created)
   getChallengesByUser: async (userId: string, params?: { page?: number; limit?: number; type?: 'participated' | 'created' | 'all'; communityId?: string }): Promise<any> => {
     return apiClient.get(`/challenges/by-user/${userId}`, params);
+  },
+
+  getByCreator: async (userId: string, params?: { page?: number; limit?: number; communityId?: string }): Promise<any> => {
+    return apiClient.get(`/challenges/by-user/${userId}`, { ...(params || {}), type: 'created' });
   },
 
   // Get free challenges
@@ -241,8 +257,8 @@ export const challengesApi = {
   },
 
   // Get unlocked tasks
-  getUnlockedTasks: async (id: string): Promise<ApiSuccessResponse<any>> => {
-    return apiClient.get<ApiSuccessResponse<any>>(`/challenges/${id}/unlocked-tasks`);
+  getUnlockedTasks: async (id: string): Promise<ApiSuccessResponse<ChallengeUnlockedTasksResponse>> => {
+    return apiClient.get<ApiSuccessResponse<ChallengeUnlockedTasksResponse>>(`/challenges/${id}/unlocked-tasks`);
   },
 
   // Check task access
@@ -323,6 +339,14 @@ export const challengesApi = {
     return apiClient.post<ApiSuccessResponse<Challenge>>(`/challenges/${challengeId}/posts/${postId}/comments`, data);
   },
 
+  getAllSubmissions: async (id: string): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.get<ApiSuccessResponse<any>>(`/challenges/${id}/submissions/all`);
+  },
+
+  getSubmissions: async (id: string): Promise<ApiSuccessResponse<any[]>> => {
+    return apiClient.get<ApiSuccessResponse<any[]>>(`/challenges/${id}/submissions`);
+  },
+
   // -------------------------------------------------------------------------
   // Pricing
   // -------------------------------------------------------------------------
@@ -337,5 +361,16 @@ export const challengesApi = {
 
   checkAccess: async (data: CheckChallengeAccessDto): Promise<ApiSuccessResponse<any>> => {
     return apiClient.post<ApiSuccessResponse<any>>('/challenges/check-access', data);
+  },
+
+  getRewardEligibility: async (id: string): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.get<ApiSuccessResponse<any>>(`/challenges/${id}/rewards/eligibility`);
+  },
+
+  distributeRewards: async (
+    id: string,
+    data: { idempotencyKey: string; payouts?: Array<{ userId: string; rewardType: 'completion' | 'top_performer' | 'streak'; amount: number }> },
+  ): Promise<ApiSuccessResponse<any>> => {
+    return apiClient.post<ApiSuccessResponse<any>>(`/challenges/${id}/rewards/distribute`, data);
   },
 };

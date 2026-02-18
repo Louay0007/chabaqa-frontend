@@ -37,6 +37,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { validateManageTask } from "@/app/(creator)/creator/challenges/_validation/challenge-validation"
 
 interface ChallengeTaskResource {
   id?: string
@@ -87,6 +88,8 @@ interface Props {
   }) => Promise<void>
   onUpdateTask: (taskId: string, task: Partial<ChallengeTask>) => Promise<void>
   onDeleteTask: (taskId: string) => Promise<void>
+  isProcessing?: boolean
+  fieldErrors?: Record<string, string>
 }
 
 export default function ChallengeTasksTab({
@@ -94,6 +97,8 @@ export default function ChallengeTasksTab({
   onAddTask,
   onUpdateTask,
   onDeleteTask,
+  isProcessing = false,
+  fieldErrors = {},
 }: Props) {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -119,6 +124,8 @@ export default function ChallengeTasksTab({
     isActive: true,
     resources: []
   })
+  const [newTaskErrors, setNewTaskErrors] = useState<Record<string, string>>({})
+  const [editTaskErrors, setEditTaskErrors] = useState<Record<string, string>>({})
 
   const resetNewTask = () => {
     setNewTask({
@@ -133,6 +140,31 @@ export default function ChallengeTasksTab({
       resources: []
     })
     setNewResource({ title: '', type: 'article', url: '', description: '' })
+    setNewTaskErrors({})
+  }
+
+  const validateNewTaskState = () => {
+    const result = validateManageTask(
+      {
+        ...newTask,
+        day: Number(newTask.day),
+        points: Number(newTask.points || 0),
+      },
+      challengeTasks.map((task) => Number(task.day)),
+    )
+    setNewTaskErrors(result.fieldErrors)
+    return result.isValid
+  }
+
+  const validateEditingTaskState = () => {
+    if (!editingTask) return false
+    const result = validateManageTask(
+      editingTask,
+      challengeTasks.map((task) => Number(task.day)),
+      Number(challengeTasks.find((task) => task.id === editingTask.id)?.day),
+    )
+    setEditTaskErrors(result.fieldErrors)
+    return result.isValid
   }
 
   const handleAddResourceToNewTask = () => {
@@ -169,8 +201,7 @@ export default function ChallengeTasksTab({
   }
 
   const handleAddTask = async () => {
-    // Validate required fields
-    if (!newTask.title || !newTask.day || !newTask.description || !newTask.deliverable || !newTask.instructions) {
+    if (!validateNewTaskState()) {
       return
     }
 
@@ -196,6 +227,7 @@ export default function ChallengeTasksTab({
 
   const handleEditTask = async () => {
     if (!editingTask) return
+    if (!validateEditingTaskState()) return
     setIsSubmitting(true)
     try {
       await onUpdateTask(editingTask.id, {
@@ -223,6 +255,7 @@ export default function ChallengeTasksTab({
   const openEditDialog = (task: ChallengeTask) => {
     setEditingTask({ ...task, resources: task.resources || [] })
     setNewResource({ title: '', type: 'article', url: '', description: '' })
+    setEditTaskErrors({})
     setIsEditOpen(true)
   }
 
@@ -234,6 +267,9 @@ export default function ChallengeTasksTab({
       default: return <FileText className="h-4 w-4" />
     }
   }
+
+  const getNewError = (key: string) => newTaskErrors[key] || fieldErrors[key]
+  const getEditError = (key: string) => editTaskErrors[key] || fieldErrors[key]
 
   return (
     <EnhancedCard>
@@ -268,8 +304,9 @@ export default function ChallengeTasksTab({
                       min={1}
                       value={newTask.day}
                       onChange={(e) => setNewTask((prev) => ({ ...prev, day: e.target.value }))}
-                      className={!newTask.day ? "border-red-200" : ""}
+                      className={getNewError("day") ? "border-red-500 focus-visible:ring-red-500" : ""}
                     />
+                    {getNewError("day") && <p className="text-sm text-red-500">{getNewError("day")}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="taskPoints">Points</Label>
@@ -279,7 +316,9 @@ export default function ChallengeTasksTab({
                       min={0}
                       value={newTask.points}
                       onChange={(e) => setNewTask((prev) => ({ ...prev, points: e.target.value }))}
+                      className={getNewError("points") ? "border-red-500 focus-visible:ring-red-500" : ""}
                     />
+                    {getNewError("points") && <p className="text-sm text-red-500">{getNewError("points")}</p>}
                   </div>
                 </div>
 
@@ -298,8 +337,9 @@ export default function ChallengeTasksTab({
                     id="taskTitle"
                     value={newTask.title}
                     onChange={(e) => setNewTask((prev) => ({ ...prev, title: e.target.value }))}
-                    className={!newTask.title ? "border-red-200" : ""}
+                    className={getNewError("title") ? "border-red-500 focus-visible:ring-red-500" : ""}
                   />
+                  {getNewError("title") && <p className="text-sm text-red-500">{getNewError("title")}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -309,8 +349,9 @@ export default function ChallengeTasksTab({
                     rows={3}
                     value={newTask.description}
                     onChange={(e) => setNewTask((prev) => ({ ...prev, description: e.target.value }))}
-                    className={!newTask.description ? "border-red-200" : ""}
+                    className={getNewError("description") ? "border-red-500 focus-visible:ring-red-500" : ""}
                   />
+                  {getNewError("description") && <p className="text-sm text-red-500">{getNewError("description")}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -321,8 +362,9 @@ export default function ChallengeTasksTab({
                     placeholder="What should participants submit?"
                     value={newTask.deliverable}
                     onChange={(e) => setNewTask((prev) => ({ ...prev, deliverable: e.target.value }))}
-                    className={!newTask.deliverable ? "border-red-200" : ""}
+                    className={getNewError("deliverable") ? "border-red-500 focus-visible:ring-red-500" : ""}
                   />
+                  {getNewError("deliverable") && <p className="text-sm text-red-500">{getNewError("deliverable")}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -332,13 +374,17 @@ export default function ChallengeTasksTab({
                     rows={4}
                     value={newTask.instructions}
                     onChange={(e) => setNewTask((prev) => ({ ...prev, instructions: e.target.value }))}
-                    className={!newTask.instructions ? "border-red-200" : ""}
+                    className={getNewError("instructions") ? "border-red-500 focus-visible:ring-red-500" : ""}
                   />
+                  {getNewError("instructions") && <p className="text-sm text-red-500">{getNewError("instructions")}</p>}
                 </div>
 
                 {/* Resources Section */}
                 <div className="space-y-4 border rounded-md p-4 bg-muted/20">
                   <Label>Resources (Optional)</Label>
+                  {Object.keys(newTaskErrors).some((key) => key.startsWith("resources.")) && (
+                    <p className="text-sm text-red-500">Each resource must include title, valid type, and a valid http/https URL.</p>
+                  )}
                   <div className="grid gap-4">
                     <div className="grid grid-cols-[1fr,1fr,auto] gap-2 items-end">
                       <div className="space-y-2">
@@ -382,7 +428,7 @@ export default function ChallengeTasksTab({
                       variant="secondary"
                       size="sm"
                       onClick={handleAddResourceToNewTask}
-                      disabled={!newResource.title || !newResource.url}
+                      disabled={!newResource.title || !newResource.url || isProcessing}
                     >
                       Add Resource
                     </Button>
@@ -426,7 +472,7 @@ export default function ChallengeTasksTab({
               <DialogFooter>
                 <Button
                   onClick={handleAddTask}
-                  disabled={isSubmitting || !newTask.day || !newTask.title || !newTask.description || !newTask.deliverable || !newTask.instructions}
+                  disabled={isSubmitting || isProcessing}
                 >
                   {isSubmitting ? "Adding..." : "Add Task"}
                 </Button>
@@ -439,7 +485,7 @@ export default function ChallengeTasksTab({
         <div className="space-y-4">
           {challengeTasks.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>No tasks added yet. Click "Add Task" to create your first task.</p>
+              <p>No tasks added yet. Click &quot;Add Task&quot; to create your first task.</p>
             </div>
           ) : (
             challengeTasks.map((task) => (
@@ -470,7 +516,7 @@ export default function ChallengeTasksTab({
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete Task</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to delete "{task.title}"? This action cannot be undone.
+                            Are you sure you want to delete &quot;{task.title}&quot;? This action cannot be undone.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -538,7 +584,9 @@ export default function ChallengeTasksTab({
                     min={1}
                     value={editingTask.day}
                     onChange={(e) => setEditingTask((prev) => prev ? { ...prev, day: Number(e.target.value) } : null)}
+                    className={getEditError("day") ? "border-red-500 focus-visible:ring-red-500" : ""}
                   />
+                  {getEditError("day") && <p className="text-sm text-red-500">{getEditError("day")}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="editTaskPoints">Points</Label>
@@ -548,7 +596,9 @@ export default function ChallengeTasksTab({
                     min={0}
                     value={editingTask.points}
                     onChange={(e) => setEditingTask((prev) => prev ? { ...prev, points: Number(e.target.value) } : null)}
+                    className={getEditError("points") ? "border-red-500 focus-visible:ring-red-500" : ""}
                   />
+                  {getEditError("points") && <p className="text-sm text-red-500">{getEditError("points")}</p>}
                 </div>
               </div>
 
@@ -567,7 +617,9 @@ export default function ChallengeTasksTab({
                   id="editTaskTitle"
                   value={editingTask.title}
                   onChange={(e) => setEditingTask((prev) => prev ? { ...prev, title: e.target.value } : null)}
+                  className={getEditError("title") ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
+                {getEditError("title") && <p className="text-sm text-red-500">{getEditError("title")}</p>}
               </div>
 
               <div className="space-y-2">
@@ -577,7 +629,9 @@ export default function ChallengeTasksTab({
                   rows={3}
                   value={editingTask.description}
                   onChange={(e) => setEditingTask((prev) => prev ? { ...prev, description: e.target.value } : null)}
+                  className={getEditError("description") ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
+                {getEditError("description") && <p className="text-sm text-red-500">{getEditError("description")}</p>}
               </div>
 
               <div className="space-y-2">
@@ -587,7 +641,9 @@ export default function ChallengeTasksTab({
                   rows={2}
                   value={editingTask.deliverable}
                   onChange={(e) => setEditingTask((prev) => prev ? { ...prev, deliverable: e.target.value } : null)}
+                  className={getEditError("deliverable") ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
+                {getEditError("deliverable") && <p className="text-sm text-red-500">{getEditError("deliverable")}</p>}
               </div>
 
               <div className="space-y-2">
@@ -597,12 +653,17 @@ export default function ChallengeTasksTab({
                   rows={4}
                   value={editingTask.instructions}
                   onChange={(e) => setEditingTask((prev) => prev ? { ...prev, instructions: e.target.value } : null)}
+                  className={getEditError("instructions") ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
+                {getEditError("instructions") && <p className="text-sm text-red-500">{getEditError("instructions")}</p>}
               </div>
 
               {/* Edit Resources Section */}
               <div className="space-y-4 border rounded-md p-4 bg-muted/20">
                 <Label>Resources (Optional)</Label>
+                {Object.keys(editTaskErrors).some((key) => key.startsWith("resources.")) && (
+                  <p className="text-sm text-red-500">Each resource must include title, valid type, and a valid http/https URL.</p>
+                )}
                 <div className="grid gap-4">
                   <div className="grid grid-cols-[1fr,1fr,auto] gap-2 items-end">
                     <div className="space-y-2">
@@ -692,7 +753,7 @@ export default function ChallengeTasksTab({
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
             <Button
               onClick={handleEditTask}
-              disabled={isSubmitting || !editingTask?.day || !editingTask?.title || !editingTask?.description || !editingTask?.deliverable || !editingTask?.instructions}
+              disabled={isSubmitting || isProcessing}
             >
               {isSubmitting ? "Saving..." : "Save Changes"}
             </Button>

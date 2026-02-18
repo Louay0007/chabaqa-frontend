@@ -37,7 +37,7 @@ export function CommunityCTA({
     <footer className="border-t border-gray-200 bg-white">
       <div className={cn("mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16", contentWidthClass)}>
         <div
-          className="relative flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 bg-white rounded-xl p-6 sm:p-8 shadow-sm border border-gray-200 overflow-hidden"
+          className="relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8"
           style={
             themeTokens
               ? {
@@ -47,7 +47,12 @@ export function CommunityCTA({
               : undefined
           }
         >
-          <div className="relative text-center md:text-left max-w-xl">
+          <div
+            className="pointer-events-none absolute inset-x-0 -top-24 h-32 blur-3xl"
+            style={{ background: themeTokens?.softPrimary || undefined, opacity: 0.35 }}
+          />
+          <div className="relative flex flex-col items-center justify-between gap-6 md:flex-row md:gap-8">
+          <div className="relative max-w-xl text-center md:text-left">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-gray-900">
               {title}
             </h2>
@@ -56,10 +61,10 @@ export function CommunityCTA({
             </p>
           </div>
           
-          <div className="relative flex-shrink-0">
+          <div className="relative w-full flex-shrink-0 md:w-auto">
             <Link
               href={ctaHref}
-              className="w-full sm:w-auto inline-block text-center font-semibold py-2.5 sm:py-3 px-6 sm:px-8 rounded-lg hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-md text-xs sm:text-sm"
+              className="inline-block w-full rounded-lg px-6 py-3 text-center text-sm font-semibold shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] sm:w-auto"
               style={{
                 backgroundImage: gradient,
                 color: themeTokens?.primaryText || "#fff",
@@ -67,6 +72,7 @@ export function CommunityCTA({
             >
               {buttonText}
             </Link>
+          </div>
           </div>
         </div>
         

@@ -2,96 +2,36 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, Star, ExternalLink, MessageCircle, Image as ImageIcon } from "lucide-react"
-import { useEffect, useState } from "react"
 import Image from "next/image"
 
 interface SubmissionsTabProps {
   challengeTasks: any[]
-  challengeId: string
+  submissions: any[]
+  submissionByTaskId: Record<string, any>
 }
 
-export default function SubmissionsTab({ challengeTasks, challengeId }: SubmissionsTabProps) {
-  const [submissions, setSubmissions] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchSubmissions = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/challenges/${challengeId}/submissions`, {
-          headers: {
-            "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-        })
-        if (response.ok) {
-          const data = await response.json()
-          console.log('[Submissions Tab] Fetched submissions:', data)
-          
-          if (Array.isArray(data)) {
-            setSubmissions(data)
-          } else if (data && Array.isArray(data.data)) {
-            setSubmissions(data.data)
-          } else {
-            console.error('[Submissions Tab] Unexpected response format:', data)
-            setSubmissions([])
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching submissions:", error)
-        setSubmissions([])
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (challengeId) {
-      fetchSubmissions()
-    }
-  }, [challengeId])
-
-  const getSubmissionForTask = (taskId: string) => {
-    if (!Array.isArray(submissions)) return undefined;
-
-    // Try exact match first
-    let submission = submissions.find(s => s.taskId === taskId)
-    
-    // Fallback: Try string comparison for ObjectId vs String
-    if (!submission) {
-      submission = submissions.find(s => String(s.taskId) === String(taskId))
-    }
-    
-    // Fallback: Try finding by day index (assuming task IDs might be day numbers in some cases)
-    if (!submission) {
-      const task = challengeTasks.find(t => t.id === taskId);
-      if (task) {
-        submission = submissions.find(s => s.taskId === String(task.day));
-      }
-    }
-
-    return submission
-  }
+export default function SubmissionsTab({ challengeTasks, submissions, submissionByTaskId }: SubmissionsTabProps) {
 
   // Get all submitted tasks (either isCompleted flag OR has a submission record)
   const submittedTasks = challengeTasks.filter(task => {
-    return task.isCompleted || getSubmissionForTask(task.id) !== undefined
+    return task.isCompleted || Boolean(submissionByTaskId[String(task.id)])
   })
 
   return (
     <Card className="border-0 shadow-sm">
       <CardHeader>
         <CardTitle>My Submissions</CardTitle>
-        <CardDescription>Review your completed projects and feedback</CardDescription>
+        <CardDescription>Review your completed projects and feedback ({submissions.length})</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {loading ? (
-            <div className="text-center py-8">Loading submissions...</div>
-          ) : submittedTasks.length === 0 ? (
+          {submittedTasks.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              You haven't submitted any projects yet.
+              You haven&apos;t submitted any projects yet.
             </div>
           ) : (
             submittedTasks.map((task) => {
-                const submission = getSubmissionForTask(task.id)
+                const submission = submissionByTaskId[String(task.id)]
                 const isCompleted = task.isCompleted || (submission && submission.status === 'approved');
                 
                 return (
@@ -121,7 +61,7 @@ export default function SubmissionsTab({ challengeTasks, challengeId }: Submissi
                       <div className="pl-14 space-y-3">
                         {submission.content && (
                           <div className="text-sm text-gray-700 bg-white/50 p-3 rounded-md italic">
-                            "{submission.content}"
+                            &quot;{submission.content}&quot;
                           </div>
                         )}
                         

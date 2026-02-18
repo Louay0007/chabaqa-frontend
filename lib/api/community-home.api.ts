@@ -53,12 +53,18 @@ function transformCommunity(backendCommunity: any): Community {
         : 0;
   const normalizedMembers = Math.max(rawMembersCount, derivedMembers, 0);
   const normalizedCreator = rawCreator ? normalizeUser(rawCreator) : null;
+  const isGenericPlaceholderAvatar = (value?: string) =>
+    typeof value === 'string' && /via\.placeholder\.com|placehold\.co/i.test(value);
+
   const creatorAvatar =
-    resolveImageUrl(backendCommunity?.creatorAvatar) ||
     resolveImageUrl(normalizedCreator?.avatar) ||
     resolveImageUrl(rawCreator?.profile_picture) ||
     resolveImageUrl(rawCreator?.photo_profil) ||
     resolveImageUrl(rawCreator?.photo) ||
+    resolveImageUrl(rawCreator?.image) ||
+    (!isGenericPlaceholderAvatar(backendCommunity?.creatorAvatar)
+      ? resolveImageUrl(backendCommunity?.creatorAvatar)
+      : undefined) ||
     '/placeholder.svg';
   const averageRating =
     typeof backendCommunity?.averageRating === 'number'

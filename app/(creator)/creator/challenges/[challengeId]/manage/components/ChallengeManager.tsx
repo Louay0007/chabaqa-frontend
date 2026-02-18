@@ -1,10 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
+import { extractApiError } from "@/lib/api/error-parser"
+import { challengesApi } from "@/lib/api/challenges.api"
+import {
+  mapBackendErrorsToCreatorFields,
+  validateManageDetails,
+  validateManageResource,
+  validateManageTask,
+} from "@/app/(creator)/creator/challenges/_validation/challenge-validation"
 import ChallengeHeader from "./ChallengeHeader"
 import ChallengeDetailsTab from "./ChallengeDetailsTab"
 import ChallengeTasksTab from "./ChallengeTasksTab"
@@ -89,6 +97,7 @@ interface Challenge {
   resources: ChallengeResource[]
   tasks: ChallengeTask[]
   sequentialProgression?: boolean
+  unlockMessage?: string
   pricing?: any
 }
 
@@ -103,6 +112,9 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
   const [isTaskProcessing, setIsTaskProcessing] = useState(false)
   const [isResourceProcessing, setIsResourceProcessing] = useState(false)
   const [isDeletingChallenge, setIsDeletingChallenge] = useState(false)
+  const [isPublishingChallenge, setIsPublishingChallenge] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [tabBannerMessage, setTabBannerMessage] = useState<string | undefined>(undefined)
 
   const [formData, setFormData] = useState({
     title: "",
@@ -122,16 +134,64 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     duration: "",
     isActive: false,
     sequentialProgression: false,
+    unlockMessage: "",
     notes: "",
   })
 
-  const fetchChallenge = async () => {
+  const sanitizeText = (value: unknown): string => (typeof value === "string" ? value.trim() : "")
+
+  const sanitizeTaskResources = (resources: ChallengeTaskResource[] = []): ChallengeTaskResource[] =>
+    resources
+      .map((resource) => ({
+        id: resource.id,
+        title: sanitizeText(resource.title),
+        type: resource.type,
+        url: sanitizeText(resource.url),
+        description: sanitizeText(resource.description),
+      }))
+
+  const buildTasksPayload = (tasks: ChallengeTask[]) =>
+    tasks.map((task) => ({
+      ...(task.id ? { id: task.id } : {}),
+      day: Number(task.day),
+      title: sanitizeText(task.title),
+      description: sanitizeText(task.description),
+      deliverable: sanitizeText(task.deliverable),
+      points: Number(task.points || 0),
+      isActive: Boolean(task.isActive),
+      instructions: sanitizeText(task.instructions) || undefined,
+      notes: sanitizeText(task.notes) || undefined,
+      resources: sanitizeTaskResources(task.resources || []).map((resource) => ({
+        ...(resource.id ? { id: resource.id } : {}),
+        title: resource.title,
+        type: resource.type,
+        url: resource.url,
+        description: resource.description || undefined,
+      })),
+    }))
+
+  const sanitizeChallengeResources = (resources: ChallengeResource[] = []): ChallengeResource[] =>
+    resources
+      .map((resource) => ({
+        id: resource.id,
+        title: sanitizeText(resource.title),
+        type: resource.type,
+        url: sanitizeText(resource.url),
+        description: sanitizeText(resource.description),
+        order: resource.order,
+      }))
+
+  const fetchChallenge = useCallback(async () => {
     try {
       const response = await apiClient.get<any>(`/challenges/${challengeId}`)
-      const data = response?.data ?? response
+      const primary = response?.data ?? response
+      const data = primary?.challenge ?? primary?.data ?? primary
+      const tasksSource = data?.tasks || data?.steps || []
+      const resourcesSource = data?.resources || []
+      const participantsSource = data?.participants || []
 
       const transformedChallenge: Challenge = {
-        id: data.id,
+        id: data.id || data._id,
         mongoId: data._id || data.mongoId,
         title: data.title,
         description: data.description,
@@ -141,7 +201,7 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
         isActive: data.isActive ?? false,
-        participants: (data.participants || []).map((p: any) => ({
+        participants: participantsSource.map((p: any) => ({
           id: p.id,
           odId: p.userId,
           joinedAt: new Date(p.joinedAt),
@@ -150,7 +210,12 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
           totalPoints: p.totalPoints ?? 0,
           completedTasks: p.completedTasks || [],
           lastActivityAt: new Date(p.lastActivityAt || p.joinedAt),
-          user: p.user,
+          user: {
+            id: String(p.userId || p.user?._id || p.user?.id || p.id || ""),
+            name: p.userName || p.user?.name || "Unknown User",
+            email: p.user?.email || p.email || "",
+            avatar: p.userAvatar || p.user?.avatar,
+          },
         })),
         depositAmount: data.depositAmount || "",
         maxParticipants: data.maxParticipants || "",
@@ -164,7 +229,7 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         duration: data.duration,
         thumbnail: data.thumbnail,
         notes: data.notes,
-        resources: (data.resources || []).map((r: any) => ({
+        resources: resourcesSource.map((r: any) => ({
           id: r.id,
           title: r.title,
           type: r.type,
@@ -172,9 +237,9 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
           description: r.description,
           order: r.order ?? 0,
         })),
-        tasks: (data.tasks || []).map((t: any) => ({
-          id: t.id,
-          day: t.day,
+        tasks: tasksSource.map((t: any, index: number) => ({
+          id: t.id || t._id || `task-${index + 1}`,
+          day: Number(t.day || index + 1),
           title: t.title,
           description: t.description,
           deliverable: t.deliverable,
@@ -186,6 +251,7 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
           notes: t.notes,
         })),
         sequentialProgression: data.sequentialProgression || false,
+        unlockMessage: data.unlockMessage || "",
         pricing: data.pricing,
       }
 
@@ -194,7 +260,7 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
       console.error('Failed to fetch challenge:', error)
       router.push('/creator/challenges')
     }
-  }
+  }, [challengeId, router])
 
   useEffect(() => {
     const run = async () => {
@@ -205,7 +271,7 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
       }
     }
     void run()
-  }, [challengeId])
+  }, [fetchChallenge])
 
   // Sync tab with URL query parameter
   useEffect(() => {
@@ -235,6 +301,7 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         duration: challenge.duration || "",
         isActive: challenge.isActive || false,
         sequentialProgression: challenge.sequentialProgression || false,
+        unlockMessage: challenge.unlockMessage || "",
         notes: challenge.notes || "",
       })
     }
@@ -242,6 +309,13 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
 
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
+    setTabBannerMessage(undefined)
 
     // Keep local challenge preview in sync for thumbnail updates
     if (field === "thumbnail") {
@@ -252,9 +326,22 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
   const handleSave = async () => {
     if (!challenge) return
     const targetId = challenge.mongoId || challenge.id
+    const detailsValidation = validateManageDetails(formData)
+    if (!detailsValidation.isValid) {
+      setFieldErrors(detailsValidation.fieldErrors)
+      setActiveTab("details")
+      toast.error("Please fix the highlighted fields before saving.")
+      return
+    }
+
     setIsLoading(true)
+    setTabBannerMessage(undefined)
     try {
-      await apiClient.patch(`/challenges/${targetId}`, {
+      const sequentialChanged =
+        Boolean(formData.sequentialProgression) !== Boolean(challenge.sequentialProgression) ||
+        (formData.unlockMessage || "").trim() !== (challenge.unlockMessage || "").trim()
+
+      const payload = {
         title: formData.title,
         description: formData.description,
         thumbnail: formData.thumbnail || challenge.thumbnail,
@@ -271,14 +358,34 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         difficulty: formData.difficulty,
         duration: formData.duration,
         isActive: formData.isActive,
-        sequentialProgression: formData.sequentialProgression,
         notes: formData.notes || undefined,
-      })
+      }
+
+      await apiClient.patch(`/challenges/${targetId}`, payload)
+
+      if (sequentialChanged) {
+        await challengesApi.updateSequentialProgression(targetId, {
+          enabled: Boolean(formData.sequentialProgression),
+          unlockMessage: (formData.unlockMessage || "").trim() || undefined,
+        })
+      }
+
+      setFieldErrors({})
       toast.success("Challenge updated successfully")
       await fetchChallenge()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save challenge:', error)
-      toast.error("Failed to update challenge")
+      const parsed = extractApiError(error)
+      const mappedErrors = mapBackendErrorsToCreatorFields(parsed)
+      if (Object.keys(mappedErrors).length) {
+        setFieldErrors(mappedErrors)
+      }
+      if (mappedErrors.subscription || mappedErrors.permission) {
+        setActiveTab("settings")
+      } else if (mappedErrors.startDate || mappedErrors.endDate) {
+        setActiveTab("details")
+      }
+      toast.error(parsed.globalMessage || "Failed to update challenge")
     } finally {
       setIsLoading(false)
     }
@@ -298,53 +405,44 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
   }) => {
     if (!challenge) return
     const targetId = challenge.mongoId || challenge.id
+    const taskValidation = validateManageTask(
+      taskData,
+      (challenge.tasks || []).map((task) => Number(task.day)),
+    )
+    if (!taskValidation.isValid) {
+      setFieldErrors(taskValidation.fieldErrors)
+      setActiveTab("tasks")
+      toast.error("Please fix task validation errors.")
+      return
+    }
     try {
       setIsTaskProcessing(true)
-      // Format new task to match CreateChallengeTaskDto
-      const newTask = {
-        id: crypto.randomUUID(),
+      setFieldErrors({})
+      const newTask: ChallengeTask = {
+        id: "",
         day: taskData.day,
-        title: taskData.title,
-        description: taskData.description,
-        deliverable: taskData.deliverable,
+        title: sanitizeText(taskData.title),
+        description: sanitizeText(taskData.description),
+        deliverable: sanitizeText(taskData.deliverable),
         points: taskData.points,
-        instructions: taskData.instructions || '',
-        notes: taskData.notes || undefined,
-        resources: (taskData.resources || []).map(r => ({
-          id: r.id || crypto.randomUUID(),
-          title: r.title,
-          type: r.type,
-          url: r.url,
-          description: r.description || '',
-        })),
+        instructions: sanitizeText(taskData.instructions) || '',
+        notes: sanitizeText(taskData.notes) || undefined,
+        isCompleted: false,
+        isActive: taskData.isActive,
+        resources: sanitizeTaskResources(taskData.resources || []),
       }
 
-      // Map existing tasks to match CreateChallengeTaskDto exactly
-      const existingTasks = (challenge.tasks || []).map(t => ({
-        id: t.id,
-        day: t.day,
-        title: t.title,
-        description: t.description,
-        deliverable: t.deliverable,
-        points: t.points,
-        instructions: t.instructions || '',
-        notes: t.notes || undefined,
-        resources: (t.resources || []).map(r => ({
-          id: r.id || crypto.randomUUID(),
-          title: r.title,
-          type: r.type,
-          url: r.url,
-          description: r.description || '',
-        })),
-      }))
-
+      const existingTasks = challenge.tasks || []
       const updatedTasks = [...existingTasks, newTask]
-      await apiClient.patch(`/challenges/${targetId}`, { tasks: updatedTasks })
+      await challengesApi.updateTasks(targetId, buildTasksPayload(updatedTasks))
       toast.success("Task added successfully")
       await fetchChallenge()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to add task:', error)
-      toast.error("Failed to add task")
+      const parsed = extractApiError(error)
+      const mappedErrors = mapBackendErrorsToCreatorFields(parsed)
+      setFieldErrors(mappedErrors)
+      toast.error(parsed.globalMessage || "Failed to add task")
     } finally {
       setIsTaskProcessing(false)
     }
@@ -353,35 +451,35 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
   const handleUpdateTask = async (taskId: string, taskData: Partial<ChallengeTask>) => {
     if (!challenge) return
     const targetId = challenge.mongoId || challenge.id
+    const currentTask = challenge.tasks.find((task) => task.id === taskId)
+    if (!currentTask) return
+    const mergedTask = { ...currentTask, ...taskData }
+    const taskValidation = validateManageTask(
+      mergedTask,
+      (challenge.tasks || []).map((task) => Number(task.day)),
+      Number(currentTask.day),
+    )
+    if (!taskValidation.isValid) {
+      setFieldErrors(taskValidation.fieldErrors)
+      setActiveTab("tasks")
+      toast.error("Please fix task validation errors.")
+      return
+    }
     try {
       setIsTaskProcessing(true)
-      // Map tasks to match CreateChallengeTaskDto exactly
-      const updatedTasks = challenge.tasks.map(t => {
-        const task = t.id === taskId ? { ...t, ...taskData } : t
-        return {
-          id: task.id,
-          day: task.day,
-          title: task.title,
-          description: task.description,
-          deliverable: task.deliverable,
-          points: task.points,
-          instructions: task.instructions || '',
-          notes: task.notes || undefined,
-          resources: (task.resources || []).map(r => ({
-            id: r.id || crypto.randomUUID(),
-            title: r.title,
-            type: r.type,
-            url: r.url,
-            description: r.description || '',
-          })),
-        }
-      })
-      await apiClient.patch(`/challenges/${targetId}`, { tasks: updatedTasks })
+      setFieldErrors({})
+      const updatedTasks = challenge.tasks.map((task) =>
+        task.id === taskId ? { ...task, ...taskData } : task,
+      )
+      await challengesApi.updateTasks(targetId, buildTasksPayload(updatedTasks))
       toast.success("Task updated successfully")
       await fetchChallenge()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update task:', error)
-      toast.error("Failed to update task")
+      const parsed = extractApiError(error)
+      const mappedErrors = mapBackendErrorsToCreatorFields(parsed)
+      setFieldErrors(mappedErrors)
+      toast.error(parsed.globalMessage || "Failed to update task")
     } finally {
       setIsTaskProcessing(false)
     }
@@ -392,27 +490,9 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     const targetId = challenge.mongoId || challenge.id
     try {
       setIsTaskProcessing(true)
-      // Map tasks to match CreateChallengeTaskDto exactly, excluding the deleted one
       const updatedTasks = challenge.tasks
         .filter(t => t.id !== taskId)
-        .map(t => ({
-          id: t.id,
-          day: t.day,
-          title: t.title,
-          description: t.description,
-          deliverable: t.deliverable,
-          points: t.points,
-          instructions: t.instructions || '',
-          notes: t.notes || undefined,
-          resources: (t.resources || []).map(r => ({
-            id: r.id || crypto.randomUUID(),
-            title: r.title,
-            type: r.type,
-            url: r.url,
-            description: r.description || '',
-          })),
-        }))
-      await apiClient.patch(`/challenges/${targetId}`, { tasks: updatedTasks })
+      await challengesApi.updateTasks(targetId, buildTasksPayload(updatedTasks))
       toast.success("Task deleted successfully")
       await fetchChallenge()
     } catch (error) {
@@ -432,32 +512,36 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
   }) => {
     if (!challenge) return
     const targetId = challenge.mongoId || challenge.id
+    const resourceValidation = validateManageResource(resourceData)
+    if (!resourceValidation.isValid) {
+      setFieldErrors(resourceValidation.fieldErrors)
+      setActiveTab("resources")
+      toast.error("Please fix resource validation errors.")
+      return
+    }
     try {
       setIsResourceProcessing(true)
+      setFieldErrors({})
       const newResource = {
         id: crypto.randomUUID(),
-        title: resourceData.title,
+        title: sanitizeText(resourceData.title),
         type: resourceData.type,
-        url: resourceData.url,
-        description: resourceData.description,
+        url: sanitizeText(resourceData.url),
+        description: sanitizeText(resourceData.description),
         order: (challenge.resources?.length || 0) + 1,
       }
       // Map existing resources to DTO format
-      const existingResources = (challenge.resources || []).map(r => ({
-        id: r.id,
-        title: r.title,
-        type: r.type,
-        url: r.url,
-        description: r.description,
-        order: r.order,
-      }))
-      const updatedResources = [...existingResources, newResource]
+      const existingResources = sanitizeChallengeResources(challenge.resources || [])
+      const updatedResources = sanitizeChallengeResources([...existingResources, newResource])
       await apiClient.patch(`/challenges/${targetId}`, { resources: updatedResources })
       toast.success("Resource added successfully")
       await fetchChallenge()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to add resource:', error)
-      toast.error("Failed to add resource")
+      const parsed = extractApiError(error)
+      const mappedErrors = mapBackendErrorsToCreatorFields(parsed)
+      setFieldErrors(mappedErrors)
+      toast.error(parsed.globalMessage || "Failed to add resource")
     } finally {
       setIsResourceProcessing(false)
     }
@@ -466,26 +550,40 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
   const handleUpdateResource = async (resourceId: string, resourceData: Partial<ChallengeResource>) => {
     if (!challenge) return
     const targetId = challenge.mongoId || challenge.id
+    const currentResource = challenge.resources.find((resource) => resource.id === resourceId)
+    if (!currentResource) return
+    const mergedResource = { ...currentResource, ...resourceData }
+    const resourceValidation = validateManageResource(mergedResource)
+    if (!resourceValidation.isValid) {
+      setFieldErrors(resourceValidation.fieldErrors)
+      setActiveTab("resources")
+      toast.error("Please fix resource validation errors.")
+      return
+    }
     try {
       setIsResourceProcessing(true)
+      setFieldErrors({})
       // Map resources to DTO format
       const updatedResources = challenge.resources.map(r => {
         const resource = r.id === resourceId ? { ...r, ...resourceData } : r
         return {
           id: resource.id,
-          title: resource.title,
+          title: sanitizeText(resource.title),
           type: resource.type,
-          url: resource.url,
-          description: resource.description,
+          url: sanitizeText(resource.url),
+          description: sanitizeText(resource.description),
           order: resource.order,
         }
       })
-      await apiClient.patch(`/challenges/${targetId}`, { resources: updatedResources })
+      await apiClient.patch(`/challenges/${targetId}`, { resources: sanitizeChallengeResources(updatedResources) })
       toast.success("Resource updated successfully")
       await fetchChallenge()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update resource:', error)
-      toast.error("Failed to update resource")
+      const parsed = extractApiError(error)
+      const mappedErrors = mapBackendErrorsToCreatorFields(parsed)
+      setFieldErrors(mappedErrors)
+      toast.error(parsed.globalMessage || "Failed to update resource")
     } finally {
       setIsResourceProcessing(false)
     }
@@ -501,13 +599,13 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         .filter(r => r.id !== resourceId)
         .map((r, index) => ({
           id: r.id,
-          title: r.title,
+          title: sanitizeText(r.title),
           type: r.type,
-          url: r.url,
-          description: r.description,
+          url: sanitizeText(r.url),
+          description: sanitizeText(r.description),
           order: index + 1,
         }))
-      await apiClient.patch(`/challenges/${targetId}`, { resources: updatedResources })
+      await apiClient.patch(`/challenges/${targetId}`, { resources: sanitizeChallengeResources(updatedResources) })
       toast.success("Resource deleted successfully")
       await fetchChallenge()
     } catch (error) {
@@ -536,6 +634,58 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     }
   }
 
+  const handlePublishChallenge = async () => {
+    if (!challenge) return
+    const targetId = challenge.mongoId || challenge.id
+    const preflightErrors: Record<string, string> = {}
+    if (!formData.title?.trim()) preflightErrors.title = "Title is required."
+    if (!formData.description?.trim()) preflightErrors.description = "Description is required."
+    if (!formData.startDate) preflightErrors.startDate = "Start date is required."
+    if (!formData.endDate) preflightErrors.endDate = "End date is required."
+    if (!challenge.tasks?.length) preflightErrors.tasks = "At least one task is required before publishing."
+
+    if (Object.keys(preflightErrors).length) {
+      setFieldErrors(preflightErrors)
+      if (preflightErrors.tasks) {
+        setActiveTab("tasks")
+        setTabBannerMessage(preflightErrors.tasks)
+      } else {
+        setActiveTab("details")
+      }
+      toast.error("Please complete challenge setup before publishing.")
+      return
+    }
+
+    try {
+      setIsPublishingChallenge(true)
+      setTabBannerMessage(undefined)
+      await apiClient.post(`/challenges/${targetId}/publish`, {})
+      toast.success("Challenge published successfully")
+      setFieldErrors({})
+      await fetchChallenge()
+    } catch (error: any) {
+      console.error('Failed to publish challenge:', error)
+      const parsed = extractApiError(error)
+      const mappedErrors = mapBackendErrorsToCreatorFields(parsed)
+      setFieldErrors(mappedErrors)
+
+      if (mappedErrors.subscription) {
+        setActiveTab("settings")
+        setTabBannerMessage("Active subscription required. Go to Creator > Monetization > Subscriptions.")
+      } else if (mappedErrors.tasks || /at least one task/i.test(parsed.globalMessage)) {
+        setActiveTab("tasks")
+        setTabBannerMessage(mappedErrors.tasks || "At least one task is required before publishing.")
+      } else if (mappedErrors.startDate || mappedErrors.endDate) {
+        setActiveTab("details")
+        setTabBannerMessage("Fix challenge dates before publishing.")
+      }
+
+      toast.error(parsed.globalMessage || "Failed to publish challenge. Please review challenge settings.")
+    } finally {
+      setIsPublishingChallenge(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -558,9 +708,18 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         challenge={challenge}
         isLoading={isLoading}
         onSave={handleSave}
+        onPublish={handlePublishChallenge}
+        isPublishing={isPublishingChallenge}
       />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          setActiveTab(value)
+          setTabBannerMessage(undefined)
+        }}
+        className="space-y-6"
+      >
         <TabsList>
           <TabsTrigger value="details">Challenge Details</TabsTrigger>
           <TabsTrigger value="tasks">Daily Tasks</TabsTrigger>
@@ -572,19 +731,32 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         </TabsList>
 
         <TabsContent value="details" className="space-y-6">
+          {activeTab === "details" && tabBannerMessage && (
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              {tabBannerMessage}
+            </p>
+          )}
           <ChallengeDetailsTab
             challenge={challenge}
             formData={formData}
             onInputChange={handleInputChange}
+            fieldErrors={fieldErrors}
           />
         </TabsContent>
 
         <TabsContent value="tasks" className="space-y-6">
+          {activeTab === "tasks" && tabBannerMessage && (
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              {tabBannerMessage}
+            </p>
+          )}
           <ChallengeTasksTab
             challengeTasks={challenge.tasks || []}
             onAddTask={handleAddTask}
             onUpdateTask={handleUpdateTask}
             onDeleteTask={handleDeleteTask}
+            isProcessing={isTaskProcessing}
+            fieldErrors={fieldErrors}
           />
         </TabsContent>
 
@@ -592,6 +764,7 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
           <ChallengeParticipantsTab
             participants={challenge.participants || []}
             challengeId={challengeId}
+            onSubmissionReviewed={fetchChallenge}
           />
         </TabsContent>
 
@@ -604,11 +777,18 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         </TabsContent>
 
         <TabsContent value="resources" className="space-y-6">
+          {activeTab === "resources" && tabBannerMessage && (
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              {tabBannerMessage}
+            </p>
+          )}
           <ChallengeResourcesTab
             resources={challenge.resources || []}
             onAddResource={handleAddResource}
             onUpdateResource={handleUpdateResource}
             onDeleteResource={handleDeleteResource}
+            isProcessing={isResourceProcessing}
+            fieldErrors={fieldErrors}
           />
         </TabsContent>
 
@@ -620,11 +800,17 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
+          {activeTab === "settings" && tabBannerMessage && (
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              {tabBannerMessage}
+            </p>
+          )}
           <ChallengeSettingsTab
             challengeId={challengeId}
             formData={formData}
             onInputChange={handleInputChange}
             onDeleteChallenge={handleDeleteChallenge}
+            fieldErrors={fieldErrors}
           />
         </TabsContent>
       </Tabs>

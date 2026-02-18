@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
-import { PlayCircle, FileText, Code, ExternalLink, BookOpen } from "lucide-react"
+import { getResourceIcon } from "@/lib/utils"
 
 interface ChallengeResourceCardProps {
   resource: {
@@ -19,6 +19,7 @@ interface ChallengeResourceCardProps {
   stepIndex: number
   updateResource: (resourceIndex: number, field: string, value: any) => void
   removeResource: (resourceIndex: number) => void
+  getError?: (field: "title" | "type" | "url") => string | undefined
 }
 
 export function ChallengeResourceCard({
@@ -26,23 +27,9 @@ export function ChallengeResourceCard({
   resIndex,
   stepIndex,
   updateResource,
-  removeResource
+  removeResource,
+  getError
 }: ChallengeResourceCardProps) {
-  const getResourceIcon = (type: string) => {
-    switch (type) {
-      case "video":
-        return PlayCircle
-      case "article":
-        return FileText
-      case "code":
-        return Code
-      case "tool":
-        return ExternalLink
-      default:
-        return BookOpen
-    }
-  }
-
   const IconComponent = getResourceIcon(resource.type)
 
   return (
@@ -54,7 +41,7 @@ export function ChallengeResourceCard({
             placeholder="Resource Title"
             value={resource.title}
             onChange={(e) => updateResource(resIndex, "title", e.target.value)}
-            className="h-8 text-sm w-48"
+            className={`h-8 text-sm w-48 ${getError?.("title") ? "border-red-500 focus-visible:ring-red-500" : ""}`}
           />
         </div>
         <Button
@@ -73,7 +60,7 @@ export function ChallengeResourceCard({
             value={resource.type}
             onValueChange={(value) => updateResource(resIndex, "type", value)}
           >
-            <SelectTrigger className="h-8 text-sm">
+            <SelectTrigger className={`h-8 text-sm ${getError?.("type") ? "border-red-500" : ""}`}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -90,10 +77,15 @@ export function ChallengeResourceCard({
             placeholder="https://example.com/resource"
             value={resource.url}
             onChange={(e) => updateResource(resIndex, "url", e.target.value)}
-            className="h-8 text-sm"
+            className={`h-8 text-sm ${getError?.("url") ? "border-red-500 focus-visible:ring-red-500" : ""}`}
           />
         </div>
       </div>
+      {(getError?.("title") || getError?.("type") || getError?.("url")) && (
+        <p className="mt-2 text-xs text-red-500">
+          {getError?.("title") || getError?.("type") || getError?.("url")}
+        </p>
+      )}
       <div className="space-y-1 mt-3">
         <Label className="text-xs">Description</Label>
         <Textarea
