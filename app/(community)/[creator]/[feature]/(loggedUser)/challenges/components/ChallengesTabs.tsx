@@ -23,7 +23,6 @@ interface ChallengesTabsProps {
   setSearchQuery: (query: string) => void
   activeTab: string
   setActiveTab: (tab: string) => void
-  setSelectedChallenge: (id: string | null) => void
 }
 
 export default function ChallengesTabs({
@@ -33,8 +32,7 @@ export default function ChallengesTabs({
   searchQuery,
   setSearchQuery,
   activeTab,
-  setActiveTab,
-  setSelectedChallenge
+  setActiveTab
 }: ChallengesTabsProps) {
   const filteredChallenges = allChallenges.filter((challenge) => {
     const matchesSearch =
@@ -121,7 +119,6 @@ export default function ChallengesTabs({
                 creatorSlug={creatorSlug}
                 slug={slug}
                 challenge={challenge}
-                setSelectedChallenge={setSelectedChallenge}
               />
             ))}
           </div>

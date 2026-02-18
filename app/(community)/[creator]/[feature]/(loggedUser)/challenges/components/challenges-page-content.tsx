@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import HeaderSection from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/components/challenges-header"
 import ChallengesTabs from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/components/ChallengesTabs"
-import ChallengeSelectionModal from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/components/challenge-selection-modal"
 import { tokenStorage } from "@/lib/token-storage"
 
 interface ChallengesPageContentProps {
@@ -16,7 +15,6 @@ interface ChallengesPageContentProps {
 export default function ChallengesPageContent({ creatorSlug, slug, community, allChallenges }: ChallengesPageContentProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("browse")
-  const [selectedChallenge, setSelectedChallenge] = useState<string | null>(null)
   const [challenges, setChallenges] = useState(allChallenges)
 
   // Fetch user participations client-side to properly set isParticipating
@@ -113,17 +111,8 @@ export default function ChallengesPageContent({ creatorSlug, slug, community, al
           setSearchQuery={setSearchQuery}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          setSelectedChallenge={setSelectedChallenge}
         />
       </div>
-      
-      {/* Challenge Selection Modal */}
-      {selectedChallenge && (
-        <ChallengeSelectionModal 
-          challenge={challenges.find((c) => c.id === selectedChallenge)} 
-          setSelectedChallenge={setSelectedChallenge}
-        />
-      )}
     </div>
   )
 }
