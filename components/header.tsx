@@ -82,6 +82,7 @@ export function Header() {
               <Link href="/explore" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Explore</Link>
               <Link href="/#pricing" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Pricing</Link>
               <Link href="/#about" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">About</Link>
+              <Link href="/blogs" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Blog</Link>
               
               <Popover open={isFeaturesOpen} onOpenChange={setIsFeaturesOpen}>
                 <PopoverTrigger asChild>
@@ -180,6 +181,32 @@ export function Header() {
               </SheetHeader>
 
               <nav className="mt-6">
+                <div className="mb-4">
+                  <h3 className="text-chabaqa-primary font-semibold mb-2">Navigation</h3>
+                  <div className="flex flex-col space-y-1">
+                    <SheetClose asChild>
+                      <Link href="/explore" className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 rounded transition-colors">
+                        Explore
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/#pricing" className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 rounded transition-colors">
+                        Pricing
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/#about" className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 rounded transition-colors">
+                        About
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/blogs" className="block px-3 py-2 text-gray-700 dark:text-gray-200 hover:text-pink-600 dark:hover:text-pink-400 rounded transition-colors">
+                        Blog
+                      </Link>
+                    </SheetClose>
+                  </div>
+                </div>
+                
                 {groups.map((group) => (
                   <div key={group.title} className="mb-4">
                     <h3 className="text-chabaqa-primary font-semibold mb-2">{group.title}</h3>
