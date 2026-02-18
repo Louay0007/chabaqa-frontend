@@ -74,7 +74,7 @@ const navigationItems = [
   { label: "Events", href: "/events", icon: Sparkles },
   { label: "Reviews", href: "/reviews", icon: Star },
   { label: "Progress", href: "/progress", icon: TrendingUp },
-  { label: "Achievements", href: "/achievements", icon: Trophy },
+  // { label: "Achievements", href: "/achievements", icon: Trophy },
   { label: "Members", href: "/members", icon: Users },
 ]
 
