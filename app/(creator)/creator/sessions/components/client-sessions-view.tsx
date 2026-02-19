@@ -14,14 +14,14 @@ import {
   DollarSign,
   Eye,
   Edit,
-  Trash2,
   Power,
   PowerOff,
   ClipboardList,
+  Plus,
 } from "lucide-react";
 
 import Link from "next/link";
-import { sessionsApi, subscriptionApi } from "@/lib/api";
+import { sessionsApi } from "@/lib/api";
 
 import UpcomingSessionsCard from "./upcoming-sessions-card";
 import PendingRequestsCard from "./pending-requests-card";
@@ -266,9 +266,25 @@ export default function ClientSessionsView({
                         </div>
                     ))
                     ) : (
-                    <p className="text-zinc-500 dark:text-zinc-400 col-span-full">
-                        No sessions found.
-                    </p>
+                    <div className="col-span-full flex flex-col items-center justify-center py-12 px-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl">
+                        <Calendar className="h-16 w-16 text-zinc-300 dark:text-zinc-700 mb-4" />
+                        <h3 className="text-xl font-semibold mb-2">No sessions found</h3>
+                        <p className="text-zinc-500 dark:text-zinc-400 text-center mb-6 max-w-md">
+                          {activeTab === "all" 
+                            ? "Get started by creating your first mentoring session."
+                            : activeTab === "active"
+                            ? "You don't have any active sessions yet. Publish a session to get started."
+                            : "You don't have any inactive sessions."}
+                        </p>
+                        {activeTab !== "inactive" && (
+                          <Button className="bg-sessions-500 hover:bg-sessions-600" asChild>
+                            <Link href="/creator/sessions/new">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Create Session
+                            </Link>
+                          </Button>
+                        )}
+                    </div>
                     )}
                 </div>
                 </TabsContent>
