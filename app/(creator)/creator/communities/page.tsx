@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, Filter, Grid, List, CheckCircle, Trash2, Loader2 } from "lucide-react"
+import { Plus, Search, Filter, Grid, List, CheckCircle, Trash2, Loader2, Edit, Eye } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { EnhancedCard } from "@/components/ui/enhanced-card"
@@ -263,7 +263,12 @@ export default function CommunitiesPage() {
                     <div className="flex items-center gap-2">
                       <Button asChild variant="outline">
                         <Link href={getCommunityUrl(community)}>
-                          View Community
+                          <Eye className="w-4 h-4" />
+                        </Link>
+                      </Button>
+                      <Button asChild variant="outline">
+                        <Link href={`/creator/community/${community.slug}/customize`}>
+                          <Edit className="w-4 h-4" />
                         </Link>
                       </Button>
                       <Button
@@ -334,7 +339,12 @@ export default function CommunitiesPage() {
                     <div className="flex items-center gap-2">
                       <Button asChild variant="outline">
                         <Link href={getCommunityUrl(community)}>
-                          View Community
+                          <Eye className="w-4 h-4" />
+                        </Link>
+                      </Button>
+                      <Button asChild variant="outline">
+                        <Link href={`/creator/community/${community.slug}/customize`}>
+                          <Edit className="w-4 h-4" />
                         </Link>
                       </Button>
                       <Button

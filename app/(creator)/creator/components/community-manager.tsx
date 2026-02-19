@@ -79,10 +79,7 @@ export function CommunityManager({ communities }: CommunityManagerProps) {
                     Customize
                   </Button>
                 </Link>
-                <Button variant="outline" size="sm">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Button>
+
               </div>
             </div>
           ))}
