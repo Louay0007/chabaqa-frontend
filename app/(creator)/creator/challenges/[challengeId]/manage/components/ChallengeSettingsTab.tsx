@@ -5,6 +5,8 @@ import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,13 +24,15 @@ interface Props {
   formData: any
   onInputChange: (field: string, value: any) => void
   onDeleteChallenge: () => Promise<void>
+  fieldErrors?: Record<string, string>
 }
 
 export default function ChallengeSettingsTab({ 
   challengeId, 
   formData, 
   onInputChange, 
-  onDeleteChallenge 
+  onDeleteChallenge,
+  fieldErrors = {},
 }: Props) {
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -70,6 +74,28 @@ export default function ChallengeSettingsTab({
               onCheckedChange={(checked) => onInputChange("sequentialProgression", checked)} 
             />
           </div>
+
+          {formData.sequentialProgression && (
+            <div className="space-y-2">
+              <Label htmlFor="unlockMessage">Unlock Message</Label>
+              <Input
+                id="unlockMessage"
+                value={formData.unlockMessage || ""}
+                onChange={(e) => onInputChange("unlockMessage", e.target.value)}
+                placeholder="Complete the previous task to unlock this one."
+                className={fieldErrors.unlockMessage ? "border-red-500 focus-visible:ring-red-500" : ""}
+              />
+              {fieldErrors.unlockMessage && (
+                <p className="text-sm text-red-500">{fieldErrors.unlockMessage}</p>
+              )}
+            </div>
+          )}
+          {fieldErrors.subscription && (
+            <p className="text-sm text-red-500">{fieldErrors.subscription}</p>
+          )}
+          {fieldErrors.permission && (
+            <p className="text-sm text-red-500">{fieldErrors.permission}</p>
+          )}
         </CardContent>
       </EnhancedCard>
 

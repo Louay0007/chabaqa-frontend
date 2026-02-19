@@ -354,7 +354,7 @@ export function CommunityOverview({
         : getFallbackItems()
 
   return (
-    <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+    <div className="mt-8 grid grid-cols-1 gap-3.5 sm:mt-10 sm:gap-5 md:grid-cols-2">
       {overviewItems.map((item, index) => {
         const IconComponent = item.iconComponent
         const borderColorMap: Record<string, string> = {
@@ -374,7 +374,7 @@ export function CommunityOverview({
         return (
           <Card
             key={index}
-            className={`group bg-white border ${borderColor} p-5 sm:p-6 rounded-2xl transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5`}
+            className={`group rounded-2xl border bg-white p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg sm:p-6 ${borderColor}`}
             style={
               themeTokens
                 ? {
@@ -384,14 +384,14 @@ export function CommunityOverview({
                 : undefined
             }
           >
-            <div className="flex items-start gap-3.5">
+            <div className="flex items-start gap-3 sm:gap-3.5">
               {IconComponent && (
                 <IconBadge Icon={IconComponent} gradient={item.color} style={item.iconStyle} />
               )}
               <div className="flex-1">
-                <p className="font-semibold text-[15px] text-gray-900 leading-6 tracking-[-0.01em]">{item.title}</p>
+                <p className="text-sm font-semibold leading-6 tracking-[-0.01em] text-gray-900 sm:text-[15px]">{item.title}</p>
                 {item.description && (
-                  <p className="text-[13px] text-gray-600 mt-1.5 leading-5">{item.description}</p>
+                  <p className="mt-1.5 text-xs leading-5 text-gray-600 sm:text-[13px]">{item.description}</p>
                 )}
               </div>
             </div>

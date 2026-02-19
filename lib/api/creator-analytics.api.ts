@@ -4,6 +4,7 @@ export interface CreatorAnalyticsParams {
   from?: string;
   to?: string;
   communityId?: string;
+  communitySlug?: string;
 }
 
 export const creatorAnalyticsApi = {

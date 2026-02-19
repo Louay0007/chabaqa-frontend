@@ -87,6 +87,22 @@ function dedupeTextList(values: string[]): string[] {
   return result
 }
 
+function normalizeDisplayText(value: unknown): string {
+  if (typeof value !== "string") return ""
+  const trimmed = value.trim()
+  if (!trimmed) return ""
+
+  if (!/%[0-9a-f]{2}/i.test(trimmed)) {
+    return trimmed
+  }
+
+  try {
+    return decodeURIComponent(trimmed)
+  } catch {
+    return trimmed
+  }
+}
+
 function normalizePricing(community: any): { price: number; priceType: string } {
   const feesOfJoin = asNumber(community?.fees_of_join, 0)
   const directPrice = asNumber(community?.price, 0)
@@ -377,6 +393,8 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
       (community as any).coverImage || (community as any).image || (community as any).logo,
       apiBaseForImages,
     ),
+    description: normalizeDisplayText((community as any).description),
+    longDescription: normalizeDisplayText((community as any).longDescription),
     settings: normalizedSettings,
   }
 
@@ -471,7 +489,12 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
     overviewContent?.subtitle || "Everything you need to succeed is included in this community."
 
   return (
-    <div className="min-h-screen bg-white">
+    <div
+      className="min-h-screen"
+      style={{
+        background: `linear-gradient(180deg, ${themeTokens.softPrimary} 0%, #ffffff 22%, #ffffff 78%, ${themeTokens.softSecondary} 100%)`,
+      }}
+    >
       <Header />
       <main className="relative isolate overflow-hidden">
         <div className="pointer-events-none absolute inset-0 -z-10">
@@ -523,7 +546,10 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
         />
 
         {shouldRenderOverview && (
-        <section className={cn("mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-18", contentWidthClass)}>
+        <section
+          className={cn("mx-auto rounded-3xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8", contentWidthClass)}
+          style={{ backgroundColor: themeTokens.softPrimary }}
+        >
           <div className="text-center max-w-3xl mx-auto mb-12">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-gray-900">
                 {overviewTitle}
@@ -573,7 +599,10 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
                   <article
                     key={post.id}
                     className="rounded-xl border bg-white p-4 shadow-sm"
-                    style={{ borderColor: themeTokens.mutedBorder }}
+                    style={{
+                      borderColor: themeTokens.mutedBorder,
+                      background: `linear-gradient(165deg, #ffffff 0%, ${themeTokens.softPrimary} 100%)`,
+                    }}
                   >
                     <h3 className="font-semibold text-gray-900 line-clamp-2">{post.title}</h3>
                     <p className="text-sm text-gray-600 mt-2 line-clamp-3">
@@ -589,7 +618,10 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed p-8 text-center text-gray-500">
+              <div
+                className="rounded-xl border border-dashed p-8 text-center text-gray-500"
+                style={{ borderColor: themeTokens.mutedBorder, backgroundColor: themeTokens.softPrimary }}
+              >
                 No posts yet.
               </div>
             )}

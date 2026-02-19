@@ -38,15 +38,21 @@ export function CheckoutForm({ community, embedded = false, themeTokens }: Check
   const mutedBorder = themeTokens?.mutedBorder
 
   const basePrice = useMemo(() => {
-    const value =
-      pricing?.fees_of_join ??
-      pricing?.price ??
-      pricing?.pricing?.price ??
-      0
+    const toNumber = (value: unknown): number => {
+      if (typeof value === "number") return Number.isFinite(value) ? value : 0
+      if (typeof value === "string") {
+        const parsed = Number(value)
+        return Number.isFinite(parsed) ? parsed : 0
+      }
+      return 0
+    }
 
-    const asNumber = typeof value === "string" ? parseFloat(value) : Number(value)
-    if (Number.isNaN(asNumber)) return 0
-    return Math.max(asNumber, 0)
+    const feesOfJoin = toNumber(pricing?.fees_of_join)
+    const directPrice = toNumber(pricing?.price)
+    const nestedPrice = toNumber(pricing?.pricing?.price)
+
+    // Different endpoints may populate only one price field; use the highest valid value.
+    return Math.max(feesOfJoin, directPrice, nestedPrice, 0)
   }, [pricing])
 
   const currency: string = useMemo(() => {

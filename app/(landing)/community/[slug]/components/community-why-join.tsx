@@ -109,14 +109,18 @@ export function CommunityWhyJoin({
   const ctaSubtitle = benefitsContent?.ctaSubtitle || "Join our community today"
 
   const primary = themeTokens?.primary || "#8e78fb"
+  const secondary = themeTokens?.secondary || "#f48fb1"
 
   return (
-    <section className="py-16 sm:py-20 bg-white">
+    <section className="bg-white py-12 sm:py-16 lg:py-20">
       <div className={cn("mx-auto px-4 sm:px-6 lg:px-8", contentWidthClass)}>
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+        <div
+          className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg"
+          style={{ borderColor: themeTokens?.mutedBorder || undefined }}
+        >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
             {/* Content */}
-            <div className="p-6 sm:p-10 lg:p-12">
+            <div className="p-5 sm:p-8 lg:p-12">
               <div
                 className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full mb-5 border"
                 style={{
@@ -128,7 +132,7 @@ export function CommunityWhyJoin({
                 <span className="text-xs font-semibold" style={{ color: primary }}>{chipLabel}</span>
               </div>
 
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-gray-900 mb-3">
+              <h2 className="mb-3 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl lg:text-4xl">
                 {heading}
               </h2>
               <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-7 font-light leading-relaxed">{subtitle}</p>
@@ -167,10 +171,22 @@ export function CommunityWhyJoin({
             </div>
 
             {/* Image */}
-            <div className="relative h-48 sm:h-64 lg:h-full min-h-[300px] bg-white">
+            <div
+              className="relative min-h-[220px] border-t lg:min-h-[300px] lg:border-l lg:border-t-0"
+              style={{
+                borderColor: themeTokens?.mutedBorder || undefined,
+                background:
+                  themeTokens?.softPrimary && themeTokens?.softSecondary
+                    ? `linear-gradient(165deg, ${themeTokens.softPrimary} 0%, #ffffff 55%, ${themeTokens.softSecondary} 100%)`
+                    : undefined,
+              }}
+            >
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center space-y-3 p-6">
-                  <div className="w-16 h-16 mx-auto rounded-lg bg-white shadow-lg flex items-center justify-center">
+                  <div
+                    className="mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-white shadow-lg"
+                    style={{ boxShadow: `0 12px 30px -16px ${secondary}` }}
+                  >
                     <Users className="w-8 h-8" style={{ color: primary }} />
                   </div>
                   <p className="text-lg font-bold text-gray-900">{ctaTitle}</p>

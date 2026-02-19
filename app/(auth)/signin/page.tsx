@@ -15,6 +15,8 @@ export default function SignInPage() {
       const role = user.role?.toLowerCase()
       if (role === 'creator') {
         router.push('/creator/dashboard')
+      } else if (role === 'admin') {
+        router.push('/admin')
       } else {
         router.push('/explore')
       }

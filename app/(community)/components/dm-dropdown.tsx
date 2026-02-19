@@ -85,6 +85,7 @@ export function DMComponent() {
   const [newMessage, setNewPost] = React.useState("")
   const [searchQuery, setSearchQuery] = React.useState("")
   const [error, setError] = React.useState<string | null>(null)
+  const [previewImageUrl, setPreviewImageUrl] = React.useState<string | null>(null)
   const { user: currentUser } = useAuthContext()
   const { onlineUsers } = useSocket()
   const myId = currentUser?.id || (currentUser as any)?._id || ''
@@ -355,11 +356,16 @@ export function DMComponent() {
 
   React.useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsOpen(false)
+      if (e.key !== 'Escape') return
+      if (previewImageUrl) {
+        setPreviewImageUrl(null)
+        return
+      }
+      setIsOpen(false)
     }
     if (isOpen) window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
-  }, [isOpen])
+  }, [isOpen, previewImageUrl])
 
   // ── Click outside to close (desktop) ──────────────────────────────────
 
@@ -760,7 +766,7 @@ export function DMComponent() {
                                                 src={att.url}
                                                 alt="attachment"
                                                 className="w-full object-cover max-h-[280px] cursor-zoom-in hover:scale-[1.02] transition-transform duration-200"
-                                                onClick={() => window.open(att.url, '_blank')}
+                                                onClick={() => setPreviewImageUrl(att.url)}
                                                 onError={(e) => {
                                                   (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Image+Not+Found';
                                                 }}
@@ -889,6 +895,29 @@ export function DMComponent() {
                     </Button>
                   </div>
                 </form>
+              </div>
+            )}
+
+            {/* Image preview modal */}
+            {previewImageUrl && (
+              <div
+                className="absolute inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-8"
+                onClick={() => setPreviewImageUrl(null)}
+              >
+                <button
+                  type="button"
+                  className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-colors"
+                  onClick={() => setPreviewImageUrl(null)}
+                  aria-label="Close image preview"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+                <img
+                  src={previewImageUrl}
+                  alt="Preview"
+                  className="max-h-full max-w-full rounded-xl object-contain shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                />
               </div>
             )}
           </div>

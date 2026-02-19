@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ChallengeHeader } from "./challenge-header"
 import { ChallengeProgress } from "./challenge-progress"
@@ -9,10 +9,16 @@ import { TimelinePricingStep } from "./timeline-pricing-step"
 import { ChallengeStepsStep } from "./challenge-steps-step"
 import { ReviewPublishStep } from "./review-publish-step"
 import { ChallengeNavigation } from "./challenge-navigation"
-import { api } from "@/lib/api"
 import { challengesApi, type CreateChallengeData } from "@/lib/api/challenges.api"
 import { useToast } from "@/hooks/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { extractApiError } from "@/lib/api/error-parser"
+import {
+  mapBackendErrorsToCreatorFields,
+  normalizeDifficultyToBackend,
+  validateCreateStep,
+  validateTasks,
+} from "../../_validation/challenge-validation"
 
 export function CreateChallengeForm() {
   const router = useRouter()
@@ -22,118 +28,64 @@ export function CreateChallengeForm() {
   const [endDate, setEndDate] = useState<Date>()
   const [formData, setFormData] = useState(initialFormData)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({})
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   
   // Use the selected community from context
   const { selectedCommunity } = useCreatorCommunity()
   const communitySlug = selectedCommunity?.slug || ""
 
-  const validateCurrentStep = () => {
-    const errors: Record<string, boolean> = {}
-    let isValid = true
+  const scrollToFirstError = (errors: Record<string, string>) => {
+    const first = Object.keys(errors)[0]
+    if (!first) return
 
-    switch (currentStep) {
-      case 1:
-        if (!formData.title || formData.title.trim().length < 3) {
-          errors.title = true
-          isValid = false
-        }
-        if (!formData.description || formData.description.trim().length < 10) {
-          errors.description = true
-          isValid = false
-        }
-        if (!formData.category) {
-          errors.category = true
-          isValid = false
-        }
-        if (!formData.difficulty) {
-          errors.difficulty = true
-          isValid = false
-        }
-        if (!formData.duration) {
-          errors.duration = true
-          isValid = false
-        }
-        
-        if (!isValid) {
-          toast({ 
-            title: 'Validation Error', 
-            description: 'Please fill in all required fields correctly.', 
-            variant: 'destructive' 
-          })
-        }
-        break
-        
-      case 2:
-        if (!startDate) {
-          errors.startDate = true
-          isValid = false
-        }
-        if (!endDate) {
-          errors.endDate = true
-          isValid = false
-        }
-        if (startDate && endDate && endDate < startDate) {
-          errors.endDate = true
-          isValid = false
-          toast({ 
-            title: 'Validation Error', 
-            description: 'End date must be after start date.', 
-            variant: 'destructive' 
-          })
-        }
-        
-        if (!isValid && !(endDate && startDate && endDate < startDate)) {
-          toast({ 
-            title: 'Validation Error', 
-            description: 'Please select both start and end dates.', 
-            variant: 'destructive' 
-          })
-        }
-        break
-        
-      case 3:
-        if (formData.steps.length === 0) {
-          toast({ 
-            title: 'Validation Error', 
-            description: 'Please add at least one challenge step.', 
-            variant: 'destructive' 
-          })
-          return false
-        }
-        
-        for (let i = 0; i < formData.steps.length; i++) {
-          const step = formData.steps[i]
-          if (!step.title || step.title.trim().length < 3) {
-            errors[`step_${i}_title`] = true
-            isValid = false
-          }
-          if (!step.description || step.description.trim().length < 10) {
-            errors[`step_${i}_description`] = true
-            isValid = false
-          }
-          if (!step.deliverable || step.deliverable.trim().length < 5) {
-            errors[`step_${i}_deliverable`] = true
-            isValid = false
-          }
-        }
-        
-        if (!isValid) {
-          toast({ 
-            title: 'Validation Error', 
-            description: 'Please complete all required fields in all challenge steps.', 
-            variant: 'destructive' 
-          })
-        }
-        break
+    const mappedId =
+      first === "title" || first === "description" || first === "duration" || first === "unlockMessage"
+        ? first
+        : first === "startDate" || first === "endDate"
+          ? first
+          : first === "participationFee" || first === "currency" ? "participationFee"
+            : first === "depositAmount" ? "depositAmount"
+              : first === "completionReward" ? "completionReward"
+                : first === "topPerformerBonus" ? "topPerformerBonus"
+                  : first === "streakBonus" ? "streakBonus"
+                    : first === "maxParticipants" ? "maxParticipants"
+                      : first.match(/^steps\.(\d+)\.title$/)
+                        ? `step-${first.match(/^steps\.(\d+)\.title$/)?.[1]}-title`
+                        : first.match(/^steps\.(\d+)\.description$/)
+                          ? `step-${first.match(/^steps\.(\d+)\.description$/)?.[1]}-description`
+                          : first.match(/^steps\.(\d+)\.deliverable$/)
+                            ? `step-${first.match(/^steps\.(\d+)\.deliverable$/)?.[1]}-deliverable`
+                            : first.match(/^steps\.(\d+)\.instructions$/)
+                              ? `step-${first.match(/^steps\.(\d+)\.instructions$/)?.[1]}-instructions`
+                              : first.match(/^steps\.(\d+)\.day$/)
+                                ? `step-${first.match(/^steps\.(\d+)\.day$/)?.[1]}-day`
+                              : undefined
+
+    if (!mappedId) return
+    const el = document.getElementById(mappedId)
+    el?.scrollIntoView({ behavior: "smooth", block: "center" })
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) el.focus()
+  }
+
+  const validateCurrentStep = () => {
+    const result = validateCreateStep(currentStep, formData, { startDate, endDate })
+    setValidationErrors(result.fieldErrors)
+
+    if (!result.isValid) {
+      toast({
+        title: "Validation Error",
+        description: result.globalErrors[0] || "Please fix the highlighted fields.",
+        variant: "destructive",
+      })
+      scrollToFirstError(result.fieldErrors)
     }
-    
-    setValidationErrors(errors)
-    return isValid
+
+    return result.isValid
   }
 
   const handleNextStep = () => {
     if (validateCurrentStep()) {
+      setValidationErrors({})
       setCurrentStep(Math.min(steps.length, currentStep + 1))
     }
   }
@@ -154,38 +106,70 @@ export function CreateChallengeForm() {
 
     try {
       if (!startDate || !endDate) {
-        toast({ title: 'Missing dates', description: 'Please select start and end dates.', variant: 'destructive' as any })
+        setValidationErrors({ startDate: "Please select a start date.", endDate: "End date is required." })
+        toast({ title: "Validation Error", description: "Please fix the highlighted fields.", variant: "destructive" })
+        setCurrentStep(2)
         return
       }
       if (!communitySlug) {
-        toast({ title: 'Missing community', description: 'No community found for this creator.', variant: 'destructive' as any })
+        toast({ title: "Missing community", description: "No community found for this creator.", variant: "destructive" })
         return
       }
       if (!formData.steps || formData.steps.length === 0) {
-        toast({ title: 'No steps defined', description: 'Please add at least one challenge step.', variant: 'destructive' as any })
+        setValidationErrors({ tasks: "Please add at least one challenge step." })
+        toast({ title: "Validation Error", description: "Please add at least one challenge step.", variant: "destructive" })
         return
       }
+      const stepOneValidation = validateCreateStep(1, formData, { startDate, endDate })
+      const stepTwoValidation = validateCreateStep(2, formData, { startDate, endDate })
+      const stepThreeValidation = validateTasks(formData.steps || [])
+      const allErrors = {
+        ...stepOneValidation.fieldErrors,
+        ...stepTwoValidation.fieldErrors,
+        ...stepThreeValidation.fieldErrors,
+      }
+      const hasErrors = Object.keys(allErrors).length > 0 || stepThreeValidation.globalErrors.length > 0
+      if (hasErrors) {
+        const targetStep = !stepOneValidation.isValid ? 1 : !stepTwoValidation.isValid ? 2 : 3
+        setValidationErrors({
+          ...allErrors,
+          ...(stepThreeValidation.globalErrors[0] ? { tasks: stepThreeValidation.globalErrors[0] } : {}),
+        })
+        toast({
+          title: "Validation Error",
+          description: stepThreeValidation.globalErrors[0] || "Please fix the highlighted fields before submitting.",
+          variant: "destructive",
+        })
+        setCurrentStep(targetStep)
+        scrollToFirstError(allErrors)
+        return
+      }
+
+      const sanitizeText = (value: unknown) => (typeof value === "string" ? value.trim() : "")
+
       // Map UI form to CreateChallengeDto
-      const tasks = (formData.steps || []).map((s, index) => ({
-        id: s.id || `task-${Date.now()}-${index}`,
-        day: s.day,
-        title: s.title,
-        description: s.description,
-        deliverable: s.deliverable,
+      const tasks = (formData.steps || []).map((s) => {
+        const rawResources = Array.isArray(s.resources) ? s.resources : []
+
+        return {
+        day: Number(s.day),
+        title: sanitizeText(s.title),
+        description: sanitizeText(s.description),
+        deliverable: sanitizeText(s.deliverable),
         points: Number(s.points || 0),
-        instructions: s.instructions || undefined,
+        instructions: sanitizeText(s.instructions) || undefined,
         notes: undefined,
-        resources: (s.resources || []).map((r) => ({
-          title: r.title,
-          type: r.type,
-          url: r.url,
-          description: r.description || undefined,
-        }))
-      }))
+        resources: rawResources.map((r) => ({
+          title: sanitizeText(r.title),
+          type: sanitizeText(r.type) as "video" | "article" | "code" | "tool",
+          url: sanitizeText(r.url),
+          description: sanitizeText(r.description) || undefined,
+        })),
+      }})
 
       const payload: CreateChallengeData = {
-        title: formData.title,
-        description: formData.description,
+        title: sanitizeText(formData.title),
+        description: sanitizeText(formData.description),
         communitySlug,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
@@ -196,10 +180,12 @@ export function CreateChallengeForm() {
         completionReward: formData.rewards?.completionReward ? Number(formData.rewards.completionReward) : undefined,
         topPerformerBonus: formData.rewards?.topPerformerBonus ? Number(formData.rewards.topPerformerBonus) : undefined,
         streakBonus: formData.rewards?.streakBonus ? Number(formData.rewards.streakBonus) : undefined,
-        category: formData.category || undefined,
-        difficulty: formData.difficulty ? (formData.difficulty.toLowerCase().replace('all levels','beginner') as any) : undefined,
-        duration: formData.duration || undefined,
-        thumbnail: formData.thumbnail || undefined,
+        category: sanitizeText(formData.category) || undefined,
+        difficulty: formData.difficulty ? normalizeDifficultyToBackend(formData.difficulty) : undefined,
+        duration: sanitizeText(formData.duration) || undefined,
+        thumbnail: sanitizeText(formData.thumbnail) || undefined,
+        sequentialProgression: Boolean(formData.sequentialProgression),
+        unlockMessage: sanitizeText(formData.unlockMessage) || undefined,
         // Always create as inactive (draft) - users need active subscription to publish
         // They can publish later from the challenge management page once they have a subscription
         isActive: false,
@@ -216,7 +202,24 @@ export function CreateChallengeForm() {
       if (id) router.push(`/creator/challenges/${id}/manage`)
       else router.push('/creator/challenges')
     } catch (e: any) {
-      toast({ title: 'Failed to create challenge', description: e?.message || 'Please review required fields.', variant: 'destructive' as any })
+      const parsed = extractApiError(e)
+      const mappedFieldErrors = mapBackendErrorsToCreatorFields(parsed)
+      if (Object.keys(mappedFieldErrors).length) {
+        setValidationErrors(mappedFieldErrors)
+        if (mappedFieldErrors.startDate || mappedFieldErrors.endDate) {
+          setCurrentStep(2)
+        } else if (Object.keys(mappedFieldErrors).some((key) => key.startsWith("steps.") || key === "tasks")) {
+          setCurrentStep(3)
+        } else {
+          setCurrentStep(1)
+        }
+        scrollToFirstError(mappedFieldErrors)
+      }
+      toast({
+        title: "Failed to create challenge",
+        description: parsed.globalMessage || "Please review required fields.",
+        variant: "destructive",
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -293,6 +296,8 @@ const initialFormData = {
   category: "",
   difficulty: "",
   duration: "",
+  sequentialProgression: false,
+  unlockMessage: "",
   isPublished: false,
   tags: [] as string[],
   rewards: {

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { Zap, Upload } from "lucide-react"
 import { useCallback, useRef, useState } from "react"
 import { api } from "@/lib/api"
@@ -19,9 +20,11 @@ interface BasicInfoStepProps {
     category: string
     difficulty: string
     duration: string
+    sequentialProgression?: boolean
+    unlockMessage?: string
   }
   setFormData: (data: any) => void
-  validationErrors?: Record<string, boolean>
+  validationErrors?: Record<string, string>
 }
 
 const categories = [
@@ -35,7 +38,11 @@ const categories = [
   "Learning",
 ]
 
-const difficulties = ["Beginner", "Intermediate", "Advanced", "All Levels"]
+const difficulties = [
+  { value: "beginner", label: "Beginner" },
+  { value: "intermediate", label: "Intermediate" },
+  { value: "advanced", label: "Advanced" },
+] as const
 const durations = ["7 days", "14 days", "21 days", "30 days", "60 days", "90 days"]
 
 export function BasicInfoStep({ formData, setFormData, validationErrors = {} }: BasicInfoStepProps) {
@@ -76,6 +83,7 @@ export function BasicInfoStep({ formData, setFormData, validationErrors = {} }: 
   }, [handleFiles])
 
   const onPick = useCallback(() => fileInputRef.current?.click(), [])
+  const getError = (key: string) => validationErrors[key]
 
   return (
     <EnhancedCard>
@@ -94,10 +102,10 @@ export function BasicInfoStep({ formData, setFormData, validationErrors = {} }: 
             placeholder="e.g., 30-Day Coding Challenge"
             value={formData.title}
             onChange={(e) => handleInputChange("title", e.target.value)}
-            className={validationErrors.title ? "border-red-500 focus-visible:ring-red-500" : ""}
+            className={getError("title") ? "border-red-500 focus-visible:ring-red-500" : ""}
           />
-          {validationErrors.title && (
-            <p className="text-sm text-red-500">Title must be at least 3 characters</p>
+          {getError("title") && (
+            <p className="text-sm text-red-500">{getError("title")}</p>
           )}
         </div>
 
@@ -109,10 +117,10 @@ export function BasicInfoStep({ formData, setFormData, validationErrors = {} }: 
             rows={4}
             value={formData.description}
             onChange={(e) => handleInputChange("description", e.target.value)}
-            className={validationErrors.description ? "border-red-500 focus-visible:ring-red-500" : ""}
+            className={getError("description") ? "border-red-500 focus-visible:ring-red-500" : ""}
           />
-          {validationErrors.description && (
-            <p className="text-sm text-red-500">Description must be at least 10 characters</p>
+          {getError("description") && (
+            <p className="text-sm text-red-500">{getError("description")}</p>
           )}
         </div>
 
@@ -123,7 +131,7 @@ export function BasicInfoStep({ formData, setFormData, validationErrors = {} }: 
               value={formData.category}
               onValueChange={(value) => handleInputChange("category", value)}
             >
-              <SelectTrigger className={validationErrors.category ? "border-red-500" : ""}>
+              <SelectTrigger className={getError("category") ? "border-red-500" : ""}>
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
@@ -134,8 +142,8 @@ export function BasicInfoStep({ formData, setFormData, validationErrors = {} }: 
                 ))}
               </SelectContent>
             </Select>
-            {validationErrors.category && (
-              <p className="text-sm text-red-500">Please select a category</p>
+            {getError("category") && (
+              <p className="text-sm text-red-500">{getError("category")}</p>
             )}
           </div>
 
@@ -145,19 +153,19 @@ export function BasicInfoStep({ formData, setFormData, validationErrors = {} }: 
               value={formData.difficulty}
               onValueChange={(value) => handleInputChange("difficulty", value)}
             >
-              <SelectTrigger className={validationErrors.difficulty ? "border-red-500" : ""}>
+              <SelectTrigger className={getError("difficulty") ? "border-red-500" : ""}>
                 <SelectValue placeholder="Select difficulty level" />
               </SelectTrigger>
               <SelectContent>
                 {difficulties.map((difficulty) => (
-                  <SelectItem key={difficulty} value={difficulty}>
-                    {difficulty}
+                  <SelectItem key={difficulty.value} value={difficulty.value}>
+                    {difficulty.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {validationErrors.difficulty && (
-              <p className="text-sm text-red-500">Please select a difficulty level</p>
+            {getError("difficulty") && (
+              <p className="text-sm text-red-500">{getError("difficulty")}</p>
             )}
           </div>
         </div>
@@ -168,7 +176,7 @@ export function BasicInfoStep({ formData, setFormData, validationErrors = {} }: 
             value={formData.duration}
             onValueChange={(value) => handleInputChange("duration", value)}
           >
-            <SelectTrigger className={validationErrors.duration ? "border-red-500" : ""}>
+            <SelectTrigger className={getError("duration") ? "border-red-500" : ""}>
               <SelectValue placeholder="Select duration" />
             </SelectTrigger>
             <SelectContent>
@@ -179,8 +187,39 @@ export function BasicInfoStep({ formData, setFormData, validationErrors = {} }: 
               ))}
             </SelectContent>
           </Select>
-          {validationErrors.duration && (
-            <p className="text-sm text-red-500">Please select a duration</p>
+          {getError("duration") && (
+            <p className="text-sm text-red-500">{getError("duration")}</p>
+          )}
+        </div>
+
+        <div className="space-y-4 rounded-lg border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="sequentialProgression">Sequential Progression</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Participants must complete previous tasks to unlock the next one.
+              </p>
+            </div>
+            <Switch
+              id="sequentialProgression"
+              checked={Boolean(formData.sequentialProgression)}
+              onCheckedChange={(checked) => handleInputChange("sequentialProgression", checked)}
+            />
+          </div>
+
+          {formData.sequentialProgression && (
+            <div className="space-y-2">
+              <Label htmlFor="unlockMessage">Unlock Message (optional)</Label>
+              <Input
+                id="unlockMessage"
+                placeholder="Complete the previous task to unlock this one."
+                value={formData.unlockMessage || ""}
+                onChange={(e) => handleInputChange("unlockMessage", e.target.value)}
+              />
+              {getError("unlockMessage") && (
+                <p className="text-sm text-red-500">{getError("unlockMessage")}</p>
+              )}
+            </div>
           )}
         </div>
 

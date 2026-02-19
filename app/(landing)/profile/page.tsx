@@ -645,7 +645,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
               {/* Header Card */}
               <div className="border border-border-color rounded-xl p-6 bg-white shadow-subtle">
                 <div className="flex flex-col gap-6 @[520px]:flex-row @[520px]:justify-between @[520px]:items-center">
-                  <div className="flex gap-4">
+                  <div className="flex flex-col sm:flex-row gap-4">
                     <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-24 w-24 sm:h-32 sm:w-32 flex-shrink-0"
                       style={{ backgroundImage: `url(${currentUser?.avatar || '/placeholder.svg'})` }} />
                     <div className="flex flex-col justify-center gap-1">
@@ -653,9 +653,9 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                       <p className="text-text-secondary text-base">@{(currentUser?.email || '').split('@')[0]}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <Mail className="w-4 h-4 text-text-tertiary" />
-                        <p className="text-text-secondary text-sm">{currentUser?.email}</p>
+                        <p className="text-text-secondary text-sm break-all">{currentUser?.email}</p>
                       </div>
-                      <p className="text-text-secondary text-base flex items-center gap-1.5 mt-1">
+                      <p className="text-text-secondary text-base flex items-center gap-1.5 mt-1 break-words">
                         <MapPin className="w-4 h-4" /> {[currentUser?.ville, currentUser?.pays].filter(Boolean).join(', ') || '—'}
                       </p>
                       {currentUser?.bio && (
@@ -664,7 +664,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                     </div>
                   </div>
                   {isOwnProfile && (
-                    <a href={`/profile/${profileHandle}/edit`} className="flex min-w-[84px] items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary hover:bg-primary-dark text-white text-sm font-bold border border-primary-dark">
+                    <a href={`/profile/${profileHandle}/edit`} className="flex w-full @[520px]:w-auto min-w-[84px] items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary hover:bg-primary-dark text-white text-sm font-bold border border-primary-dark">
                       <Pencil className="w-4 h-4" />
                       <span>Edit Profile</span>
                     </a>
@@ -675,12 +675,12 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
               {/* Tabs + Courses Grid */}
               <div className="border border-border-color rounded-xl bg-white shadow-subtle">
                 <div className="pb-3">
-                  <div className="flex border-b border-border-color px-6 gap-8">
+                  <div className="flex border-b border-border-color px-6 gap-4 sm:gap-8 overflow-x-auto overscroll-x-contain">
                     {(['communities', 'courses', 'challenges', 'sessions', 'products'] as const).map(tab => (
                       <button
                         key={tab}
                         className={cn(
-                          "flex flex-col items-center justify-center pb-[13px] pt-4 text-sm font-bold",
+                          "flex flex-col items-center justify-center pb-[13px] pt-4 text-sm font-bold shrink-0 whitespace-nowrap",
                           activeTab === tab
                             ? (
                               tab === 'courses' ? "border-b-[3px] border-b-[#47c7ea] text-[#47c7ea]" :
@@ -703,7 +703,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                 {activeTab === 'courses' && (
                   <div className="p-6">
                     {coursesLoading ? (
-                      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {Array.from({ length: 6 }).map((_, idx) => (
                           <div key={idx} className="flex flex-col gap-3">
                             <div className="w-full aspect-video bg-gray-200 rounded-lg animate-pulse" />
@@ -717,7 +717,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                       </div>
                     ) : courses.length > 0 ? (
                       <>
-                        <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                           {courses.map((course) => (
                             <div key={course.id} className="flex flex-col gap-3 group rounded-lg border border-border-color bg-white shadow-subtle overflow-hidden hover:shadow-md transition-shadow">
                               <div className="relative w-full bg-center bg-no-repeat aspect-video bg-cover rounded-t-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" style={{ backgroundImage: `url(${course.thumbnail})` }}>
@@ -765,7 +765,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
 
                         {/* Pagination */}
                         {coursesTotalPages > 1 && (
-                          <div className="flex justify-center items-center gap-2 mt-6">
+                          <div className="flex flex-col sm:flex-row justify-center items-center gap-2 mt-6">
                             <button
                               onClick={() => setCoursesPage(prev => Math.max(1, prev - 1))}
                               disabled={coursesPage === 1}
@@ -808,7 +808,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                 {activeTab === 'challenges' && (
                   <div className="p-6">
                     {challengesLoading ? (
-                      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {Array.from({ length: 6 }).map((_, idx) => (
                           <div key={idx} className="flex flex-col gap-3">
                             <div className="w-full aspect-video bg-gray-200 rounded-lg animate-pulse" />
@@ -822,7 +822,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                       </div>
                     ) : challenges.length > 0 ? (
                       <>
-                        <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                           {challenges.map((challenge) => (
                             <div key={challenge.id} className="flex flex-col gap-3 group rounded-lg border border-border-color bg-white shadow-subtle overflow-hidden hover:shadow-md transition-shadow">
                               <div className="relative w-full bg-center bg-no-repeat aspect-video bg-cover rounded-t-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" style={{ backgroundImage: `url(${challenge.thumbnail})` }}>
@@ -872,7 +872,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
 
                         {/* Pagination */}
                         {challengesTotalPages > 1 && (
-                          <div className="flex justify-center items-center gap-2 mt-6">
+                          <div className="flex flex-col sm:flex-row justify-center items-center gap-2 mt-6">
                             <button
                               onClick={() => setChallengesPage(prev => Math.max(1, prev - 1))}
                               disabled={challengesPage === 1}
@@ -915,7 +915,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                 {activeTab === 'sessions' && (
                   <div className="p-6">
                     {sessionsLoading ? (
-                      <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {Array.from({ length: 6 }).map((_, idx) => (
                           <div key={idx} className="flex flex-col gap-3">
                             <div className="w-full aspect-video bg-gray-200 rounded-lg animate-pulse" />
@@ -928,7 +928,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                       </div>
                     ) : sessions.length > 0 ? (
                       <>
-                        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                           {sessions.map((session) => {
                             const statusColors = {
                               'upcoming': '#f65887',
@@ -982,7 +982,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
 
                         {/* Pagination */}
                         {sessionsTotalPages > 1 && (
-                          <div className="flex justify-center items-center gap-2 mt-6">
+                          <div className="flex flex-col sm:flex-row justify-center items-center gap-2 mt-6">
                             <button
                               onClick={() => setSessionsPage(prev => Math.max(1, prev - 1))}
                               disabled={sessionsPage === 1}
@@ -1025,7 +1025,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                 {activeTab === 'products' && (
                   <div className="p-6">
                     {productsLoading ? (
-                      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {Array.from({ length: 6 }).map((_, idx) => (
                           <div key={idx} className="flex flex-col gap-3">
                             <div className="w-full aspect-video bg-gray-200 rounded-lg animate-pulse" />
@@ -1038,7 +1038,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                       </div>
                     ) : products.length > 0 ? (
                       <>
-                        <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                           {products.map((product) => (
                             <div key={product.id || product._id} className="flex flex-col gap-3 group rounded-lg border border-border-color bg-white shadow-subtle overflow-hidden hover:shadow-md transition-shadow">
                               <div className="relative w-full bg-center bg-no-repeat aspect-video bg-cover rounded-t-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" style={{ backgroundImage: `url(${(product.images && product.images[0]) || product.image || product.thumbnail || 'https://images.unsplash.com/photo-1579275542618-a1dfed5f54ba?q=80&w=1200&auto=format&fit=crop'})` }}>
@@ -1089,7 +1089,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
 
                         {/* Pagination */}
                         {productsTotalPages > 1 && (
-                          <div className="flex justify-center items-center gap-2 mt-6">
+                          <div className="flex flex-col sm:flex-row justify-center items-center gap-2 mt-6">
                             <button
                               onClick={() => setProductsPage(prev => Math.max(1, prev - 1))}
                               disabled={productsPage === 1}
@@ -1132,7 +1132,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                 {activeTab === 'communities' && (
                   <div className="p-6">
                     {communitiesLoading ? (
-                      <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {Array.from({ length: 6 }).map((_, idx) => (
                           <div key={idx} className="rounded-xl border border-border-color overflow-hidden bg-white shadow-subtle">
                             <div className="aspect-[16/9] bg-gray-200 animate-pulse" />
@@ -1145,7 +1145,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                       </div>
                     ) : communities.length > 0 ? (
                       <>
-                        <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                           {communities.map((community) => {
                             const roleColors = {
                               'admin': 'bg-red-100 text-red-800 border-red-200',
@@ -1208,7 +1208,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
 
                         {/* Pagination */}
                         {communitiesTotalPages > 1 && (
-                          <div className="flex justify-center items-center gap-2 mt-6">
+                          <div className="flex flex-col sm:flex-row justify-center items-center gap-2 mt-6">
                             <button
                               onClick={() => setCommunitiesPage(prev => Math.max(1, prev - 1))}
                               disabled={communitiesPage === 1}

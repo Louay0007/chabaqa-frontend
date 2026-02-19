@@ -2,14 +2,23 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, ListTodo } from "lucide-react"
+import { CheckCircle, ListTodo, Lock } from "lucide-react"
 
 interface TimelineTabProps {
   challengeTasks: any[]
   setSelectedTaskDay: (day: number | null) => void
+  sequentialProgressionEnabled?: boolean
+  unlockMessage?: string
+  submissionByTaskId: Record<string, any>
 }
 
-export default function TimelineTab({ challengeTasks, setSelectedTaskDay }: TimelineTabProps) {
+export default function TimelineTab({
+  challengeTasks,
+  setSelectedTaskDay,
+  sequentialProgressionEnabled = false,
+  unlockMessage,
+  submissionByTaskId,
+}: TimelineTabProps) {
   if (challengeTasks.length === 0) {
     return (
       <Card className="border-0 shadow-sm">
@@ -37,27 +46,42 @@ export default function TimelineTab({ challengeTasks, setSelectedTaskDay }: Time
       <CardContent>
         <div className="space-y-4">
           {challengeTasks.map((task) => (
+            (() => {
+              const isLocked = sequentialProgressionEnabled && task.isUnlocked === false
+              const hasSubmission = Boolean(submissionByTaskId[String(task.id)])
+              const isPendingSubmission = hasSubmission && !task.isCompleted
+              return (
             <div
               key={task.id}
-              className={`flex items-start space-x-4 p-4 rounded-lg border cursor-pointer transition-colors ${
-                task.isActive
-                  ? "border-challenges-500 bg-challenges-50"
+              className={`flex items-start space-x-4 p-4 rounded-lg border transition-colors ${
+                isLocked
+                  ? "border-amber-300 bg-amber-50 cursor-not-allowed"
                   : task.isCompleted
                     ? "border-green-500 bg-green-50"
-                    : "border-gray-200 bg-gray-50 hover:bg-gray-100"
+                    : task.isActive
+                  ? "border-challenges-500 bg-challenges-50"
+                  : isPendingSubmission
+                    ? "border-blue-300 bg-blue-50"
+                    : "border-gray-200 bg-gray-50 hover:bg-gray-100 cursor-pointer"
               }`}
-              onClick={() => setSelectedTaskDay(task.day)}
+              onClick={() => {
+                if (!isLocked) setSelectedTaskDay(task.day)
+              }}
             >
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold flex-shrink-0 ${
-                  task.isActive
-                    ? "bg-challenges-500 text-white"
+                  isLocked
+                    ? "bg-amber-400 text-white"
                     : task.isCompleted
                       ? "bg-green-500 text-white"
+                      : task.isActive
+                    ? "bg-challenges-500 text-white"
+                    : isPendingSubmission
+                      ? "bg-blue-500 text-white"
                       : "bg-gray-300 text-gray-600"
                 }`}
               >
-                {task.isCompleted ? <CheckCircle className="h-5 w-5" /> : task.day}
+                {task.isCompleted ? <CheckCircle className="h-5 w-5" /> : isLocked ? <Lock className="h-5 w-5" /> : task.day}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between flex-wrap gap-2">
@@ -65,12 +89,19 @@ export default function TimelineTab({ challengeTasks, setSelectedTaskDay }: Time
                     Day {task.day}: {task.title}
                   </h3>
                   <div className="flex items-center space-x-2">
-                    {task.isActive && <Badge className="bg-challenges-500">Active</Badge>}
                     {task.isCompleted && <Badge className="bg-green-500">Completed</Badge>}
+                    {isLocked && <Badge className="bg-amber-500">Locked</Badge>}
+                    {!task.isCompleted && !isLocked && task.isActive && <Badge className="bg-challenges-500">Active</Badge>}
+                    {isPendingSubmission && <Badge className="bg-blue-500">Submitted (Pending Review)</Badge>}
                     <span className="text-sm text-muted-foreground">{task.points || 0} pts</span>
                   </div>
                 </div>
                 <p className="text-muted-foreground text-sm mt-1 line-clamp-2">{task.description}</p>
+                {isLocked && (
+                  <p className="text-xs text-amber-700 mt-2">
+                    {task.lockReason || unlockMessage || "Complete the previous task to unlock this one."}
+                  </p>
+                )}
                 {task.deliverable && (
                   <p className="text-sm font-medium mt-2">📋 {task.deliverable}</p>
                 )}
@@ -88,6 +119,8 @@ export default function TimelineTab({ challengeTasks, setSelectedTaskDay }: Time
                 </div>
               </div>
             </div>
+              )
+            })()
           ))}
         </div>
       </CardContent>

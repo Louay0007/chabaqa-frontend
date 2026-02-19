@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -33,7 +33,7 @@ export default function CommunityAnalyticsPage() {
   const router = useRouter()
   const { user: authUser, isAuthenticated, loading: authLoading } = useAuthContext()
   const { toast } = useToast()
-  const { selectedCommunityId, setSelectedCommunityId, communities, isLoading: communityLoading } = useCreatorCommunity()
+  const { selectedCommunityId, selectedCommunity, setSelectedCommunityId, communities, isLoading: communityLoading } = useCreatorCommunity()
   const [selectedFeature, setSelectedFeature] = useState("courses")
   const [timeRange, setTimeRange] = useState("7d")
   const [userPlan, setUserPlan] = useState<"starter" | "growth" | "pro">("starter")
@@ -70,7 +70,7 @@ export default function CommunityAnalyticsPage() {
   }, [communityLoading, authLoading, isAuthenticated, authUser])
 
   // Helper to trigger backfill
-  const syncAnalytics = async (days = 90) => {
+  const syncAnalytics = useCallback(async (days = 90) => {
     try {
       setIsSyncing(true)
       toast({
@@ -90,12 +90,32 @@ export default function CommunityAnalyticsPage() {
     } finally {
       setIsSyncing(false)
     }
-  }
+  }, [toast])
 
   // Load analytics when filters change
   useEffect(() => {
     const loadAnalytics = async () => {
       if (!selectedCommunityId || !isAuthenticated || authLoading) return
+
+      const selectedCommunityExists = communities.some((community: any) => {
+        const id = (community?.id || community?._id || "").toString()
+        return id === selectedCommunityId
+      })
+
+      if (!selectedCommunityExists) {
+        setOverview(null)
+        setMembershipData([])
+        setEngagementData([])
+        setDevicesData([])
+        setReferrersData([])
+        setTopItems([])
+        toast({
+          variant: "destructive",
+          title: "Invalid community selection",
+          description: "Please reselect a community to load analytics.",
+        })
+        return
+      }
 
       try {
         const now = new Date()
@@ -106,13 +126,19 @@ export default function CommunityAnalyticsPage() {
           if (timeRange === '1y') return new Date(now.getTime() - 365 * 24 * 3600 * 1000)
           return new Date(now.getTime() - 7 * 24 * 3600 * 1000)
         })().toISOString()
+        const analyticsParams = {
+          from,
+          to,
+          communityId: selectedCommunityId,
+          communitySlug: selectedCommunity?.slug,
+        }
 
         // Overview, members and engagement
         // Fetch all analytics data in parallel
         const [overviewRes, devicesRes, referrersRes] = await Promise.all([
-          api.creatorAnalytics.getOverview({ from, to, communityId: selectedCommunityId }).catch((e: any) => { if (e?.statusCode === 402 || e?.statusCode === 403) setAnalyticsGated(true); return null }),
-          api.creatorAnalytics.getDevices({ from, to, communityId: selectedCommunityId }).catch(() => null),
-          api.creatorAnalytics.getReferrers({ from, to, communityId: selectedCommunityId }).catch(() => null),
+          api.creatorAnalytics.getOverview(analyticsParams).catch((e: any) => { if (e?.statusCode === 402 || e?.statusCode === 403) setAnalyticsGated(true); return null }),
+          api.creatorAnalytics.getDevices(analyticsParams).catch(() => null),
+          api.creatorAnalytics.getReferrers(analyticsParams).catch(() => null),
         ])
 
         const rawOverview = overviewRes?.data || overviewRes || null
@@ -213,11 +239,13 @@ export default function CommunityAnalyticsPage() {
         // Top content for selected feature
         const topLoader = selectedFeature === 'courses' ? api.creatorAnalytics.getCourses
           : selectedFeature === 'challenges' ? api.creatorAnalytics.getChallenges
-            : selectedFeature === 'events' ? api.creatorAnalytics.getEvents
-              : selectedFeature === 'products' ? api.creatorAnalytics.getProducts
-                : api.creatorAnalytics.getCourses // default
+            : selectedFeature === 'sessions' ? api.creatorAnalytics.getSessions
+              : selectedFeature === 'events' ? api.creatorAnalytics.getEvents
+                : selectedFeature === 'posts' ? api.creatorAnalytics.getPosts
+                : selectedFeature === 'products' ? api.creatorAnalytics.getProducts
+                  : api.creatorAnalytics.getCourses // default
 
-        const top = await topLoader({ from, to, communityId: selectedCommunityId }).catch(() => null as any)
+        const top = await topLoader(analyticsParams).catch(() => null as any)
 
         const list =
           (top?.data?.items)
@@ -225,12 +253,14 @@ export default function CommunityAnalyticsPage() {
           || (top?.data?.byChallenge)
           || (top?.data?.bySession)
           || (top?.data?.byEvent)
+          || (top?.data?.byPost)
           || (top?.data?.byProduct)
           || (top?.items)
           || (top?.byCourse)
           || (top?.byChallenge)
           || (top?.bySession)
           || (top?.byEvent)
+          || (top?.byPost)
           || (top?.byProduct)
           || []
 
@@ -245,6 +275,8 @@ export default function CommunityAnalyticsPage() {
             likes: (acc.likes || 0) + (item.likes || 0),
             shares: (acc.shares || 0) + (item.shares || 0),
             downloads: (acc.downloads || 0) + (item.downloads || 0),
+            bookmarks: (acc.bookmarks || 0) + (item.bookmarks || 0),
+            ratingsCount: (acc.ratingsCount || 0) + (item.ratingsCount || 0),
             sales: (acc.sales || 0) + (item.sales || 0),
             revenue: (acc.revenue || 0) + (item.revenue || 0),
             // Challenge-specific metrics
@@ -272,7 +304,7 @@ export default function CommunityAnalyticsPage() {
       }
     }
     loadAnalytics()
-  }, [selectedCommunityId, selectedFeature, timeRange])
+  }, [selectedCommunityId, selectedCommunity?.slug, selectedFeature, timeRange, communities, isAuthenticated, authLoading, toast, isSyncing, syncAnalytics])
 
   const metrics = useMemo(() => {
     const o = overview || {}
@@ -304,6 +336,22 @@ export default function CommunityAnalyticsPage() {
         { title: 'Attendance Rate', value: `${Math.round(o.attendanceRate ?? 0)}%`, change: o.attendanceChange || '+0%', icon: Users },
         { title: 'Engagement Score', value: (o.eventEngagementScore ?? 0).toFixed?.(1) ?? String(o.eventEngagementScore ?? 0), change: o.eventEngagementChange || '+0', icon: TrendingUp },
         { title: 'Avg Duration', value: `${o.avgDurationHours ?? 0}h`, change: o.durationChange || '+0h', icon: Clock },
+      ]
+    }
+    if (selectedFeature === 'sessions') {
+      return [
+        { title: 'Views', value: Number(o.views ?? 0).toLocaleString(), change: o.viewsChange || '+0%', icon: Users },
+        { title: 'Starts', value: Number(o.starts ?? 0).toLocaleString(), change: o.startsChange || '+0%', icon: ArrowUpRight },
+        { title: 'Completes', value: Number(o.completes ?? 0).toLocaleString(), change: o.completionsChange || '+0%', icon: BookOpen },
+        { title: 'Completion Rate', value: `${Math.round(o.completionRate ?? 0)}%`, change: o.completionRateChange || '+0%', icon: TrendingUp },
+      ]
+    }
+    if (selectedFeature === 'posts') {
+      return [
+        { title: 'Views', value: Number(o.views ?? 0).toLocaleString(), change: o.viewsChange || '+0%', icon: Users },
+        { title: 'Likes', value: Number(o.likes ?? 0).toLocaleString(), change: o.likesChange || '+0%', icon: MessageSquare },
+        { title: 'Shares', value: Number(o.shares ?? 0).toLocaleString(), change: o.sharesChange || '+0%', icon: TrendingUp },
+        { title: 'Bookmarks', value: Number(o.bookmarks ?? 0).toLocaleString(), change: o.bookmarksChange || '+0%', icon: BookOpen },
       ]
     }
     return [
@@ -372,7 +420,9 @@ export default function CommunityAnalyticsPage() {
                 <SelectContent>
                   <SelectItem value="courses">Courses</SelectItem>
                   <SelectItem value="challenges">Challenges</SelectItem>
+                  <SelectItem value="sessions">Sessions</SelectItem>
                   <SelectItem value="events">Events</SelectItem>
+                  <SelectItem value="posts">Posts</SelectItem>
                   <SelectItem value="products">Products</SelectItem>
                 </SelectContent>
               </Select>

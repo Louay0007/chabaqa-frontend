@@ -3,8 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Calendar, Clock, Users, DollarSign, Trophy, Flame, Star, Lock, ArrowRight } from "lucide-react"
+import { Calendar, Clock, Users, DollarSign, Trophy, Flame, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { formatDate } from "@/lib/utils"
@@ -13,17 +12,12 @@ interface ChallengeCardProps {
   creatorSlug: string
   slug: string
   challenge: any
-  setSelectedChallenge: (id: string | null) => void
 }
 
-export default function ChallengeCard({ creatorSlug, slug, challenge, setSelectedChallenge }: ChallengeCardProps) {
+export default function ChallengeCard({ creatorSlug, slug, challenge }: ChallengeCardProps) {
   const status = getChallengeStatus(challenge)
   const isParticipating = challenge.isParticipating || false
   const daysRemaining = getDaysRemaining(new Date(challenge.endDate))
-
-  const handleJoinChallenge = (challengeId: string) => {
-    setSelectedChallenge(challengeId)
-  }
 
   return (
     <Card
@@ -122,13 +116,10 @@ export default function ChallengeCard({ creatorSlug, slug, challenge, setSelecte
                 </Link>
               </Button>
             ) : status === "active" ? (
-              <Button
-                size="sm"
-                onClick={() => handleJoinChallenge(challenge.id)}
-                className="bg-challenges-500 hover:bg-challenges-600"
-              >
-                <Lock className="h-4 w-4 mr-1" />
-                Join Challenge
+              <Button size="sm" className="bg-challenges-500 hover:bg-challenges-600" asChild>
+                <Link href={`/challenge-promo/${challenge.id}`}>
+                  View Promotion <ArrowRight className="h-4 w-4 ml-1" />
+                </Link>
               </Button>
             ) : status === "completed" ? (
               <Button size="sm" variant="outline" disabled>
@@ -142,11 +133,6 @@ export default function ChallengeCard({ creatorSlug, slug, challenge, setSelecte
               </Button>
               
             )}
-                          <Button size="sm" variant="outline" asChild>
-                                <Link href={`/challenge-promo/${challenge.id}`}>
-                  <ArrowRight className="h-4 w-4 ml-1" />
-                </Link>
-              </Button>
           </div>
         </div>
       </CardContent>

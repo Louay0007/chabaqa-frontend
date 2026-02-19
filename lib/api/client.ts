@@ -137,6 +137,9 @@ class ApiClient {
       method: 'GET',
       headers: this.getHeaders(),
       credentials: 'include',
+      // Disable Next.js server-side fetch caching to prevent stale data
+      // (e.g. challenge tasks not appearing after creator adds them)
+      ...(typeof window === 'undefined' ? { cache: 'no-store' as RequestCache } : {}),
     });
     let response = await doRequest();
     if (response.status === 401) {

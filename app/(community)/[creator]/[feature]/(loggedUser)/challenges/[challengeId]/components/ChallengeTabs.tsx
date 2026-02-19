@@ -14,6 +14,11 @@ interface ChallengeTabsProps {
   challengeTasks: any[]
   selectedTaskDay: number | null
   setSelectedTaskDay: (day: number | null) => void
+  sequentialProgressionEnabled?: boolean
+  unlockMessage?: string
+  submissions: any[]
+  submissionByTaskId: Record<string, any>
+  onSubmissionCreated: (submission: any) => void
 }
 
 export default function ChallengeTabs({
@@ -23,7 +28,12 @@ export default function ChallengeTabs({
   challenge,
   challengeTasks,
   selectedTaskDay,
-  setSelectedTaskDay
+  setSelectedTaskDay,
+  sequentialProgressionEnabled = false,
+  unlockMessage,
+  submissions,
+  submissionByTaskId,
+  onSubmissionCreated,
 }: ChallengeTabsProps) {
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
@@ -39,14 +49,21 @@ export default function ChallengeTabs({
           challenge={challenge} 
           challengeTasks={challengeTasks} 
           selectedTaskDay={selectedTaskDay} 
-          setSelectedTaskDay={setSelectedTaskDay} 
+          setSelectedTaskDay={setSelectedTaskDay}
+          sequentialProgressionEnabled={sequentialProgressionEnabled}
+          unlockMessage={unlockMessage}
+          submissionByTaskId={submissionByTaskId}
+          onSubmissionCreated={onSubmissionCreated}
         />
       </TabsContent>
 
       <TabsContent value="timeline" className="space-y-6">
         <TimelineTab 
           challengeTasks={challengeTasks} 
-          setSelectedTaskDay={setSelectedTaskDay} 
+          setSelectedTaskDay={setSelectedTaskDay}
+          sequentialProgressionEnabled={sequentialProgressionEnabled}
+          unlockMessage={unlockMessage}
+          submissionByTaskId={submissionByTaskId}
         />
       </TabsContent>
 
@@ -57,7 +74,8 @@ export default function ChallengeTabs({
       <TabsContent value="submissions" className="space-y-6">
         <SubmissionsTab 
           challengeTasks={challengeTasks} 
-          challengeId={challenge.id || challenge._id}
+          submissions={submissions}
+          submissionByTaskId={submissionByTaskId}
         />
       </TabsContent>
     </Tabs>

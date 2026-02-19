@@ -101,15 +101,18 @@ export function CommunityHero({
   const primary = themeTokens?.primary || "#8e78fb"
   const secondary = themeTokens?.secondary || "#f48fb1"
   const gradient = themeTokens?.gradient || `linear-gradient(90deg, ${primary}, ${secondary})`
+  const creatorCardBackground = themeTokens
+    ? `linear-gradient(150deg, #ffffff 0%, ${themeTokens.softPrimary} 100%)`
+    : "#ffffff"
 
   return (
     <section
-      className="relative bg-white pb-12 sm:pb-16 border-b border-gray-100"
+      className="relative border-b bg-white pb-10 sm:pb-14"
       style={{ borderColor: themeTokens?.mutedBorder || undefined }}
     >
-      <div className={cn("relative mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8", contentWidthClass)}>
+      <div className={cn("relative mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7", contentWidthClass)}>
         {/* Navigation Bar */}
-        <div className="flex items-center justify-end mb-10 sm:mb-14">
+        <div className="mb-6 flex items-center justify-start sm:mb-10">
           <Link
             href="/explore"
             className="inline-flex items-center gap-2 text-xs sm:text-sm text-gray-600 transition-colors font-medium"
@@ -121,10 +124,10 @@ export function CommunityHero({
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-stretch">
+        <div className="grid grid-cols-1 items-start gap-6 sm:gap-8 lg:grid-cols-2 lg:gap-12">
           <div
             className={cn(
-              "flex flex-col space-y-2 sm:space-y-3 justify-between",
+              "order-2 flex flex-col justify-between space-y-3 sm:space-y-4 lg:order-1",
               isCentered && "items-center text-center",
             )}
           >
@@ -158,7 +161,7 @@ export function CommunityHero({
               {heroTitle}
             </h1>
 
-            <p className="text-sm sm:text-base text-gray-600 leading-relaxed line-clamp-3 sm:line-clamp-none font-light">
+            <p className="text-sm sm:text-base text-gray-600 leading-relaxed line-clamp-3 sm:line-clamp-none font-light break-words [overflow-wrap:anywhere]">
               {heroSubtitle}
             </p>
 
@@ -166,11 +169,17 @@ export function CommunityHero({
             {showCreator && (
               <div
                 className="bg-white p-2.5 sm:p-3.5 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300"
-                style={{ borderColor: themeTokens?.mutedBorder || undefined }}
+                style={{
+                  borderColor: themeTokens?.mutedBorder || undefined,
+                  background: creatorCardBackground,
+                }}
               >
                 <div className="flex items-center gap-2 sm:gap-3">
                   {creatorAvatar ? (
-                    <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden ring-2 ring-[#8e78fb]/20 flex-shrink-0">
+                    <div
+                      className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 flex-shrink-0"
+                      style={{ borderColor: themeTokens?.mutedBorder || undefined }}
+                    >
                       <Image
                         src={creatorAvatar}
                         alt={creatorName}
@@ -180,7 +189,10 @@ export function CommunityHero({
                       />
                     </div>
                   ) : (
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-[#8e78fb] to-[#f48fb1] flex items-center justify-center font-bold text-white text-xs flex-shrink-0 shadow-sm">
+                    <div
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0 shadow-sm"
+                      style={{ backgroundImage: gradient }}
+                    >
                       {creatorInitial}
                     </div>
                   )}
@@ -198,7 +210,7 @@ export function CommunityHero({
             )}
 
             {/* Stats */}
-            {!isMinimal && <div className={cn("grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3", isCentered && "w-full")}>
+            {!isMinimal && <div className={cn("grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3", isCentered && "w-full")}>
               {showMemberCount && (
                 <div
                   className="p-2.5 sm:p-3 rounded-lg border bg-white hover:shadow-sm transition-all duration-300"
@@ -219,14 +231,28 @@ export function CommunityHero({
               )}
 
               {showRating && (
-                <div className="bg-white p-2.5 sm:p-3 rounded-lg border border-amber-200/50 hover:border-amber-300 hover:shadow-sm transition-all duration-300">
+                <div
+                  className="bg-white p-2.5 sm:p-3 rounded-lg border hover:shadow-sm transition-all duration-300"
+                  style={{
+                    borderColor: themeTokens?.mutedBorder || "#fde68a",
+                    background: themeTokens
+                      ? `linear-gradient(165deg, #ffffff 0%, ${themeTokens.softSecondary} 100%)`
+                      : "#ffffff",
+                  }}
+                >
                   <div className="flex items-center gap-1.5">
-                    <div className="p-1.5 sm:p-2 bg-white border border-amber-200/70 rounded-md">
-                      <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 fill-amber-600" />
+                    <div
+                      className="p-1.5 sm:p-2 bg-white border rounded-md"
+                      style={{ borderColor: themeTokens?.mutedBorder || "#fde68a" }}
+                    >
+                      <Star
+                        className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current"
+                        style={{ color: secondary }}
+                      />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs text-amber-600 font-light">Rating</p>
-                      <p className="font-semibold text-sm text-amber-900">{community.rating.toFixed(1)}</p>
+                      <p className="text-xs font-light" style={{ color: secondary }}>Rating</p>
+                      <p className="font-semibold text-sm text-gray-900">{community.rating.toFixed(1)}</p>
                     </div>
                   </div>
                 </div>
@@ -277,7 +303,7 @@ export function CommunityHero({
             {/* Pricing & CTA */}
             <div
               className={cn(
-                "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pt-3 sm:pt-4 border-t-2 border-gray-200",
+                "flex flex-col gap-3 border-t-2 border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
                 isCentered && "w-full",
               )}
               style={{ borderColor: themeTokens?.mutedBorder || undefined }}
@@ -302,7 +328,7 @@ export function CommunityHero({
               <Link
                 href={ctaLink}
                 onClick={handleCTAClick}
-                className="group w-full sm:w-auto text-center font-semibold py-2.5 sm:py-3 px-6 sm:px-8 rounded-lg hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-md text-xs sm:text-sm"
+                className="group w-full rounded-lg px-6 py-3 text-center text-sm font-semibold shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] sm:w-auto"
                 style={{
                   backgroundImage: gradient,
                   color: themeTokens?.primaryText || "#fff",
@@ -319,12 +345,12 @@ export function CommunityHero({
           </div>
 
           {/* Community Image */}
-          <div className="relative hidden lg:block">
+          <div className="relative order-1 lg:order-2">
             <div
               className="absolute -inset-2 sm:-inset-4 rounded-2xl sm:rounded-3xl blur-2xl"
               style={{ backgroundImage: gradient, opacity: 0.18 }}
             />
-            <div className="relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl border-2 sm:border-4 border-white">
+            <div className="relative aspect-[16/10] overflow-hidden rounded-xl border-2 border-white shadow-2xl sm:aspect-video sm:rounded-2xl sm:border-4">
               <Image
                 src={displayImage}
                 alt={`${community.name} community cover`}

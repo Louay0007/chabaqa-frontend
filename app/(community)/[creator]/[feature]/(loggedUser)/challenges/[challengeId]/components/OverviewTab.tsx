@@ -12,13 +12,21 @@ interface OverviewTabProps {
   challengeTasks: any[]
   selectedTaskDay: number | null
   setSelectedTaskDay: (day: number | null) => void
+  sequentialProgressionEnabled?: boolean
+  unlockMessage?: string
+  submissionByTaskId: Record<string, any>
+  onSubmissionCreated: (submission: any) => void
 }
 
 export default function OverviewTab({ 
   challenge, 
   challengeTasks, 
   selectedTaskDay, 
-  setSelectedTaskDay 
+  setSelectedTaskDay,
+  sequentialProgressionEnabled = false,
+  unlockMessage,
+  submissionByTaskId,
+  onSubmissionCreated,
 }: OverviewTabProps) {
   const completedTasks = challengeTasks.filter((t) => t.isCompleted).length
   const totalPoints = challengeTasks.filter((t) => t.isCompleted).reduce((acc, task) => acc + (task.points || 0), 0)
@@ -35,6 +43,10 @@ export default function OverviewTab({
             selectedTaskDay={selectedTaskDay} 
             setSelectedTaskDay={setSelectedTaskDay}
             challengeId={challenge.id || challenge._id}
+            sequentialProgressionEnabled={sequentialProgressionEnabled}
+            unlockMessage={unlockMessage}
+            submissionByTaskId={submissionByTaskId}
+            onSubmissionCreated={onSubmissionCreated}
           />
         ) : (
           <Card className="border-0 shadow-sm">

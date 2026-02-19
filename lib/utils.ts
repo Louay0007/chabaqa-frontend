@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { PlayCircle, FileText, Code, ExternalLink, BookOpen } from "lucide-react"
+import { PlayCircle, FileText, Code, ExternalLink, BookOpen, File } from "lucide-react"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -19,6 +19,10 @@ export function getResourceIcon(type: string) {
     case "code":
       return Code
     case "tool":
+      return ExternalLink
+    case "pdf":
+      return File
+    case "link":
       return ExternalLink
     default:
       return BookOpen

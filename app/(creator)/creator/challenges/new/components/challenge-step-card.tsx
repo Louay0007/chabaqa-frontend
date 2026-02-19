@@ -25,10 +25,13 @@ interface ChallengeStepCardProps {
   index: number
   formData: any
   setFormData: (data: any) => void
-  validationErrors?: Record<string, boolean>
+  validationErrors?: Record<string, string>
 }
 
 export function ChallengeStepCard({ step, index, formData, setFormData, validationErrors = {} }: ChallengeStepCardProps) {
+  const getError = (key: string) => validationErrors[key]
+  const stepError = (field: string) => getError(`steps.${index}.${field}`)
+
   const updateChallengeStep = (field: string, value: any) => {
     setFormData((prev: any) => ({
       ...prev,
@@ -94,20 +97,34 @@ export function ChallengeStepCard({ step, index, formData, setFormData, validati
           <div className="space-y-2">
             <Label>Step Title *</Label>
             <Input
+              id={`step-${index}-title`}
               placeholder="e.g., HTML Basics"
               value={step.title}
               onChange={(e) => updateChallengeStep("title", e.target.value)}
-              className={validationErrors[`step_${index}_title`] ? "border-red-500 focus-visible:ring-red-500" : ""}
+              className={stepError("title") ? "border-red-500 focus-visible:ring-red-500" : ""}
             />
-            {validationErrors[`step_${index}_title`] && (
-              <p className="text-sm text-red-500">Title must be at least 3 characters</p>
+            {stepError("title") && (
+              <p className="text-sm text-red-500">{stepError("title")}</p>
             )}
+          </div>
+          <div className="space-y-2">
+            <Label>Day *</Label>
+            <Input
+              id={`step-${index}-day`}
+              type="number"
+              min={1}
+              value={step.day}
+              onChange={(e) => updateChallengeStep("day", Number.parseInt(e.target.value, 10) || 1)}
+              className={stepError("day") ? "border-red-500 focus-visible:ring-red-500" : ""}
+            />
+            {stepError("day") && <p className="text-sm text-red-500">{stepError("day")}</p>}
           </div>
           <div className="space-y-2">
             <Label>Points</Label>
             <div className="relative">
               <Award className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
+                id={`step-${index}-points`}
                 type="number"
                 placeholder="100"
                 className="pl-10"
@@ -115,45 +132,53 @@ export function ChallengeStepCard({ step, index, formData, setFormData, validati
                 onChange={(e) => updateChallengeStep("points", Number.parseInt(e.target.value) || 0)}
               />
             </div>
+            {stepError("points") && <p className="text-sm text-red-500">{stepError("points")}</p>}
           </div>
         </div>
 
         <div className="space-y-2">
           <Label>Description *</Label>
           <Textarea
+            id={`step-${index}-description`}
             placeholder="Describe what participants will learn or do..."
             rows={2}
             value={step.description}
             onChange={(e) => updateChallengeStep("description", e.target.value)}
-            className={validationErrors[`step_${index}_description`] ? "border-red-500 focus-visible:ring-red-500" : ""}
+            className={stepError("description") ? "border-red-500 focus-visible:ring-red-500" : ""}
           />
-          {validationErrors[`step_${index}_description`] && (
-            <p className="text-sm text-red-500">Description must be at least 10 characters</p>
+          {stepError("description") && (
+            <p className="text-sm text-red-500">{stepError("description")}</p>
           )}
         </div>
 
         <div className="space-y-2">
           <Label>Deliverable *</Label>
           <Textarea
+            id={`step-${index}-deliverable`}
             placeholder="What should participants submit or complete?"
             rows={2}
             value={step.deliverable}
             onChange={(e) => updateChallengeStep("deliverable", e.target.value)}
-            className={validationErrors[`step_${index}_deliverable`] ? "border-red-500 focus-visible:ring-red-500" : ""}
+            className={stepError("deliverable") ? "border-red-500 focus-visible:ring-red-500" : ""}
           />
-          {validationErrors[`step_${index}_deliverable`] && (
-            <p className="text-sm text-red-500">Deliverable must be at least 5 characters</p>
+          {stepError("deliverable") && (
+            <p className="text-sm text-red-500">{stepError("deliverable")}</p>
           )}
         </div>
 
         <div className="space-y-2">
           <Label>Detailed Instructions (Markdown)</Label>
           <Textarea
+            id={`step-${index}-instructions`}
             placeholder="Provide detailed instructions using Markdown..."
             rows={5}
             value={step.instructions}
             onChange={(e) => updateChallengeStep("instructions", e.target.value)}
+            className={stepError("instructions") ? "border-red-500 focus-visible:ring-red-500" : ""}
           />
+          {stepError("instructions") && (
+            <p className="text-sm text-red-500">{stepError("instructions")}</p>
+          )}
         </div>
 
         {/* Resources for this step */}
@@ -180,6 +205,7 @@ export function ChallengeStepCard({ step, index, formData, setFormData, validati
                   stepIndex={index}
                   updateResource={updateResource}
                   removeResource={removeResource}
+                  getError={(field) => getError(`steps.${index}.resources.${resIndex}.${field}`)}
                 />
               ))}
             </div>

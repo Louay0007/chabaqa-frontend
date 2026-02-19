@@ -5,6 +5,7 @@ import { getMe } from './user.api';
 import type { Challenge, ChallengeParticipant } from './types';
 
 export interface ChallengeWithProgress extends Challenge {
+  mongoId?: string;
   progress?: number;
   isParticipating?: boolean;
   // participantCount is inherited from Challenge
@@ -26,16 +27,36 @@ export interface ChallengesPageData {
   currentUser: any;
 }
 
+function toCount(value: unknown): number {
+  if (Array.isArray(value)) return value.length;
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num : 0;
+}
+
+function toProgressPercent(value: unknown): number {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  return Math.max(0, Math.min(100, Math.round(num)));
+}
+
+function progressFromCompleted(completed: number, total: number): number {
+  if (!total || total <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((completed / total) * 100)));
+}
+
 /**
  * Transform backend challenge data to frontend format
  */
 function transformChallenge(backendChallenge: any): ChallengeWithProgress {
+  const canonicalChallengeId = String(backendChallenge.id || backendChallenge._id || '');
+  const mongoChallengeId = backendChallenge._id ? String(backendChallenge._id) : undefined;
+
   // Transform participants - backend returns userName and userAvatar
   const participants = (backendChallenge.participants || []).map((p: any) => ({
     id: String(p._id || p.id || ''),
     oderId: p.oderId || p.id,
     userId: String(p.userId?._id || p.userId || ''),
-    challengeId: String(backendChallenge._id || backendChallenge.id || ''),
+    challengeId: canonicalChallengeId,
     name: p.userName || p.userId?.name || p.name || 'Participant',
     avatar: p.userAvatar || p.userId?.avatar || p.userId?.profile_picture || p.avatar,
     score: p.totalPoints || p.score || 0,
@@ -51,7 +72,7 @@ function transformChallenge(backendChallenge: any): ChallengeWithProgress {
   // Transform tasks
   const tasks = (backendChallenge.tasks || []).map((task: any) => ({
     id: String(task._id || task.id || ''),
-    challengeId: String(backendChallenge._id || backendChallenge.id || ''),
+    challengeId: canonicalChallengeId,
     title: task.title || '',
     description: task.description || '',
     points: task.points || 0,
@@ -77,7 +98,8 @@ function transformChallenge(backendChallenge: any): ChallengeWithProgress {
   const isActive = backendChallenge.isActive !== false && startDate <= now && endDate >= now;
 
   return {
-    id: String(backendChallenge._id || backendChallenge.id || ''),
+    id: canonicalChallengeId,
+    mongoId: mongoChallengeId,
     title: backendChallenge.title || '',
     slug: backendChallenge.slug || '',
     description: backendChallenge.description || '',
@@ -106,12 +128,17 @@ function transformChallenge(backendChallenge: any): ChallengeWithProgress {
  * Transform backend participation data
  */
 function transformParticipation(backendParticipation: any): any {
+  const completedTasks = toCount(backendParticipation.completedTasks);
+  const totalTasks = toCount(backendParticipation.totalTasks);
+  const reportedProgress = toProgressPercent(backendParticipation.progress);
+  const derivedProgress = progressFromCompleted(completedTasks, totalTasks);
+
   return {
     challengeId: String(backendParticipation.challengeId || backendParticipation._id || ''),
     joinedAt: backendParticipation.joinedAt || new Date().toISOString(),
-    progress: backendParticipation.progress || 0,
-    completedTasks: backendParticipation.completedTasks || 0,
-    totalTasks: backendParticipation.totalTasks || 0,
+    progress: Math.max(reportedProgress, derivedProgress),
+    completedTasks,
+    totalTasks,
     isActive: backendParticipation.isActive !== false,
     lastActivityAt: backendParticipation.lastActivityAt || backendParticipation.joinedAt || new Date().toISOString(),
   };
@@ -186,14 +213,35 @@ export const challengesCommunityApi = {
 
       // Merge challenges with participation data
       const challengesWithProgress: ChallengeWithProgress[] = challenges.map(challenge => {
-        const participation = userParticipations.find(p => p.challengeId === challenge.id);
+        const participation = userParticipations.find(
+          (p) =>
+            p.challengeId === challenge.id ||
+            (challenge.mongoId && p.challengeId === challenge.mongoId),
+        );
+
+        const fallbackParticipant = user?.id
+          ? (challenge.participants || []).find(
+              (participant: any) => String(participant.userId) === String(user.id),
+            )
+          : undefined;
+
+        const totalTasks = challenge.tasks?.length || toCount(participation?.totalTasks);
+        const completedFromParticipation = toCount(participation?.completedTasks);
+        const completedFromFallback = toCount(fallbackParticipant?.completedTasks);
+        const completedTasks = Math.max(completedFromParticipation, completedFromFallback);
+        const reportedProgress = Math.max(
+          toProgressPercent(participation?.progress),
+          toProgressPercent(fallbackParticipant?.progress),
+        );
+        const derivedProgress = progressFromCompleted(completedTasks, totalTasks);
+
         return {
           ...challenge,
-          isParticipating: !!participation,
-          progress: participation?.progress || 0,
-          completedTasks: participation?.completedTasks || 0,
-          totalTasks: challenge.tasks?.length || 0,
-          joinedAt: participation?.joinedAt,
+          isParticipating: !!participation || !!fallbackParticipant,
+          progress: Math.max(reportedProgress, derivedProgress),
+          completedTasks,
+          totalTasks,
+          joinedAt: participation?.joinedAt || fallbackParticipant?.joinedAt,
         };
       });
 
