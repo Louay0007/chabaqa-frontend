@@ -20,7 +20,7 @@ import {
   Plus,
 } from "lucide-react";
 
-<<<<<<< HEAD
+
 import Link from "next/link";
 import { sessionsApi, type CreatorBookingViewModel } from "@/lib/api/sessions.api";
 
