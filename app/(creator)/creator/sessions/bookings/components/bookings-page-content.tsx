@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { 
+import {
   Calendar, 
   Search, 
   Users, 
@@ -33,12 +33,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { apiClient } from "@/lib/api"
+import { sessionsApi, type CreatorBookingViewModel, type BookingStats } from "@/lib/api/sessions.api"
 import { useToast } from "@/hooks/use-toast"
-import type { Booking, BookingStats } from "../page"
+import { googleCalendarApi } from "@/lib/api/google-calendar.api"
 
 interface BookingsPageContentProps {
-  bookings: Booking[]
+  bookings: CreatorBookingViewModel[]
   stats: BookingStats | null
   loading: boolean
   page: number
@@ -79,11 +79,25 @@ export default function BookingsPageContent({
 }: BookingsPageContentProps) {
   const { toast } = useToast()
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [googleStatus, setGoogleStatus] = useState<{ connected: boolean; hasValidAccess: boolean } | null>(null)
+
+  const checkGoogleStatus = async () => {
+    try {
+      const response = await googleCalendarApi.getConnectionStatus()
+      setGoogleStatus(response.data)
+    } catch {
+      setGoogleStatus(null)
+    }
+  }
+
+  useEffect(() => {
+    void checkGoogleStatus()
+  }, [])
 
   const handleConfirm = async (bookingId: string) => {
     setActionLoading(bookingId)
     try {
-      await apiClient.patch(`/sessions/bookings/${bookingId}/confirm`, {})
+      await sessionsApi.confirmBooking(bookingId, {})
       toast({ title: "Booking confirmed", description: "The booking has been confirmed successfully." })
       onRefresh()
     } catch (error: any) {
@@ -96,7 +110,7 @@ export default function BookingsPageContent({
   const handleCancel = async (bookingId: string) => {
     setActionLoading(bookingId)
     try {
-      await apiClient.patch(`/sessions/bookings/${bookingId}/cancel`, {})
+      await sessionsApi.cancelBooking(bookingId, {})
       toast({ title: "Booking cancelled", description: "The booking has been cancelled." })
       onRefresh()
     } catch (error: any) {
@@ -109,7 +123,7 @@ export default function BookingsPageContent({
   const handleComplete = async (bookingId: string) => {
     setActionLoading(bookingId)
     try {
-      await apiClient.patch(`/sessions/bookings/${bookingId}/complete`, {})
+      await sessionsApi.completeBooking(bookingId, {})
       toast({ title: "Session completed", description: "The session has been marked as completed." })
       onRefresh()
     } catch (error: any) {
@@ -122,13 +136,31 @@ export default function BookingsPageContent({
   const handleCreateMeet = async (bookingId: string) => {
     setActionLoading(bookingId)
     try {
-      await apiClient.post(`/sessions/bookings/${bookingId}/create-meet`, {})
+      await sessionsApi.createMeet(bookingId)
       toast({ title: "Meet link created", description: "Google Meet link has been created." })
       onRefresh()
     } catch (error: any) {
       toast({ title: "Failed to create Meet", description: error?.message || "Please connect Google Calendar first.", variant: "destructive" })
+      void checkGoogleStatus()
     } finally {
       setActionLoading(null)
+    }
+  }
+
+  const handleReconnectGoogle = async () => {
+    try {
+      const response = await googleCalendarApi.getAuthUrl()
+      window.open(response.data.authUrl, "_blank", "width=500,height=700")
+      toast({
+        title: "Reconnect started",
+        description: "Complete Google OAuth, then refresh bookings.",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Reconnect failed",
+        description: error?.message || "Unable to start Google Calendar reconnection.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -319,6 +351,8 @@ export default function BookingsPageContent({
                 const StatusIcon = config.icon
                 const isPast = !booking.isUpcoming
                 const canComplete = booking.status === 'confirmed' && isPast
+                const meetStatus = booking.meetStatus || (booking.meetingUrl ? 'created' : 'not_required')
+                const showReconnectGoogle = meetStatus === 'failed' && (!googleStatus?.connected || !googleStatus?.hasValidAccess)
                 
                 return (
                   <div
@@ -380,6 +414,24 @@ export default function BookingsPageContent({
                           <StatusIcon className="h-3 w-3 mr-1" />
                           {config.label}
                         </Badge>
+                        {meetStatus === 'created' && (
+                          <Badge variant="outline" className="text-xs text-green-700 border-green-300 bg-green-50">
+                            <Video className="h-3 w-3 mr-1" />
+                            Meet Ready
+                          </Badge>
+                        )}
+                        {meetStatus === 'pending' && (
+                          <Badge variant="outline" className="text-xs text-blue-700 border-blue-300 bg-blue-50">
+                            <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                            Meet Pending
+                          </Badge>
+                        )}
+                        {meetStatus === 'failed' && (
+                          <Badge variant="outline" className="text-xs text-red-700 border-red-300 bg-red-50">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Meet Failed
+                          </Badge>
+                        )}
                       </div>
 
                       {/* Actions */}
@@ -425,19 +477,32 @@ export default function BookingsPageContent({
                                 Join Meet
                               </Button>
                             ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleCreateMeet(booking.id)}
-                                disabled={actionLoading === booking.id}
-                              >
-                                {actionLoading === booking.id ? (
-                                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1" />
-                                ) : (
-                                  <Plus className="h-4 w-4 mr-1" />
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleCreateMeet(booking.id)}
+                                  disabled={actionLoading === booking.id}
+                                >
+                                  {actionLoading === booking.id ? (
+                                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1" />
+                                  ) : (
+                                    <Plus className="h-4 w-4 mr-1" />
+                                  )}
+                                  {meetStatus === 'pending' ? 'Retry Meet' : 'Create Meet'}
+                                </Button>
+                                {showReconnectGoogle && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleReconnectGoogle}
+                                    className="text-amber-700 border-amber-300 hover:bg-amber-50"
+                                  >
+                                    <ExternalLink className="h-4 w-4 mr-1" />
+                                    Reconnect Google
+                                  </Button>
                                 )}
-                                Create Meet
-                              </Button>
+                              </>
                             )}
                             {canComplete && (
                               <Button
@@ -477,6 +542,13 @@ export default function BookingsPageContent({
                       <div className="mt-3 pt-3 border-t">
                         <p className="text-sm text-muted-foreground">
                           <span className="font-medium">Notes:</span> {booking.notes}
+                        </p>
+                      </div>
+                    )}
+                    {booking.meetFailureReason && !booking.meetingUrl && (
+                      <div className="mt-3 pt-3 border-t">
+                        <p className="text-xs text-red-600">
+                          <span className="font-medium">Meet Error:</span> {booking.meetFailureReason}
                         </p>
                       </div>
                     )}

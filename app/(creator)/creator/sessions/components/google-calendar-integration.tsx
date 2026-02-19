@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,30 +8,26 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { Calendar, CheckCircle, AlertCircle, ExternalLink, Unlink } from "lucide-react"
 import { googleCalendarApi } from "@/lib/api/google-calendar.api"
+import { sessionsApi } from "@/lib/api/sessions.api"
 
 interface GoogleCalendarIntegrationProps {
   className?: string
+  onConnectionUpdated?: () => void
 }
 
-export default function GoogleCalendarIntegration({ className }: GoogleCalendarIntegrationProps) {
+export default function GoogleCalendarIntegration({ className, onConnectionUpdated }: GoogleCalendarIntegrationProps) {
   const { toast } = useToast()
   const [status, setStatus] = useState<{ connected: boolean; hasValidAccess: boolean } | null>(null)
   const [loading, setLoading] = useState(true)
   const [connecting, setConnecting] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
 
-  // Check connection status on mount
-  useEffect(() => {
-    checkConnectionStatus()
-  }, [])
-
-  const checkConnectionStatus = async () => {
+  const checkConnectionStatus = useCallback(async () => {
     try {
       setLoading(true)
       const response = await googleCalendarApi.getConnectionStatus()
       setStatus(response.data)
-    } catch (error: any) {
-      console.error('Failed to check Google Calendar status:', error)
+    } catch {
       toast({
         title: "Connection check failed",
         description: "Unable to check Google Calendar connection status.",
@@ -40,12 +36,31 @@ export default function GoogleCalendarIntegration({ className }: GoogleCalendarI
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  // Check connection status on mount
+  useEffect(() => {
+    void checkConnectionStatus()
+  }, [checkConnectionStatus])
 
   const handleConnect = async () => {
+    let authWindow: Window | null = null
     try {
       setConnecting(true)
+      authWindow = window.open(
+        '',
+        'google-auth',
+        'width=500,height=600,scrollbars=yes,resizable=yes'
+      )
+      if (!authWindow) {
+        throw new Error("Popup was blocked by the browser. Please allow popups and try again.")
+      }
+
       const response = await googleCalendarApi.getAuthUrl()
+      const authUrl = response?.data?.authUrl
+      if (!authUrl || typeof authUrl !== 'string') {
+        throw new Error("Google OAuth URL was not returned by the server.")
+      }
       
       // Store a flag to indicate we're in the middle of Google Calendar OAuth
       // This helps the callback know to use the JWT token instead of state
@@ -58,12 +73,8 @@ export default function GoogleCalendarIntegration({ className }: GoogleCalendarI
         localStorage.setItem('google_calendar_oauth_token', token)
       }
       
-      // Open Google OAuth in new window
-      const authWindow = window.open(
-        response.data.authUrl,
-        'google-auth',
-        'width=500,height=600,scrollbars=yes,resizable=yes'
-      )
+      // Navigate popup after URL is resolved
+      authWindow.location.href = authUrl
 
       // Listen for the callback
       const checkClosed = setInterval(() => {
@@ -83,11 +94,13 @@ export default function GoogleCalendarIntegration({ className }: GoogleCalendarI
           clearInterval(checkClosed)
           authWindow?.close()
           setConnecting(false)
+          void sessionsApi.retryMeetProvisioning().catch(() => {})
           toast({
             title: "Google Calendar connected",
             description: "Your Google Calendar has been connected successfully. Meet links will now be created automatically for your sessions.",
           })
-          checkConnectionStatus()
+          void checkConnectionStatus()
+          onConnectionUpdated?.()
         } else if (event.data.type === 'GOOGLE_CALENDAR_ERROR') {
           clearInterval(checkClosed)
           authWindow?.close()
@@ -113,6 +126,7 @@ export default function GoogleCalendarIntegration({ className }: GoogleCalendarI
       }, 5 * 60 * 1000)
 
     } catch (error: any) {
+      authWindow?.close()
       setConnecting(false)
       toast({
         title: "Connection failed",
@@ -132,7 +146,8 @@ export default function GoogleCalendarIntegration({ className }: GoogleCalendarI
         description: "Your Google Calendar has been disconnected. Meet links will no longer be created automatically.",
       })
       
-      checkConnectionStatus()
+      void checkConnectionStatus()
+      onConnectionUpdated?.()
     } catch (error: any) {
       toast({
         title: "Disconnection failed",

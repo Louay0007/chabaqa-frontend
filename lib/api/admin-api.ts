@@ -210,6 +210,41 @@ export interface UpdatePayoutStatusDto {
   notes?: string;
 }
 
+export interface AdminPayoutBankCredentials {
+  rib?: string | null;
+  bankName?: string | null;
+  ownerName?: string | null;
+  countryCode?: string | null;
+}
+
+export interface AdminPayoutDetails {
+  _id: string;
+  creator: {
+    _id: string;
+    username: string;
+    email: string;
+  };
+  community: {
+    _id: string;
+    name: string;
+    slug?: string;
+  };
+  amount: number;
+  currency: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  method: 'bank_transfer' | 'paypal' | 'stripe';
+  initiatedAt: string;
+  processedAt?: string;
+  transactionReference?: string | null;
+  notes?: string | null;
+  createdBy?: {
+    _id: string;
+    name: string;
+  };
+  bankCredentials?: AdminPayoutBankCredentials | null;
+  bankAccount?: AdminPayoutBankCredentials | null;
+}
+
 // Analytics Types
 export interface AnalyticsPeriodDto {
   startDate?: string;
@@ -418,7 +453,7 @@ export const adminApi = {
       apiClient.get('/admin/financial/payouts/summary', { startDate, endDate }),
 
     getPayoutById: (id: string) =>
-      apiClient.get(`/admin/financial/payouts/${id}`),
+      apiClient.get<AdminPayoutDetails>(`/admin/financial/payouts/${id}`),
 
     processPayout: (id: string, data: ProcessPayoutDto) =>
       apiClient.post(`/admin/financial/payouts/${id}/process`, data),

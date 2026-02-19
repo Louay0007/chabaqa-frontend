@@ -7,6 +7,7 @@ import { Calendar, Clock, Users, DollarSign, Trophy, Flame, ArrowRight } from "l
 import Link from "next/link"
 import Image from "next/image"
 import { formatDate } from "@/lib/utils"
+import { getChallengeStatus } from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/components/challenge-status"
 
 interface ChallengeCardProps {
   creatorSlug: string
@@ -138,15 +139,6 @@ export default function ChallengeCard({ creatorSlug, slug, challenge }: Challeng
       </CardContent>
     </Card>
   )
-}
-
-function getChallengeStatus(challenge: any) {
-  const now = new Date()
-  const startDate = new Date(challenge.startDate)
-  const endDate = new Date(challenge.endDate)
-  if (startDate > now) return "upcoming"
-  if (endDate < now) return "completed"
-  return "active"
 }
 
 function getDaysRemaining(endDate: Date | string) {

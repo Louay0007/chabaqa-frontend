@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { CalendarIcon, Clock, Video, Star, Loader2 } from "lucide-react"
 import { format, isSameDay } from "date-fns"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { tokenStorage } from "@/lib/token-storage"
 import { sessionsApi } from "@/lib/api/sessions.api"
 
@@ -39,6 +40,9 @@ interface SessionCardProps {
 
 export default function SessionCard({ session, selectedSession, setSelectedSession }: SessionCardProps) {
   const { toast } = useToast()
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [selectedTime, setSelectedTime] = useState<string>("")
   const [selectedSlotId, setSelectedSlotId] = useState<string>("")
@@ -52,8 +56,30 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
   // Available slots from backend
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
+  const pendingToastShown = useRef(false)
 
   const isPaidSession = useMemo(() => Number(session?.price ?? 0) > 0, [session])
+  const pendingOrderId = searchParams.get("orderId")
+  const paymentAction = searchParams.get("paymentAction")
+  const pendingSessionId = searchParams.get("sessionId")
+  const isPendingFinalizeForThisSession =
+    paymentAction === "choose-slot" &&
+    Boolean(pendingOrderId) &&
+    (!pendingSessionId ||
+      String(pendingSessionId) === String(session?.id) ||
+      String(pendingSessionId) === String(session?._id))
+
+  useEffect(() => {
+    if (isPendingFinalizeForThisSession && !pendingToastShown.current) {
+      pendingToastShown.current = true
+      setDialogOpen(true)
+      setSelectedSession(session?.id || session?._id || "")
+      toast({
+        title: "Finalize your booking",
+        description: "Payment is complete. Choose a date and time to confirm your session.",
+      })
+    }
+  }, [isPendingFinalizeForThisSession, session?.id, session?._id, setSelectedSession, toast])
 
   // Fetch available slots when dialog opens
   useEffect(() => {
@@ -183,7 +209,20 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
         return
       }
 
-      if (isPaidSession) {
+      if (isPendingFinalizeForThisSession && pendingOrderId) {
+        const bookingData = {
+          scheduledAt: scheduledAt || new Date().toISOString(),
+          notes: bookingNotes.trim() || undefined,
+          slotId: selectedSlotId || undefined,
+        }
+
+        await sessionsApi.finalizePaidSessionBooking(pendingOrderId, bookingData)
+        toast({
+          title: "Booking confirmed",
+          description: "Your paid session has been finalized successfully.",
+        })
+        router.replace(pathname)
+      } else if (isPaidSession) {
         // Only use Stripe Link payment
         try {
           if (!selectedSlotId && !scheduledAt) {
@@ -266,9 +305,21 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
       setDialogOpen(false)
       
     } catch (error: any) {
+      const backendMessage =
+        error?.originalMessage ||
+        error?.response?.data?.message ||
+        error?.message ||
+        "Something went wrong. Please try again."
+
+      const isSelfBookingError =
+        typeof backendMessage === "string" &&
+        backendMessage.toLowerCase().includes("réserver votre propre session")
+
       toast({
         title: isPaidSession ? "Payment submission failed" : "Booking failed",
-        description: error?.message || "Something went wrong. Please try again.",
+        description: isSelfBookingError
+          ? "Vous ne pouvez pas réserver votre propre session"
+          : backendMessage,
         variant: "destructive",
       })
     } finally {
@@ -436,7 +487,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                     ) : availableSlots.length === 0 ? (
                       <div className="text-center py-6 text-muted-foreground text-sm">
                         <p>No time slots configured yet.</p>
-                        <p className="text-xs mt-1">The creator hasn't set up their availability.</p>
+                        <p className="text-xs mt-1">The creator hasn&apos;t set up their availability.</p>
                       </div>
                     ) : (
                       <div className="text-center py-6 text-muted-foreground text-sm">
@@ -467,16 +518,18 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
 
                   {isPaidSession && (
                     <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="promoCode" className="text-sm font-medium">Promo code (optional)</Label>
-                        <Input
-                          id="promoCode"
-                          value={promoCode}
-                          onChange={(e) => setPromoCode(e.target.value)}
-                          placeholder="e.g. WELCOME10"
-                          disabled={isSubmitting}
-                        />
-                      </div>
+                      {!isPendingFinalizeForThisSession && (
+                        <div className="space-y-2">
+                          <Label htmlFor="promoCode" className="text-sm font-medium">Promo code (optional)</Label>
+                          <Input
+                            id="promoCode"
+                            value={promoCode}
+                            onChange={(e) => setPromoCode(e.target.value)}
+                            placeholder="e.g. WELCOME10"
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                      )}
 
                       {/* Payment proof removed */}
                     </div>
@@ -518,7 +571,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                         Processing...
                       </>
                     ) : isPaidSession ? (
-                      `Pay with Card - $${session.price}`
+                      isPendingFinalizeForThisSession ? "Finalize Booking" : `Pay with Card - $${session.price}`
                     ) : (
                       `Confirm Booking${session.price > 0 ? ` - $${session.price}` : ''}`
                     )}

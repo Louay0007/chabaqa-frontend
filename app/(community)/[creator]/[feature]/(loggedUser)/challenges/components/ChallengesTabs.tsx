@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Search, Filter, Zap } from "lucide-react"
 import ChallengeCard from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/components/challenge-card"
+import { getChallengeStatus } from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/components/challenge-status"
 interface Challenge {
   id: string
   title: string
@@ -39,18 +40,16 @@ export default function ChallengesTabs({
       challenge.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       challenge.description?.toLowerCase().includes(searchQuery.toLowerCase())
 
-    const now = new Date()
-    const startDate = new Date(challenge.startDate)
-    const endDate = new Date(challenge.endDate)
+    const status = getChallengeStatus(challenge)
     const isParticipating = challenge.isParticipating || false
 
     switch (activeTab) {
       case "active":
-        return matchesSearch && startDate <= now && endDate >= now
+        return matchesSearch && status === "active"
       case "upcoming":
-        return matchesSearch && startDate > now
+        return matchesSearch && status === "upcoming"
       case "completed":
-        return matchesSearch && endDate < now
+        return matchesSearch && status === "completed"
       case "joined":
         return matchesSearch && isParticipating
       case "browse":
@@ -126,11 +125,4 @@ export default function ChallengesTabs({
       </TabsContent>
     </Tabs>
   )
-}
-
-function getChallengeStatus(challenge: Challenge) {
-  const now = new Date()
-  if (challenge.startDate > now) return "upcoming"
-  if (challenge.endDate < now) return "completed"
-  return "active"
 }

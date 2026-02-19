@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,9 @@ import {
   Plus,
 } from "lucide-react";
 
+<<<<<<< HEAD
 import Link from "next/link";
-import { sessionsApi } from "@/lib/api";
+import { sessionsApi, type CreatorBookingViewModel } from "@/lib/api/sessions.api";
 
 import UpcomingSessionsCard from "./upcoming-sessions-card";
 import PendingRequestsCard from "./pending-requests-card";
@@ -35,17 +36,14 @@ export default function ClientSessionsView({
   onSessionsUpdate
 }: {
   allSessions: any[];
-  allBookings: any[];
+  allBookings: CreatorBookingViewModel[];
   revenue?: number;
   onSessionsUpdate?: () => void;
 }) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
-  const [bookings, setBookings] = useState<any[]>(allBookings);
   const [updatingSession, setUpdatingSession] = useState<string | null>(null);
-
-  useEffect(() => { setBookings(allBookings) }, [allBookings]);
 
   const handleToggleSessionStatus = async (sessionId: string, currentStatus: boolean) => {
     // DISABLED FOR TESTING - Subscription check
@@ -118,16 +116,16 @@ export default function ClientSessionsView({
     return matchesSearch;
   });
 
-  const bookingsRevenueFallback = bookings.reduce((sum: number, b: any) => sum + Number(b.amount ?? 0), 0)
+  const bookingsRevenueFallback = allBookings.reduce((sum: number, b) => sum + Number(b.sessionPrice ?? 0), 0)
 
-  const now = new Date()
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  const completedThisMonth = useMemo(() => bookings.filter((b: any) => {
+  const completedThisMonth = useMemo(() => allBookings.filter((b) => {
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
     const t = new Date(b.scheduledAt)
     return b.status === 'completed' && t >= startOfMonth && t <= now
-  }), [bookings])
-  const hoursMentored = useMemo(() => completedThisMonth.reduce((h: number, b: any) => h + (Number(b.session?.duration || 0) / 60), 0), [completedThisMonth])
-  const monthRevenueFallback = useMemo(() => completedThisMonth.reduce((s: number, b: any) => s + Number(b.amount || 0), 0), [completedThisMonth])
+  }), [allBookings])
+  const hoursMentored = useMemo(() => completedThisMonth.reduce((h: number, b) => h + (Number(b.sessionDuration || 0) / 60), 0), [completedThisMonth])
+  const monthRevenueFallback = useMemo(() => completedThisMonth.reduce((s: number, b) => s + Number(b.sessionPrice || 0), 0), [completedThisMonth])
   const stats = [
     {
       title: "Total Sessions",
@@ -145,7 +143,7 @@ export default function ClientSessionsView({
     },
     {
       title: "Total Bookings",
-      value: bookings.length,
+      value: allBookings.length,
       change: { value: "+3", trend: "up" as const },
       icon: Users,
       color: "primary" as const,
@@ -294,9 +292,9 @@ export default function ClientSessionsView({
 
         {/* SIDEBAR */}
         <div className="space-y-6">
-          <GoogleCalendarIntegration />
-          <UpcomingSessionsCard bookings={bookings} onBookingUpdated={onSessionsUpdate} />
-          <PendingRequestsCard bookings={bookings} onUpdated={setBookings} />
+          <GoogleCalendarIntegration onConnectionUpdated={onSessionsUpdate} />
+          <UpcomingSessionsCard bookings={allBookings} onBookingUpdated={onSessionsUpdate} />
+          <PendingRequestsCard bookings={allBookings} onBookingUpdated={onSessionsUpdate} />
           <MonthlyStatsCard completed={completedThisMonth.length} hours={hoursMentored} revenue={revenue ?? monthRevenueFallback} avgRating={4.8} />
         </div>
       </div>

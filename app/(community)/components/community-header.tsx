@@ -332,12 +332,6 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
                       <span>Explore Communities</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/create-community" className="cursor-pointer">
-                      <Plus className="mr-2 h-4 w-4" />
-                      <span>Create Community</span>
-                    </Link>
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -490,12 +484,6 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
                         <Link href="/explore" className="flex items-center space-x-2">
                           <Search className="h-4 w-4" />
                           <span>Explore Communities</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild onClick={() => setMobileMenuOpen(false)}>
-                        <Link href="/create-community" className="flex items-center space-x-2">
-                          <Plus className="h-4 w-4" />
-                          <span>Create Community</span>
                         </Link>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
