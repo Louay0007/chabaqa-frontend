@@ -135,7 +135,7 @@ export function FAQ() {
           <div className="mt-12 text-center">
             <p className="text-gray-600 mb-4">Still have questions about Chabaqa?</p>
             <a
-              href="/contact"
+              href="mailto:contactchabaqa@gmail.com"
               className="inline-flex items-center justify-center px-6 py-3 bg-chabaqa-primary text-white font-semibold rounded-lg hover:bg-chabaqa-primary/90 transition-colors duration-200"
             >
               Contact Our Support Team

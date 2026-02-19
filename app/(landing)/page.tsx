@@ -86,7 +86,7 @@ export default function Home() {
             "@context": "https://schema.org",
             "@type": "Organization",
             "name": "Chabaqa",
-            "url": "https://chabaqa.com",
+            "url": "https://chabaqa.io",
             "logo": "https://chabaqa.com/logo.png",
             "description": "All-in-one community platform for creators to build, engage, and monetize their communities",
             "sameAs": [
@@ -97,7 +97,7 @@ export default function Home() {
             "contactPoint": {
               "@type": "ContactPoint",
               "contactType": "Customer Support",
-              "email": "support@chabaqa.com"
+              "email": "contactchabaqa@gmail.com"
             }
           })
         }}
