@@ -33,6 +33,7 @@ export default function CommunitiesPage() {
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [deleteCommunityId, setDeleteCommunityId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const load = async () => {
@@ -155,6 +156,16 @@ export default function CommunitiesPage() {
     }
   }
 
+  const toggleDescription = (communityId: string) => {
+    setExpandedDescriptions(prev => ({ ...prev, [communityId]: !prev[communityId] }))
+  }
+
+  const shouldShowSeeMore = (description: string) => {
+    if (!description) return false
+    // Show "Voir plus" if text is longer than ~150 characters (roughly 2 lines)
+    return description.length > 150
+  }
+
   return (
     <div className="p-8 max-w-7xl mx-auto">
       {/* Header */}
@@ -239,19 +250,29 @@ export default function CommunitiesPage() {
                   </div>
                 </div>
               </div>
-              <CardHeader>
+              <CardHeader className="overflow-hidden">
                 <CardTitle className="flex items-center gap-2">
-                  <span>{community.name}</span>
+                  <span className="break-words">{community.name}</span>
                   {community.verified && (
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 flex-shrink-0">
                       <CheckCircle className="w-3 h-3 mr-1" />
                       Verified
                     </Badge>
                   )}
                 </CardTitle>
-                <CardDescription className="line-clamp-2">
-                  {community.description}
-                </CardDescription>
+                <div className="overflow-hidden">
+                  <CardDescription className={`break-words overflow-hidden ${expandedDescriptions[community.id] ? "" : "line-clamp-2"}`}>
+                    {community.description}
+                  </CardDescription>
+                  {shouldShowSeeMore(community.description) && (
+                    <button
+                      onClick={() => toggleDescription(community.id)}
+                      className="text-xs text-primary hover:underline mt-1 inline-block"
+                    >
+                      {expandedDescriptions[community.id] ? "Voir moins" : "Voir plus"}
+                    </button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col gap-4">
@@ -310,20 +331,30 @@ export default function CommunitiesPage() {
                     Active
                   </Badge>
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0 overflow-hidden">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold">{community.name}</h3>
+                    <h3 className="font-semibold break-words">{community.name}</h3>
                     {community.verified && (
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 flex-shrink-0">
                         <CheckCircle className="w-3 h-3 mr-1" />
                         Verified
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600 line-clamp-2 mb-2">
-                    {community.description}
-                  </p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <div className="overflow-hidden">
+                    <p className={`text-sm text-gray-600 mb-2 break-words overflow-hidden ${expandedDescriptions[community.id] ? "" : "line-clamp-2"}`}>
+                      {community.description}
+                    </p>
+                    {shouldShowSeeMore(community.description) && (
+                      <button
+                        onClick={() => toggleDescription(community.id)}
+                        className="text-xs text-primary hover:underline inline-block"
+                      >
+                        {expandedDescriptions[community.id] ? "Voir moins" : "Voir plus"}
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-gray-500 flex-wrap">
                     <span>{community.members} members</span>
                     <span>{community.stats?.engagementRate ?? 0}% engagement</span>
                     <span>{community.stats?.monthlyGrowth ?? 0}% monthly growth</span>
