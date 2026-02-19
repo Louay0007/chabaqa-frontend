@@ -16,6 +16,16 @@ interface SignInFormProps {
   onSuccess?: () => void
 }
 
+function decodeBase64Url(input: string): string {
+  const base64 = input.replace(/-/g, "+").replace(/_/g, "/")
+  const padding = base64.length % 4 === 0 ? "" : "=".repeat(4 - (base64.length % 4))
+  return atob(base64 + padding)
+}
+
+function isSafeRedirect(path: string | null): path is string {
+  return !!path && path.startsWith("/") && !path.startsWith("//")
+}
+
 export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -29,7 +39,7 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
-  const { login } = useAuthContext()
+  const { login, updateAuth } = useAuthContext()
 
   useEffect(() => {
     const message = searchParams.get("message")
@@ -37,6 +47,51 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
       setSuccessMessage(message)
     }
   }, [searchParams])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const hash = window.location.hash?.replace(/^#/, "")
+    if (!hash) return
+
+    const hashParams = new URLSearchParams(hash)
+    const accessToken = hashParams.get("access_token")
+    const userEncoded = hashParams.get("user")
+    const redirectFromHash = hashParams.get("redirect")
+
+    if (!accessToken || !userEncoded) return
+
+    try {
+      const user = JSON.parse(decodeBase64Url(userEncoded))
+      updateAuth(accessToken, user)
+
+      const cleanedUrl = `${window.location.pathname}${window.location.search}`
+      window.history.replaceState({}, document.title, cleanedUrl)
+
+      if (isSafeRedirect(redirectFromHash) && redirectFromHash !== "/signin") {
+        router.push(redirectFromHash)
+        return
+      }
+
+      const role = user?.role?.toLowerCase()
+      if (role === "creator") {
+        router.push("/creator/dashboard")
+      } else if (role === "admin") {
+        router.push("/admin")
+      } else {
+        router.push("/explore")
+      }
+    } catch (err: any) {
+      const errorMessage = "Google sign-in failed. Please try again."
+      setError(errorMessage)
+      toast({
+        variant: "destructive",
+        title: "Google Login Error",
+        description: err?.message || errorMessage,
+        duration: 5000,
+      })
+    }
+  }, [router, toast, updateAuth])
 
   const validateForm = (): boolean => {
     setFieldErrors({})
@@ -87,9 +142,9 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
 
   const handleGoogleLogin = () => {
     const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
-    const backendBase = apiBase.endsWith("/api") ? apiBase.slice(0, -4) : apiBase
-    const redirect = encodeURIComponent("/signin")
-    const url = `${backendBase}/auth/google?redirect=${redirect}`
+    const requestedRedirect = searchParams.get("redirect")
+    const safeRedirect = isSafeRedirect(requestedRedirect) ? requestedRedirect : "/explore"
+    const url = `${apiBase}/auth/google?redirect=${encodeURIComponent(safeRedirect)}`
     window.location.href = url
   }
 

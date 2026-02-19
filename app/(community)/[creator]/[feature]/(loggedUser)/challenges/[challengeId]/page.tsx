@@ -74,22 +74,24 @@ export default async function ChallengeDetailPage({
           dueDate: t.dueDate,
           deliverable: t.deliverable || t.description || '',
           instructions: t.instructions || t.description || '',
-          resources: (t.resources || []).map((r: any) => ({
-            id: r._id || r.id,
+          resources: (t.resources || []).map((r: any, resourceIndex: number) => ({
+            id: r._id || r.id || `${taskId}-resource-${resourceIndex}`,
             title: r.title || r.name || 'Resource',
             type: r.type || 'link',
             url: r.url || r.link || '#',
+            description: r.description || "",
           })),
           notes: t.notes || '',
           isActive: t.isActive ?? false,
           isCompleted: t.isCompleted ?? false,
         }
       }),
-      resources: (challenge.resources || []).map((r: any) => ({
-        id: r._id || r.id,
+      resources: (challenge.resources || []).map((r: any, resourceIndex: number) => ({
+        id: r._id || r.id || `resource-${resourceIndex}`,
         title: r.title || r.name || 'Resource',
         type: r.type || 'link',
         url: r.url || r.link || '#',
+        description: r.description || "",
       })),
       rules: challenge.rules || [],
       prizes: challenge.prizes || [],

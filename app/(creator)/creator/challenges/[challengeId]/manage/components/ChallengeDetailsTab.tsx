@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Upload } from "lucide-react"
+import { Lock, Upload } from "lucide-react"
 import { useRef, useState } from "react"
 import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
@@ -92,28 +92,39 @@ export default function ChallengeDetailsTab({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
+                <Label htmlFor="startDate" className="flex items-center gap-2">
+                  Start Date
+                  <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                </Label>
                 <Input
                   id="startDate"
                   type="date"
                   value={formData.startDate}
-                  onChange={(e) => onInputChange("startDate", e.target.value)}
-                  className={fieldErrors.startDate ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  disabled
+                  readOnly
+                  className={`${fieldErrors.startDate ? "border-red-500 focus-visible:ring-red-500" : ""} bg-muted cursor-not-allowed`}
                 />
                 {fieldErrors.startDate && <p className="text-sm text-red-500">{fieldErrors.startDate}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="endDate">End Date</Label>
+                <Label htmlFor="endDate" className="flex items-center gap-2">
+                  End Date
+                  <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                </Label>
                 <Input
                   id="endDate"
                   type="date"
                   value={formData.endDate}
-                  onChange={(e) => onInputChange("endDate", e.target.value)}
-                  className={fieldErrors.endDate ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  disabled
+                  readOnly
+                  className={`${fieldErrors.endDate ? "border-red-500 focus-visible:ring-red-500" : ""} bg-muted cursor-not-allowed`}
                 />
                 {fieldErrors.endDate && <p className="text-sm text-red-500">{fieldErrors.endDate}</p>}
               </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Start and end dates are locked after challenge creation.
+            </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">

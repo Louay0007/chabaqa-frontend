@@ -308,6 +308,10 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
   }, [challenge])
 
   const handleInputChange = (field: string, value: any) => {
+    if (field === "startDate" || field === "endDate") {
+      return
+    }
+
     setFormData((prev) => ({ ...prev, [field]: value }))
     setFieldErrors((prev) => {
       if (!prev[field]) return prev
@@ -345,8 +349,6 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         title: formData.title,
         description: formData.description,
         thumbnail: formData.thumbnail || challenge.thumbnail,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
         depositAmount: formData.depositAmount ? Number(formData.depositAmount) : undefined,
         maxParticipants: formData.maxParticipants ? Number(formData.maxParticipants) : undefined,
         completionReward: formData.completionReward ? Number(formData.completionReward) : undefined,
