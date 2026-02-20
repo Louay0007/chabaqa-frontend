@@ -181,86 +181,104 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         order: resource.order,
       }))
 
+  const extractChallengePayload = useCallback((response: any): any => {
+    const primary = response?.data ?? response
+    return primary?.challenge ?? primary?.data ?? primary
+  }, [])
+
+  const normalizeChallenge = useCallback((rawData: any): Challenge => {
+    const tasksSource = rawData?.tasks || rawData?.steps || []
+    const resourcesSource = rawData?.resources || []
+    const participantsSource = rawData?.participants || []
+
+    return {
+      id: rawData?.id || rawData?._id,
+      mongoId: rawData?._id || rawData?.mongoId,
+      title: rawData?.title || "",
+      description: rawData?.description || "",
+      communityId: rawData?.communityId || "",
+      communitySlug: rawData?.communitySlug,
+      creatorId: rawData?.creatorId || "",
+      startDate: rawData?.startDate ? new Date(rawData.startDate) : new Date(),
+      endDate: rawData?.endDate ? new Date(rawData.endDate) : new Date(),
+      isActive: rawData?.isActive ?? false,
+      participants: participantsSource.map((p: any) => ({
+        id: p.id || p._id || "",
+        odId: p.userId || p.odId || "",
+        joinedAt: new Date(p.joinedAt || Date.now()),
+        isActive: p.isActive ?? true,
+        progress: p.progress ?? 0,
+        totalPoints: p.totalPoints ?? 0,
+        completedTasks: p.completedTasks || [],
+        lastActivityAt: new Date(p.lastActivityAt || p.joinedAt || Date.now()),
+        user: {
+          id: String(p.userId || p.user?._id || p.user?.id || p.id || ""),
+          name: p.userName || p.user?.name || "Unknown User",
+          email: p.user?.email || p.email || "",
+          avatar: p.userAvatar || p.user?.avatar,
+        },
+      })),
+      depositAmount: rawData?.depositAmount ?? "",
+      maxParticipants: rawData?.maxParticipants ?? "",
+      completionReward: rawData?.completionReward ?? "",
+      topPerformerBonus: rawData?.topPerformerBonus ?? "",
+      streakBonus: rawData?.streakBonus ?? "",
+      participationFee: rawData?.participationFee ?? rawData?.pricing?.participationFee ?? "",
+      currency: rawData?.currency || rawData?.pricing?.currency || "USD",
+      category: rawData?.category || "",
+      difficulty: rawData?.difficulty || "",
+      duration: rawData?.duration || "",
+      thumbnail: rawData?.thumbnail || "",
+      notes: rawData?.notes || "",
+      resources: resourcesSource.map((r: any, index: number) => ({
+        id: r.id || r._id || `resource-${index}`,
+        title: r.title || "",
+        type: r.type,
+        url: r.url || "",
+        description: r.description || "",
+        order: r.order ?? index + 1,
+      })),
+      tasks: tasksSource.map((t: any, index: number) => ({
+        id: t.id || t._id || `task-${index + 1}`,
+        day: Number(t.day || index + 1),
+        title: t.title || "",
+        description: t.description || "",
+        deliverable: t.deliverable || "",
+        isCompleted: t.isCompleted ?? false,
+        isActive: t.isActive ?? true,
+        points: Number(t.points || 0),
+        resources: (t.resources || []).map((resource: any, resourceIndex: number) => ({
+          id: resource.id || resource._id || `${t.id || t._id || `task-${index + 1}`}-resource-${resourceIndex}`,
+          title: resource.title || "",
+          type: resource.type,
+          url: resource.url || "",
+          description: resource.description || "",
+        })),
+        instructions: t.instructions || "",
+        notes: t.notes,
+      })),
+      sequentialProgression: Boolean(rawData?.sequentialProgression),
+      unlockMessage: rawData?.unlockMessage || "",
+      pricing: rawData?.pricing,
+    }
+  }, [])
+
+  const applyChallengeState = useCallback((rawData: any) => {
+    if (!rawData) return
+    const normalized = normalizeChallenge(rawData)
+    setChallenge(normalized)
+  }, [normalizeChallenge])
+
   const fetchChallenge = useCallback(async () => {
     try {
       const response = await apiClient.get<any>(`/challenges/${challengeId}`)
-      const primary = response?.data ?? response
-      const data = primary?.challenge ?? primary?.data ?? primary
-      const tasksSource = data?.tasks || data?.steps || []
-      const resourcesSource = data?.resources || []
-      const participantsSource = data?.participants || []
-
-      const transformedChallenge: Challenge = {
-        id: data.id || data._id,
-        mongoId: data._id || data.mongoId,
-        title: data.title,
-        description: data.description,
-        communityId: data.communityId,
-        communitySlug: data.communitySlug,
-        creatorId: data.creatorId,
-        startDate: new Date(data.startDate),
-        endDate: new Date(data.endDate),
-        isActive: data.isActive ?? false,
-        participants: participantsSource.map((p: any) => ({
-          id: p.id,
-          odId: p.userId,
-          joinedAt: new Date(p.joinedAt),
-          isActive: p.isActive ?? true,
-          progress: p.progress ?? 0,
-          totalPoints: p.totalPoints ?? 0,
-          completedTasks: p.completedTasks || [],
-          lastActivityAt: new Date(p.lastActivityAt || p.joinedAt),
-          user: {
-            id: String(p.userId || p.user?._id || p.user?.id || p.id || ""),
-            name: p.userName || p.user?.name || "Unknown User",
-            email: p.user?.email || p.email || "",
-            avatar: p.userAvatar || p.user?.avatar,
-          },
-        })),
-        depositAmount: data.depositAmount || "",
-        maxParticipants: data.maxParticipants || "",
-        completionReward: data.completionReward || "",
-        topPerformerBonus: data.topPerformerBonus || "",
-        streakBonus: data.streakBonus || "",
-        participationFee: data.participationFee || data.pricing?.participationFee || "",
-        currency: data.currency || data.pricing?.currency || "USD",
-        category: data.category || "",
-        difficulty: data.difficulty,
-        duration: data.duration,
-        thumbnail: data.thumbnail,
-        notes: data.notes,
-        resources: resourcesSource.map((r: any) => ({
-          id: r.id,
-          title: r.title,
-          type: r.type,
-          url: r.url,
-          description: r.description,
-          order: r.order ?? 0,
-        })),
-        tasks: tasksSource.map((t: any, index: number) => ({
-          id: t.id || t._id || `task-${index + 1}`,
-          day: Number(t.day || index + 1),
-          title: t.title,
-          description: t.description,
-          deliverable: t.deliverable,
-          isCompleted: t.isCompleted ?? false,
-          isActive: t.isActive ?? true,
-          points: t.points ?? 0,
-          resources: t.resources || [],
-          instructions: t.instructions || '',
-          notes: t.notes,
-        })),
-        sequentialProgression: data.sequentialProgression || false,
-        unlockMessage: data.unlockMessage || "",
-        pricing: data.pricing,
-      }
-
-      setChallenge(transformedChallenge)
+      const data = extractChallengePayload(response)
+      applyChallengeState(data)
     } catch (error) {
       console.error('Failed to fetch challenge:', error)
       router.push('/creator/challenges')
     }
-  }, [challengeId, router])
+  }, [challengeId, router, applyChallengeState, extractChallengePayload])
 
   useEffect(() => {
     const run = async () => {
@@ -363,18 +381,25 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
         notes: formData.notes || undefined,
       }
 
-      await apiClient.patch(`/challenges/${targetId}`, payload)
+      const updateResponse = await apiClient.patch<any>(`/challenges/${targetId}`, payload)
+      const updatedChallenge = extractChallengePayload(updateResponse)
+      if (updatedChallenge) {
+        applyChallengeState(updatedChallenge)
+      }
 
       if (sequentialChanged) {
-        await challengesApi.updateSequentialProgression(targetId, {
+        const progressionResponse = await challengesApi.updateSequentialProgression(targetId, {
           enabled: Boolean(formData.sequentialProgression),
           unlockMessage: (formData.unlockMessage || "").trim() || undefined,
         })
+        const progressionChallenge = extractChallengePayload(progressionResponse)
+        if (progressionChallenge) {
+          applyChallengeState(progressionChallenge)
+        }
       }
 
       setFieldErrors({})
       toast.success("Challenge updated successfully")
-      await fetchChallenge()
     } catch (error: any) {
       console.error('Failed to save challenge:', error)
       const parsed = extractApiError(error)
@@ -436,9 +461,12 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
 
       const existingTasks = challenge.tasks || []
       const updatedTasks = [...existingTasks, newTask]
-      await challengesApi.updateTasks(targetId, buildTasksPayload(updatedTasks))
+      const updateResponse = await challengesApi.updateTasks(targetId, buildTasksPayload(updatedTasks))
+      const updatedChallenge = extractChallengePayload(updateResponse)
+      if (updatedChallenge) {
+        applyChallengeState(updatedChallenge)
+      }
       toast.success("Task added successfully")
-      await fetchChallenge()
     } catch (error: any) {
       console.error('Failed to add task:', error)
       const parsed = extractApiError(error)
@@ -473,9 +501,12 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
       const updatedTasks = challenge.tasks.map((task) =>
         task.id === taskId ? { ...task, ...taskData } : task,
       )
-      await challengesApi.updateTasks(targetId, buildTasksPayload(updatedTasks))
+      const updateResponse = await challengesApi.updateTasks(targetId, buildTasksPayload(updatedTasks))
+      const updatedChallenge = extractChallengePayload(updateResponse)
+      if (updatedChallenge) {
+        applyChallengeState(updatedChallenge)
+      }
       toast.success("Task updated successfully")
-      await fetchChallenge()
     } catch (error: any) {
       console.error('Failed to update task:', error)
       const parsed = extractApiError(error)
@@ -494,9 +525,12 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
       setIsTaskProcessing(true)
       const updatedTasks = challenge.tasks
         .filter(t => t.id !== taskId)
-      await challengesApi.updateTasks(targetId, buildTasksPayload(updatedTasks))
+      const updateResponse = await challengesApi.updateTasks(targetId, buildTasksPayload(updatedTasks))
+      const updatedChallenge = extractChallengePayload(updateResponse)
+      if (updatedChallenge) {
+        applyChallengeState(updatedChallenge)
+      }
       toast.success("Task deleted successfully")
-      await fetchChallenge()
     } catch (error) {
       console.error('Failed to delete task:', error)
       toast.error("Failed to delete task")
@@ -535,9 +569,12 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
       // Map existing resources to DTO format
       const existingResources = sanitizeChallengeResources(challenge.resources || [])
       const updatedResources = sanitizeChallengeResources([...existingResources, newResource])
-      await apiClient.patch(`/challenges/${targetId}`, { resources: updatedResources })
+      const updateResponse = await apiClient.patch<any>(`/challenges/${targetId}`, { resources: updatedResources })
+      const updatedChallenge = extractChallengePayload(updateResponse)
+      if (updatedChallenge) {
+        applyChallengeState(updatedChallenge)
+      }
       toast.success("Resource added successfully")
-      await fetchChallenge()
     } catch (error: any) {
       console.error('Failed to add resource:', error)
       const parsed = extractApiError(error)
@@ -577,9 +614,12 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
           order: resource.order,
         }
       })
-      await apiClient.patch(`/challenges/${targetId}`, { resources: sanitizeChallengeResources(updatedResources) })
+      const updateResponse = await apiClient.patch<any>(`/challenges/${targetId}`, { resources: sanitizeChallengeResources(updatedResources) })
+      const updatedChallenge = extractChallengePayload(updateResponse)
+      if (updatedChallenge) {
+        applyChallengeState(updatedChallenge)
+      }
       toast.success("Resource updated successfully")
-      await fetchChallenge()
     } catch (error: any) {
       console.error('Failed to update resource:', error)
       const parsed = extractApiError(error)
@@ -607,9 +647,12 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
           description: sanitizeText(r.description),
           order: index + 1,
         }))
-      await apiClient.patch(`/challenges/${targetId}`, { resources: sanitizeChallengeResources(updatedResources) })
+      const updateResponse = await apiClient.patch<any>(`/challenges/${targetId}`, { resources: sanitizeChallengeResources(updatedResources) })
+      const updatedChallenge = extractChallengePayload(updateResponse)
+      if (updatedChallenge) {
+        applyChallengeState(updatedChallenge)
+      }
       toast.success("Resource deleted successfully")
-      await fetchChallenge()
     } catch (error) {
       console.error('Failed to delete resource:', error)
       toast.error("Failed to delete resource")
@@ -661,10 +704,13 @@ export default function ChallengeManager({ challengeId }: { challengeId: string 
     try {
       setIsPublishingChallenge(true)
       setTabBannerMessage(undefined)
-      await apiClient.post(`/challenges/${targetId}/publish`, {})
+      const publishResponse = await apiClient.post<any>(`/challenges/${targetId}/publish`, {})
+      const publishedChallenge = extractChallengePayload(publishResponse)
+      if (publishedChallenge) {
+        applyChallengeState(publishedChallenge)
+      }
       toast.success("Challenge published successfully")
       setFieldErrors({})
-      await fetchChallenge()
     } catch (error: any) {
       console.error('Failed to publish challenge:', error)
       const parsed = extractApiError(error)

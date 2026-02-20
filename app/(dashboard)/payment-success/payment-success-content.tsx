@@ -6,6 +6,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import Link from 'next/link';
 import { communitiesApi } from '@/lib/api/communities.api';
+import { useToast } from '@/components/ui/use-toast';
 
 
 interface VerificationResponse {
@@ -31,9 +32,15 @@ interface VerificationResponse {
       };
     };
     customerId?: string;
+    action?: string;
+    message?: string;
+    sessionContentId?: string;
   };
   // Fallback for flat structure
   status?: string;
+  action?: string;
+  message?: string;
+  sessionContentId?: string;
   error?: string;
   paymentMethod?: any;
   contentTitle?: string;
@@ -45,6 +52,7 @@ interface VerificationResponse {
 export default function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { toast } = useToast();
   const redirectDone = useRef(false);
   const [verified, setVerified] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -69,10 +77,10 @@ export default function PaymentSuccessContent() {
 
       try {
         // Determine correct endpoint based on provider
-        let verifyUrl = `/api/payment/verify?paymentId=${sessionId}`; // Default to Flouci (singular payment)
+        let verifyUrl = `/api/payments/verify?paymentId=${sessionId}`; // Default to Flouci
         
         if (provider === 'stripe' || provider === 'stripe-link') {
-          verifyUrl = `/api/payment/stripe-link/verify?sessionId=${sessionId}`;
+          verifyUrl = `/api/payments/verify?sessionId=${sessionId}`;
         }
 
         const response = await fetch(
@@ -90,10 +98,27 @@ export default function PaymentSuccessContent() {
 
         // Check both potential structures (active wrapper or direct response)
         const isSuccess = data.success === true || response.ok;
-        const status = data.data?.status || data.status;
+        const payload = data.data || data;
+        const status = payload?.status;
+        const action = payload?.action;
 
         if (isSuccess && (status === 'paid' || status === 'complete' || status === 'succeeded')) {
           setVerified(true);
+        } else if (isSuccess && status === 'paid_action_required' && action === 'choose_session_slot') {
+          const orderId = payload?.orderId;
+          const sessionTargetId = payload?.sessionContentId || payload?.targetId || id;
+          const redirectUrl =
+            payload?.creatorSlug && payload?.communitySlug && orderId
+              ? `/${payload.creatorSlug}/${payload.communitySlug}/sessions?paymentAction=choose-slot&orderId=${encodeURIComponent(String(orderId))}&sessionId=${encodeURIComponent(String(sessionTargetId || ''))}`
+              : `/dashboard?paymentAction=choose-slot&orderId=${encodeURIComponent(String(orderId || ''))}&sessionId=${encodeURIComponent(String(sessionTargetId || ''))}`;
+
+          toast({
+            title: 'Payment received',
+            description: payload?.message || 'Please choose a date and time to finalize your booking.',
+          });
+
+          router.replace(redirectUrl);
+          return;
         } else {
           setError(data.error || 'Payment verification failed');
         }
@@ -108,7 +133,7 @@ export default function PaymentSuccessContent() {
     };
 
     verifyPayment();
-  }, [sessionId]);
+  }, [sessionId, provider, id, router, toast]);
 
   // Helper to access data safely
   const paymentData = verificationData?.data || verificationData;
@@ -161,11 +186,19 @@ export default function PaymentSuccessContent() {
         }
       })();
     }
+
+    // Session Redirect
+    if (scope === 'session' && creatorSlug && communitySlug) {
+      redirectDone.current = true;
+      router.replace(`/${creatorSlug}/${communitySlug}/sessions`);
+      return;
+    }
   }, [verified, scope, creatorSlug, communitySlug, targetId, router]);
 
   const isRedirecting = verified && (
     (scope === 'course' && creatorSlug && communitySlug && targetId) ||
-    (scope === 'community' && creatorSlug && communitySlug)
+    (scope === 'community' && creatorSlug && communitySlug) ||
+    (scope === 'session' && creatorSlug && communitySlug)
   );
 
   const renderContentButton = () => {
@@ -218,8 +251,16 @@ export default function PaymentSuccessContent() {
 
     // 6. Session
     if (scope === 'session') {
+      if (creatorSlug && communitySlug) {
+        return (
+          <Link href={`/${creatorSlug}/${communitySlug}/sessions`} className={baseClass}>
+            View My Bookings
+          </Link>
+        );
+      }
+
       return (
-        <Link href="/sessions/bookings/user" className={baseClass}>
+        <Link href="/dashboard" className={baseClass}>
           View My Bookings
         </Link>
       );
@@ -383,14 +424,8 @@ export default function PaymentSuccessContent() {
 
               <div className="space-y-3">
                 <Link
-                  href="/payment-demo"
-                  className="block w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition"
-                >
-                  Try Again
-                </Link>
-                <Link
                   href="/dashboard"
-                  className="block w-full bg-gray-100 text-gray-900 font-semibold py-2 px-4 rounded-lg hover:bg-gray-200 transition"
+                  className="block w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition"
                 >
                   Back to Dashboard
                 </Link>

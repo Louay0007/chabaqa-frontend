@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useAdminAuth } from "@/app/(admin)/providers/admin-auth-provider"
-import { adminApi, ProcessPayoutDto, UpdatePayoutStatusDto } from "@/lib/api/admin-api"
+import { adminApi, ProcessPayoutDto, UpdatePayoutStatusDto, AdminPayoutDetails } from "@/lib/api/admin-api"
 import { StatusBadge } from "@/app/(admin)/_components/status-badge"
 import { ConfirmDialog } from "@/app/(admin)/_components/confirm-dialog"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,34 +13,10 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ArrowLeft, Check, X, Edit } from "lucide-react"
+import { ArrowLeft, Check, X, Edit, Copy } from "lucide-react"
 import { toast } from "sonner"
 
-interface PayoutDetails {
-  _id: string
-  creator: {
-    _id: string
-    username: string
-    email: string
-  }
-  community: {
-    _id: string
-    name: string
-    slug: string
-  }
-  amount: number
-  currency: string
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
-  method: 'bank_transfer' | 'paypal' | 'stripe'
-  initiatedAt: string
-  processedAt?: string
-  transactionReference?: string
-  notes?: string
-  createdBy?: {
-    _id: string
-    name: string
-  }
-}
+type PayoutDetails = AdminPayoutDetails
 
 export default function PayoutDetailsPage() {
   const router = useRouter()
@@ -162,6 +138,15 @@ export default function PayoutDetailsPage() {
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleString()
+  }
+
+  const copyToClipboard = async (value: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(value)
+      toast.success(`${label} copied`)
+    } catch {
+      toast.error(`Failed to copy ${label.toLowerCase()}`)
+    }
   }
 
   if (authLoading || loading) {
@@ -301,6 +286,63 @@ export default function PayoutDetailsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {payout.method === 'bank_transfer' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Bank Transfer Details</CardTitle>
+              <CardDescription>Use these credentials to send the payout.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-muted-foreground">Account Holder</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-medium">
+                    {payout.bankCredentials?.ownerName || payout.bankAccount?.ownerName || 'Not available'}
+                  </div>
+                  {(payout.bankCredentials?.ownerName || payout.bankAccount?.ownerName) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => copyToClipboard(
+                        String(payout.bankCredentials?.ownerName || payout.bankAccount?.ownerName),
+                        'Account holder'
+                      )}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Bank Name</Label>
+                <div className="font-medium">
+                  {payout.bankCredentials?.bankName || payout.bankAccount?.bankName || 'Not available'}
+                </div>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">RIB</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-mono text-sm">
+                    {payout.bankCredentials?.rib || payout.bankAccount?.rib || 'Not available'}
+                  </div>
+                  {(payout.bankCredentials?.rib || payout.bankAccount?.rib) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => copyToClipboard(
+                        String(payout.bankCredentials?.rib || payout.bankAccount?.rib),
+                        'RIB'
+                      )}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

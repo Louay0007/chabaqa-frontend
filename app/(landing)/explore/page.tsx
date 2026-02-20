@@ -5,9 +5,9 @@ import { communitiesApi, coursesApi, challengesApi, productsApi, sessionsApi, ev
 import type { Community, Course, Challenge, Product, Session, Event } from "@/lib/api/types"
 import type { Explore } from "@/lib/data-communities"
 
-// Enable caching for better performance
-export const revalidate = 300 // Revalidate every 5 minutes
-export const dynamic = 'force-static'
+// Keep Explore fresh so deleted communities/content disappear immediately.
+export const revalidate = 0
+export const dynamic = 'force-dynamic'
 
 // Resolve image url safely (absolute or local placeholder)
 function resolveImageUrl(value?: string): string {

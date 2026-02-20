@@ -30,6 +30,7 @@ export interface UpdateSessionData extends Partial<CreateSessionData> {
 export interface BookSessionData {
   scheduledAt: string;
   notes?: string;
+  slotId?: string;
 }
 
 export interface UpdateBookingData {
@@ -44,6 +45,84 @@ export interface SessionListParams extends PaginationParams {
   isActive?: boolean;
   creatorId?: string;
 }
+
+export type MeetStatus = 'not_required' | 'pending' | 'created' | 'failed';
+
+export interface CreatorBookingViewModel {
+  id: string;
+  oderId?: string;
+  orderId?: string;
+  sessionId: string;
+  sessionTitle: string;
+  sessionDuration: number;
+  sessionPrice: number;
+  userId: string;
+  userName: string;
+  userEmail?: string;
+  userAvatar?: string;
+  scheduledAt: string;
+  isUpcoming: boolean;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  meetingUrl?: string;
+  googleEventId?: string;
+  meetStatus?: MeetStatus;
+  meetFailureReason?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BookingStats {
+  total: number;
+  pending: number;
+  confirmed: number;
+  completed: number;
+  cancelled: number;
+  upcoming: number;
+  past: number;
+}
+
+export interface CreatorBookingsResponse {
+  bookings: CreatorBookingViewModel[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  stats: BookingStats;
+}
+
+const normalizeCreatorBookingsResponse = (raw: any): CreatorBookingsResponse => {
+  const payload = raw?.data?.bookings
+    ? raw.data
+    : raw?.data?.data?.bookings
+      ? raw.data.data
+      : raw;
+
+  const bookingsRaw = Array.isArray(payload?.bookings) ? payload.bookings : [];
+  const bookings: CreatorBookingViewModel[] = bookingsRaw.map((booking: any) => ({
+    ...booking,
+    id: booking?.id || booking?._id || '',
+    orderId: booking?.orderId || booking?.oderId,
+    meetStatus: booking?.meetStatus || (booking?.meetingUrl ? 'created' : 'not_required'),
+  }));
+
+  return {
+    bookings,
+    total: Number(payload?.total ?? bookings.length ?? 0),
+    page: Number(payload?.page ?? 1),
+    limit: Number(payload?.limit ?? bookings.length ?? 0),
+    totalPages: Number(payload?.totalPages ?? 1),
+    stats: payload?.stats || {
+      total: bookings.length,
+      pending: bookings.filter((b: CreatorBookingViewModel) => b.status === 'pending').length,
+      confirmed: bookings.filter((b: CreatorBookingViewModel) => b.status === 'confirmed').length,
+      completed: bookings.filter((b: CreatorBookingViewModel) => b.status === 'completed').length,
+      cancelled: bookings.filter((b: CreatorBookingViewModel) => b.status === 'cancelled').length,
+      upcoming: bookings.filter((b: CreatorBookingViewModel) => b.isUpcoming && b.status !== 'cancelled').length,
+      past: bookings.filter((b: CreatorBookingViewModel) => !b.isUpcoming).length,
+    },
+  };
+};
 
 // Sessions API
 export const sessionsApi = {
@@ -108,9 +187,23 @@ export const sessionsApi = {
     return apiClient.patch<ApiSuccessResponse<Session>>(`/sessions/bookings/${bookingId}/complete`, data);
   },
 
+  // Complete booking (alias used by creator workflow pages)
+  completeBooking: async (bookingId: string, data: { notes?: string; rating?: number } = {}): Promise<ApiSuccessResponse<Session>> => {
+    return apiClient.patch<ApiSuccessResponse<Session>>(`/sessions/bookings/${bookingId}/complete`, data);
+  },
+
   // Create Meet link for booking
-  createMeetLink: async (bookingId: string): Promise<ApiSuccessResponse<{ meetingUrl: string; googleEventId: string }>> => {
-    return apiClient.post<ApiSuccessResponse<{ meetingUrl: string; googleEventId: string }>>(`/sessions/bookings/${bookingId}/create-meet`, {});
+  createMeetLink: async (bookingId: string): Promise<ApiSuccessResponse<{ bookingId: string; meetingUrl?: string; googleEventId?: string; meetStatus: MeetStatus; meetFailureReason?: string }>> => {
+    return apiClient.post<ApiSuccessResponse<{ bookingId: string; meetingUrl?: string; googleEventId?: string; meetStatus: MeetStatus; meetFailureReason?: string }>>(`/sessions/bookings/${bookingId}/create-meet`, {});
+  },
+
+  createMeet: async (bookingId: string): Promise<ApiSuccessResponse<{ bookingId: string; meetingUrl?: string; googleEventId?: string; meetStatus: MeetStatus; meetFailureReason?: string }>> => {
+    return apiClient.post<ApiSuccessResponse<{ bookingId: string; meetingUrl?: string; googleEventId?: string; meetStatus: MeetStatus; meetFailureReason?: string }>>(`/sessions/bookings/${bookingId}/create-meet`, {});
+  },
+
+  // Get Meet provisioning status
+  getMeetStatus: async (bookingId: string): Promise<ApiSuccessResponse<{ bookingId: string; meetStatus: MeetStatus; meetingUrl?: string; googleEventId?: string; meetFailureReason?: string; meetRetryCount?: number; meetLastAttemptAt?: string }>> => {
+    return apiClient.get<ApiSuccessResponse<{ bookingId: string; meetStatus: MeetStatus; meetingUrl?: string; googleEventId?: string; meetFailureReason?: string; meetRetryCount?: number; meetLastAttemptAt?: string }>>(`/sessions/bookings/${bookingId}/meet-status`);
   },
 
   // Set available hours
@@ -151,13 +244,18 @@ export const sessionsApi = {
     timeFilter?: string;
     sessionId?: string;
     search?: string;
-  }): Promise<ApiSuccessResponse<any>> => {
-    return apiClient.get<ApiSuccessResponse<any>>('/sessions/bookings/creator', params);
+  }): Promise<CreatorBookingsResponse> => {
+    const response = await apiClient.get<any>('/sessions/bookings/creator', params);
+    return normalizeCreatorBookingsResponse(response);
   },
 
   // Get user bookings
   getUserBookings: async (): Promise<ApiSuccessResponse<any>> => {
     return apiClient.get<ApiSuccessResponse<any>>('/sessions/bookings/user');
+  },
+
+  retryMeetProvisioning: async (): Promise<{ success: boolean; scanned: number; attempted: number; succeeded: number; failed: number }> => {
+    return apiClient.post<{ success: boolean; scanned: number; attempted: number; succeeded: number; failed: number }>('/sessions/bookings/retry-meet', {});
   },
 
   // Get sessions by user (creator)
@@ -171,5 +269,16 @@ export const sessionsApi = {
       ? `/payment/stripe-link/init/session?promoCode=${encodeURIComponent(promoCode)}`
       : `/payment/stripe-link/init/session`;
     return apiClient.post<any>(endpoint, { sessionId, bookingDto });
+  },
+
+  // Finalize booking for already-paid session orders
+  finalizePaidSessionBooking: async (
+    orderId: string,
+    bookingDto: BookSessionData,
+  ): Promise<any> => {
+    return apiClient.post<any>('/payment/session/finalize-booking', {
+      orderId,
+      ...bookingDto,
+    });
   },
 };

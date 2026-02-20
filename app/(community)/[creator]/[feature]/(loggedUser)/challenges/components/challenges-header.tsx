@@ -1,19 +1,11 @@
 import { Zap } from "lucide-react"
+import { getChallengeStatus } from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/components/challenge-status"
 
 interface HeaderSectionProps {
   allChallenges: any[]
 }
 
 export default function HeaderSection({ allChallenges }: HeaderSectionProps) {
-  const getChallengeStatus = (challenge: any) => {
-    const now = new Date()
-    const startDate = new Date(challenge.startDate)
-    const endDate = new Date(challenge.endDate)
-    if (startDate > now) return "upcoming"
-    if (endDate < now) return "completed"
-    return "active"
-  }
-
   return (
     <div className="mb-6">
       <div className="bg-gradient-to-r from-challenges-500 to-orange-500 rounded-xl p-4 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between">

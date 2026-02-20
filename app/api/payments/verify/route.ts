@@ -7,11 +7,12 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(req: NextRequest) {
   try {
     const sessionId = req.nextUrl.searchParams.get('sessionId');
+    const paymentId = req.nextUrl.searchParams.get('paymentId');
     const authHeader = req.headers.get('authorization');
 
-    if (!sessionId) {
+    if (!sessionId && !paymentId) {
       return NextResponse.json(
-        { message: 'sessionId query parameter is required' },
+        { message: 'sessionId or paymentId query parameter is required' },
         { status: 400 }
       );
     }
@@ -31,11 +32,16 @@ export async function GET(req: NextRequest) {
       ? backendUrl 
       : `http://localhost:3000${backendUrl}`;
 
-    console.log(`[Payment Verify] Verifying session ${sessionId} at ${finalBackendUrl}`);
+    const isStripeSession = Boolean(sessionId);
+    const verifyPath = isStripeSession
+      ? `/payment/stripe-link/verify?sessionId=${encodeURIComponent(sessionId as string)}`
+      : `/payment/verify?paymentId=${encodeURIComponent(paymentId as string)}`;
+
+    console.log(`[Payment Verify] Verifying ${isStripeSession ? 'stripe session' : 'payment'} at ${finalBackendUrl}${verifyPath}`);
 
     // Call the backend verification endpoint
     const response = await fetch(
-      `${finalBackendUrl}/payment/stripe-link/verify?sessionId=${sessionId}`,
+      `${finalBackendUrl}${verifyPath}`,
       {
         method: 'GET',
         headers: {

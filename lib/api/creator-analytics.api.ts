@@ -7,6 +7,17 @@ export interface CreatorAnalyticsParams {
   communitySlug?: string;
 }
 
+export interface TunisianBankCredentials {
+  rib: string;
+  bankName: string;
+  ownerName: string;
+}
+
+export interface BankCredentialsResponse {
+  isConfigured: boolean;
+  bankDetails: TunisianBankCredentials | null;
+}
+
 export const creatorAnalyticsApi = {
   getOverview: async (params?: CreatorAnalyticsParams): Promise<ApiSuccessResponse<any>> => {
     return apiClient.get<ApiSuccessResponse<any>>('/analytics/creator/overview', params);
@@ -54,5 +65,11 @@ export const creatorAnalyticsApi = {
   },
   cancelPayout: async (id: string, reason?: string): Promise<ApiSuccessResponse<any>> => {
     return apiClient.post<ApiSuccessResponse<any>>(`/payouts/${id}/cancel`, { reason });
+  },
+  getBankCredentials: async (): Promise<BankCredentialsResponse> => {
+    return apiClient.get<BankCredentialsResponse>('/payouts/bank-credentials');
+  },
+  updateBankCredentials: async (payload: TunisianBankCredentials): Promise<BankCredentialsResponse> => {
+    return apiClient.put<BankCredentialsResponse>('/payouts/bank-credentials', payload);
   },
 };

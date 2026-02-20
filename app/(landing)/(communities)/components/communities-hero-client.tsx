@@ -1,9 +1,12 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
 
 export function CommunitiesHeroClient() {
+  const router = useRouter()
+
   return (
     <div className="flex flex-col sm:flex-row gap-3 justify-center">
       <Button
@@ -18,7 +21,7 @@ export function CommunitiesHeroClient() {
         size="lg"
         variant="outline"
         className="border-2 border-white/30 text-white hover:bg-white/10 px-6 py-3 font-semibold bg-transparent  transition-all duration-300"
-        onClick={() => window.open("#", "_blank")}
+        onClick={() => router.push("/dashboard/create-community")}
       >
         Create Community
       </Button>

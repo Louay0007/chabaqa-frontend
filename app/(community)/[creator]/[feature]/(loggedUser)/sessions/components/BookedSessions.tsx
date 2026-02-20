@@ -96,6 +96,11 @@ export default function BookedSessions({ setActiveTab, userBookings }: BookedSes
                         Message Mentor
                       </Button>
                     </div>
+                    {booking.status === "confirmed" && !booking.meetingUrl && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Meeting link is being prepared. It will appear here automatically.
+                      </p>
+                    )}
                   </div>
                 </div>
               </CardContent>

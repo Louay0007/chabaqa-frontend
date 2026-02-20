@@ -1,56 +1,16 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { apiClient } from "@/lib/api"
+import { sessionsApi, type BookingStats, type CreatorBookingViewModel } from "@/lib/api/sessions.api"
 import { useToast } from "@/hooks/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 import BookingsPageContent from "./components/bookings-page-content"
 
-export interface Booking {
-  id: string
-  oderId?: string
-  sessionId: string
-  sessionTitle: string
-  sessionDuration: number
-  sessionPrice: number
-  userId: string
-  userName: string
-  userEmail?: string
-  userAvatar?: string
-  scheduledAt: string
-  isUpcoming: boolean
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
-  meetingUrl?: string
-  googleEventId?: string
-  notes?: string
-  createdAt: string
-  updatedAt: string
-}
-
-export interface BookingStats {
-  total: number
-  pending: number
-  confirmed: number
-  completed: number
-  cancelled: number
-  upcoming: number
-  past: number
-}
-
-export interface BookingsResponse {
-  bookings: Booking[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
-  stats: BookingStats
-}
-
 export default function CreatorBookingsPage() {
   const { toast } = useToast()
-  const { selectedCommunityId, isLoading: communityLoading } = useCreatorCommunity()
+  const { isLoading: communityLoading } = useCreatorCommunity()
 
-  const [bookings, setBookings] = useState<Booking[]>([])
+  const [bookings, setBookings] = useState<CreatorBookingViewModel[]>([])
   const [stats, setStats] = useState<BookingStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -73,7 +33,7 @@ export default function CreatorBookingsPage() {
       if (statusFilter) params.status = statusFilter
       if (searchQuery) params.search = searchQuery
 
-      const response = await apiClient.get<BookingsResponse>('/sessions/bookings/creator', params)
+      const response = await sessionsApi.getCreatorBookings(params)
       
       setBookings(response.bookings || [])
       setStats(response.stats || null)

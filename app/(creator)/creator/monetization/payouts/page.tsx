@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Search, Filter, Download, Plus, MoreHorizontal, CheckCircle, AlertCircle, Clock, TrendingUp, RefreshCw, Loader2 } from "lucide-react"
+import { Search, Filter, Download, Plus, MoreHorizontal, CheckCircle, AlertCircle, Clock, TrendingUp, RefreshCw, Loader2, Edit3, Lock } from "lucide-react"
 import { 
   Table, 
   TableBody, 
@@ -65,9 +65,24 @@ export default function PayoutsPage() {
   const [statsLoading, setStatsLoading] = useState(false);
   const [stats, setStats] = useState<any | null>(null);
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
+  const [bankCredentials, setBankCredentials] = useState({
+    ownerName: "",
+    bankName: "",
+    rib: "",
+  });
+  const [bankCredentialsSnapshot, setBankCredentialsSnapshot] = useState({
+    ownerName: "",
+    bankName: "",
+    rib: "",
+  });
+  const [bankConfigured, setBankConfigured] = useState(false);
+  const [bankLoading, setBankLoading] = useState(false);
+  const [bankSaving, setBankSaving] = useState(false);
+  const [isBankEditing, setIsBankEditing] = useState(false);
 
   const loadPayouts = async () => {
     setLoading(true);
+    setBankLoading(true);
     try {
       if (!selectedCommunityId) {
         setPayouts([]);
@@ -93,9 +108,23 @@ export default function PayoutsPage() {
 
       const statsRes = await api.creatorAnalytics.getPayoutStats({ communityId: selectedCommunityId }).catch(() => null as any);
       const balRes = await api.creatorAnalytics.getAvailableBalance({ communityId: selectedCommunityId }).catch(() => null as any);
+      const bankRes = await api.creatorAnalytics.getBankCredentials().catch(() => null as any);
 
       setStats(statsRes?.data || statsRes || null);
       setAvailableBalance((balRes?.data?.availableBalance) ?? (balRes?.availableBalance) ?? null);
+      const bankData = bankRes?.data || bankRes || null;
+      setBankConfigured(Boolean(bankData?.isConfigured));
+      setBankCredentials({
+        ownerName: bankData?.bankDetails?.ownerName || "",
+        bankName: bankData?.bankDetails?.bankName || "",
+        rib: bankData?.bankDetails?.rib || "",
+      });
+      setBankCredentialsSnapshot({
+        ownerName: bankData?.bankDetails?.ownerName || "",
+        bankName: bankData?.bankDetails?.bankName || "",
+        rib: bankData?.bankDetails?.rib || "",
+      });
+      setIsBankEditing(!Boolean(bankData?.isConfigured));
     } catch (error) {
       console.error('Failed to load payouts:', error);
       toast({
@@ -105,6 +134,7 @@ export default function PayoutsPage() {
       });
     } finally {
       setLoading(false);
+      setBankLoading(false);
     }
   };
 
@@ -163,6 +193,72 @@ export default function PayoutsPage() {
     return `${currency} ${p.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  const normalizeRib = (value: string) => value.replace(/\s+/g, "");
+
+  const handleSaveBankCredentials = async () => {
+    const rib = normalizeRib(bankCredentials.rib);
+    if (!bankCredentials.ownerName.trim() || !bankCredentials.bankName.trim()) {
+      toast({
+        title: "Missing fields",
+        description: "Account holder name and bank name are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!/^\d{20}$/.test(rib)) {
+      toast({
+        title: "Invalid RIB",
+        description: "Tunisian RIB must contain exactly 20 digits.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setBankSaving(true);
+    try {
+      const response = await api.creatorAnalytics.updateBankCredentials({
+        ownerName: bankCredentials.ownerName.trim(),
+        bankName: bankCredentials.bankName.trim(),
+        rib,
+      });
+      const data = (response as any)?.data || response;
+      setBankConfigured(Boolean(data?.isConfigured));
+      setBankCredentials({
+        ownerName: data?.bankDetails?.ownerName || bankCredentials.ownerName.trim(),
+        bankName: data?.bankDetails?.bankName || bankCredentials.bankName.trim(),
+        rib: data?.bankDetails?.rib || rib,
+      });
+      setBankCredentialsSnapshot({
+        ownerName: data?.bankDetails?.ownerName || bankCredentials.ownerName.trim(),
+        bankName: data?.bankDetails?.bankName || bankCredentials.bankName.trim(),
+        rib: data?.bankDetails?.rib || rib,
+      });
+      setIsBankEditing(false);
+      toast({
+        title: "Bank credentials saved",
+        description: "Your Tunisian banking credentials are ready for payouts.",
+      });
+    } catch (error) {
+      console.error('Failed to save bank credentials:', error);
+      toast({
+        title: "Save failed",
+        description: "Could not save bank credentials. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setBankSaving(false);
+    }
+  };
+
+  const handleStartBankEdit = () => {
+    setIsBankEditing(true);
+  };
+
+  const handleCancelBankEdit = () => {
+    setBankCredentials(bankCredentialsSnapshot);
+    setIsBankEditing(false);
+  };
+
   // Handle requesting a new payout
   const handleRequestPayout = async () => {
     if (!selectedCommunityId) {
@@ -174,6 +270,14 @@ export default function PayoutsPage() {
         title: "Invalid Amount",
         description: "Please enter a valid payout amount",
         variant: "destructive"
+      });
+      return;
+    }
+    if (newPayout.method === 'bank_transfer' && !bankConfigured) {
+      toast({
+        title: "Bank credentials required",
+        description: "Set your Tunisian banking credentials before requesting bank transfer payouts.",
+        variant: "destructive",
       });
       return;
     }
@@ -325,6 +429,83 @@ export default function PayoutsPage() {
           </Dialog>
         </div>
       </div>
+
+      {/* Stats */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <CardTitle>Tunisian Banking Credentials</CardTitle>
+              <CardDescription>Used for bank transfer payouts sent by admins.</CardDescription>
+            </div>
+            <Badge variant={bankConfigured ? "default" : "outline"}>
+              {bankLoading ? "Checking..." : bankConfigured ? "Configured" : "Not configured"}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!isBankEditing && (
+            <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm text-muted-foreground flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              Banking credentials are locked. Click Edit to update them.
+            </div>
+          )}
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="bank-owner-name">Account holder name</Label>
+              <Input
+                id="bank-owner-name"
+                value={bankCredentials.ownerName}
+                onChange={(e) => setBankCredentials(prev => ({ ...prev, ownerName: e.target.value }))}
+                placeholder="Full legal name"
+                disabled={bankSaving || bankLoading || !isBankEditing}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bank-name">Bank name</Label>
+              <Input
+                id="bank-name"
+                value={bankCredentials.bankName}
+                onChange={(e) => setBankCredentials(prev => ({ ...prev, bankName: e.target.value }))}
+                placeholder="Banque de Tunisie..."
+                disabled={bankSaving || bankLoading || !isBankEditing}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bank-rib">RIB (20 digits)</Label>
+              <Input
+                id="bank-rib"
+                value={bankCredentials.rib}
+                onChange={(e) => setBankCredentials(prev => ({ ...prev, rib: e.target.value.replace(/[^\d\s]/g, '') }))}
+                placeholder="12345678901234567890"
+                disabled={bankSaving || bankLoading || !isBankEditing}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            {isBankEditing ? (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={handleCancelBankEdit} disabled={bankSaving}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveBankCredentials} disabled={bankSaving}>
+                  {bankSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : "Save banking credentials"}
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={handleStartBankEdit} disabled={bankLoading}>
+                <Edit3 className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -135,6 +135,11 @@ export function Header() {
                   <Link href="/dashboard/create-community" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">
                     Create Community
                   </Link>
+                  {authUser?.role === "creator" && (
+                    <Link href="/creator/dashboard" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">
+                      Creator Dashboard
+                    </Link>
+                  )}
                   <Link href={`/profile/${profileHandle}`} className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors flex items-center gap-2">
                     <UserIcon className="w-4 h-4" />
                     @{profileHandle}
@@ -247,6 +252,13 @@ export function Header() {
                           <Link href="/dashboard/create-community">Create Community</Link>
                         </Button>
                       </SheetClose>
+                      {authUser?.role === "creator" && (
+                        <SheetClose asChild>
+                          <Button variant="ghost" className="w-full justify-start hover:text-pink-600" asChild>
+                            <Link href="/creator/dashboard">Creator Dashboard</Link>
+                          </Button>
+                        </SheetClose>
+                      )}
                       <SheetClose asChild>
                         <Button
                           variant="ghost"

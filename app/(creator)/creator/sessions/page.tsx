@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react"
 import ClientSessionsView from "./components/client-sessions-view"
 import { api, apiClient } from "@/lib/api"
+import { sessionsApi, type CreatorBookingViewModel } from "@/lib/api/sessions.api"
 import { useToast } from "@/hooks/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 
@@ -11,7 +12,7 @@ export default function CreatorSessionsPage() {
   const { selectedCommunityId, isLoading: communityLoading } = useCreatorCommunity()
 
   const [sessions, setSessions] = useState<any[]>([])
-  const [bookings, setBookings] = useState<any[]>([])
+  const [bookings, setBookings] = useState<CreatorBookingViewModel[]>([])
   const [revenue, setRevenue] = useState<number | null>(null)
 
   const loadSessions = useCallback(async () => {
@@ -41,31 +42,8 @@ export default function CreatorSessionsPage() {
       setSessions(normSessions)
 
       // Creator bookings
-      const bookRes = await apiClient.get<any>(`/sessions/bookings/creator`).catch(() => null as any)
-      const rawBookings = bookRes?.data?.bookings || bookRes?.bookings || []
-      console.log('[CreatorSessionsPage] Raw bookings response:', JSON.stringify(bookRes, null, 2))
-      console.log('[CreatorSessionsPage] Raw bookings array:', rawBookings)
-      const normBookings = (Array.isArray(rawBookings) ? rawBookings : []).map((b: any) => {
-        console.log('[CreatorSessionsPage] Processing booking:', b)
-        return {
-          id: b.id || b._id,
-          status: b.status || 'pending',
-          scheduledAt: b.scheduledAt || b.startTime || new Date().toISOString(),
-          amount: Number(b.amount ?? b.price ?? 0),
-          meetingUrl: b.meetingUrl || null,
-          user: {
-            name: b.userName || b.user?.name || b.participant?.name || 'Member',
-            avatar: b.userAvatar || b.user?.avatar || b.participant?.avatar || '',
-          },
-          session: {
-            id: b.sessionId || b.session?.id || b.session?._id,
-            title: b.sessionTitle || b.session?.title || 'Session',
-            duration: Number(b.session?.duration ?? b.duration ?? 0),
-          },
-        }
-      })
-      console.log('[CreatorSessionsPage] Normalized bookings:', normBookings)
-      setBookings(normBookings)
+      const bookingsResponse = await sessionsApi.getCreatorBookings({ page: 1, limit: 200 }).catch(() => null as any)
+      setBookings(Array.isArray(bookingsResponse?.bookings) ? bookingsResponse.bookings : [])
 
       // Analytics revenue (last 30 days)
       const now = new Date()
@@ -76,7 +54,7 @@ export default function CreatorSessionsPage() {
       const totalRevenue = (Array.isArray(bySession) ? bySession : []).reduce((sum: number, x: any) => sum + Number(x.revenue ?? 0), 0)
       if (!Number.isNaN(totalRevenue)) setRevenue(totalRevenue)
     } catch (e: any) {
-      toast({ title: 'Failed to load sessions', description: e?.message || 'Please try again later.', variant: 'destructive' as any })
+      toast({ title: 'Failed to load sessions', description: e?.message || 'Please try again later.', variant: 'destructive' })
     }
   }, [selectedCommunityId, toast])
 

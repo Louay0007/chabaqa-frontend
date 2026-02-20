@@ -1,19 +1,20 @@
-import { AlertCircle, CheckCircle, Users, Video, Link as LinkIcon, Plus, ExternalLink } from "lucide-react";
+import { AlertCircle, CheckCircle, Users, Video, Plus, ExternalLink, RefreshCw } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EnhancedCard } from "@/components/ui/enhanced-card";
-import { apiClient } from "@/lib/api";
+import { sessionsApi, type CreatorBookingViewModel } from "@/lib/api/sessions.api";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import Link from "next/link";
 
-interface Props { bookings: any[]; onUpdated?: (b: any[]) => void }
+interface Props { bookings: CreatorBookingViewModel[]; onBookingUpdated?: () => void }
 
-export default function PendingRequestsCard({ bookings, onUpdated }: Props) {
+export default function PendingRequestsCard({ bookings, onBookingUpdated }: Props) {
   const { toast } = useToast()
   const [creatingMeet, setCreatingMeet] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const pending = bookings.filter(b => b.status === "pending");
   const confirmed = bookings.filter(b => b.status === "confirmed");
   
@@ -21,38 +22,37 @@ export default function PendingRequestsCard({ bookings, onUpdated }: Props) {
   const displayBookings = pending.length > 0 ? pending.slice(0, 3) : confirmed.slice(0, 3);
   const isShowingConfirmed = pending.length === 0 && confirmed.length > 0;
 
-  const updateLocal = (id: string, status: string) => {
-    const next = bookings.map(b => b.id === id ? { ...b, status } : b)
-    onUpdated?.(next)
-  }
-
   const accept = async (bookingId: string) => {
-    console.log('[PendingRequestsCard] Accepting booking:', bookingId)
     if (!bookingId) {
-      toast({ title: 'Error', description: 'Booking ID is missing', variant: 'destructive' as any })
+      toast({ title: 'Error', description: 'Booking ID is missing', variant: 'destructive' })
       return
     }
+    setActionLoading(bookingId)
     try {
-      await apiClient.patch(`/sessions/bookings/${bookingId}/confirm`, {})
-      toast({ title: 'Request accepted' })
-      updateLocal(bookingId, 'confirmed')
+      await sessionsApi.confirmBooking(bookingId, {})
+      toast({ title: 'Booking confirmed' })
+      onBookingUpdated?.()
     } catch (e: any) {
-      toast({ title: 'Failed to accept', description: e?.message || 'Try again later.', variant: 'destructive' as any })
+      toast({ title: 'Failed to accept', description: e?.message || 'Try again later.', variant: 'destructive' })
+    } finally {
+      setActionLoading(null)
     }
   }
 
   const decline = async (bookingId: string) => {
-    console.log('[PendingRequestsCard] Declining booking:', bookingId)
     if (!bookingId) {
-      toast({ title: 'Error', description: 'Booking ID is missing', variant: 'destructive' as any })
+      toast({ title: 'Error', description: 'Booking ID is missing', variant: 'destructive' })
       return
     }
+    setActionLoading(bookingId)
     try {
-      await apiClient.patch(`/sessions/bookings/${bookingId}/cancel`, {})
-      toast({ title: 'Request declined' })
-      updateLocal(bookingId, 'cancelled')
+      await sessionsApi.cancelBooking(bookingId, {})
+      toast({ title: 'Booking declined' })
+      onBookingUpdated?.()
     } catch (e: any) {
-      toast({ title: 'Failed to decline', description: e?.message || 'Try again later.', variant: 'destructive' as any })
+      toast({ title: 'Failed to decline', description: e?.message || 'Try again later.', variant: 'destructive' })
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -61,14 +61,12 @@ export default function PendingRequestsCard({ bookings, onUpdated }: Props) {
     
     setCreatingMeet(bookingId);
     try {
-      await apiClient.post<any>(`/sessions/bookings/${bookingId}/create-meet`, {});
+      await sessionsApi.createMeet(bookingId);
       toast({
         title: "Meet link created",
         description: "Google Meet link has been created.",
       });
-      // Update local state with meetingUrl
-      const next = bookings.map(b => b.id === bookingId ? { ...b, meetingUrl: 'created' } : b);
-      onUpdated?.(next);
+      onBookingUpdated?.();
     } catch (error: any) {
       toast({
         title: "Failed to create Meet link",
@@ -111,26 +109,26 @@ export default function PendingRequestsCard({ bookings, onUpdated }: Props) {
         <div className="space-y-3">
           {displayBookings.length > 0 ? displayBookings.map((booking) => (
             <div 
-              key={booking.id || booking._id} 
+              key={booking.id}
               className={`flex items-center space-x-3 p-3 rounded-lg ${isShowingConfirmed ? 'bg-green-50' : 'bg-orange-50'}`}
             >
               <Avatar className="h-10 w-10">
-                <AvatarImage src={booking.user?.avatar || "/placeholder.svg"} />
-                <AvatarFallback>{(booking.user?.name || 'U').split(" ").map((n: string) => n[0]).join("")}</AvatarFallback>
+                <AvatarImage src={booking.userAvatar || "/placeholder.svg"} />
+                <AvatarFallback>{(booking.userName || 'U').split(" ").map((n: string) => n[0]).join("")}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{booking.user?.name || 'Unknown'}</p>
-                <p className="text-xs text-muted-foreground">{booking.session?.title || 'Session'}</p>
+                <p className="font-medium text-sm truncate">{booking.userName || 'Unknown'}</p>
+                <p className="text-xs text-muted-foreground">{booking.sessionTitle || 'Session'}</p>
                 <p className={`text-xs font-medium ${isShowingConfirmed ? 'text-green-600' : 'text-orange-600'}`}>
                   {new Date(booking.scheduledAt).toLocaleString()}
                 </p>
               </div>
               {!isShowingConfirmed ? (
                 <div className="flex flex-col space-y-1">
-                  <Button size="sm" className="h-6 text-xs" onClick={() => accept(booking.id || booking._id)}>
+                  <Button size="sm" className="h-6 text-xs" onClick={() => accept(booking.id)} disabled={actionLoading === booking.id}>
                     <CheckCircle className="h-3 w-3 mr-1" /> Accept
                   </Button>
-                  <Button size="sm" variant="outline" className="h-6 text-xs" onClick={() => decline(booking.id || booking._id)}>
+                  <Button size="sm" variant="outline" className="h-6 text-xs" onClick={() => decline(booking.id)} disabled={actionLoading === booking.id}>
                     Decline
                   </Button>
                 </div>
@@ -146,25 +144,32 @@ export default function PendingRequestsCard({ bookings, onUpdated }: Props) {
                       >
                         <Video className="h-3 w-3 mr-1" /> Join
                       </Button>
-                      <Badge variant="outline" className="text-xs text-green-600 border-green-300 justify-center">
-                        <LinkIcon className="h-3 w-3 mr-1" /> Has Meet
+                      <Badge variant="outline" className="text-xs text-green-700 border-green-300 justify-center">
+                        <Video className="h-3 w-3 mr-1" /> Meet Ready
                       </Badge>
                     </>
                   ) : (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="h-6 text-xs"
-                      onClick={() => handleCreateMeet(booking.id)}
-                      disabled={creatingMeet === booking.id}
-                    >
-                      {creatingMeet === booking.id ? (
-                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-1" />
-                      ) : (
-                        <Plus className="h-3 w-3 mr-1" />
+                    <>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-6 text-xs"
+                        onClick={() => handleCreateMeet(booking.id)}
+                        disabled={creatingMeet === booking.id}
+                      >
+                        {creatingMeet === booking.id ? (
+                          <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-1" />
+                        ) : (
+                          <Plus className="h-3 w-3 mr-1" />
+                        )}
+                        {booking.meetStatus === 'pending' ? 'Retry Meet' : 'Create Meet'}
+                      </Button>
+                      {booking.meetStatus === 'pending' && (
+                        <Badge variant="outline" className="text-xs text-blue-700 border-blue-300 justify-center">
+                          <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> Meet Pending
+                        </Badge>
                       )}
-                      Create Meet
-                    </Button>
+                    </>
                   )}
                 </div>
               )}
