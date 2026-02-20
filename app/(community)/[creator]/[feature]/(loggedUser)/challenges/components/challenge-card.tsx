@@ -34,7 +34,7 @@ export default function ChallengeCard({ creatorSlug, slug, challenge }: Challeng
               className="object-cover transition-transform duration-500 group-hover:scale-105"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/30" />
+            
           </>
         ) : (
           <div className="absolute inset-0 bg-gradient-to-r from-challenges-500 to-orange-500" />
