@@ -400,116 +400,185 @@ export default function ChallengePromoPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <div className="relative bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl" />
+      {/* Minimal Header */}
+      <div className="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="container mx-auto px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-orange-600" />
+            <span className="font-semibold text-gray-900">Challenge</span>
+          </div>
+          <Button
+            size="sm"
+            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 h-8 px-4 text-sm"
+            onClick={() => !isJoined && setSelectedChallenge(challenge)}
+            disabled={isJoined}
+          >
+            {isJoined ? "Joined" : "Join Now"}
+          </Button>
         </div>
+      </div>
 
-        <div className="relative z-10 container mx-auto px-4 py-12 md:py-16">
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
-            {challenge.difficulty && (
-              <Badge className="bg-white/20 hover:bg-white/30 text-white border-0 px-3 py-1">
-                {challenge.difficulty.charAt(0).toUpperCase() + challenge.difficulty.slice(1)}
-              </Badge>
-            )}
-            {challenge.category && (
-              <Badge className="bg-white/20 hover:bg-white/30 text-white border-0 px-3 py-1">
-                {challenge.category}
-              </Badge>
-            )}
-            {communityName && (
-              <Badge className="bg-white/20 hover:bg-white/30 text-white border-0 px-3 py-1">
-                {communityName}
-              </Badge>
-            )}
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white text-center mb-4 px-4">
-            {challenge.title}
-          </h1>
-          <p className="text-base md:text-lg text-white/95 text-center max-w-3xl mx-auto mb-8 px-4">
-            {challenge.description}
-          </p>
-
-          <div className="max-w-2xl mx-auto mb-6">
-            <p className="text-center text-white/90 text-sm mb-3">{countdownLabel}</p>
-            <div className="grid grid-cols-4 gap-2 sm:gap-3">
-              {[
-                { label: "Days", value: timeLeft.days },
-                { label: "Hours", value: timeLeft.hours },
-                { label: "Min", value: timeLeft.minutes },
-                { label: "Sec", value: timeLeft.seconds },
-              ].map((item) => (
-                <div key={item.label} className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
-                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white font-mono">
-                    {String(Math.max(0, item.value)).padStart(2, "0")}
+      {/* Hero Section */}
+      <div className="bg-gradient-to-br from-orange-50 via-white to-orange-50">
+        <div className="container mx-auto px-4 py-12 md:py-16">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-start max-w-7xl mx-auto">
+            {/* Left: Image */}
+            {challenge.thumbnail && (
+              <div className="order-2 lg:order-1 lg:sticky lg:top-24">
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white ring-2 ring-orange-100">
+                  <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+                    <Image
+                      src={challenge.thumbnail}
+                      alt={challenge.title}
+                      fill
+                      className="object-cover"
+                      priority
+                      sizes="(max-width: 1024px) 100vw, 50vw"
+                    />
                   </div>
-                  <div className="text-xs text-white/80 mt-1">{item.label}</div>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            )}
 
-          <div className="flex items-center justify-center gap-4 sm:gap-6 text-white/90 text-sm flex-wrap">
-            <div className="flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              <span>{participantsCount} joined</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
-              <span>{durationLabel}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Star className="h-4 w-4" />
-              <span>{averageRating > 0 ? averageRating.toFixed(1) : "No ratings"}</span>
+            {/* Right: Content */}
+            <div className="order-1 lg:order-2 space-y-5">
+              {/* Badges */}
+              <div className="flex flex-wrap items-center gap-2">
+                {challenge.difficulty && (
+                  <Badge className="bg-orange-100 text-orange-700 border border-orange-200 px-4 py-1.5 text-xs font-semibold">
+                    {challenge.difficulty.charAt(0).toUpperCase() + challenge.difficulty.slice(1)}
+                  </Badge>
+                )}
+                {challenge.category && (
+                  <Badge className="bg-blue-100 text-blue-700 border border-blue-200 px-4 py-1.5 text-xs font-semibold">
+                    {challenge.category}
+                  </Badge>
+                )}
+                {communityName && (
+                  <Badge className="bg-purple-100 text-purple-700 border border-purple-200 px-4 py-1.5 text-xs font-semibold">
+                    {communityName}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Title */}
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-900 leading-tight">
+                {challenge.title}
+              </h1>
+
+              {/* Description */}
+              <p className="text-base text-gray-600 leading-relaxed">
+                {challenge.description}
+              </p>
+
+              {/* Stats */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-full shadow-sm border border-gray-200">
+                  <Users className="h-4 w-4 text-orange-600" />
+                  <span className="font-bold text-gray-900 text-sm">{participantsCount}</span>
+                  <span className="text-sm text-gray-600">joined</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-full shadow-sm border border-gray-200">
+                  <Clock className="h-4 w-4 text-orange-600" />
+                  <span className="font-semibold text-gray-900 text-sm">{durationLabel}</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-full shadow-sm border border-gray-200">
+                  <Star className="h-4 w-4 text-orange-600 fill-orange-600" />
+                  <span className="font-bold text-gray-900 text-sm">
+                    {averageRating > 0 ? averageRating.toFixed(1) : "New"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Countdown Timer - Compact */}
+              <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 shadow-lg">
+                <p className="text-center text-white font-semibold text-xs uppercase tracking-wider mb-3">
+                  {countdownLabel}
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { label: "Days", value: timeLeft.days },
+                    { label: "Hours", value: timeLeft.hours },
+                    { label: "Min", value: timeLeft.minutes },
+                    { label: "Sec", value: timeLeft.seconds },
+                  ].map((item) => (
+                    <div key={item.label} className="bg-white/20 backdrop-blur-sm rounded-lg p-2 text-center border border-white/30">
+                      <div className="text-2xl font-bold text-white font-mono leading-none mb-1">
+                        {String(Math.max(0, item.value)).padStart(2, "0")}
+                      </div>
+                      <div className="text-xs text-white/90 font-medium uppercase">{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* CTA Button */}
+              <div className="pt-2">
+                <Button
+                  size="lg"
+                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all group"
+                  onClick={() => !isJoined && setSelectedChallenge(challenge)}
+                  disabled={isJoined}
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    {isJoined ? "Already Joined" : paymentAmount > 0 ? `Join for $${paymentAmount}` : "Join Free Challenge"}
+                    {!isJoined && <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />}
+                  </span>
+                </Button>
+                {userProgress !== null && (
+                  <div className="mt-3 text-center text-sm text-emerald-600 font-semibold">
+                    Your progress: {userProgress}%
+                  </div>
+                )}
+              </div>
+
+              {/* Pricing Info - Compact */}
+              {paymentAmount > 0 && (
+                <div className="flex items-center justify-between gap-4 pt-2">
+                  <div className="flex-1 p-3 rounded-lg bg-gray-50 border border-gray-200 text-center">
+                    <p className="text-xs text-gray-600 mb-1">You pay</p>
+                    <p className="text-lg font-bold text-gray-900">${paymentAmount}</p>
+                  </div>
+                  <div className="flex-1 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-center">
+                    <p className="text-xs text-emerald-700 mb-1">Earn back</p>
+                    <p className="text-lg font-bold text-emerald-600">${completionReward}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 bg-gray-50 py-8 md:py-12">
+      <div className="flex-1 bg-gray-50 py-12">
         <div className="container mx-auto px-4 max-w-6xl">
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              {challenge.thumbnail && (
-                <div className="rounded-xl overflow-hidden shadow-lg bg-white border border-gray-200">
-                  <Image
-                    src={challenge.thumbnail}
-                    alt={challenge.title}
-                    width={1200}
-                    height={700}
-                    className="w-full h-auto object-cover"
-                    priority
-                  />
-                </div>
-              )}
-
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
               <Card className="shadow-sm border border-gray-200">
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-orange-600" />
+                <CardContent className="p-8">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                    <CheckCircle2 className="h-6 w-6 text-orange-600" />
                     What&apos;s Included
                   </h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3 text-gray-700">
-                      <div className="w-1.5 h-1.5 rounded-full bg-orange-600" />
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 text-gray-700 text-base">
+                      <div className="w-2 h-2 rounded-full bg-orange-600 flex-shrink-0" />
                       <span>{challenge.tasks?.length || 0} daily tasks and deliverables</span>
                     </div>
-                    <div className="flex items-center gap-3 text-gray-700">
-                      <div className="w-1.5 h-1.5 rounded-full bg-orange-600" />
+                    <div className="flex items-center gap-3 text-gray-700 text-base">
+                      <div className="w-2 h-2 rounded-full bg-orange-600 flex-shrink-0" />
                       <span>Progress tracking and challenge analytics</span>
                     </div>
-                    <div className="flex items-center gap-3 text-gray-700">
-                      <div className="w-1.5 h-1.5 rounded-full bg-orange-600" />
+                    <div className="flex items-center gap-3 text-gray-700 text-base">
+                      <div className="w-2 h-2 rounded-full bg-orange-600 flex-shrink-0" />
                       <span>Community support from {participantsCount}+ members</span>
                     </div>
-                    <div className="flex items-center gap-3 text-gray-700">
-                      <div className="w-1.5 h-1.5 rounded-full bg-orange-600" />
+                    <div className="flex items-center gap-3 text-gray-700 text-base">
+                      <div className="w-2 h-2 rounded-full bg-orange-600 flex-shrink-0" />
                       <span>{challenge.resources?.length || 0} curated resources</span>
                     </div>
-                    <div className="flex items-center gap-3 text-gray-700">
-                      <div className="w-1.5 h-1.5 rounded-full bg-orange-600" />
+                    <div className="flex items-center gap-3 text-gray-700 text-base">
+                      <div className="w-2 h-2 rounded-full bg-orange-600 flex-shrink-0" />
                       <span>Completion and top-performer rewards</span>
                     </div>
                   </div>
@@ -518,18 +587,22 @@ export default function ChallengePromoPage() {
 
               {visibleTasks.length > 0 && (
                 <Card className="shadow-sm border border-gray-200">
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <Trophy className="h-5 w-5 text-orange-600" />
+                  <CardContent className="p-8">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                      <Trophy className="h-6 w-6 text-orange-600" />
                       Task Preview
                     </h3>
-                    <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="grid sm:grid-cols-2 gap-4">
                       {visibleTasks.map((task: any) => (
-                        <div key={task.id || task.day} className="rounded-lg border border-gray-200 p-3 bg-white">
-                          <p className="text-xs text-gray-500">Day {task.day}</p>
-                          <p className="font-semibold text-gray-900 line-clamp-1">{task.title}</p>
-                          <p className="text-sm text-gray-600 line-clamp-2 mt-1">{task.description}</p>
-                          <p className="text-xs font-semibold text-orange-600 mt-2">{toNumber(task.points)} pts</p>
+                        <div key={task.id || task.day} className="rounded-xl border border-gray-200 p-4 bg-white hover:shadow-md transition-shadow">
+                          <p className="text-xs text-orange-600 font-semibold mb-1">Day {task.day}</p>
+                          <p className="font-bold text-gray-900 line-clamp-1 text-base mb-2">{task.title}</p>
+                          <p className="text-sm text-gray-600 line-clamp-2 mb-3">{task.description}</p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
+                              {toNumber(task.points)} pts
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -539,12 +612,12 @@ export default function ChallengePromoPage() {
 
               {visibleResources.length > 0 && (
                 <Card className="shadow-sm border border-gray-200">
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <BookOpen className="h-5 w-5 text-orange-600" />
+                  <CardContent className="p-8">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                      <BookOpen className="h-6 w-6 text-orange-600" />
                       Learning Resources
                     </h3>
-                    <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="grid sm:grid-cols-2 gap-4">
                       {visibleResources.map((resource: any, idx: number) => {
                         const Icon = resourceIcons[String(resource?.type || "").toLowerCase()] || FileText
                         return (
@@ -553,12 +626,14 @@ export default function ChallengePromoPage() {
                             href={resource.url}
                             target="_blank"
                             rel="noreferrer"
-                            className="rounded-lg border border-gray-200 p-3 bg-white hover:bg-orange-50 transition-colors"
+                            className="rounded-xl border border-gray-200 p-4 bg-white hover:bg-orange-50 hover:border-orange-200 transition-all group"
                           >
-                            <div className="flex items-start gap-2">
-                              <Icon className="h-4 w-4 text-orange-600 mt-0.5" />
-                              <div className="min-w-0">
-                                <p className="font-semibold text-gray-900 line-clamp-1">{resource.title}</p>
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
+                                <Icon className="h-5 w-5 text-orange-600" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-bold text-gray-900 line-clamp-1 text-base mb-1">{resource.title}</p>
                                 <p className="text-sm text-gray-600 line-clamp-2">{resource.description || resource.url}</p>
                               </div>
                             </div>
@@ -572,16 +647,16 @@ export default function ChallengePromoPage() {
 
               {relatedChallenges.length > 0 && (
                 <Card className="shadow-sm border border-gray-200">
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <Users className="h-5 w-5 text-orange-600" />
+                  <CardContent className="p-8">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                      <Users className="h-6 w-6 text-orange-600" />
                       More Challenges In This Community
                     </h3>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {relatedChallenges.map((item) => (
-                        <div key={item.id} className="rounded-lg border border-gray-200 p-3 bg-white">
-                          <p className="font-semibold text-gray-900">{item.title}</p>
-                          <p className="text-sm text-gray-600 line-clamp-1">{item.description}</p>
+                        <div key={item.id} className="rounded-xl border border-gray-200 p-4 bg-white hover:shadow-md transition-shadow">
+                          <p className="font-bold text-gray-900 text-base mb-1">{item.title}</p>
+                          <p className="text-sm text-gray-600 line-clamp-2">{item.description}</p>
                         </div>
                       ))}
                     </div>
@@ -591,84 +666,85 @@ export default function ChallengePromoPage() {
             </div>
 
             <div className="lg:col-span-1">
-              <div className="sticky top-4">
-                <Card className="shadow-lg border-2 border-orange-200">
-                  <CardContent className="p-6">
-                    <div className="text-center mb-6">
-                      <div className="text-4xl font-bold text-gray-900 mb-1">
+              <div className="sticky top-20">
+                <Card className="shadow-xl border-2 border-orange-200">
+                  <CardContent className="p-8">
+                    <div className="text-center mb-8">
+                      <div className="text-5xl font-bold text-gray-900 mb-2">
                         {paymentAmount > 0 ? `$${paymentAmount}` : "Free"}
                       </div>
-                      <p className="text-gray-600 text-sm">One-time deposit</p>
+                      <p className="text-gray-600 text-base">One-time deposit</p>
                     </div>
 
-                    <div className="space-y-3 mb-6">
+                    <div className="space-y-4 mb-8">
                       {paymentAmount > 0 && (
                         <>
-                          <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                            <span className="text-gray-700 text-sm">You pay</span>
-                            <span className="text-lg font-bold text-gray-900">${paymentAmount}</span>
+                          <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-200">
+                            <span className="text-gray-700 font-medium">You pay</span>
+                            <span className="text-xl font-bold text-gray-900">${paymentAmount}</span>
                           </div>
-                          <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50">
-                            <span className="text-emerald-700 text-sm">You can earn back</span>
-                            <span className="text-lg font-bold text-emerald-600">${completionReward}</span>
+                          <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+                            <span className="text-emerald-700 font-medium">You can earn back</span>
+                            <span className="text-xl font-bold text-emerald-600">${completionReward}</span>
                           </div>
                         </>
                       )}
                     </div>
 
                     <Button
-                      className="w-full h-12 text-base font-bold bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-md hover:shadow-lg transition-all group mb-4"
+                      className="w-full h-14 text-base font-bold bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all group mb-6"
                       onClick={() => !isJoined && setSelectedChallenge(challenge)}
                       disabled={isJoined}
                     >
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center justify-center gap-2">
                         {joinButtonLabel}
-                        {!isJoined && <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />}
+                        {!isJoined && <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />}
                       </span>
                     </Button>
 
-                    <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-                      <Shield className="h-3 w-3" />
+                    <div className="flex items-center justify-center gap-2 text-sm text-gray-500 mb-8">
+                      <Shield className="h-4 w-4" />
                       <span>Secure checkout and payment flow</span>
                     </div>
 
                     {userProgress !== null && (
-                      <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-                        Your progress: <span className="font-semibold">{userProgress}%</span>
+                      <div className="mb-8 rounded-xl border-2 border-emerald-200 bg-emerald-50 px-4 py-3 text-center">
+                        <span className="text-sm text-emerald-700">Your progress: </span>
+                        <span className="text-base font-bold text-emerald-700">{userProgress}%</span>
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-2 mt-6 pt-6 border-t border-gray-200">
+                    <div className="grid grid-cols-2 gap-4 pt-8 border-t border-gray-200">
                       <div className="text-center">
-                        <Calendar className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                        <p className="text-xs text-gray-500">Starts</p>
-                        <p className="text-sm font-semibold text-gray-900">
+                        <Calendar className="h-5 w-5 text-gray-400 mx-auto mb-2" />
+                        <p className="text-xs text-gray-500 mb-1">Starts</p>
+                        <p className="text-sm font-bold text-gray-900">
                           {new Date(challenge.startDate).toLocaleDateString()}
                         </p>
                       </div>
                       <div className="text-center">
-                        <Clock className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                        <p className="text-xs text-gray-500">Duration</p>
-                        <p className="text-sm font-semibold text-gray-900">{durationLabel}</p>
+                        <Clock className="h-5 w-5 text-gray-400 mx-auto mb-2" />
+                        <p className="text-xs text-gray-500 mb-1">Duration</p>
+                        <p className="text-sm font-bold text-gray-900">{durationLabel}</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <div className="grid grid-cols-3 gap-2 mt-4">
-                  <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 text-center">
-                    <div className="text-xl font-bold text-gray-900">{participantsCount}</div>
-                    <div className="text-xs text-gray-600">Members</div>
+                <div className="grid grid-cols-3 gap-3 mt-6">
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 text-center">
+                    <div className="text-2xl font-bold text-gray-900 mb-1">{participantsCount}</div>
+                    <div className="text-xs text-gray-600 font-medium">Members</div>
                   </div>
-                  <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 text-center">
-                    <div className="text-xl font-bold text-gray-900">{completionRate}%</div>
-                    <div className="text-xs text-gray-600">Completion</div>
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 text-center">
+                    <div className="text-2xl font-bold text-gray-900 mb-1">{completionRate}%</div>
+                    <div className="text-xs text-gray-600 font-medium">Completion</div>
                   </div>
-                  <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 text-center">
-                    <div className="text-xl font-bold text-gray-900">
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 text-center">
+                    <div className="text-2xl font-bold text-gray-900 mb-1">
                       {averageRating > 0 ? averageRating.toFixed(1) : "-"}
                     </div>
-                    <div className="text-xs text-gray-600">Rating</div>
+                    <div className="text-xs text-gray-600 font-medium">Rating</div>
                   </div>
                 </div>
               </div>
