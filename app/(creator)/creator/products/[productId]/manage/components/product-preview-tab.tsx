@@ -1,10 +1,11 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Star, CheckCircle } from "lucide-react"
-import Image from "next/image"
 import { FileText, FileArchive, FileAudio, FileVideo, FileInput, Box } from "lucide-react"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 import { useProductForm } from "./product-form-context"
 
 function getFileTypeIcon(type: string) {
@@ -20,6 +21,13 @@ function getFileTypeIcon(type: string) {
 
 export function ProductPreviewTab() {
   const { formData } = useProductForm()
+  const [imageLoadError, setImageLoadError] = useState(false)
+  const thumbnail = Array.isArray(formData.images) ? (formData.images[0] || "") : ""
+  const previewImageSrc = resolveImageUrl(thumbnail) || thumbnail
+
+  useEffect(() => {
+    setImageLoadError(false)
+  }, [previewImageSrc])
 
   return (
     <Card>
@@ -32,13 +40,20 @@ export function ProductPreviewTab() {
           <div className="flex flex-col md:flex-row gap-6">
             <div className="md:w-1/3">
               <div className="aspect-square bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg flex items-center justify-center">
-                <Image
-                  src="/placeholder.svg?height=400&width=400&query=product"
-                  alt="Product preview"
-                  width={400}
-                  height={400}
-                  className="object-contain p-4"
-                />
+                {previewImageSrc && !imageLoadError ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={previewImageSrc}
+                    alt={formData.title || "Product preview"}
+                    className="h-full w-full object-cover rounded-lg"
+                    onError={() => setImageLoadError(true)}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center p-6">
+                    <Box className="h-10 w-10 text-gray-400 mb-2" />
+                    <span className="text-sm text-gray-500">No thumbnail preview</span>
+                  </div>
+                )}
               </div>
             </div>
             <div className="md:w-2/3 space-y-4">

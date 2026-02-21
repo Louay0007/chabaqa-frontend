@@ -126,6 +126,8 @@ function transformBooking(backendBooking: any, session?: any): BookingWithSessio
     id: String(backendBooking._id || backendBooking.id || ''),
     userId: String(backendBooking.userId?._id || backendBooking.userId || ''),
     sessionId: String(backendBooking.sessionId?._id || backendBooking.sessionId || ''),
+    creatorId: String(backendBooking.creatorId || ''),
+    communityId: String(backendBooking.communityId || ''),
     scheduledAt: backendBooking.scheduledAt || new Date().toISOString(),
     status: backendBooking.status || 'pending',
     meetingUrl: backendBooking.meetingUrl || undefined,
@@ -218,6 +220,8 @@ export const sessionsCommunityApi = {
         return {
           id: booking.id || '',
           sessionId: booking.sessionId || '',
+          creatorId: booking.creatorId || '',
+          communityId: booking.communityId || '',
           userId: booking.userId || '',
           scheduledAt: booking.scheduledAt || new Date().toISOString(),
           status: booking.status || 'pending',

@@ -156,28 +156,51 @@ const errorMappings: ErrorMapping[] = [
  */
 export function mapErrorMessage(error: any): { message: string; guidance?: string } {
   // Extract error message from various error formats
-  let errorMessage = '';
+  let errorMessage: unknown = '';
+
+  const toSafeString = (value: unknown): string => {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (Array.isArray(value)) return value.map((item) => toSafeString(item)).filter(Boolean).join(', ');
+    if (value && typeof value === 'object') {
+      const obj = value as Record<string, unknown>;
+      // Common backend error envelope: { error: { code, message } }
+      if (typeof obj.message === 'string') return obj.message;
+      if (obj.error !== undefined) return toSafeString(obj.error);
+      if (typeof obj.code === 'string') return obj.code;
+      try {
+        return JSON.stringify(obj);
+      } catch {
+        return '';
+      }
+    }
+    return '';
+  };
   
   if (typeof error === 'string') {
     errorMessage = error;
   } else if (error?.message) {
-    errorMessage = Array.isArray(error.message) ? error.message.join(', ') : error.message;
+    errorMessage = error.message;
+  } else if (error?.error?.message) {
+    errorMessage = error.error.message;
   } else if (error?.error) {
-    errorMessage = Array.isArray(error.error) ? error.error.join(', ') : error.error;
+    errorMessage = error.error;
   } else if (error?.data?.message) {
-    errorMessage = Array.isArray(error.data.message)
-      ? error.data.message.join(', ')
-      : error.data.message;
+    errorMessage = error.data.message;
+  } else if (error?.data?.error?.message) {
+    errorMessage = error.data.error.message;
   } else if (error?.response?.data?.message) {
-    errorMessage = Array.isArray(error.response.data.message)
-      ? error.response.data.message.join(', ')
-      : error.response.data.message;
+    errorMessage = error.response.data.message;
+  } else if (error?.response?.data?.error?.message) {
+    errorMessage = error.response.data.error.message;
   } else {
     errorMessage = 'An unexpected error occurred';
   }
 
+  const normalizedErrorMessage = toSafeString(errorMessage) || 'An unexpected error occurred';
+
   // Normalize the error message (lowercase for matching)
-  const normalizedMessage = String(errorMessage).toLowerCase();
+  const normalizedMessage = normalizedErrorMessage.toLowerCase();
 
   // Find matching error pattern
   for (const mapping of errorMappings) {
@@ -185,7 +208,7 @@ export function mapErrorMessage(error: any): { message: string; guidance?: strin
       ? new RegExp(mapping.pattern, 'i')
       : mapping.pattern;
     
-    if (pattern.test(normalizedMessage) || pattern.test(errorMessage)) {
+    if (pattern.test(normalizedMessage) || pattern.test(normalizedErrorMessage)) {
       return {
         message: mapping.message,
         guidance: mapping.guidance
@@ -195,7 +218,7 @@ export function mapErrorMessage(error: any): { message: string; guidance?: strin
 
   // If no mapping found, return the original message or a generic one
   return {
-    message: errorMessage || 'An error occurred. Please try again.',
+    message: normalizedErrorMessage || 'An error occurred. Please try again.',
     guidance: 'If this problem persists, please contact support.'
   };
 }

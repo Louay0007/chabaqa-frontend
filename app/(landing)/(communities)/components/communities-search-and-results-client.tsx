@@ -462,7 +462,12 @@ const handleFilterChange = <K extends keyof Omit<SearchFilters, "quickFilters">>
               }`}
             >
               {paginatedCommunities.map((community) => (
-                <CommunityCard key={community.id} community={community} viewMode={viewMode} />
+                <CommunityCard
+                  key={community.id}
+                  community={community}
+                  viewMode={viewMode}
+                  accessAware={true}
+                />
               ))}
             </div>
 

@@ -1,9 +1,15 @@
+"use client"
+
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { CalendarIcon, Clock, DollarSign, Video, MessageSquare, Plus } from "lucide-react"
 import { format } from "date-fns"
+import { useState } from "react"
+import { useToast } from "@/hooks/use-toast"
+import { api } from "@/lib/api"
+import { getErrorMessage } from "@/lib/utils/error-messages"
 
 interface BookedSessionsProps {
   setActiveTab: (tab: string) => void
@@ -11,10 +17,58 @@ interface BookedSessionsProps {
 }
 
 export default function BookedSessions({ setActiveTab, userBookings }: BookedSessionsProps) {
+  const { toast } = useToast()
+  const [openingChatBookingId, setOpeningChatBookingId] = useState<string | null>(null)
+
   // Filter out cancelled bookings
   const activeBookings = userBookings?.filter(b => 
     b.status !== 'cancelled'
   ) || []
+
+  const getSessionEndTime = (booking: any, session: any): Date => {
+    const scheduledAt = new Date(booking?.scheduledAt)
+    const durationMinutes = Number(session?.duration || booking?.sessionDuration || 60)
+    return new Date(scheduledAt.getTime() + durationMinutes * 60 * 1000)
+  }
+
+  const handleMessageMentor = async (booking: any, session: any) => {
+    if (booking?.status !== "confirmed") {
+      toast({
+        title: "Chat unavailable",
+        description: "Mentor chat is available only for confirmed bookings.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const sessionEnd = getSessionEndTime(booking, session)
+    if (Date.now() >= sessionEnd.getTime()) {
+      toast({
+        title: "Chat closed",
+        description: "This session chat is closed because the session has finished.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setOpeningChatBookingId(String(booking.id))
+      const result = await api.dm.startSessionConversation(String(booking.id))
+      const conversationId = result?.conversation?.id
+      if (!conversationId) {
+        throw new Error("Conversation could not be opened")
+      }
+      window.dispatchEvent(new CustomEvent("open-dm", { detail: { conversationId } }))
+    } catch (error: any) {
+      toast({
+        title: "Failed to open mentor chat",
+        description: getErrorMessage(error) || "Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setOpeningChatBookingId(null)
+    }
+  }
 
   if (activeBookings.length > 0) {
     return (
@@ -22,6 +76,10 @@ export default function BookedSessions({ setActiveTab, userBookings }: BookedSes
         {activeBookings.map((booking) => {
           const session = booking.session
           const scheduledAt = new Date(booking.scheduledAt)
+          const sessionEnd = getSessionEndTime(booking, session)
+          const isSessionEnded = Date.now() >= sessionEnd.getTime()
+          const canMessageMentor = booking.status === "confirmed" && !isSessionEnded
+          const isOpeningChat = openingChatBookingId === String(booking.id)
           const mentor = session?.mentor || {
             name: session?.creatorName || 'Unknown',
             avatar: session?.creatorAvatar || undefined,
@@ -91,14 +149,29 @@ export default function BookedSessions({ setActiveTab, userBookings }: BookedSes
                           </a>
                         </Button>
                       )}
-                      <Button variant="outline" className="flex-1 bg-transparent">
+                      <Button
+                        variant="outline"
+                        className="flex-1 bg-transparent"
+                        disabled={!canMessageMentor || isOpeningChat}
+                        onClick={() => void handleMessageMentor(booking, session)}
+                      >
                         <MessageSquare className="h-4 w-4 mr-2" />
-                        Message Mentor
+                        {isOpeningChat ? "Opening chat..." : "Message Mentor"}
                       </Button>
                     </div>
                     {booking.status === "confirmed" && !booking.meetingUrl && (
                       <p className="text-xs text-muted-foreground mt-2">
                         Meeting link is being prepared. It will appear here automatically.
+                      </p>
+                    )}
+                    {booking.status !== "confirmed" && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Mentor chat becomes available once the booking is confirmed.
+                      </p>
+                    )}
+                    {booking.status === "confirmed" && isSessionEnded && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Chat closed after session ended.
                       </p>
                     )}
                   </div>

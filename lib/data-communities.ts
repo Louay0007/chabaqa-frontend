@@ -100,10 +100,12 @@ export const mockPosts = [
 // communitiesData.ts
 export type Explore = {
   id: string
+  mongoId?: string
   type: "community" | "course" | "challenge" | "product" | "oneToOne" | "event"
   name: string
   slug: string
   creator: string
+  creatorSlug?: string
   creatorAvatar: string
   description: string
   category: string
@@ -117,6 +119,7 @@ export type Explore = {
   featured: boolean;
   link: string
   isMember?: boolean
+  hasContentAccess?: boolean
   communityName?: string // Community name for non-community content types
   communitySlug?: string // Community slug for non-community content types
 }

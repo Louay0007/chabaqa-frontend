@@ -26,19 +26,17 @@ export interface CreateProductData {
   communityId: string;
   category: string;
   type?: 'digital' | 'physical';
+  isPublished?: boolean;
   inventory?: number;
   images?: string[];
   variants?: CreateProductVariantData[];
   files?: CreateProductFileData[];
   licenseTerms?: string;
-  isRecurring?: boolean;
-  recurringInterval?: 'month' | 'year' | 'week';
   features?: string[];
 }
 
 export interface UpdateProductData extends Partial<CreateProductData> {
   isPublished?: boolean;
-  isActive?: boolean;
 }
 
 export interface CreateVariantData {

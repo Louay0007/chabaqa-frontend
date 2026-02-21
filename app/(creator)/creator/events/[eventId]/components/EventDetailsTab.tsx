@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Upload } from "lucide-react"
-import Image from "next/image"
 import { Event } from "@/lib/models"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 interface EventDetailsTabProps {
   event: Event
@@ -19,6 +19,13 @@ interface EventDetailsTabProps {
 }
 
 export default function EventDetailsTab({ event, onUpdateEvent }: EventDetailsTabProps) {
+  const [imageLoadError, setImageLoadError] = useState(false)
+  const eventImageSrc = resolveImageUrl(event.image) || event.image
+
+  useEffect(() => {
+    setImageLoadError(false)
+  }, [eventImageSrc])
+
   const handleInputChange = (field: string, value: any) => {
     onUpdateEvent({ [field]: value })
   }
@@ -190,13 +197,12 @@ export default function EventDetailsTab({ event, onUpdateEvent }: EventDetailsTa
           <CardContent>
             <div className="space-y-4">
               <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
-                {event.image ? (
-                  <Image
-                    src={event.image || "/placeholder.svg"}
+                {eventImageSrc && !imageLoadError ? (
+                  <img
+                    src={eventImageSrc}
                     alt={event.title}
-                    width={300}
-                    height={200}
                     className="w-full h-full object-cover rounded-lg"
+                    onError={() => setImageLoadError(true)}
                   />
                 ) : (
                   <div className="text-center">

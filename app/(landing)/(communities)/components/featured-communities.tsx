@@ -96,7 +96,12 @@ export function FeaturedCommunities({ communities }: FeaturedCommunitiesProps) {
                 key={community.id} 
                 className="flex-shrink-0 w-64 sm:w-72 snap-center"
               >
-                <FeaturedCommunityCard community={community} index={index} slug={community.slug} />
+                <FeaturedCommunityCard
+                  community={community}
+                  index={index}
+                  slug={community.slug}
+                  accessAware={true}
+                />
               </div>
             ))}
           </div>

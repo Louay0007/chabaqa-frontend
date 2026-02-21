@@ -53,8 +53,6 @@ export interface ProductWithDetails {
   ratingCount?: number;
   isPublished: boolean;
   inventory?: number;
-  isRecurring?: boolean;
-  recurringInterval?: string;
   creator: ProductCreator;
   community: ProductCommunity;
   createdAt: string;
@@ -144,8 +142,6 @@ function transformProduct(backendProduct: any): ProductWithDetails {
     ratingCount: backendProduct.ratingCount || 0,
     isPublished: backendProduct.isPublished !== false,
     inventory: backendProduct.inventory,
-    isRecurring: backendProduct.isRecurring,
-    recurringInterval: backendProduct.recurringInterval,
     creator,
     community,
     createdAt: backendProduct.createdAt || new Date().toISOString(),

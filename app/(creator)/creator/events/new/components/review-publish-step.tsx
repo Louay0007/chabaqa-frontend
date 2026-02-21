@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react"
 import { format } from "date-fns"
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Calendar as CalendarIcon, MapPin, Mic, Eye } from "lucide-react"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 interface ReviewPublishStepProps {
   formData: any
@@ -18,6 +20,13 @@ export function ReviewPublishStep({
   startDate,
   endDate
 }: ReviewPublishStepProps) {
+  const [imageLoadError, setImageLoadError] = useState(false)
+  const previewImageSrc = resolveImageUrl(formData.image) || formData.image
+
+  useEffect(() => {
+    setImageLoadError(false)
+  }, [previewImageSrc])
+
   return (
     <EnhancedCard>
       <CardHeader>
@@ -91,9 +100,20 @@ export function ReviewPublishStep({
             <div>
               <h3 className="font-semibold mb-3">Event Preview</h3>
               <div className="border rounded-lg p-4 bg-gradient-to-r from-events-50 to-blue-50">
-                <div className="w-full h-32 bg-gray-200 rounded mb-3 flex items-center justify-center">
-                  <span className="text-gray-500">Event Image</span>
-                </div>
+                {previewImageSrc && !imageLoadError ? (
+                  <div className="w-full h-32 rounded mb-3 overflow-hidden bg-gray-100">
+                    <img
+                      src={previewImageSrc}
+                      alt={formData.title || "Event preview"}
+                      className="w-full h-full object-cover"
+                      onError={() => setImageLoadError(true)}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-32 bg-gray-200 rounded mb-3 flex items-center justify-center">
+                    <span className="text-gray-500">Event Image</span>
+                  </div>
+                )}
                 <h4 className="font-semibold text-lg">{formData.title || "Event Title"}</h4>
                 <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                   {formData.description || "Event description will appear here..."}

@@ -56,11 +56,6 @@ export function ReviewStep() {
                 <div>
                   <strong>Base Price:</strong> {formData.price ? `${formData.currency} ${formData.price}` : "Free"}
                 </div>
-                {formData.isRecurring && (
-                  <div>
-                    <strong>Billing:</strong> Recurring ({formData.recurringInterval})
-                  </div>
-                )}
               </div>
             </div>
 

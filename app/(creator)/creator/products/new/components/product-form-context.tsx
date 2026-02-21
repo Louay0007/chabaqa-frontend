@@ -1,8 +1,7 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useState } from "react"
 import { useRouter } from "next/navigation"
-import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { productsApi, type CreateProductData } from "@/lib/api/products.api"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
@@ -20,6 +19,9 @@ interface DownloadFileForm {
   url: string
   type: string
   size?: string
+  description?: string
+  order?: number
+  isActive?: boolean
 }
 
 interface ValidationErrors {
@@ -73,8 +75,6 @@ export function ProductFormProvider({ children }: { children: React.ReactNode })
     variants: [] as ProductVariantForm[],
     files: [] as DownloadFileForm[],
     licenseTerms: "",
-    isRecurring: false,
-    recurringInterval: "month",
   })
 
   const handleInputChange = (field: string, value: any) => {
@@ -133,6 +133,11 @@ export function ProductFormProvider({ children }: { children: React.ReactNode })
       }
     } else if (step === 3) {
       // Delivery validation - files are optional but validated if provided
+      const requiresFiles = formData.type === "digital" && Number(formData.price || 0) > 0
+      if (requiresFiles && (!formData.files || formData.files.length === 0)) {
+        newErrors.files = "Au moins un fichier est requis pour un produit digital payant"
+      }
+
       if (formData.files && formData.files.length > 0) {
         formData.files.forEach((file: DownloadFileForm, index: number) => {
           if (!file.name?.trim()) {
@@ -143,6 +148,7 @@ export function ProductFormProvider({ children }: { children: React.ReactNode })
           }
         })
       }
+
     }
 
     setErrors(newErrors)
@@ -289,6 +295,7 @@ const handleArrayChange = (field: string, index: number, value: string) => {
         communityId,
         category: formData.category || 'General',
         type: formData.type as 'digital' | 'physical',
+        isPublished: Boolean(formData.isPublished),
         ...(formData.thumbnail && { images: [formData.thumbnail] }),
         ...(formData.variants && formData.variants.length > 0 && {
           variants: formData.variants.map((v: any) => ({
@@ -310,8 +317,6 @@ const handleArrayChange = (field: string, index: number, value: string) => {
           }))
         }),
         ...(formData.licenseTerms && { licenseTerms: formData.licenseTerms.trim() }),
-        ...(formData.isRecurring && { isRecurring: true }),
-        ...(formData.isRecurring && formData.recurringInterval && { recurringInterval: formData.recurringInterval as CreateProductData['recurringInterval'] }),
         ...(Array.isArray(formData.features) && formData.features.filter(Boolean).length > 0 && {
           features: formData.features.filter(Boolean).map((f: string) => f.trim())
         }),
@@ -323,7 +328,7 @@ const handleArrayChange = (field: string, index: number, value: string) => {
       console.log('✅ Product created:', created)
       toast({ title: 'Product created', description: payload.title })
       const id = created?.id || created?._id || created?.product?.id || created?.product?._id
-      if (id) router.push(`/creator/products/${id}`)
+      if (id) router.push(`/creator/products/${id}/manage`)
       else router.push('/creator/products')
     } catch (e: any) {
       console.error('❌ Product creation error:', e)

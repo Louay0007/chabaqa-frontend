@@ -21,9 +21,12 @@ import Link from "next/link"
 import Image from "next/image"
 import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { useRouter } from "next/navigation"
+import { invalidateCommunityCache } from "@/app/(creator)/creator/context/community-switch-cache"
 
 export default function CommunitiesPage() {
   const { toast } = useToast()
+  const router = useRouter()
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [searchQuery, setSearchQuery] = useState("")
   const [visibilityStates, setVisibilityStates] = useState<Record<string, boolean>>({})
@@ -131,7 +134,32 @@ export default function CommunitiesPage() {
 
     setIsDeleting(true)
     try {
-      await api.communities.delete(communityId as any)
+      const communityToDelete = communities.find((c) => String(c.id) === String(communityId))
+      const deleteCandidates = Array.from(
+        new Set(
+          [
+            String(communityId || "").trim(),
+            String(communityToDelete?.raw?._id || "").trim(),
+            String(communityToDelete?.slug || "").trim(),
+          ].filter(Boolean),
+        ),
+      )
+
+      let deleted = false
+      let lastError: any = null
+      for (const candidate of deleteCandidates) {
+        try {
+          await api.communities.delete(candidate as any)
+          deleted = true
+          break
+        } catch (error) {
+          lastError = error
+        }
+      }
+
+      if (!deleted) {
+        throw lastError || new Error("Failed to delete community")
+      }
 
       setCommunities((prev) => prev.filter((c) => String(c.id) !== String(communityId)))
       setVisibilityStates((prev) => {
@@ -139,12 +167,14 @@ export default function CommunitiesPage() {
         delete next[String(communityId)]
         return next
       })
+      invalidateCommunityCache(String(communityId))
 
       toast({
         title: "Success",
         description: "Community deleted successfully",
       })
       setDeleteCommunityId(null)
+      router.refresh()
     } catch (e: any) {
       toast({
         title: "Error",

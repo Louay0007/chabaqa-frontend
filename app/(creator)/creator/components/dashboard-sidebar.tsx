@@ -1,7 +1,6 @@
 
 
-
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -39,6 +38,7 @@ import {
   SelectItem,
 } from "@/components/ui/select"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { prefetchCommunity } from "@/app/(creator)/creator/context/community-switch-cache"
 import type { Community } from "@/lib/api/types"
 
 interface DashboardSidebarProps {
@@ -70,6 +70,17 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
     setSelectedCommunityId(communityId)
     // Context update triggers dashboard useEffect to reload data automatically
   }
+
+  const prefetchLikelyCommunities = useCallback(() => {
+    const idsToPrefetch = communities
+      .map((community) => getCommunityId(community))
+      .filter((id) => Boolean(id) && id !== selectedCommunityId)
+      .slice(0, 2)
+
+    idsToPrefetch.forEach((communityId) => {
+      void prefetchCommunity(communityId)
+    })
+  }, [communities, selectedCommunityId])
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => (prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]))
@@ -209,6 +220,9 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
               <Select
                 onValueChange={handleCommunityChange}
                 value={selectedCommunityId || undefined}
+                onOpenChange={(open) => {
+                  if (open) prefetchLikelyCommunities()
+                }}
               >
                 <SelectTrigger className="w-full h-8 text-xs">
                   <SelectValue placeholder="Select Community" />

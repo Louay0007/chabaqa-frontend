@@ -2,11 +2,24 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useAuthContext } from "@/app/providers/auth-provider"
-import { communitiesApi } from "@/lib/api"
+import {
+  communitiesApi,
+  coursesApi,
+  challengesApi,
+  productsApi,
+  sessionsApi,
+  eventsApi,
+} from "@/lib/api"
 import { FeaturedCommunities } from "@/app/(landing)/(communities)/components/featured-communities"
 import { CommunitiesSearchSection } from "@/app/(landing)/(communities)/components/communities-search-section"
 import { CommunitiesCTA } from "@/app/(landing)/(communities)/components/communities-cta"
 import { Explore } from "@/lib/data-communities"
+import {
+  buildExploreAccessSnapshot,
+  createEmptyExploreAccessSnapshot,
+  enrichExploreItemsWithAccess,
+  type ExploreAccessSnapshot,
+} from "./explore-access"
 
 interface ExplorePageClientProps {
     communities: Explore[]
@@ -14,44 +27,72 @@ interface ExplorePageClientProps {
 
 export function ExplorePageClient({ communities }: ExplorePageClientProps) {
     const { user, isAuthenticated, loading: authLoading } = useAuthContext()
-    const [joinedCommunityIds, setJoinedCommunityIds] = useState<Set<string>>(new Set())
-    const [loadingMemberships, setLoadingMemberships] = useState(false)
+    const [accessSnapshot, setAccessSnapshot] = useState<ExploreAccessSnapshot>(
+        () => createEmptyExploreAccessSnapshot(),
+    )
 
-    // Fetch user's joined communities when authenticated
+    // Fetch joined/access snapshots when authenticated.
     useEffect(() => {
-        async function fetchJoinedCommunities() {
+        let isMounted = true
+
+        async function fetchAccessSnapshot() {
             if (!isAuthenticated || !user) {
-                setJoinedCommunityIds(new Set())
+                if (isMounted) {
+                    setAccessSnapshot(createEmptyExploreAccessSnapshot())
+                }
                 return
             }
 
-            setLoadingMemberships(true)
             try {
-                const response = await communitiesApi.getMyJoined()
-                const joinedIds = new Set(
-                    (response.data || []).map((c: any) => c.id || c._id)
-                )
-                setJoinedCommunityIds(joinedIds)
+                const [
+                    joinedCommunities,
+                    courseEnrollments,
+                    challengeParticipations,
+                    productPurchases,
+                    sessionBookings,
+                    eventRegistrations,
+                ] = await Promise.allSettled([
+                    communitiesApi.getMyJoined(),
+                    coursesApi.getMyEnrollments(),
+                    challengesApi.getMyParticipations(),
+                    productsApi.getMyPurchases(),
+                    sessionsApi.getUserBookings(),
+                    eventsApi.getMyRegistrations(),
+                ])
+
+                const snapshot = buildExploreAccessSnapshot({
+                    joinedCommunities: joinedCommunities.status === "fulfilled" ? joinedCommunities.value : undefined,
+                    courseEnrollments: courseEnrollments.status === "fulfilled" ? courseEnrollments.value : undefined,
+                    challengeParticipations: challengeParticipations.status === "fulfilled" ? challengeParticipations.value : undefined,
+                    productPurchases: productPurchases.status === "fulfilled" ? productPurchases.value : undefined,
+                    sessionBookings: sessionBookings.status === "fulfilled" ? sessionBookings.value : undefined,
+                    eventRegistrations: eventRegistrations.status === "fulfilled" ? eventRegistrations.value : undefined,
+                })
+
+                if (isMounted) {
+                    setAccessSnapshot(snapshot)
+                }
             } catch (error) {
-                console.error("Failed to fetch joined communities:", error)
-                setJoinedCommunityIds(new Set())
-            } finally {
-                setLoadingMemberships(false)
+                console.error("Failed to fetch explore access snapshot:", error)
+                if (isMounted) {
+                    setAccessSnapshot(createEmptyExploreAccessSnapshot())
+                }
             }
         }
 
         if (!authLoading) {
-            fetchJoinedCommunities()
+            fetchAccessSnapshot()
+        }
+
+        return () => {
+            isMounted = false
         }
     }, [isAuthenticated, user, authLoading])
 
-    // Enrich communities with isMember flag
+    // Enrich items with membership and strict access flags.
     const enrichedCommunities = useMemo(() => {
-        return communities.map(community => ({
-            ...community,
-            isMember: joinedCommunityIds.has(community.id)
-        }))
-    }, [communities, joinedCommunityIds])
+        return enrichExploreItemsWithAccess(communities, accessSnapshot)
+    }, [communities, accessSnapshot])
 
     return (
         <>

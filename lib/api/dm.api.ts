@@ -141,13 +141,19 @@ export const dmApi = {
     return { conversation: normalizeConversation(conv) };
   },
 
+  startSessionConversation: async (bookingId: string): Promise<{ conversation: Conversation }> => {
+    const res = await apiClient.post<any>('/dm/session/start', { bookingId });
+    const conv = extractConversationPayload(res);
+    return { conversation: normalizeConversation(conv) };
+  },
+
   startHelpConversation: async (): Promise<{ conversation: Conversation }> => {
     const res = await apiClient.post<any>('/dm/help/start');
     const conv = extractConversationPayload(res);
     return { conversation: normalizeConversation(conv) };
   },
 
-  listInbox: async (params?: { type?: 'community' | 'help' | 'peer'; page?: number; limit?: number }): Promise<InboxResponse> => {
+  listInbox: async (params?: { type?: 'community' | 'help' | 'peer' | 'session'; page?: number; limit?: number }): Promise<InboxResponse> => {
     const res = await apiClient.get<any>('/dm/inbox', params);
     // Handle response wrapped in { success, data } structure
     const data = res?.data ?? res;

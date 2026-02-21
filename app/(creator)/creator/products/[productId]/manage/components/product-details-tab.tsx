@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Upload, Plus, X } from "lucide-react"
 import { useProductForm } from "./product-form-context"
-import Image from "next/image"
 
 export function ProductDetailsTab() {
   const {
@@ -18,6 +17,7 @@ export function ProductDetailsTab() {
     addArrayItem,
     removeArrayItem
   } = useProductForm()
+  const thumbnail = Array.isArray(formData.images) ? (formData.images[0] || "") : ""
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -87,16 +87,25 @@ export function ProductDetailsTab() {
         <Card>
           <CardHeader>
             <CardTitle>Product Image</CardTitle>
-            <CardDescription>Main thumbnail for your product (16:9 aspect ratio)</CardDescription>
+            <CardDescription>Main thumbnail for your product</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden text-center">
+          <CardContent className="space-y-3">
+            <Input
+              value={thumbnail}
+              onChange={(e) => handleInputChange("images", e.target.value ? [e.target.value] : [])}
+              placeholder="https://.../thumbnail.jpg"
+            />
+            <div className="border rounded-lg overflow-hidden text-center">
               <div className="relative w-full aspect-video bg-gray-50 flex items-center justify-center">
-                <div className="p-8">
-                  <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
-                  <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB (1920x1080 recommended - 16:9)</p>
-                </div>
+                {thumbnail ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={thumbnail} alt="Product thumbnail" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="p-8">
+                    <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <p className="text-sm text-gray-600">No thumbnail set</p>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

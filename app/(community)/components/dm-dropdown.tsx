@@ -12,6 +12,7 @@ import type { Conversation, Message } from "@/lib/api/types"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import { useSocket } from "@/lib/socket-context"
 import { formatDistanceToNow, format, isToday, isYesterday, isSameDay } from "date-fns"
+import { getErrorMessage } from "@/lib/utils/error-messages"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,14 @@ const getMsgSenderId = (msg: Message, myId: string): { id: string; isMine: boole
     : (rawSenderId?._id || rawSenderId?.id || (typeof rawSenderId?.toString === 'function' ? rawSenderId.toString() : rawSenderId || ''))
   const isMine = msgSenderId === myId || ((msg.sender as any)?._id === myId) || ((msg.sender as any)?.id === myId)
   return { id: msgSenderId, isMine }
+}
+
+const getSessionChatClosedMessage = (conversation?: Conversation | null): string => {
+  if (!conversation || conversation.type !== 'SESSION_TEMP_DM' || conversation.isOpen) return ''
+  if (conversation.closeReason === 'session_finished') return 'This session chat is closed because the session has finished.'
+  if (conversation.closeReason === 'booking_cancelled') return 'This session chat is closed because the booking was cancelled.'
+  if (conversation.closeReason === 'booking_completed') return 'This session chat is closed because the session was completed.'
+  return 'This session chat is closed.'
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -146,11 +155,22 @@ export function DMComponent() {
 
   React.useEffect(() => {
     const handleOpenDM = async (e: any) => {
-      const { communityId, targetUserId } = e.detail || {}
-      if (!communityId || !targetUserId) return
+      const { communityId, targetUserId, conversationId } = e.detail || {}
+      if (!conversationId && (!communityId || !targetUserId)) return
 
       setIsOpen(true)
       setError(null)
+
+      if (conversationId) {
+        loadedConvIdRef.current = null
+        setSelectedConversation((prev) => {
+          if (prev?.id === conversationId) return prev
+          const existing = conversations.find((c) => c.id === conversationId)
+          return existing || ({ id: conversationId } as Conversation)
+        })
+        await loadMessages(conversationId)
+        return
+      }
 
       if (targetUserId === myId) {
         setError("You can't message yourself")
@@ -182,7 +202,7 @@ export function DMComponent() {
         }
         fetchConversations().catch(() => { })
       } catch (err: any) {
-        setError(err?.message || 'Failed to start conversation')
+        setError(getErrorMessage(err) || 'Failed to start conversation')
       } finally {
         setIsLoadingMessages(false)
       }
@@ -215,7 +235,7 @@ export function DMComponent() {
         fetchConversations().catch(() => { })
       }
     } catch (err: any) {
-      setError(err?.message || 'Failed to upload file')
+      setError(getErrorMessage(err) || 'Failed to upload file')
     } finally {
       setIsUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -269,6 +289,9 @@ export function DMComponent() {
       const convId = selectedConversation.id
       api.dm.listMessages(convId).then(res => {
         const newMsgs = res.messages || []
+        if (res.conversation?.id) {
+          setSelectedConversation(res.conversation)
+        }
         setMessages(prev => {
           // Only update if there are genuinely new messages
           if (newMsgs.length !== prev.length || (newMsgs.length > 0 && newMsgs[newMsgs.length - 1]?.id !== prev[prev.length - 1]?.id)) {
@@ -288,6 +311,10 @@ export function DMComponent() {
     e.preventDefault()
     e.stopPropagation()
     if (!newMessage.trim() || !selectedConversation) return
+    if (selectedConversation.type === 'SESSION_TEMP_DM' && !selectedConversation.isOpen) {
+      setError(getSessionChatClosedMessage(selectedConversation))
+      return
+    }
 
     const text = newMessage.trim()
     setNewPost("")
@@ -324,7 +351,12 @@ export function DMComponent() {
     } catch (err: any) {
       setMessages((prev) => prev.filter(m => m.id !== tempId))
       setNewPost(text)
-      setError(err?.message || 'Failed to send message')
+      const rawMessage = getErrorMessage(err) || ''
+      if (/session chat is closed/i.test(rawMessage)) {
+        setError('This session chat is closed.')
+      } else {
+        setError(rawMessage || 'Failed to send message')
+      }
     }
   }
 
@@ -351,6 +383,7 @@ export function DMComponent() {
   // ── Total unread badge ────────────────────────────────────────────────
 
   const totalUnread = conversations.filter(c => getMyUnreadCount(c, myId) > 0).length
+  const selectedConversationClosedMessage = getSessionChatClosedMessage(selectedConversation)
 
   // ── Close on Escape ───────────────────────────────────────────────────
 
@@ -853,6 +886,13 @@ export function DMComponent() {
                   </div>
                 )}
 
+                {/* Closed session chat banner */}
+                {!error && selectedConversationClosedMessage && (
+                  <div className="px-4 py-2 bg-amber-50 border-t border-amber-100 flex-shrink-0">
+                    <p className="text-xs text-amber-700 text-center font-medium">{selectedConversationClosedMessage}</p>
+                  </div>
+                )}
+
                 {/* Message Input */}
                 <form onSubmit={handleSendMessage} className="px-4 py-3 border-t border-gray-100 flex-shrink-0 bg-white safe-area-inset-bottom">
                   <input
@@ -868,7 +908,7 @@ export function DMComponent() {
                       size="icon"
                       className="h-9 w-9 rounded-full text-gray-400 hover:text-gray-900 hover:bg-gray-200 transition-colors duration-200 flex-shrink-0"
                       onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
+                      disabled={isUploading || Boolean(selectedConversationClosedMessage)}
                     >
                       {isUploading ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Paperclip className="h-4.5 w-4.5" />}
                     </Button>
@@ -876,9 +916,9 @@ export function DMComponent() {
                       ref={inputRef}
                       value={newMessage}
                       onChange={(e) => setNewPost(e.target.value)}
-                      placeholder={isUploading ? "Uploading..." : "Type a message..."}
+                      placeholder={selectedConversationClosedMessage ? "Session chat is closed" : isUploading ? "Uploading..." : "Type a message..."}
                       className="flex-1 h-9 text-[14px] bg-transparent border-0 focus-visible:ring-0 px-1"
-                      disabled={isUploading}
+                      disabled={isUploading || Boolean(selectedConversationClosedMessage)}
                     />
                     <Button
                       type="submit"
@@ -889,7 +929,7 @@ export function DMComponent() {
                           ? "bg-gray-900 hover:bg-black text-white scale-100"
                           : "bg-transparent text-gray-300 hover:bg-transparent scale-90"
                       )}
-                      disabled={!newMessage.trim()}
+                      disabled={!newMessage.trim() || Boolean(selectedConversationClosedMessage)}
                     >
                       <Send className="h-4 w-4" />
                     </Button>

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { CalendarIcon, Upload, X, ImageIcon } from "lucide-react"
 import { storageApi } from "@/lib/api/storage.api"
 import { useToast } from "@/hooks/use-toast"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 interface BasicInfoStepProps {
   formData: any
@@ -36,6 +37,7 @@ export function BasicInfoStep({ formData, handleInputChange, errors = {} }: Basi
   const [isUploading, setIsUploading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const previewImageSrc = resolveImageUrl(formData.image) || formData.image
 
   const handleFileSelect = async (file: File) => {
     // Validate file type
@@ -206,11 +208,11 @@ export function BasicInfoStep({ formData, handleInputChange, errors = {} }: Basi
             className="hidden"
           />
 
-          {formData.image ? (
+          {previewImageSrc ? (
             <div className="relative group">
               <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-gray-100 border-2 border-gray-300">
                 <img
-                  src={formData.image}
+                  src={previewImageSrc}
                   alt="Event image"
                   className="w-full h-full object-cover"
                 />

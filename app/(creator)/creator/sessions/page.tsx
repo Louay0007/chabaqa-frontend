@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import React from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import ClientSessionsView from "./components/client-sessions-view"
-import { api, apiClient } from "@/lib/api"
-import { sessionsApi, type CreatorBookingViewModel } from "@/lib/api/sessions.api"
+import { type CreatorBookingViewModel } from "@/lib/api/sessions.api"
 import { useToast } from "@/hooks/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { loadSessionsCached } from "@/app/(creator)/creator/context/community-switch-cache"
 
 export default function CreatorSessionsPage() {
   const { toast } = useToast()
@@ -14,58 +15,58 @@ export default function CreatorSessionsPage() {
   const [sessions, setSessions] = useState<any[]>([])
   const [bookings, setBookings] = useState<CreatorBookingViewModel[]>([])
   const [revenue, setRevenue] = useState<number | null>(null)
+  const [isSwitchLoading, setIsSwitchLoading] = useState<boolean>(true)
+  const requestIdRef = useRef(0)
 
-  const loadSessions = useCallback(async () => {
+  const loadSessions = useCallback(async (communityId: string, options?: { force?: boolean; keepCurrentData?: boolean }) => {
+    const requestId = ++requestIdRef.current
+
+    if (!options?.keepCurrentData) {
+      setIsSwitchLoading(true)
+      setSessions([])
+      setBookings([])
+      setRevenue(null)
+    }
+
     try {
-      const me = await api.auth.me().catch(() => null as any)
-      const user = me?.data || (me as any)?.user || null
-      if (!user) { setSessions([]); setBookings([]); return }
+      const payload = await loadSessionsCached(communityId, { force: options?.force })
+      if (requestId !== requestIdRef.current) return
 
-      // Sessions list - filtered by community and creator
-      const sessRes = await apiClient.get<any>(`/sessions`, { 
-        communityId: selectedCommunityId, 
-        creatorId: user._id || user.id, 
-        limit: 50 
-      }).catch(() => null as any)
-      
-      // Backend returns { sessions, total, page, limit, totalPages } directly
-      const rawSessions = sessRes?.sessions || sessRes?.data?.sessions || sessRes?.data?.items || sessRes?.items || []
-      const normSessions = (Array.isArray(rawSessions) ? rawSessions : []).map((s: any) => ({
-        id: s.id || s._id,
-        title: s.title,
-        description: s.description,
-        duration: Number(s.duration ?? 0),
-        price: Number(s.price ?? 0),
-        isActive: Boolean(s.isActive ?? true),
-        category: s.category,
-      }))
-      setSessions(normSessions)
-
-      // Creator bookings
-      const bookingsResponse = await sessionsApi.getCreatorBookings({ page: 1, limit: 200 }).catch(() => null as any)
-      setBookings(Array.isArray(bookingsResponse?.bookings) ? bookingsResponse.bookings : [])
-
-      // Analytics revenue (last 30 days)
-      const now = new Date()
-      const to = now.toISOString()
-      const from = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
-      const sessAgg = await api.creatorAnalytics.getSessions({ from, to, communityId: selectedCommunityId || undefined }).catch(() => null as any)
-      const bySession = sessAgg?.data?.bySession || sessAgg?.bySession || sessAgg?.data?.items || sessAgg?.items || []
-      const totalRevenue = (Array.isArray(bySession) ? bySession : []).reduce((sum: number, x: any) => sum + Number(x.revenue ?? 0), 0)
-      if (!Number.isNaN(totalRevenue)) setRevenue(totalRevenue)
+      setSessions(payload.sessions)
+      setBookings(payload.bookings)
+      setRevenue(payload.revenue)
     } catch (e: any) {
       toast({ title: 'Failed to load sessions', description: e?.message || 'Please try again later.', variant: 'destructive' })
+      if (requestId !== requestIdRef.current) return
+      setSessions([])
+      setBookings([])
+      setRevenue(null)
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setIsSwitchLoading(false)
+      }
     }
-  }, [selectedCommunityId, toast])
+  }, [toast])
 
   // Reload when community changes
   useEffect(() => {
-    if (communityLoading || !selectedCommunityId) return
-    loadSessions()
+    if (communityLoading) return
+
+    if (!selectedCommunityId) {
+      requestIdRef.current += 1
+      setSessions([])
+      setBookings([])
+      setRevenue(null)
+      setIsSwitchLoading(false)
+      return
+    }
+
+    loadSessions(selectedCommunityId)
   }, [selectedCommunityId, communityLoading, loadSessions])
 
   const handleSessionsUpdate = () => {
-    loadSessions()
+    if (!selectedCommunityId) return
+    loadSessions(selectedCommunityId, { force: true, keepCurrentData: true })
   }
 
   return (
@@ -73,6 +74,7 @@ export default function CreatorSessionsPage() {
       allSessions={sessions}
       allBookings={bookings}
       revenue={revenue ?? undefined}
+      isSwitchLoading={isSwitchLoading}
       onSessionsUpdate={handleSessionsUpdate}
     />
   )

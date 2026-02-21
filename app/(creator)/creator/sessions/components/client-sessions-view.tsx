@@ -5,6 +5,7 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -33,11 +34,13 @@ export default function ClientSessionsView({
   allSessions,
   allBookings,
   revenue,
+  isSwitchLoading = false,
   onSessionsUpdate
 }: {
   allSessions: any[];
   allBookings: CreatorBookingViewModel[];
   revenue?: number;
+  isSwitchLoading?: boolean;
   onSessionsUpdate?: () => void;
 }) {
   const { toast } = useToast();
@@ -156,6 +159,45 @@ export default function ClientSessionsView({
       color: "success" as const,
     },
   ];
+
+  if (isSwitchLoading) {
+    return (
+      <div className="space-y-8 p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-3">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-5 w-96 max-w-full" />
+          </div>
+          <div className="flex items-center space-x-3 mt-4 sm:mt-0">
+            <Skeleton className="h-9 w-28" />
+            <Skeleton className="h-9 w-32" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-32 rounded-xl" />
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            <Skeleton className="h-10 w-full" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-64 rounded-xl" />
+              ))}
+            </div>
+          </div>
+          <div className="space-y-6">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-40 rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
   
 
   return (

@@ -58,18 +58,30 @@ class ApiClient {
         message: 'An error occurred',
         statusCode: response.status,
       }));
+      const extractErrorMessage = (value: any): string => {
+        if (!value) return '';
+        if (typeof value === 'string') return value;
+        if (Array.isArray(value)) return value.map((v) => extractErrorMessage(v)).filter(Boolean).join(', ');
+        if (typeof value === 'object') {
+          if (typeof value.message === 'string') return value.message;
+          if (value.error) return extractErrorMessage(value.error);
+          if (typeof value.code === 'string') return value.code;
+        }
+        return '';
+      };
+      const rawMessage =
+        extractErrorMessage(error?.message) ||
+        extractErrorMessage(error?.error) ||
+        extractErrorMessage(error?.data?.message) ||
+        extractErrorMessage(error?.data?.error) ||
+        'An error occurred';
+      error.message = rawMessage;
+      error.statusCode = response.status;
 
       // Transform error using error message mapping
       try {
         const { mapErrorMessage } = await import('../utils/error-messages');
         const mapped = mapErrorMessage(error);
-        const transformedError = {
-          ...error,
-          message: mapped.message,
-          guidance: mapped.guidance,
-          originalMessage: error.message || error.error || 'An error occurred',
-          statusCode: response.status,
-        };
         error.message = mapped.message;
         error.guidance = mapped.guidance;
       } catch (importError) {

@@ -2,12 +2,13 @@
 
 import { Badge } from "@/components/ui/badge"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { MetricCard } from "@/components/ui/metric-card"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Users,
   BookOpen,
@@ -25,8 +26,9 @@ import {
 import Link from "next/link"
 import Image from "next/image"
 import { CommunityManager } from "@/app/(creator)/creator/components/community-manager"
-import { api, apiClient } from "@/lib/api"
+import { api } from "@/lib/api"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { loadDashboardCoreCached, loadDashboardGrowthCached } from "@/app/(creator)/creator/context/community-switch-cache"
 
 
 import { useAuthContext } from "@/app/providers/auth-provider"
@@ -50,8 +52,8 @@ export default function CreatorDashboardPage() {
     : '/creator/posts'
 
   const [activeTab, setActiveTab] = useState("overview")
-  const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState<any | null>(null)
+  const [isSwitchLoading, setIsSwitchLoading] = useState(true)
+  const [isGrowthLoading, setIsGrowthLoading] = useState(false)
   const [creatorCourses, setCreatorCourses] = useState<any[]>([])
   const [creatorChallenges, setCreatorChallenges] = useState<any[]>([])
   const [creatorSessions, setCreatorSessions] = useState<any[]>([])
@@ -68,13 +70,7 @@ export default function CreatorDashboardPage() {
     revenue: number
     engagement: number
   }>({ courses: 0, challenges: 0, sessions: 0, revenue: 0, engagement: 0 })
-
-  const getCommunityId = (community: any): string => {
-    const rawId = community?.id ?? community?._id
-    if (typeof rawId === 'string') return rawId
-    if (rawId && typeof rawId.toString === 'function') return rawId.toString()
-    return ''
-  }
+  const requestIdRef = useRef(0)
 
   // Helper function to calculate growth percentage
   const calculateGrowth = (current: number, previous: number) => {
@@ -99,159 +95,63 @@ export default function CreatorDashboardPage() {
 
   // Reload data when selected community changes
   useEffect(() => {
-    console.log('[Dashboard] useEffect triggered:', {
-      isAuthenticated,
-      authLoading,
-      communityLoading,
-      selectedCommunityId,
-      selectedCommunity,
-      creatorCommunities: creatorCommunities?.length
-    })
-
-    // Don't load data if not authenticated or community not selected
-    if (!isAuthenticated || authLoading || communityLoading || !selectedCommunityId) {
-      console.log('[Dashboard] Skipping load - conditions not met:', {
-        isAuthenticated,
-        authLoading,
-        communityLoading,
-        selectedCommunityId
-      })
+    if (!isAuthenticated || authLoading || communityLoading) return
+    if (!selectedCommunityId) {
+      requestIdRef.current += 1
+      setIsSwitchLoading(false)
+      setIsGrowthLoading(false)
+      setCreatorCourses([])
+      setCreatorChallenges([])
+      setCreatorSessions([])
+      setCreatorPosts([])
+      setOverview(null)
+      setRecentActivity([])
+      setTopContent([])
+      setMembersCount(0)
+      setPreviousMonthCounts({ courses: 0, challenges: 0, sessions: 0, revenue: 0, engagement: 0 })
       return
     }
 
-    const load = async () => {
+    const requestId = ++requestIdRef.current
+
+    const run = async () => {
+      if (!creatorCommunities || creatorCommunities.length === 0) {
+        router.push('/creator/communities/create')
+        return
+      }
+
+      setIsSwitchLoading(true)
+      setIsGrowthLoading(true)
+      setUserCommunities(creatorCommunities)
+
+      // Clear previous-community data immediately to avoid stale UI while switching.
+      setCreatorCourses([])
+      setCreatorChallenges([])
+      setCreatorSessions([])
+      setCreatorPosts([])
+      setOverview(null)
+      setRecentActivity([])
+      setTopContent([])
+      setMembersCount(0)
+      setPreviousMonthCounts({ courses: 0, challenges: 0, sessions: 0, revenue: 0, engagement: 0 })
+
       try {
-        setLoading(true)
-        // Use authenticated user from context
-        setUser(authUser)
-        // Support both _id (JWT payload) and id (client-mapped) forms
-        const userId = (authUser as any)?._id || authUser?.id
-        if (!userId) { setLoading(false); return }
+        const core = await loadDashboardCoreCached(selectedCommunityId)
+        if (requestId !== requestIdRef.current) return
 
-        // If creator has no communities, redirect to create first one
-        if (!creatorCommunities || creatorCommunities.length === 0) {
-          router.push('/creator/communities/create')
-          return
-        }
+        const courses = Array.isArray(core.courses) ? core.courses : []
+        const challenges = Array.isArray(core.challenges) ? core.challenges : []
+        const sessions = Array.isArray(core.sessions) ? core.sessions : []
 
-        setUserCommunities(creatorCommunities)
+        setCreatorCourses(courses)
+        setCreatorChallenges(challenges)
+        setCreatorSessions(sessions)
+        setCreatorPosts(Array.isArray(core.posts) ? core.posts : [])
+        setOverview(core.overview)
 
-        // Get selected community's slug for filtering
-        const communitySlug = selectedCommunity?.slug || ''
-        console.log('[Dashboard] Loading data for community:', { communitySlug, selectedCommunityId })
-
-        // Calculate date ranges
-        const toDate = new Date()
-        const fromDate = new Date(toDate.getTime() - 30 * 24 * 3600 * 1000)
-        const prevMonthStart = new Date(toDate.getFullYear(), toDate.getMonth() - 1, 1)
-        const prevMonthEnd = new Date(toDate.getFullYear(), toDate.getMonth(), 0)
-
-        const [coursesRes, challengesRes, sessionsRes, postsRes, overviewRes, prevCoursesRes, prevChallengesRes, prevSessionsRes, prevOverviewRes] = await Promise.all([
-          // Courses: Get courses for selected community
-          apiClient.get<any>(`/cours/user/created`, { limit: 100, communityId: selectedCommunityId }).catch((e) => { console.log('[Dashboard] Courses fetch error:', e); return null }),
-
-          // Challenges: Get challenges for selected community
-          apiClient.get<any>(`/challenges/by-user/${userId}`, { type: 'created', limit: 50, communityId: selectedCommunityId }).catch((e) => { console.log('[Dashboard] Challenges fetch error:', e); return null }),
-
-          // Sessions: Get sessions for selected community
-          apiClient.get<any>(`/sessions`, { creatorId: userId, limit: 50, communityId: selectedCommunityId }).catch((e) => { console.log('[Dashboard] Sessions fetch error:', e); return null }),
-
-          // Posts: Get posts for selected community
-          apiClient.get<any>(`/posts/community/${selectedCommunityId}`, { limit: 50 }).catch((e) => { console.log('[Dashboard] Posts fetch error:', e); return null }),
-
-          // Current month analytics for selected community
-          api.creatorAnalytics.getOverview({ from: fromDate.toISOString(), to: toDate.toISOString(), communityId: selectedCommunityId }).catch(() => null as any),
-
-          // Previous month data for growth calculation
-          apiClient.get<any>(`/cours/user/created`, { limit: 1000, communityId: selectedCommunityId }).catch(() => ({ data: { courses: [] } })),
-          apiClient.get<any>(`/challenges/by-user/${userId}`, { type: 'created', limit: 1000, communityId: selectedCommunityId }).catch(() => ({ data: { challenges: [] } })),
-          apiClient.get<any>(`/sessions`, { creatorId: userId, limit: 1000, communityId: selectedCommunityId }).catch(() => ({ data: { sessions: [] } })),
-          api.creatorAnalytics.getOverview({ from: prevMonthStart.toISOString(), to: prevMonthEnd.toISOString(), communityId: selectedCommunityId }).catch(() => null as any),
-        ])
-
-        // Log raw API responses for debugging
-        console.log('[Dashboard] Raw API Responses:', {
-          coursesRes,
-          challengesRes,
-          sessionsRes,
-          postsRes,
-          overviewRes,
-          prevCoursesRes,
-          prevChallengesRes,
-          prevSessionsRes,
-          prevOverviewRes,
-          creatorCommunities
-        })
-
-        // --- PARSING LOGIC ---
-
-        // 1. Courses Parsing (same logic as courses page)
-        const courses = coursesRes?.data?.courses || coursesRes?.courses || coursesRes?.data || []
-        console.log('[Dashboard] Parsed courses:', courses)
-        setCreatorCourses(Array.isArray(courses) ? courses : [])
-
-        // 2. Challenges Parsing (same logic as challenges page)
-        const challenges = challengesRes?.challenges || challengesRes?.data?.challenges || challengesRes?.data?.items || challengesRes?.items || []
-        console.log('[Dashboard] Parsed challenges:', challenges)
-        setCreatorChallenges(Array.isArray(challenges) ? challenges : [])
-
-        // 3. Sessions Parsing (same logic as sessions page)
-        const sessions = sessionsRes?.sessions || sessionsRes?.data?.sessions || sessionsRes?.data?.items || sessionsRes?.items || []
-        console.log('[Dashboard] Parsed sessions:', sessions)
-        setCreatorSessions(Array.isArray(sessions) ? sessions : [])
-
-        // 4. Posts Parsing
-        const posts = postsRes?.data?.data || postsRes?.data || postsRes?.items || []
-        console.log('[Dashboard] Parsed posts:', posts)
-        setCreatorPosts(Array.isArray(posts) ? posts : [])
-
-        // Process previous month data for growth calculation
-        const filterByDateRange = (items: any[], startDate: Date, endDate: Date, dateField: string = 'createdAt') => {
-          return items.filter(item => {
-            const itemDate = new Date(item[dateField])
-            return itemDate >= startDate && itemDate <= endDate
-          })
-        }
-
-        let prevCourses: any[] = []
-        let prevChallenges: any[] = []
-        let prevSessions: any[] = []
-
-        // Process previous month courses (same parsing as current)
-        prevCourses = prevCoursesRes?.data?.courses || prevCoursesRes?.courses || prevCoursesRes?.data || []
-        prevCourses = filterByDateRange(prevCourses, prevMonthStart, prevMonthEnd)
-
-        // Process previous month challenges (same parsing as current)
-        prevChallenges = prevChallengesRes?.challenges || prevChallengesRes?.data?.challenges || prevChallengesRes?.data?.items || prevChallengesRes?.items || []
-        prevChallenges = filterByDateRange(prevChallenges, prevMonthStart, prevMonthEnd, 'startDate')
-
-        // Process previous month sessions (same parsing as current)
-        prevSessions = prevSessionsRes?.sessions || prevSessionsRes?.data?.sessions || prevSessionsRes?.data?.items || prevSessionsRes?.items || []
-        prevSessions = filterByDateRange(prevSessions, prevMonthStart, prevMonthEnd)
-
-        // Get previous month revenue and engagement
-        const prevOverview = prevOverviewRes?.data || prevOverviewRes || null
-        const prevRevenue = (prevOverview?.revenue?.total)
-          || prevOverview?.totalRevenue
-          || prevOverview?.salesTotal
-          || 0
-        const prevEngagement = prevOverview?.engagementRate || prevOverview?.avgEngagement || 0
-
-        setPreviousMonthCounts({
-          courses: prevCourses.length,
-          challenges: prevChallenges.length,
-          sessions: prevSessions.length,
-          revenue: typeof prevRevenue === 'number' ? prevRevenue : 0,
-          engagement: typeof prevEngagement === 'number' ? prevEngagement : 0,
-        })
-
-        setOverview(overviewRes?.data || overviewRes || null)
-
-        // Create recent activity from content and analytics data
         const recentActivityItems: any[] = []
 
-        // Add recent course enrollments
-        if (courses && courses.length > 0) {
+        if (courses.length > 0) {
           const recentCourses = courses
             .filter((course: any) => course.createdAt)
             .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -270,8 +170,7 @@ export default function CreatorDashboardPage() {
           recentActivityItems.push(...recentCourses)
         }
 
-        // Add recent challenge participants
-        if (challenges && challenges.length > 0) {
+        if (challenges.length > 0) {
           const recentChallenges = challenges
             .filter((challenge: any) => challenge.startDate)
             .sort((a: any, b: any) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
@@ -286,8 +185,7 @@ export default function CreatorDashboardPage() {
           recentActivityItems.push(...recentChallenges)
         }
 
-        // Add recent sessions
-        if (sessions && sessions.length > 0) {
+        if (sessions.length > 0) {
           const recentSessions = sessions
             .filter((session: any) => session.createdAt)
             .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -302,95 +200,90 @@ export default function CreatorDashboardPage() {
           recentActivityItems.push(...recentSessions)
         }
 
-        // Sort by date and take top 5
-        const sortedActivity = recentActivityItems
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-          .slice(0, 5)
+        setRecentActivity(
+          recentActivityItems
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 5)
+        )
 
-        setRecentActivity(sortedActivity)
-
-        // Get members count for selected community only
         const communityMembersCount = (selectedCommunity as any)?.membersCount || (selectedCommunity as any)?.members || 0
         setMembersCount(typeof communityMembersCount === 'number' ? communityMembersCount : 0)
 
-        // Build Top Performing Content (show recent content with engagement metrics)
         const topContentItems: any[] = []
 
-        // Add top courses (by enrollment count)
-        if (courses && courses.length > 0) {
-          const topCourses = courses
+        if (courses.length > 0) {
+          const topCourses = [...courses]
             .sort((a: any, b: any) => (b.enrollments?.length || 0) - (a.enrollments?.length || 0))
             .slice(0, 2)
-            .map((course: any) => {
-              const title = course.title || course.titre || 'Untitled course'
-              return ({
-                id: course.id,
-                title,
-                type: 'course',
-                metricLabel: 'enrolled',
-                metricValue: course.enrollments?.length || 0,
-                href: `/creator/courses/${course.id}/manage`
-              })
-            })
+            .map((course: any) => ({
+              id: course.id,
+              title: course.title || course.titre || 'Untitled course',
+              type: 'course',
+              metricLabel: 'enrolled',
+              metricValue: course.enrollments?.length || 0,
+              href: `/creator/courses/${course.id}/manage`
+            }))
           topContentItems.push(...topCourses)
         }
 
-        // Add top challenges (by participant count)
-        if (challenges && challenges.length > 0) {
-          const topChallenges = challenges
+        if (challenges.length > 0) {
+          const topChallenges = [...challenges]
             .sort((a: any, b: any) => (b.participants?.length || 0) - (a.participants?.length || 0))
             .slice(0, 1)
-            .map((challenge: any) => {
-              const title = challenge.title || challenge.titre || 'Untitled challenge'
-              return ({
-                id: challenge.id,
-                title,
-                type: 'challenge',
-                metricLabel: 'participants',
-                metricValue: challenge.participants?.length || 0,
-                href: `/creator/challenges/${challenge.id}/manage`
-              })
-            })
+            .map((challenge: any) => ({
+              id: challenge.id,
+              title: challenge.title || challenge.titre || 'Untitled challenge',
+              type: 'challenge',
+              metricLabel: 'participants',
+              metricValue: challenge.participants?.length || 0,
+              href: `/creator/challenges/${challenge.id}/manage`
+            }))
           topContentItems.push(...topChallenges)
         }
 
-        // Add top sessions (by recent creation - assuming they're performing well)
-        if (sessions && sessions.length > 0) {
-          const topSessions = sessions
+        if (sessions.length > 0) {
+          const topSessions = [...sessions]
             .sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
             .slice(0, 1)
-            .map((session: any) => {
-              const title = session.title || session.name || 'Untitled session'
-              return ({
-                id: session.id,
-                title,
-                type: 'session',
-                metricLabel: 'scheduled',
-                metricValue: 1, // Placeholder since we don't have booking metrics
-                href: `/creator/sessions/${session.id}/manage`
-              })
-            })
+            .map((session: any) => ({
+              id: session.id,
+              title: session.title || session.name || 'Untitled session',
+              type: 'session',
+              metricLabel: 'scheduled',
+              metricValue: 1,
+              href: `/creator/sessions/${session.id}/manage`
+            }))
           topContentItems.push(...topSessions)
         }
 
-        // Sort by engagement metrics and take top 4
-        const sortedTopContent = topContentItems
-          .sort((a, b) => b.metricValue - a.metricValue)
-          .slice(0, 4)
-
-        setTopContent(sortedTopContent)
+        setTopContent(topContentItems.sort((a, b) => b.metricValue - a.metricValue).slice(0, 4))
       } catch (e) {
-        console.error('[Dashboard] Load error:', e)
+        console.error('[Dashboard] Core load error:', e)
       } finally {
-        setLoading(false)
+        if (requestId === requestIdRef.current) {
+          setIsSwitchLoading(false)
+        }
+      }
+
+      try {
+        const growth = await loadDashboardGrowthCached(selectedCommunityId)
+        if (requestId !== requestIdRef.current) return
+        setPreviousMonthCounts(growth)
+      } catch (e) {
+        console.error('[Dashboard] Growth load error:', e)
+      } finally {
+        if (requestId === requestIdRef.current) {
+          setIsGrowthLoading(false)
+        }
       }
     }
-    load()
+
+    void run()
   }, [isAuthenticated, authLoading, authUser, communityLoading, selectedCommunityId, selectedCommunity, creatorCommunities, router])
 
   // Auto-backfill analytics if data is empty
   useEffect(() => {
-    if (overview === null && !loading && isAuthenticated) {
+    if (overview === null && !isSwitchLoading && isAuthenticated) {
       const backfill = async () => {
         try {
           console.log('[Dashboard] Analytics data is empty, triggering backfill...');
@@ -402,7 +295,14 @@ export default function CreatorDashboardPage() {
       };
       backfill();
     }
-  }, [overview, loading, isAuthenticated]);
+  }, [overview, isSwitchLoading, isAuthenticated]);
+
+  const getGrowthChange = (current: number, previous: number) => {
+    if (isGrowthLoading) {
+      return { value: "...", trend: "up" as const }
+    }
+    return calculateGrowth(current, previous)
+  }
 
   const stats = [
     {
@@ -415,21 +315,21 @@ export default function CreatorDashboardPage() {
     {
       title: "Total Courses",
       value: creatorCourses?.length || 0,
-      change: calculateGrowth(creatorCourses?.length || 0, previousMonthCounts.courses),
+      change: getGrowthChange(creatorCourses?.length || 0, previousMonthCounts.courses),
       icon: BookOpen,
       color: "courses" as const,
     },
     {
       title: "Total Challenges",
       value: creatorChallenges?.length || 0,
-      change: calculateGrowth(creatorChallenges?.length || 0, previousMonthCounts.challenges),
+      change: getGrowthChange(creatorChallenges?.length || 0, previousMonthCounts.challenges),
       icon: Zap,
       color: "challenges" as const,
     },
     {
       title: "Total Sessions",
       value: creatorSessions?.length || 0,
-      change: calculateGrowth(creatorSessions?.length || 0, previousMonthCounts.sessions),
+      change: getGrowthChange(creatorSessions?.length || 0, previousMonthCounts.sessions),
       icon: Calendar,
       color: "sessions" as const,
     },
@@ -447,7 +347,7 @@ export default function CreatorDashboardPage() {
           || overview?.totalRevenue
           || overview?.salesTotal
           || 0
-        return calculateGrowth(typeof currentRev === 'number' ? currentRev : 0, previousMonthCounts.revenue)
+        return getGrowthChange(typeof currentRev === 'number' ? currentRev : 0, previousMonthCounts.revenue)
       })(),
       icon: DollarSign,
       color: "success" as const,
@@ -462,7 +362,7 @@ export default function CreatorDashboardPage() {
       change: (() => {
         const currentEng = overview?.engagementRate || overview?.avgEngagement || 0
         const currentEngNum = typeof currentEng === 'number' ? currentEng : 0
-        return calculateGrowth(currentEngNum, previousMonthCounts.engagement)
+        return getGrowthChange(currentEngNum, previousMonthCounts.engagement)
       })(),
       icon: TrendingUp,
       color: "primary" as const,
@@ -476,34 +376,47 @@ export default function CreatorDashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Creator Dashboard</h1>
-            <p className="text-gray-600 mt-2">Welcome back! Here's what's happening with your creator content.</p>
+            <p className="text-gray-600 mt-2">Welcome back! Here is what is happening with your creator content.</p>
           </div>
           <div className="flex items-center space-x-3 mt-4 sm:mt-0">
             <Button variant="outline" size="sm">
               <Plus className="h-4 w-4 mr-2" />
               New Content
             </Button>
-            <Button size="sm" asChild>
-              <Link href={communityFeedUrl}>
+            {isSwitchLoading ? (
+              <Button size="sm" disabled>
                 <Eye className="h-4 w-4 mr-2" />
                 View Community
-              </Link>
-            </Button>
+              </Button>
+            ) : (
+              <Button size="sm" asChild>
+                <Link href={communityFeedUrl}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Community
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-          {stats.map((stat) => (
-            <MetricCard
-              key={stat.title}
-              title={stat.title}
-              value={stat.value}
-              change={stat.change}
-              icon={stat.icon}
-              color={stat.color}
-            />
-          ))}
+          {isSwitchLoading ? (
+            [0, 1, 2, 3, 4, 5].map((index) => (
+              <Skeleton key={index} className="h-32 rounded-xl" />
+            ))
+          ) : (
+            stats.map((stat) => (
+              <MetricCard
+                key={stat.title}
+                title={stat.title}
+                value={stat.value}
+                change={stat.change}
+                icon={stat.icon}
+                color={stat.color}
+              />
+            ))
+          )}
         </div>
 
         {/* Content Tabs */}
@@ -535,10 +448,17 @@ export default function CreatorDashboardPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {recentActivity.length === 0 && (
+                        {isSwitchLoading && (
+                          <>
+                            <Skeleton className="h-16 w-full rounded-lg" />
+                            <Skeleton className="h-16 w-full rounded-lg" />
+                            <Skeleton className="h-16 w-full rounded-lg" />
+                          </>
+                        )}
+                        {!isSwitchLoading && recentActivity.length === 0 && (
                           <div className="text-sm text-muted-foreground">No recent activity.</div>
                         )}
-                        {recentActivity.map((n, idx) => (
+                        {!isSwitchLoading && recentActivity.map((n, idx) => (
                           <div key={n.id || idx} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                             <div className="flex-1">
@@ -562,10 +482,16 @@ export default function CreatorDashboardPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {topContent.length === 0 && (
+                        {isSwitchLoading && (
+                          <>
+                            <Skeleton className="h-16 w-full rounded-lg" />
+                            <Skeleton className="h-16 w-full rounded-lg" />
+                          </>
+                        )}
+                        {!isSwitchLoading && topContent.length === 0 && (
                           <div className="text-sm text-muted-foreground">No top content yet.</div>
                         )}
-                        {topContent.map((item) => {
+                        {!isSwitchLoading && topContent.map((item) => {
                           const Icon = item.type === 'course' ? BookOpen : item.type === 'challenge' ? Zap : Calendar
                           const bg = item.type === 'course' ? 'bg-courses-50' : item.type === 'challenge' ? 'bg-challenges-50' : 'bg-sessions-50'
                           const iconColor = item.type === 'course' ? 'text-courses-500' : item.type === 'challenge' ? 'text-challenges-500' : 'text-sessions-500'

@@ -6,6 +6,7 @@ import { Community } from "@/lib/models"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Explore } from "@/lib/data-communities"
+import { resolveExploreCardRouting } from "@/app/(landing)/(communities)/components/explore-card-routing"
 
 type ItemType = "community" | "course" | "challenge" | "product" | "oneToOne" | "event"
 
@@ -13,9 +14,10 @@ interface FeaturedCommunityCardProps {
   community: Explore
   index: number
   slug?: string
+  accessAware?: boolean
 }
 
-export function FeaturedCommunityCard({ community, index, slug }: FeaturedCommunityCardProps) {
+export function FeaturedCommunityCard({ community, index, slug, accessAware = false }: FeaturedCommunityCardProps) {
   const router = useRouter()
 
   const formatMembers = (count: number) => (count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count.toString())
@@ -75,15 +77,20 @@ export function FeaturedCommunityCard({ community, index, slug }: FeaturedCommun
   // Fix: Use communitySlug if available (for courses/challenges/etc) otherwise use community.slug
   const targetSlug = (community as any).communitySlug || community.slug
 
-  const ctaHref = itemType === "community"
-    ? (community.isMember
-      ? (community.link || `/${community.creator}/${community.slug}`)
-      : `/community/${community.slug}#join-section`)
-    : (community.link || `/community/${targetSlug}#join-section`)
+  const defaultRouting = {
+    href: itemType === "community"
+      ? (community.isMember
+        ? (community.link || `/${community.creator}/${community.slug}`)
+        : `/community/${community.slug}#join-section`)
+      : (community.link || `/community/${targetSlug}#join-section`),
+    label: itemType === "community"
+      ? (community.isMember ? typeConfig.ctaText : "Join")
+      : typeConfig.ctaText,
+  }
 
-  const ctaLabel = itemType === "community"
-    ? (community.isMember ? typeConfig.ctaText : "Join")
-    : typeConfig.ctaText
+  const accessAwareRouting = resolveExploreCardRouting(community, typeConfig.ctaText)
+  const ctaHref = accessAware ? accessAwareRouting.href : defaultRouting.href
+  const ctaLabel = accessAware ? accessAwareRouting.ctaLabel : defaultRouting.label
 
   return (
     <div className="group hover:shadow-lg transition-all duration-300 border border-gray-200/60 rounded-2xl shadow-sm overflow-hidden bg-gradient-to-br from-white to-gray-50/30 hover:scale-[1.01]">

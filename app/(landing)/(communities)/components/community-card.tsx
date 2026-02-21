@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Users, Star, CheckCircle, Heart, Eye, Tag, TrendingUp, Award } from "lucide-react"
 import { Explore } from "@/lib/data-communities"
+import { resolveExploreCardRouting } from "@/app/(landing)/(communities)/components/explore-card-routing"
 
 import Link from "next/link"
 import Image from "next/image"
@@ -11,9 +12,10 @@ type ItemType = "community" | "course" | "challenge" | "product" | "oneToOne" | 
 interface CommunityCardProps {
   community: Explore & { type?: ItemType }
   viewMode?: "grid" | "list"
+  accessAware?: boolean
 }
 
-export function CommunityCard({ community, viewMode = "grid" }: CommunityCardProps) {
+export function CommunityCard({ community, viewMode = "grid", accessAware = false }: CommunityCardProps) {
   const formatMembers = (count: number) => {
     if (count >= 1000) {
       return `${(count / 1000).toFixed(1)}k`
@@ -63,7 +65,7 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
       },
       event: {
         badgeColor: "border-chabaqa-primary/50 text-chabaqa-primary bg-chabaqa-primary/10",
-        ctaText: "Attend",
+        ctaText: "Register",
         ctaGradient: "from-[#8e78fb] to-[#86e4fd]",
       },
     }
@@ -79,15 +81,20 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
   // Fix: Use communitySlug if available (for courses/challenges/etc) otherwise use community.slug
   const slug = (community as any).communitySlug || community.slug
   
-  const ctaHref = itemType === "community"
-    ? (community.isMember
-      ? (community.link || `/${community.creator}/${community.slug}`)
-      : `/community/${community.slug}#join-section`)
-    : (community.link || `/community/${slug}#join-section`)
+  const defaultRouting = {
+    href: itemType === "community"
+      ? (community.isMember
+        ? (community.link || `/${community.creator}/${community.slug}`)
+        : `/community/${community.slug}#join-section`)
+      : (community.link || `/community/${slug}#join-section`),
+    label: itemType === "community"
+      ? (community.isMember ? typeConfig.ctaText : "Join")
+      : typeConfig.ctaText,
+  }
 
-  const ctaLabel = itemType === "community"
-    ? (community.isMember ? typeConfig.ctaText : "Join")
-    : typeConfig.ctaText
+  const accessAwareRouting = resolveExploreCardRouting(community, typeConfig.ctaText)
+  const ctaHref = accessAware ? accessAwareRouting.href : defaultRouting.href
+  const ctaLabel = accessAware ? accessAwareRouting.ctaLabel : defaultRouting.label
 
   if (viewMode === "list") {
     return (

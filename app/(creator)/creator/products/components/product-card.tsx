@@ -77,15 +77,15 @@ export function ProductCard({ product }: { product: any }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link href={`/creator/products/${product.id}`}>
+                <Link href={`/creator/products/${product.id}/manage`}>
                   <Eye className="mr-2 h-4 w-4" />
                   View Product
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href={`/creator/products/${product.id}/edit`}>
+                <Link href={`/creator/products/${product.id}/manage`}>
                   <Edit className="mr-2 h-4 w-4" />
-                  Edit Product
+                  Manage Product
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

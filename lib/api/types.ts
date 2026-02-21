@@ -321,6 +321,8 @@ export interface SessionBooking {
   id: string;
   userId: string;
   sessionId: string;
+  creatorId?: string;
+  communityId?: string;
   scheduledAt: string;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   meetingLink?: string;
@@ -628,7 +630,7 @@ export interface ProgressionOverview {
 }
 
 // Messaging types
-export type ConversationType = 'COMMUNITY_DM' | 'HELP_DM' | 'PEER_DM';
+export type ConversationType = 'COMMUNITY_DM' | 'HELP_DM' | 'PEER_DM' | 'SESSION_TEMP_DM';
 
 export interface MessageAttachment {
   url: string;
@@ -665,6 +667,11 @@ export interface Conversation {
   unreadCountA: number;
   unreadCountB: number;
   isOpen: boolean;
+  sessionId?: string;
+  sessionBookingId?: string;
+  expiresAt?: string;
+  closedAt?: string;
+  closeReason?: 'session_finished' | 'booking_cancelled' | 'booking_completed' | 'manual';
   createdAt: string;
   updatedAt: string;
 }

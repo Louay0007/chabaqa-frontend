@@ -43,7 +43,7 @@ export default function ProductOverview({ product }: ProductOverviewProps) {
               How To Use
             </h3>
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-0">
-              After purchase, you'll gain instant access to all files. Simply download them to your device and
+              After purchase, you&apos;ll gain instant access to all files. Simply download them to your device and
               follow the included documentation to get started.
             </p>
           </div>

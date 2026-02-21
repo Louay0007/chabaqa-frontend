@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Plus, X, DollarSign, Codesandbox } from "lucide-react"
-import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { useProductForm } from "./product-form-context"
 import { Textarea } from "@/components/ui/textarea"
@@ -31,7 +30,7 @@ export function PricingStep() {
         <CardDescription>Set your product price and options</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           <div className="space-y-2">
             <Label htmlFor="price">Base Price *</Label>
             <div className="flex">
@@ -61,35 +60,7 @@ export function PricingStep() {
               <p className="text-sm text-red-500 mt-1">{errors.price}</p>
             )}
           </div>
-
-          <div className="flex items-center space-x-2 pt-7">
-            <Switch
-              id="recurring"
-              checked={formData.isRecurring}
-              onCheckedChange={(checked) => handleInputChange("isRecurring", checked)}
-            />
-            <Label htmlFor="recurring">Recurring payment</Label>
-          </div>
         </div>
-
-        {formData.isRecurring && (
-          <div className="space-y-2">
-            <Label>Billing Interval</Label>
-            <Select
-              value={formData.recurringInterval}
-              onValueChange={(value) => handleInputChange("recurringInterval", value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="month">Monthly</SelectItem>
-                <SelectItem value="year">Yearly</SelectItem>
-                <SelectItem value="week">Weekly</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
