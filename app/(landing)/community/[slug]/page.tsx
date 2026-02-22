@@ -396,6 +396,10 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
     description: normalizeDisplayText((community as any).description),
     longDescription: normalizeDisplayText((community as any).longDescription),
     settings: normalizedSettings,
+    isPrivate:
+      typeof (community as any)?.isPrivate === "boolean"
+        ? Boolean((community as any).isPrivate)
+        : (community as any)?.settings?.visibility === "private",
   }
 
   // Only pass a plain serializable payload to client components
@@ -431,6 +435,7 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
       bankName: String((communityData as any)?.creatorBankDetails?.bankName || ""),
       rib: String((communityData as any)?.creatorBankDetails?.rib || ""),
     },
+    isPrivate: Boolean((communityData as any).isPrivate),
   }
 
   const formatMembers = (count: number) => (count >= 1000 ? `${(count / 1000).toFixed(1)}k` : String(count))
@@ -525,7 +530,7 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
           />
         )}
 
-        {!communityData.isMember && (
+        {!communityData.isMember && !communityData.isPrivate && (
           <CommunityJoinCheckoutSection
             community={checkoutCommunityData}
             themeTokens={themeTokens}
@@ -634,6 +639,7 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
               slug,
               members: communityData.members || 0,
               isMember: Boolean(communityData.isMember),
+              isPrivate: Boolean(communityData.isPrivate),
             }}
             formatMembers={formatMembers}
             ctaContent={ctaContent}

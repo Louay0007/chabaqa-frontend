@@ -119,6 +119,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const normalizedUser = normalizeUser(user)
       setUser(normalizedUser)
 
+      const redirectParam = typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('redirect') ||
+          new URLSearchParams(window.location.search).get('returnUrl')
+        : null
+      const safeRedirect =
+        redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')
+          ? redirectParam
+          : null
+      if (safeRedirect && safeRedirect !== '/signin') {
+        router.push(safeRedirect)
+        return
+      }
+
       // Redirect based on role
       const role = user.role?.toLowerCase()
       if (role === 'creator') {

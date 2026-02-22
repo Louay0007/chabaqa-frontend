@@ -18,9 +18,15 @@ interface CheckoutFormProps {
   community: any
   embedded?: boolean
   themeTokens?: CommunityThemeTokens
+  inviteCode?: string
 }
 
-export function CheckoutForm({ community, embedded = false, themeTokens }: CheckoutFormProps) {
+export function CheckoutForm({
+  community,
+  embedded = false,
+  themeTokens,
+  inviteCode,
+}: CheckoutFormProps) {
   const router = useRouter()
 
   const [promoCode, setPromoCode] = useState("")
@@ -33,6 +39,13 @@ export function CheckoutForm({ community, embedded = false, themeTokens }: Check
   const [paymentMethod, setPaymentMethod] = useState<"stripe" | "manual">("stripe")
 
   const pricing = community as any
+  const normalizedInviteCode = typeof inviteCode === "string" ? inviteCode.trim() : ""
+  const isPrivateCommunity =
+    typeof pricing?.isPrivate === "boolean"
+      ? pricing.isPrivate
+      : pricing?.settings && typeof pricing.settings === "object"
+        ? pricing.settings.visibility === "private"
+        : false
   const gradient = themeTokens?.gradient || "linear-gradient(90deg, #8e78fb, #f48fb1)"
   const primary = themeTokens?.primary || "#8e78fb"
   const mutedBorder = themeTokens?.mutedBorder
@@ -114,6 +127,11 @@ export function CheckoutForm({ community, embedded = false, themeTokens }: Check
       return
     }
 
+    if (isPrivateCommunity && !normalizedInviteCode) {
+      setError("This private community requires a valid invitation link.")
+      return
+    }
+
     setIsProcessing(true)
     setError(null)
     setPromoError(null)
@@ -131,7 +149,7 @@ export function CheckoutForm({ community, embedded = false, themeTokens }: Check
           },
           credentials: "include",
           body: JSON.stringify({
-            communityId: community.id,
+            ...(normalizedInviteCode ? { inviteCode: normalizedInviteCode } : { communityId: community.id }),
           }),
         })
 
@@ -157,7 +175,11 @@ export function CheckoutForm({ community, embedded = false, themeTokens }: Check
         }, 2000)
       } else if (paymentMethod === "stripe") {
         // Stripe payment
-        const result = await (communitiesApi as any).initStripePayment(community.id, promoCode || undefined)
+        const result = await (communitiesApi as any).initStripePayment(
+          community.id,
+          promoCode || undefined,
+          normalizedInviteCode || undefined,
+        )
         // Handle both wrapped (data.checkoutUrl) and direct (checkoutUrl) response formats
         const checkoutUrl = result?.data?.checkoutUrl || result?.checkoutUrl
         if (checkoutUrl) {
@@ -193,6 +215,9 @@ export function CheckoutForm({ community, embedded = false, themeTokens }: Check
         const formData = new FormData()
         formData.append('communityId', community.id)
         formData.append('proof', paymentProof)
+        if (normalizedInviteCode) {
+          formData.append('inviteCode', normalizedInviteCode)
+        }
 
         // Call payment init endpoint
         const paymentUrl = promoCode
@@ -231,8 +256,9 @@ export function CheckoutForm({ community, embedded = false, themeTokens }: Check
 
       if (msg.includes("authentication") || msg.includes("unauthorized") || msg.includes("login")) {
         if (typeof window !== "undefined") {
-          const returnUrl = encodeURIComponent(window.location.pathname)
-          router.push(`/signin?returnUrl=${returnUrl}`)
+          const returnPath = `${window.location.pathname}${window.location.search || ""}`
+          const returnUrl = encodeURIComponent(returnPath)
+          router.push(`/signin?redirect=${returnUrl}&returnUrl=${returnUrl}`)
           return
         }
       }

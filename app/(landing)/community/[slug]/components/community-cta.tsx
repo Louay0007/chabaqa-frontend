@@ -9,6 +9,7 @@ interface CommunityCTAProps {
     slug: string
     members: number
     isMember: boolean
+    isPrivate?: boolean
   }
   formatMembers: (count: number) => string
   ctaContent?: PageContent["cta"] | null
@@ -27,7 +28,14 @@ export function CommunityCTA({
   const subtitle =
     ctaContent?.subtitle ||
     `Join now and start your journey to success with the ${community.name} community.`
-  const buttonText = ctaContent?.buttonText || (community.isMember ? "Open Community" : "Join Community Now")
+  const isInviteRequired = Boolean(!community.isMember && community.isPrivate)
+  const buttonText =
+    ctaContent?.buttonText ||
+    (community.isMember
+      ? "Open Community"
+      : isInviteRequired
+        ? "Invitation Required"
+        : "Join Community Now")
   const ctaHref = community.isMember
     ? `/community/${community.slug}/home`
     : `/community/${community.slug}#join-section`
@@ -62,16 +70,28 @@ export function CommunityCTA({
           </div>
           
           <div className="relative w-full flex-shrink-0 md:w-auto">
-            <Link
-              href={ctaHref}
-              className="inline-block w-full rounded-lg px-6 py-3 text-center text-sm font-semibold shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] sm:w-auto"
-              style={{
-                backgroundImage: gradient,
-                color: themeTokens?.primaryText || "#fff",
-              }}
-            >
-              {buttonText}
-            </Link>
+            {isInviteRequired ? (
+              <span
+                className="inline-block w-full rounded-lg px-6 py-3 text-center text-sm font-semibold shadow-md opacity-70 cursor-not-allowed sm:w-auto"
+                style={{
+                  backgroundImage: gradient,
+                  color: themeTokens?.primaryText || "#fff",
+                }}
+              >
+                {buttonText}
+              </span>
+            ) : (
+              <Link
+                href={ctaHref}
+                className="inline-block w-full rounded-lg px-6 py-3 text-center text-sm font-semibold shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] sm:w-auto"
+                style={{
+                  backgroundImage: gradient,
+                  color: themeTokens?.primaryText || "#fff",
+                }}
+              >
+                {buttonText}
+              </Link>
+            )}
           </div>
           </div>
         </div>

@@ -2,7 +2,21 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Plus, Search, Filter, Grid, List, CheckCircle, Trash2, Loader2, Edit, Eye } from "lucide-react"
+import {
+  Plus,
+  Search,
+  Filter,
+  Grid,
+  List,
+  CheckCircle,
+  Trash2,
+  Loader2,
+  Edit,
+  Eye,
+  Copy,
+  RefreshCcw,
+  Lock,
+} from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { EnhancedCard } from "@/components/ui/enhanced-card"
@@ -37,6 +51,7 @@ export default function CommunitiesPage() {
   const [deleteCommunityId, setDeleteCommunityId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({})
+  const [regeneratingInviteCommunityId, setRegeneratingInviteCommunityId] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -57,9 +72,22 @@ export default function CommunitiesPage() {
 
         // Fetch per-community stats (members/engagement)
         const withStats = await Promise.all(base.map(async (c: any) => {
+          const derivedPrivate =
+            typeof c?.isPrivate === "boolean"
+              ? Boolean(c.isPrivate)
+              : c?.settings?.visibility === "private"
           try {
             const stats = await api.communities.getStats(c.id || c._id)?.catch(() => null as any)
             const s = stats?.data || {}
+            const statsIsPublic =
+              typeof s.isPublic === "boolean" ? s.isPublic : undefined
+            const isPrivate =
+              typeof derivedPrivate === "boolean"
+                ? derivedPrivate
+                : statsIsPublic === undefined
+                  ? false
+                  : !statsIsPublic
+
             return {
               id: c.id || c._id?.toString?.() || c._id,
               slug: c.slug,
@@ -72,10 +100,13 @@ export default function CommunitiesPage() {
                 engagementRate: Math.round((s.engagementRate || s.avgEngagement || 0)),
                 monthlyGrowth: Math.round((s.monthlyGrowth || s.growth || 0)),
               },
-              isPublic: s.isPublic ?? c.isPublic ?? true,
+              isPublic: !isPrivate,
+              isPrivate,
+              inviteLink: typeof c?.inviteLink === "string" ? c.inviteLink : "",
               raw: c,
             }
           } catch {
+            const isPrivate = Boolean(derivedPrivate)
             return {
               id: c.id || c._id?.toString?.() || c._id,
               slug: c.slug,
@@ -85,7 +116,9 @@ export default function CommunitiesPage() {
               verified: Boolean(c.verified),
               members: 0,
               stats: { engagementRate: 0, monthlyGrowth: 0 },
-              isPublic: true,
+              isPublic: !isPrivate,
+              isPrivate,
+              inviteLink: typeof c?.inviteLink === "string" ? c.inviteLink : "",
               raw: c,
             }
           }
@@ -188,6 +221,64 @@ export default function CommunitiesPage() {
 
   const toggleDescription = (communityId: string) => {
     setExpandedDescriptions(prev => ({ ...prev, [communityId]: !prev[communityId] }))
+  }
+
+  const copyInviteLink = async (inviteLink?: string) => {
+    if (!inviteLink) return
+    try {
+      await navigator.clipboard.writeText(inviteLink)
+      toast({
+        title: "Invite link copied",
+        description: "The invitation link is now in your clipboard.",
+      })
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Unable to copy invite link. Please copy it manually.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const regenerateInviteLink = async (communityId: string) => {
+    if (!communityId || regeneratingInviteCommunityId) return
+    setRegeneratingInviteCommunityId(String(communityId))
+    try {
+      const response = await (api.communities as any).generateInviteLink(communityId, true)
+      const inviteData = response?.data || response
+      const nextInviteLink = String(inviteData?.inviteLink || "")
+
+      setCommunities((prev) =>
+        prev.map((community) =>
+          String(community.id) === String(communityId)
+            ? {
+                ...community,
+                isPrivate: true,
+                isPublic: false,
+                inviteLink: nextInviteLink,
+                raw: {
+                  ...(community.raw || {}),
+                  isPrivate: true,
+                  inviteLink: nextInviteLink,
+                },
+              }
+            : community,
+        ),
+      )
+
+      toast({
+        title: "Invite link regenerated",
+        description: "Previous invite links were invalidated immediately.",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Regeneration failed",
+        description: error?.message || "Unable to regenerate invite link.",
+        variant: "destructive",
+      })
+    } finally {
+      setRegeneratingInviteCommunityId(null)
+    }
   }
 
   const shouldShowSeeMore = (description: string) => {
@@ -339,6 +430,41 @@ export default function CommunitiesPage() {
                       onCheckedChange={(checked) => handleVisibilityChange(community.id, checked)}
                     />
                   </div>
+                  {community.isPrivate && (
+                    <div className="border-t pt-4">
+                      <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Invite-only access enabled</span>
+                      </div>
+                      <p className="text-xs text-gray-600 break-all bg-gray-50 border border-gray-200 rounded-md px-2 py-1.5">
+                        {community.inviteLink || "No invite link yet. Generate one now."}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyInviteLink(community.inviteLink)}
+                          disabled={!community.inviteLink}
+                        >
+                          <Copy className="w-3.5 h-3.5 mr-1" />
+                          Copy
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => regenerateInviteLink(community.id)}
+                          disabled={regeneratingInviteCommunityId === String(community.id)}
+                        >
+                          {regeneratingInviteCommunityId === String(community.id) ? (
+                            <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                          ) : (
+                            <RefreshCcw className="w-3.5 h-3.5 mr-1" />
+                          )}
+                          Regenerate
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </EnhancedCard>
@@ -418,6 +544,41 @@ export default function CommunitiesPage() {
                       </Button>
                     </div>
                   </div>
+                  {community.isPrivate && (
+                    <div className="mt-3 border-t pt-3">
+                      <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Invite-only access enabled</span>
+                      </div>
+                      <p className="text-xs text-gray-600 break-all bg-gray-50 border border-gray-200 rounded-md px-2 py-1.5">
+                        {community.inviteLink || "No invite link yet. Generate one now."}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyInviteLink(community.inviteLink)}
+                          disabled={!community.inviteLink}
+                        >
+                          <Copy className="w-3.5 h-3.5 mr-1" />
+                          Copy
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => regenerateInviteLink(community.id)}
+                          disabled={regeneratingInviteCommunityId === String(community.id)}
+                        >
+                          {regeneratingInviteCommunityId === String(community.id) ? (
+                            <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                          ) : (
+                            <RefreshCcw className="w-3.5 h-3.5 mr-1" />
+                          )}
+                          Regenerate
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </EnhancedCard>

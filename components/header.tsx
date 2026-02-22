@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, X, ChevronDown, LogOut, User as UserIcon } from "lucide-react"
+import { Menu, X, ChevronDown, LogOut, User as UserIcon, Plus, LayoutDashboard } from "lucide-react"
 import { siteData } from "@/lib/data"
 import { useRouter } from "next/navigation"
 import { logoutAction } from "@/app/(auth)/signin/actions"
@@ -132,12 +132,24 @@ export function Header() {
                 </>
               ) : (
                 <>
-                  <Link href="/dashboard/create-community" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">
-                    Create Community
+                  <Link
+                    href="/dashboard/create-community"
+                    aria-label="Create Community"
+                    title="Create Community"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 text-gray-900 hover:text-pink-600 hover:border-pink-300 transition-colors dark:border-gray-700 dark:text-white dark:hover:text-pink-400"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span className="sr-only">Create Community</span>
                   </Link>
                   {authUser?.role === "creator" && (
-                    <Link href="/creator/dashboard" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">
-                      Creator Dashboard
+                    <Link
+                      href="/creator/dashboard"
+                      aria-label="Creator Dashboard"
+                      title="Creator Dashboard"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 text-gray-900 hover:text-pink-600 hover:border-pink-300 transition-colors dark:border-gray-700 dark:text-white dark:hover:text-pink-400"
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      <span className="sr-only">Creator Dashboard</span>
                     </Link>
                   )}
                   <Link href={`/profile/${profileHandle}`} className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors flex items-center gap-2">

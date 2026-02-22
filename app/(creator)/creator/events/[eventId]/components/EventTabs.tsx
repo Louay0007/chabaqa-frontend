@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Event, EventSession } from "@/lib/models"
+import { Event } from "@/lib/models"
 import EventDetailsTab from "./EventDetailsTab"
 import EventSessionsTab from "./EventSessionsTab"
 import EventAttendeesTab from "./EventAttendeesTab"
@@ -13,11 +13,10 @@ import EventSettingsTab from "./EventSettingsTab"
 
 interface EventTabsProps {
   event: Event
-  sessions: EventSession[]
   onUpdateEvent: (updates: Partial<Event>) => void
 }
 
-export default function EventTabs({ event, sessions, onUpdateEvent }: EventTabsProps) {
+export default function EventTabs({ event, onUpdateEvent }: EventTabsProps) {
   const [activeTab, setActiveTab] = useState("details")
 
   return (
@@ -37,7 +36,7 @@ export default function EventTabs({ event, sessions, onUpdateEvent }: EventTabsP
       </TabsContent>
 
       <TabsContent value="sessions" className="space-y-6">
-        <EventSessionsTab event={event} sessions={sessions} />
+        <EventSessionsTab event={event} onUpdateEvent={onUpdateEvent} />
       </TabsContent>
 
       <TabsContent value="attendees" className="space-y-6">
@@ -45,11 +44,11 @@ export default function EventTabs({ event, sessions, onUpdateEvent }: EventTabsP
       </TabsContent>
 
       <TabsContent value="tickets" className="space-y-6">
-        <EventTicketsTab event={event} />
+        <EventTicketsTab event={event} onUpdateEvent={onUpdateEvent} />
       </TabsContent>
 
       <TabsContent value="speakers" className="space-y-6">
-        <EventSpeakersTab event={event} />
+        <EventSpeakersTab event={event} onUpdateEvent={onUpdateEvent} />
       </TabsContent>
 
       <TabsContent value="analytics" className="space-y-6">

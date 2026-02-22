@@ -8,9 +8,20 @@ interface EventsHeaderProps {
 
 export default function EventsHeader({ availableEvents, myTickets }: EventsHeaderProps) {
   // Filter only published and active events
-  const upcomingEvents = availableEvents?.filter(e =>
-    e.isActive && new Date(e.startDate) >= new Date()
-  ) || []
+  const now = new Date();
+  const upcomingEvents = availableEvents?.filter((event) => {
+    if (!event.isActive || event.isPublished === false) {
+      return false;
+    }
+    if (!event.startDate) {
+      return true;
+    }
+    const startDate = new Date(event.startDate);
+    if (Number.isNaN(startDate.getTime())) {
+      return true;
+    }
+    return startDate >= now;
+  }) || []
 
   // Calculate total tickets sold
   const totalTicketsSold = availableEvents?.reduce(

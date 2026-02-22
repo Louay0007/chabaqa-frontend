@@ -20,6 +20,7 @@ export default async function EventsPage({
     <EventsPageContent 
         availableEvents={data.events}
         myTickets={data.userRegistrations}
+        communitySlug={feature}
     />
     )
   } catch (error) {

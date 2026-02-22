@@ -17,16 +17,47 @@ export default function AvailableEventsTab({ availableEvents }: AvailableEventsT
   const { toast } = useToast();
   const [selectedEvent, setSelectedEvent] = useState<EventWithTickets | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<string>("");
-  const [quantity, setQuantity] = useState<number>(1);
   const [notes, setNotes] = useState("");
 
   const [promoCode, setPromoCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Filter only published and upcoming events
-  const upcomingEvents = availableEvents?.filter(e =>
-    e.isActive && new Date(e.startDate) >= new Date()
-  ) || []
+  // Filter only published and upcoming events, but keep events with invalid/missing dates visible.
+  const now = new Date();
+  const upcomingEvents = availableEvents?.filter((event) => {
+    if (!event?.isActive || event?.isPublished === false) {
+      return false;
+    }
+
+    if (!event.startDate) {
+      return true;
+    }
+
+    const startDate = new Date(event.startDate);
+    if (Number.isNaN(startDate.getTime())) {
+      return true;
+    }
+
+    return startDate >= now;
+  }) || [];
+
+  const handleOpenRegistration = (event: EventWithTickets) => {
+    setSelectedEvent(event);
+    setSelectedTicket(event.tickets?.[0]?.id || "");
+    setNotes("");
+    setPromoCode("");
+  };
+
+  const isAlreadyRegisteredError = (error: any): boolean => {
+    const message = String(
+      error?.message ||
+      error?.error?.message ||
+      error?.data?.message ||
+      ""
+    ).toLowerCase();
+
+    return message.includes("déjà inscrit") || message.includes("already registered");
+  };
 
   const handleRegister = async () => {
     if (!selectedEvent) return;
@@ -45,7 +76,6 @@ export default function AvailableEventsTab({ availableEvents }: AvailableEventsT
         toast({ title: "Registered", description: "Your registration has been confirmed." });
         setSelectedEvent(null);
         setSelectedTicket("");
-        setQuantity(1);
         setNotes("");
         return;
       }
@@ -57,7 +87,19 @@ export default function AvailableEventsTab({ availableEvents }: AvailableEventsT
       }
       window.location.href = checkoutUrl;
     } catch (error: any) {
-      toast({ title: "Registration failed", description: error?.message || "Please try again.", variant: "destructive" });
+      if (isAlreadyRegisteredError(error)) {
+        toast({
+          title: "Already Registered",
+          description: "You can only register once per event (1 ticket per user).",
+        });
+        return;
+      }
+
+      toast({
+        title: "Registration failed",
+        description: error?.message || error?.error?.message || "Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -86,13 +128,12 @@ export default function AvailableEventsTab({ availableEvents }: AvailableEventsT
           <EventCard
             key={event.id}
             event={event}
+            selectedEventId={selectedEvent?.id}
             selectedTicket={selectedTicket}
             setSelectedTicket={setSelectedTicket}
-            quantity={quantity}
-            setQuantity={setQuantity}
             notes={notes}
             setNotes={setNotes}
-            setSelectedEvent={setSelectedEvent}
+            onOpenRegistration={handleOpenRegistration}
             handleRegister={handleRegister}
             promoCode={promoCode}
             setPromoCode={setPromoCode}

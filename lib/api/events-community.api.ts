@@ -1,8 +1,8 @@
 import { apiClient, ApiSuccessResponse } from './client';
-import { eventsApi } from './events.api';
 import { communitiesApi } from './communities.api';
 import { getMe } from './user.api';
 import type { Event, EventTicket } from './types';
+import { resolveImageUrl } from '@/lib/resolve-image-url';
 
 export interface EventWithTickets extends Event {
   tickets: EventTicket[];
@@ -10,6 +10,10 @@ export interface EventWithTickets extends Event {
   sessions?: any[];
   isRegistered?: boolean;
   registrationDate?: string;
+  organizerName?: string;
+  organizerAvatar?: string;
+  communityName?: string;
+  communitySlug?: string;
 }
 
 export interface EventRegistration {
@@ -31,76 +35,193 @@ export interface EventsPageData {
 /**
  * Transform backend event data to frontend format
  */
+function toNumber(value: unknown, fallback = 0): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function toStringOrUndefined(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+  return undefined;
+}
+
+function toIsoOrUndefined(value: unknown): string | undefined {
+  const str = toStringOrUndefined(value);
+  if (!str) return undefined;
+  const date = new Date(str);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
+function unwrapEventsList(payload: any): any[] {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.events)) return payload.events;
+  if (Array.isArray(payload.data?.events)) return payload.data.events;
+  if (Array.isArray(payload.data)) return payload.data;
+  if (Array.isArray(payload.items)) return payload.items;
+  if (Array.isArray(payload.results)) return payload.results;
+  return [];
+}
+
+function resolveRegistrationTicket(eventSource: any, userRegistration: any): any | undefined {
+  const tickets = Array.isArray(eventSource?.tickets) ? eventSource.tickets : [];
+  if (tickets.length === 0) return undefined;
+
+  const requestedValues = [
+    userRegistration?.ticketType,
+    userRegistration?.ticketId,
+    userRegistration?.ticket?._id,
+    userRegistration?.ticket?.id,
+    userRegistration?.ticket?.type,
+  ]
+    .map((value) => toStringOrUndefined(value)?.toLowerCase())
+    .filter(Boolean) as string[];
+
+  if (requestedValues.length > 0) {
+    const matched = tickets.find((ticket: any) => {
+      const candidates = [
+        ticket?._id,
+        ticket?.id,
+        ticket?.type,
+      ]
+        .map((value) => toStringOrUndefined(value)?.toLowerCase())
+        .filter(Boolean);
+      return candidates.some((candidate) => requestedValues.includes(candidate));
+    });
+
+    if (matched) {
+      return matched;
+    }
+  }
+
+  return tickets[0];
+}
+
+function unwrapRegistrationsList(payload: any): any[] {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.events)) return payload.events;
+  if (Array.isArray(payload.data?.events)) return payload.data.events;
+  if (Array.isArray(payload.data)) return payload.data;
+  if (Array.isArray(payload.results)) return payload.results;
+  if (Array.isArray(payload.items)) return payload.items;
+  return [];
+}
+
 function transformEvent(backendEvent: any): EventWithTickets {
+  const source = backendEvent || {};
+
   // Transform tickets
-  const tickets = (backendEvent.tickets || []).map((ticket: any) => ({
-    id: String(ticket._id || ticket.id || ''),
-    type: ticket.type || 'general',
-    name: ticket.name || 'General Admission',
-    price: ticket.price || 0,
-    description: ticket.description || undefined,
-    quantity: ticket.quantity || undefined,
-    sold: ticket.sold || 0,
+  const tickets = (source.tickets || []).map((ticket: any, index: number) => ({
+    id: String(ticket?._id || ticket?.id || ticket?.type || `ticket-${index}`),
+    type: ticket?.type || 'general',
+    name: ticket?.name || 'General Admission',
+    price: toNumber(ticket?.price),
+    description: toStringOrUndefined(ticket?.description),
+    quantity: typeof ticket?.quantity === 'number' ? ticket.quantity : undefined,
+    sold: toNumber(ticket?.sold),
   }));
 
   // Transform speakers
-  const speakers = (backendEvent.speakers || []).map((speaker: any) => ({
-    id: String(speaker._id || speaker.id || ''),
-    name: speaker.name || 'Unknown',
-    title: speaker.title || undefined,
-    bio: speaker.bio || undefined,
-    photo: speaker.photo || undefined,
+  const speakers = (source.speakers || []).map((speaker: any, index: number) => ({
+    id: String(speaker?._id || speaker?.id || `speaker-${index}`),
+    name: speaker?.name || 'Unknown',
+    title: toStringOrUndefined(speaker?.title),
+    bio: toStringOrUndefined(speaker?.bio),
+    photo: resolveImageUrl(speaker?.photo),
   }));
 
   // Transform sessions
-  const sessions = (backendEvent.sessions || []).map((session: any) => ({
-    id: String(session._id || session.id || ''),
-    title: session.title || '',
-    description: session.description || undefined,
-    startTime: session.startTime || undefined,
-    endTime: session.endTime || undefined,
-    speaker: session.speaker || undefined,
-    notes: session.notes || undefined,
-    isActive: session.isActive !== false,
-    attendance: session.attendance || 0,
+  const sessions = (source.sessions || []).map((session: any, index: number) => ({
+    id: String(session?._id || session?.id || `session-${index}`),
+    title: session?.title || '',
+    description: toStringOrUndefined(session?.description),
+    startTime: toStringOrUndefined(session?.startTime),
+    endTime: toStringOrUndefined(session?.endTime),
+    speaker: toStringOrUndefined(session?.speaker),
+    notes: toStringOrUndefined(session?.notes),
+    isActive: session?.isActive !== false,
+    attendance: toNumber(session?.attendance),
   }));
 
-  // Calculate start and end times from dates if not provided
-  const startDate = new Date(backendEvent.startDate || new Date());
-  const endDate = backendEvent.endDate ? new Date(backendEvent.endDate) : undefined;
+  const fallbackStartDate = new Date().toISOString();
+  const startDate = toIsoOrUndefined(source.startDate) || fallbackStartDate;
+  const endDate = toIsoOrUndefined(source.endDate);
+  const image = resolveImageUrl(
+    source.image ||
+    source.thumbnail ||
+    source.coverImage
+  );
+  const organizerName = source.creator?.name || source.organizer?.name || undefined;
+  const organizerAvatar = resolveImageUrl(
+    source.creator?.avatar ||
+    source.creator?.photo ||
+    source.organizer?.avatar
+  );
+  const communityId =
+    source.communityId?._id ||
+    source.communityId?.id ||
+    source.community?._id ||
+    source.community?.id ||
+    source.communityId ||
+    '';
+  const creatorId =
+    source.creatorId?._id ||
+    source.creatorId?.id ||
+    source.creator?._id ||
+    source.creator?.id ||
+    source.creatorId ||
+    '';
+  const attendees = Array.isArray(source.attendees) ? source.attendees : [];
+  const type = toStringOrUndefined(source.type) || 'General';
+  const onlineUrl = toStringOrUndefined(source.onlineUrl);
+  const isVirtualByType = type.toLowerCase().includes('online') || type.toLowerCase().includes('hybrid');
+  const startTime = toStringOrUndefined(source.startTime);
+  const endTime = toStringOrUndefined(source.endTime);
+  const ticketMinPrice = tickets.length > 0 ? Math.min(...tickets.map((ticket) => toNumber(ticket.price))) : toNumber(source.price);
 
   return {
-    id: String(backendEvent._id || backendEvent.id || ''),
-    title: backendEvent.title || '',
-    slug: backendEvent.slug || '',
-    description: backendEvent.description || '',
-    communityId: String(backendEvent.communityId?._id || backendEvent.communityId?.id || backendEvent.communityId || backendEvent.community?.id || ''),
-    creatorId: String(backendEvent.creatorId?._id || backendEvent.creatorId?.id || backendEvent.creatorId || backendEvent.creator?.id || ''),
-    thumbnail: backendEvent.image || backendEvent.thumbnail || undefined,
-    startDate: backendEvent.startDate || startDate.toISOString(),
-    endDate: backendEvent.endDate || endDate?.toISOString(),
-    startTime: backendEvent.startTime || undefined,
-    endTime: backendEvent.endTime || undefined,
-    timezone: backendEvent.timezone || 'UTC',
-    location: backendEvent.location || undefined,
-    isVirtual: !!backendEvent.onlineUrl,
-    maxAttendees: backendEvent.maxAttendees || undefined,
-    price: tickets.length > 0 ? Math.min(...tickets.map((t: any) => t.price)) : 0,
-    isPublished: backendEvent.isPublished !== false,
-    isActive: backendEvent.isActive !== false,
-    attendees: backendEvent.attendees || [],
-    createdAt: backendEvent.createdAt || new Date().toISOString(),
-    updatedAt: backendEvent.updatedAt || new Date().toISOString(),
+    id: String(source._id || source.id || ''),
+    title: source.title || 'Untitled event',
+    slug: source.slug || '',
+    description: source.description || '',
+    communityId: String(communityId),
+    creatorId: String(creatorId),
+    thumbnail: image,
+    startDate,
+    endDate,
+    startTime,
+    endTime,
+    timezone: source.timezone || 'UTC',
+    location: toStringOrUndefined(source.location),
+    isVirtual: Boolean(onlineUrl) || isVirtualByType,
+    maxAttendees: typeof source.maxAttendees === 'number' ? source.maxAttendees : undefined,
+    price: ticketMinPrice,
+    isPublished: source.isPublished !== false,
+    isActive: source.isActive !== false,
+    attendees,
+    createdAt: toIsoOrUndefined(source.createdAt) || fallbackStartDate,
+    updatedAt: toIsoOrUndefined(source.updatedAt) || fallbackStartDate,
     // Additional fields for component compatibility
     tickets,
     speakers,
     sessions,
-    type: backendEvent.type || 'General',
-    category: backendEvent.category || 'General',
-    image: backendEvent.image || undefined,
-    onlineUrl: backendEvent.onlineUrl || undefined,
-    tags: backendEvent.tags || [],
-    attendeesCount: backendEvent.totalAttendees || backendEvent.attendees?.length || 0,
+    type,
+    category: toStringOrUndefined(source.category) || 'General',
+    image,
+    onlineUrl,
+    tags: Array.isArray(source.tags) ? source.tags : [],
+    attendeesCount: toNumber(source.totalAttendees ?? source.attendeesCount ?? attendees.length),
+    organizerName,
+    organizerAvatar,
+    communityName: source.community?.name,
+    communitySlug: source.community?.slug,
   };
 }
 
@@ -118,20 +239,60 @@ function transformRegistration(backendRegistration: any): EventRegistration {
       id: String(ticket._id || ticket.id || ticket.type || ''),
       type: ticket.type || 'general',
       name: ticket.name || ticket.type || 'General Admission',
-      price: ticket.price || 0,
-      description: ticket.description || undefined,
-      quantity: ticket.quantity || undefined,
-      sold: ticket.sold || 0,
+      price: toNumber(ticket.price),
+      description: toStringOrUndefined(ticket.description),
+      quantity: typeof ticket.quantity === 'number' ? ticket.quantity : undefined,
+      sold: toNumber(ticket.sold),
     } : {
       id: 'unknown',
       type: 'general',
       name: 'General Admission',
       price: 0,
     },
-    quantity: backendRegistration.quantity || 1,
+    quantity: Math.max(1, toNumber(backendRegistration.quantity, 1)),
     status: backendRegistration.status || 'confirmed',
-    registeredAt: backendRegistration.registeredAt || backendRegistration.registrationDate || new Date().toISOString(),
+    registeredAt: toIsoOrUndefined(backendRegistration.registeredAt) ||
+      toIsoOrUndefined(backendRegistration.registrationDate) ||
+      new Date().toISOString(),
   };
+}
+
+export function normalizeEventRegistrations(payload: any): EventRegistration[] {
+  const registrationsList = unwrapRegistrationsList(payload);
+  if (!Array.isArray(registrationsList) || registrationsList.length === 0) {
+    return [];
+  }
+
+  return registrationsList
+    .map((reg: any) => {
+      const looksLikeRegistration =
+        Boolean(reg?.event) ||
+        Boolean(reg?.ticket) ||
+        Boolean(reg?.registeredAt) ||
+        Boolean(reg?.registrationDate) ||
+        Boolean(reg?.status);
+
+      if (looksLikeRegistration) {
+        return transformRegistration(reg);
+      }
+
+      const userRegistration = reg?.userRegistration || {
+        ticketType: reg?.ticketType || 'general',
+        registeredAt: reg?.registeredAt || new Date().toISOString(),
+        quantity: reg?.quantity || 1,
+        status: reg?.status || 'confirmed',
+      };
+
+      const ticket = resolveRegistrationTicket(reg, userRegistration);
+
+      return transformRegistration({
+        ...userRegistration,
+        id: userRegistration?.id || reg?._id || reg?.id,
+        event: reg,
+        ticket,
+      });
+    })
+    .filter((registration) => Boolean(registration?.event?.id));
 }
 
 /**
@@ -164,11 +325,11 @@ export const eventsCommunityApi = {
         getMe().catch(() => null),
       ]);
 
-      // Handle events
+        // Handle events
       let events: EventWithTickets[] = [];
       if (eventsResponse.status === 'fulfilled' && eventsResponse.value) {
         const eventsData = eventsResponse.value as ApiSuccessResponse<{ events: any[] }> | null;
-        const eventsList = (eventsData as any)?.data?.events ?? [];
+        const eventsList = unwrapEventsList((eventsData as any)?.data);
         events = Array.isArray(eventsList)
           ? eventsList.map(transformEvent)
           : [];
@@ -178,26 +339,7 @@ export const eventsCommunityApi = {
       let userRegistrations: EventRegistration[] = [];
       if (userRegistrationsResponse.status === 'fulfilled' && userRegistrationsResponse.value) {
         const registrationsData = userRegistrationsResponse.value as ApiSuccessResponse<{ events: any[] }> | null;
-        const registrationsList = (registrationsData as any)?.data?.events ?? [];
-
-        // Transform registrations
-        userRegistrations = Array.isArray(registrationsList)
-          ? registrationsList.map((reg: any) => {
-            // The backend returns events with user registration info embedded
-            const userRegistration = reg.userRegistration || {
-              ticketType: reg.ticketType || 'general',
-              registeredAt: reg.registeredAt || new Date().toISOString(),
-              quantity: 1,
-              status: 'confirmed',
-            };
-
-            return transformRegistration({
-              ...userRegistration,
-              event: reg,
-              ticket: reg.tickets?.find((t: any) => t.type === userRegistration.ticketType) || reg.tickets?.[0],
-            });
-          })
-          : [];
+        userRegistrations = normalizeEventRegistrations(registrationsData);
       }
 
       // Transform current user

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,103 +20,143 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Event } from "@/lib/models"
-import { eventsApi } from "@/lib/api/events.api"
 import { useToast } from "@/hooks/use-toast"
-import { getErrorMessage, formatErrorForToast } from "@/lib/utils/error-messages"
-import { useRouter } from "next/navigation"
 
 interface EventTicketsTabProps {
   event: Event
+  onUpdateEvent: (updates: Partial<Event>) => void
 }
 
-export default function EventTicketsTab({ event }: EventTicketsTabProps) {
+interface TicketFormState {
+  id?: string
+  type: "regular" | "vip" | "early-bird" | "student" | "free"
+  name: string
+  price: string
+  description: string
+  quantity: string
+  sold: number
+}
+
+const createEmptyTicket = (): TicketFormState => ({
+  type: "regular",
+  name: "",
+  price: "",
+  description: "",
+  quantity: "",
+  sold: 0,
+})
+
+const toTicketForm = (ticket: any): TicketFormState => ({
+  id: ticket.id,
+  type: (ticket.type || "regular") as TicketFormState["type"],
+  name: ticket.name || "",
+  price: String(ticket.price ?? ""),
+  description: ticket.description || "",
+  quantity: ticket.quantity !== undefined ? String(ticket.quantity) : "",
+  sold: Number(ticket.sold ?? 0),
+})
+
+const nextId = () => `ticket_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+
+export default function EventTicketsTab({ event, onUpdateEvent }: EventTicketsTabProps) {
   const { toast } = useToast()
-  const router = useRouter()
-  const [tickets, setTickets] = useState(event.tickets || [])
-  const [editingTicket, setEditingTicket] = useState<any>(null)
+
+  const tickets = useMemo(() => event.tickets || [], [event.tickets])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [newTicket, setNewTicket] = useState({
-    type: "regular",
-    name: "",
-    price: "",
-    description: "",
-    quantity: "",
-  })
+  const [newTicket, setNewTicket] = useState<TicketFormState>(createEmptyTicket())
+  const [editingTicket, setEditingTicket] = useState<TicketFormState | null>(null)
 
-  const handleAddTicket = async () => {
-    try {
-      const ticketData = {
-        type: newTicket.type,
-        name: newTicket.name,
-        price: Number(newTicket.price) || 0,
-        description: newTicket.description,
-        quantity: newTicket.quantity ? Number(newTicket.quantity) : 0,
+  const validateTicket = (ticket: TicketFormState): string | null => {
+    if (!ticket.type) return "Ticket type is required"
+    if (!ticket.name.trim()) return "Ticket name is required"
+
+    const price = Number(ticket.price)
+    if (Number.isNaN(price) || price < 0) return "Ticket price must be 0 or greater"
+
+    if (ticket.quantity.trim()) {
+      const quantity = Number(ticket.quantity)
+      if (Number.isNaN(quantity) || quantity < 0) return "Ticket quantity must be 0 or greater"
+      if (quantity < Number(ticket.sold ?? 0)) {
+        return `Quantity cannot be less than sold (${ticket.sold})`
       }
-
-      const response = await eventsApi.addTicket(event.id, ticketData)
-      const addedTicket = response.data
-
-      // Add new ticket with ID from backend
-      setTickets([...tickets, {
-        id: addedTicket.id,
-        type: addedTicket.type,
-        name: addedTicket.name,
-        price: addedTicket.price,
-        description: addedTicket.description || '',
-        quantity: addedTicket.quantity,
-        sold: 0, // New tickets have 0 sold
-      }])
-
-      setNewTicket({
-        type: "regular",
-        name: "",
-        price: "",
-        description: "",
-        quantity: "",
-      })
-      setIsAddDialogOpen(false)
-      toast({ title: 'Success', description: 'Ticket added successfully' })
-      router.refresh()
-    } catch (error: any) {
-      const errorToast = formatErrorForToast(error)
-      toast({
-        title: errorToast.title,
-        description: errorToast.description,
-        variant: 'destructive' as any
-      })
     }
+
+    return null
   }
 
-  const handleDeleteTicket = async (ticketId: string, sold: number) => {
-    // Prevent deleting tickets with sales
+  const applyTickets = (nextTickets: any[]) => {
+    onUpdateEvent({ tickets: nextTickets as any })
+  }
+
+  const handleAddTicket = () => {
+    const error = validateTicket(newTicket)
+    if (error) {
+      toast({ title: "Validation error", description: error, variant: "destructive" as any })
+      return
+    }
+
+    const created = {
+      id: nextId(),
+      type: newTicket.type,
+      name: newTicket.name.trim(),
+      price: Number(newTicket.price) || 0,
+      description: newTicket.description.trim(),
+      quantity: newTicket.quantity.trim() ? Number(newTicket.quantity) : undefined,
+      sold: 0,
+    }
+
+    applyTickets([...tickets, created])
+    setNewTicket(createEmptyTicket())
+    setIsAddDialogOpen(false)
+    toast({ title: "Ticket added", description: "Ticket added. Click Save Changes to persist." })
+  }
+
+  const startEdit = (ticket: any) => {
+    setEditingTicket(toTicketForm(ticket))
+    setIsEditDialogOpen(true)
+  }
+
+  const handleUpdateTicket = () => {
+    if (!editingTicket) return
+    const error = validateTicket(editingTicket)
+    if (error) {
+      toast({ title: "Validation error", description: error, variant: "destructive" as any })
+      return
+    }
+
+    const nextTickets = tickets.map((ticket) =>
+      ticket.id === editingTicket.id
+        ? {
+            ...ticket,
+            type: editingTicket.type,
+            name: editingTicket.name.trim(),
+            price: Number(editingTicket.price) || 0,
+            description: editingTicket.description.trim(),
+            quantity: editingTicket.quantity.trim() ? Number(editingTicket.quantity) : undefined,
+            sold: Number(ticket.sold ?? 0),
+          }
+        : ticket,
+    )
+
+    applyTickets(nextTickets)
+    setEditingTicket(null)
+    setIsEditDialogOpen(false)
+    toast({ title: "Ticket updated", description: "Ticket updated. Click Save Changes to persist." })
+  }
+
+  const handleDeleteTicket = (ticketId: string, sold: number) => {
     if (sold > 0) {
       toast({
-        title: 'Cannot delete ticket',
-        description: 'This ticket has been sold and cannot be deleted. You can disable it instead.',
-        variant: 'destructive' as any
+        title: "Cannot delete ticket",
+        description: "This ticket has sales and cannot be deleted.",
+        variant: "destructive" as any,
       })
       return
     }
 
-    try {
-      await eventsApi.removeTicket(event.id, ticketId)
-      setTickets(tickets.filter(t => t.id !== ticketId))
-      toast({ title: 'Success', description: 'Ticket removed successfully' })
-      router.refresh()
-    } catch (error: any) {
-      const errorToast = formatErrorForToast(error)
-      toast({
-        title: errorToast.title,
-        description: errorToast.description,
-        variant: 'destructive' as any
-      })
-    }
-  }
-
-  const handleEditTicket = (ticket: any) => {
-    setEditingTicket(ticket)
-    setIsEditDialogOpen(true)
+    applyTickets(tickets.filter((ticket) => ticket.id !== ticketId))
+    toast({ title: "Ticket removed", description: "Ticket removed. Click Save Changes to persist." })
   }
 
   return (
@@ -142,10 +182,7 @@ export default function EventTicketsTab({ event }: EventTicketsTabProps) {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="ticketType">Ticket Type</Label>
-                  <Select
-                    value={newTicket.type}
-                    onValueChange={(value) => setNewTicket((prev) => ({ ...prev, type: value }))}
-                  >
+                  <Select value={newTicket.type} onValueChange={(value) => setNewTicket((prev) => ({ ...prev, type: value as any }))}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -154,6 +191,7 @@ export default function EventTicketsTab({ event }: EventTicketsTabProps) {
                       <SelectItem value="vip">VIP</SelectItem>
                       <SelectItem value="early-bird">Early Bird</SelectItem>
                       <SelectItem value="student">Student</SelectItem>
+                      <SelectItem value="free">Free</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -206,7 +244,7 @@ export default function EventTicketsTab({ event }: EventTicketsTabProps) {
       <CardContent>
         <div className="space-y-4">
           {tickets.map((ticket) => {
-            const hasSales = (ticket.sold || 0) > 0
+            const hasSales = Number(ticket.sold || 0) > 0
             return (
               <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center space-x-3">
@@ -223,19 +261,15 @@ export default function EventTicketsTab({ event }: EventTicketsTabProps) {
                   <div className="text-right">
                     <div className="font-semibold">${ticket.price}</div>
                     <div className="text-sm text-muted-foreground">
-                      {ticket.sold || 0} sold{ticket.quantity ? ` of ${ticket.quantity}` : ''}
+                      {ticket.sold || 0} sold{ticket.quantity ? ` of ${ticket.quantity}` : ""}
                     </div>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleEditTicket(ticket)}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => startEdit(ticket)}>
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className={hasSales ? "text-gray-400 cursor-not-allowed" : "text-red-600"}
                     disabled={hasSales}
                     onClick={() => handleDeleteTicket(ticket.id, ticket.sold || 0)}
@@ -255,6 +289,76 @@ export default function EventTicketsTab({ event }: EventTicketsTabProps) {
           )}
         </div>
       </CardContent>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Ticket</DialogTitle>
+            <DialogDescription>Update ticket details</DialogDescription>
+          </DialogHeader>
+          {editingTicket && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="editTicketType">Ticket Type</Label>
+                <Select
+                  value={editingTicket.type}
+                  onValueChange={(value) => setEditingTicket((prev) => (prev ? { ...prev, type: value as any } : prev))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="regular">Regular</SelectItem>
+                    <SelectItem value="vip">VIP</SelectItem>
+                    <SelectItem value="early-bird">Early Bird</SelectItem>
+                    <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="free">Free</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editTicketName">Name</Label>
+                <Input
+                  id="editTicketName"
+                  value={editingTicket.name}
+                  onChange={(e) => setEditingTicket((prev) => (prev ? { ...prev, name: e.target.value } : prev))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editTicketPrice">Price ($)</Label>
+                <Input
+                  id="editTicketPrice"
+                  type="number"
+                  value={editingTicket.price}
+                  onChange={(e) => setEditingTicket((prev) => (prev ? { ...prev, price: e.target.value } : prev))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editTicketQuantity">Quantity</Label>
+                <Input
+                  id="editTicketQuantity"
+                  type="number"
+                  value={editingTicket.quantity}
+                  onChange={(e) => setEditingTicket((prev) => (prev ? { ...prev, quantity: e.target.value } : prev))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editTicketDescription">Description</Label>
+                <Textarea
+                  id="editTicketDescription"
+                  value={editingTicket.description}
+                  onChange={(e) =>
+                    setEditingTicket((prev) => (prev ? { ...prev, description: e.target.value } : prev))
+                  }
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={handleUpdateTicket}>Save Ticket</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </EnhancedCard>
   )
 }

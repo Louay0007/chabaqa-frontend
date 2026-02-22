@@ -8,10 +8,15 @@ interface CheckoutPageProps {
   params: {
     slug: string
   }
+  searchParams?: {
+    inviteCode?: string
+  }
 }
 
-export default async function CheckoutPage({ params }: CheckoutPageProps) {
+export default async function CheckoutPage({ params, searchParams }: CheckoutPageProps) {
   const { slug } = params
+  const inviteCode =
+    typeof searchParams?.inviteCode === "string" ? searchParams.inviteCode.trim() : ""
   
   let community: any = null
   
@@ -53,7 +58,7 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
       
       <main className="pt-16">
         <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
-          <CheckoutForm community={communityData} />
+          <CheckoutForm community={communityData} inviteCode={inviteCode || undefined} />
         </div>
       </main>
 

@@ -5,6 +5,8 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import ForgotPasswordForm from "../components/forgot-password-form"
 
+export const dynamic = 'force-dynamic'
+
 export default async function ForgotPasswordPage() {
   const user = await getProfileServer()
 

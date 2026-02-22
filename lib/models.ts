@@ -395,6 +395,7 @@ export interface Event {
   category: string
   type: "Online" | "In-person" | "Hybrid"
   isActive: boolean
+  isPublished?: boolean
   price: number
   notes?: string
   attendees: any[]

@@ -54,6 +54,7 @@ export default function PaymentSuccessContent() {
   const router = useRouter();
   const { toast } = useToast();
   const redirectDone = useRef(false);
+  const duplicateEventToastShown = useRef(false);
   const [verified, setVerified] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +67,11 @@ export default function PaymentSuccessContent() {
 
   console.log('Payment Success Params:', searchParams.toString());
   console.log('Session ID:', sessionId);
+
+  const isAlreadyRegisteredEventMessage = (value: unknown): boolean => {
+    const message = String(value || '').toLowerCase();
+    return message.includes('déjà inscrit') || message.includes('already registered');
+  };
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -101,9 +107,23 @@ export default function PaymentSuccessContent() {
         const payload = data.data || data;
         const status = payload?.status;
         const action = payload?.action;
+        const errorMessage = payload?.message || data?.message || data?.error;
+        const isEventAlreadyRegistered =
+          scope === 'event' &&
+          !isSuccess &&
+          isAlreadyRegisteredEventMessage(errorMessage);
 
         if (isSuccess && (status === 'paid' || status === 'complete' || status === 'succeeded')) {
           setVerified(true);
+        } else if (isEventAlreadyRegistered) {
+          setVerified(true);
+          if (!duplicateEventToastShown.current) {
+            duplicateEventToastShown.current = true;
+            toast({
+              title: 'Already Registered',
+              description: 'You can only register once per event (1 ticket per user).',
+            });
+          }
         } else if (isSuccess && status === 'paid_action_required' && action === 'choose_session_slot') {
           const orderId = payload?.orderId;
           const sessionTargetId = payload?.sessionContentId || payload?.targetId || id;
@@ -133,7 +153,7 @@ export default function PaymentSuccessContent() {
     };
 
     verifyPayment();
-  }, [sessionId, provider, id, router, toast]);
+  }, [sessionId, provider, id, scope, router, toast]);
 
   // Helper to access data safely
   const paymentData = verificationData?.data || verificationData;
@@ -142,6 +162,10 @@ export default function PaymentSuccessContent() {
   const creatorSlug = paymentData?.creatorSlug;
   const communitySlug = paymentData?.communitySlug;
   const targetId = paymentData?.targetId || id;
+  const eventPageHref =
+    creatorSlug && communitySlug
+      ? `/${creatorSlug}/${communitySlug}/events${targetId ? `?eventId=${encodeURIComponent(String(targetId))}` : ''}`
+      : null;
 
   // After successful payment, redirect straight to content (no success page)
   useEffect(() => {
@@ -241,9 +265,9 @@ export default function PaymentSuccessContent() {
     }
 
     // 5. Event
-    if (scope === 'event' && creatorSlug && communitySlug && targetId) {
+    if (scope === 'event' && eventPageHref) {
       return (
-        <Link href={`/${creatorSlug}/${communitySlug}/events/${targetId}`} className={baseClass}>
+        <Link href={eventPageHref} className={baseClass}>
           Go to Event
         </Link>
       );

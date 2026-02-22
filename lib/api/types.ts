@@ -47,10 +47,30 @@ export interface Community {
     verified: boolean;
   };
   settings?: CommunitySettings;
+  isPrivate?: boolean;
+  inviteLink?: string;
   fees_of_join?: number;
   currency?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface InvitePreview {
+  communityId: string;
+  slug: string;
+  name: string;
+  description?: string;
+  logo?: string;
+  coverImage?: string;
+  creator?: {
+    name: string;
+    avatar?: string;
+  };
+  membersCount?: number;
+  price: number;
+  currency?: string;
+  isPrivate: boolean;
+  priceType?: string;
 }
 
 export interface CommunitySocialLinks {

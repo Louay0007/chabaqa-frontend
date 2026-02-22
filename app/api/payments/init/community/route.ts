@@ -9,7 +9,10 @@ export async function POST(request: Request) {
         const promoCode = searchParams.get('promoCode');
 
         const body = await request.json();
-        const { communityId } = body;
+        const communityId =
+            typeof body?.communityId === 'string' ? body.communityId.trim() : '';
+        const inviteCode =
+            typeof body?.inviteCode === 'string' ? body.inviteCode.trim() : '';
 
         if (!communityId) {
             return NextResponse.json(
@@ -44,7 +47,10 @@ export async function POST(request: Request) {
                 'Content-Type': 'application/json',
                 'Authorization': token,
             },
-            body: JSON.stringify({ communityId }),
+            body: JSON.stringify({
+                communityId,
+                ...(inviteCode ? { inviteCode } : {}),
+            }),
         });
 
         const data = await backendResponse.json();

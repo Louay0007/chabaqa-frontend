@@ -12,6 +12,7 @@ export interface SessionWithMentor extends Session {
     rating?: number;
     reviews?: number;
   };
+  communitySlug?: string;
   tags?: string[];
   category?: string;
   bookingsCount?: number;
@@ -102,6 +103,7 @@ function transformSession(backendSession: any): SessionWithMentor {
     isActive: backendSession.isActive !== false,
     availableSlots: backendSession.availableSlots || 0,
     bookedSlots: backendSession.bookedSlots || 0,
+    communitySlug: backendSession.communitySlug || undefined,
     createdAt: backendSession.createdAt || new Date().toISOString(),
     updatedAt: backendSession.updatedAt || new Date().toISOString(),
     mentor,
@@ -185,23 +187,38 @@ export const sessionsCommunityApi = {
   /**
    * Fetch user bookings (requires authentication - call from client-side only)
    */
-  async getUserBookings(): Promise<BookingWithSession[]> {
+  async getUserBookings(options?: {
+    communityId?: string;
+    communitySlug?: string;
+    sessionIds?: string[];
+  }): Promise<BookingWithSession[]> {
     try {
-      const response = await apiClient.get<any>('/sessions/bookings/user');
-      console.log('[getUserBookings] Raw response:', JSON.stringify(response, null, 2));
-      
+      const normalizedCommunityId = String(options?.communityId || '').trim();
+      const normalizedCommunitySlug = String(options?.communitySlug || '').trim().toLowerCase();
+      const sessionIds = new Set(
+        (options?.sessionIds || []).map((id) => String(id || '').trim()).filter(Boolean),
+      );
+
+      const queryParams: Record<string, string> = {};
+      if (normalizedCommunityId) {
+        queryParams.communityId = normalizedCommunityId;
+      } else if (normalizedCommunitySlug) {
+        queryParams.communitySlug = normalizedCommunitySlug;
+      }
+
+      const response = await apiClient.get<any>(
+        '/sessions/bookings/user',
+        Object.keys(queryParams).length > 0 ? queryParams : undefined,
+      );
+
       // Backend returns { bookings: [...], total: number }
       const bookingsList = response?.bookings || response?.data?.bookings || [];
-      console.log('[getUserBookings] Bookings list length:', bookingsList.length);
 
       if (!Array.isArray(bookingsList)) {
-        console.error('[getUserBookings] bookingsList is not an array:', typeof bookingsList);
         return [];
       }
 
-      return bookingsList.map((booking: any) => {
-        console.log('[getUserBookings] Processing booking:', booking.id, 'sessionId:', booking.sessionId);
-        
+      const mappedBookings = bookingsList.map((booking: any) => {
         // Build session info from the booking data
         const sessionInfo = {
           id: booking.sessionId || '',
@@ -213,6 +230,8 @@ export const sessionsCommunityApi = {
           creatorId: '',
           creatorName: booking.creatorName || 'Unknown',
           creatorAvatar: booking.creatorAvatar || undefined,
+          communityId: booking.communityId || '',
+          communitySlug: booking.communitySlug || booking.sessionCommunitySlug || undefined,
           isActive: true,
           category: '',
         };
@@ -222,6 +241,7 @@ export const sessionsCommunityApi = {
           sessionId: booking.sessionId || '',
           creatorId: booking.creatorId || '',
           communityId: booking.communityId || '',
+          communitySlug: booking.communitySlug || booking.sessionCommunitySlug || undefined,
           userId: booking.userId || '',
           scheduledAt: booking.scheduledAt || new Date().toISOString(),
           status: booking.status || 'pending',
@@ -233,8 +253,31 @@ export const sessionsCommunityApi = {
           session: transformSession(sessionInfo),
         };
       });
+
+      return mappedBookings.filter((booking: any) => {
+        const bookingCommunityId = String(
+          booking?.communityId || booking?.session?.communityId || '',
+        ).trim();
+        if (normalizedCommunityId) {
+          return bookingCommunityId === normalizedCommunityId;
+        }
+
+        const bookingCommunitySlug = String(
+          booking?.communitySlug || booking?.session?.communitySlug || '',
+        ).trim().toLowerCase();
+        if (normalizedCommunitySlug && bookingCommunitySlug) {
+          return bookingCommunitySlug === normalizedCommunitySlug;
+        }
+
+        const bookingSessionId = String(booking?.sessionId || booking?.session?.id || '').trim();
+        if (sessionIds.size > 0 && bookingSessionId) {
+          return sessionIds.has(bookingSessionId);
+        }
+
+        return true;
+      });
     } catch (error) {
-      console.error('[getUserBookings] Error fetching user bookings:', error);
+      console.error('Error fetching user bookings:', error);
       return [];
     }
   },

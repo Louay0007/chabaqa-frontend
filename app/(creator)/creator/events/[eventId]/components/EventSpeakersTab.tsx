@@ -1,16 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, Edit, Trash2, Mic } from "lucide-react"
 import Image from "next/image"
 import { Event } from "@/lib/models"
-import { eventsApi } from "@/lib/api/events.api"
 import { useToast } from "@/hooks/use-toast"
-import { formatErrorForToast } from "@/lib/utils/error-messages"
-import { useRouter } from "next/navigation"
 import {
   Dialog,
   DialogContent,
@@ -26,74 +23,123 @@ import { Textarea } from "@/components/ui/textarea"
 
 interface EventSpeakersTabProps {
   event: Event
+  onUpdateEvent: (updates: Partial<Event>) => void
 }
 
-export default function EventSpeakersTab({ event }: EventSpeakersTabProps) {
+interface SpeakerFormState {
+  id?: string
+  name: string
+  title: string
+  bio: string
+  photo: string
+}
+
+const emptySpeaker = (): SpeakerFormState => ({
+  name: "",
+  title: "",
+  bio: "",
+  photo: "",
+})
+
+const toSpeakerForm = (speaker: any): SpeakerFormState => ({
+  id: speaker.id,
+  name: speaker.name || "",
+  title: speaker.title || "",
+  bio: speaker.bio || "",
+  photo: speaker.photo || "",
+})
+
+const isValidUrl = (value?: string) => {
+  if (!value) return true
+  try {
+    new URL(value)
+    return true
+  } catch {
+    return false
+  }
+}
+
+const nextId = () => `speaker_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+
+export default function EventSpeakersTab({ event, onUpdateEvent }: EventSpeakersTabProps) {
   const { toast } = useToast()
-  const router = useRouter()
-  const [speakers, setSpeakers] = useState(event.speakers || [])
+
+  const speakers = useMemo(() => event.speakers || [], [event.speakers])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [newSpeaker, setNewSpeaker] = useState({
-    name: "",
-    title: "",
-    bio: "",
-    photo: "",
-  })
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [newSpeaker, setNewSpeaker] = useState<SpeakerFormState>(emptySpeaker())
+  const [editingSpeaker, setEditingSpeaker] = useState<SpeakerFormState | null>(null)
 
-  const handleAddSpeaker = async () => {
-    try {
-      const speakerData = {
-        name: newSpeaker.name,
-        title: newSpeaker.title,
-        bio: newSpeaker.bio,
-        photo: newSpeaker.photo || undefined,
-      }
-
-      const response = await eventsApi.addSpeaker(event.id, speakerData)
-      const addedSpeaker = response.data
-
-      // Add new speaker with ID from backend
-      setSpeakers([...speakers, {
-        id: addedSpeaker.id,
-        name: addedSpeaker.name,
-        title: addedSpeaker.title,
-        bio: addedSpeaker.bio,
-        photo: addedSpeaker.photo,
-      }])
-
-      setNewSpeaker({
-        name: "",
-        title: "",
-        bio: "",
-        photo: "",
-      })
-      setIsAddDialogOpen(false)
-      toast({ title: 'Success', description: 'Speaker added successfully' })
-      router.refresh()
-    } catch (error: any) {
-      const errorToast = formatErrorForToast(error)
-      toast({
-        title: errorToast.title,
-        description: errorToast.description,
-        variant: 'destructive' as any
-      })
-    }
+  const validateSpeaker = (speaker: SpeakerFormState): string | null => {
+    if (!speaker.name.trim()) return "Speaker name is required"
+    if (!speaker.title.trim()) return "Speaker title is required"
+    if (!speaker.bio.trim()) return "Speaker bio is required"
+    if (!isValidUrl(speaker.photo)) return "Speaker photo URL is invalid"
+    return null
   }
 
-  const handleDeleteSpeaker = async (speakerId: string) => {
-    try {
-      await eventsApi.removeSpeaker(event.id, speakerId)
-      setSpeakers(speakers.filter(s => s.id !== speakerId))
-      toast({ title: 'Success', description: 'Speaker removed successfully' })
-      router.refresh()
-    } catch (error: any) {
-      const errorToast = formatErrorForToast(error)
-      toast({
-        title: errorToast.title,
-        description: errorToast.description,
-        variant: 'destructive' as any
-      })
+  const applySpeakers = (nextSpeakers: any[]) => {
+    onUpdateEvent({ speakers: nextSpeakers as any })
+  }
+
+  const handleAddSpeaker = () => {
+    const error = validateSpeaker(newSpeaker)
+    if (error) {
+      toast({ title: "Validation error", description: error, variant: "destructive" as any })
+      return
     }
+
+    applySpeakers([
+      ...speakers,
+      {
+        id: nextId(),
+        name: newSpeaker.name.trim(),
+        title: newSpeaker.title.trim(),
+        bio: newSpeaker.bio.trim(),
+        photo: newSpeaker.photo.trim(),
+      },
+    ])
+
+    setNewSpeaker(emptySpeaker())
+    setIsAddDialogOpen(false)
+    toast({ title: "Speaker added", description: "Speaker added. Click Save Changes to persist." })
+  }
+
+  const startEdit = (speaker: any) => {
+    setEditingSpeaker(toSpeakerForm(speaker))
+    setIsEditDialogOpen(true)
+  }
+
+  const handleUpdateSpeaker = () => {
+    if (!editingSpeaker) return
+
+    const error = validateSpeaker(editingSpeaker)
+    if (error) {
+      toast({ title: "Validation error", description: error, variant: "destructive" as any })
+      return
+    }
+
+    const nextSpeakers = speakers.map((speaker) =>
+      speaker.id === editingSpeaker.id
+        ? {
+            ...speaker,
+            name: editingSpeaker.name.trim(),
+            title: editingSpeaker.title.trim(),
+            bio: editingSpeaker.bio.trim(),
+            photo: editingSpeaker.photo.trim(),
+          }
+        : speaker,
+    )
+
+    applySpeakers(nextSpeakers)
+    setEditingSpeaker(null)
+    setIsEditDialogOpen(false)
+    toast({ title: "Speaker updated", description: "Speaker updated. Click Save Changes to persist." })
+  }
+
+  const handleDeleteSpeaker = (speakerId: string) => {
+    applySpeakers(speakers.filter((speaker) => speaker.id !== speakerId))
+    toast({ title: "Speaker removed", description: "Speaker removed. Click Save Changes to persist." })
   }
 
   return (
@@ -166,15 +212,9 @@ export default function EventSpeakersTab({ event }: EventSpeakersTabProps) {
         <div className="space-y-4">
           {speakers.map((speaker) => (
             <div key={speaker.id} className="flex items-center space-x-4 p-4 border rounded-lg">
-              <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+              <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                 {speaker.photo ? (
-                  <Image
-                    src={speaker.photo}
-                    alt={speaker.name}
-                    width={64}
-                    height={64}
-                    className="rounded-full"
-                  />
+                  <Image src={speaker.photo} alt={speaker.name} width={64} height={64} className="rounded-full" />
                 ) : (
                   <Mic className="h-6 w-6 text-gray-500" />
                 )}
@@ -185,15 +225,10 @@ export default function EventSpeakersTab({ event }: EventSpeakersTabProps) {
                 <p className="text-sm mt-1">{speaker.bio}</p>
               </div>
               <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" onClick={() => startEdit(speaker)}>
                   <Edit className="h-4 w-4" />
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-red-600"
-                  onClick={() => handleDeleteSpeaker(speaker.id)}
-                >
+                <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleDeleteSpeaker(speaker.id)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -207,6 +242,55 @@ export default function EventSpeakersTab({ event }: EventSpeakersTabProps) {
           )}
         </div>
       </CardContent>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Speaker</DialogTitle>
+            <DialogDescription>Update speaker information</DialogDescription>
+          </DialogHeader>
+          {editingSpeaker && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="editSpeakerName">Name *</Label>
+                <Input
+                  id="editSpeakerName"
+                  value={editingSpeaker.name}
+                  onChange={(e) => setEditingSpeaker((prev) => (prev ? { ...prev, name: e.target.value } : prev))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editSpeakerTitle">Title *</Label>
+                <Input
+                  id="editSpeakerTitle"
+                  value={editingSpeaker.title}
+                  onChange={(e) => setEditingSpeaker((prev) => (prev ? { ...prev, title: e.target.value } : prev))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editSpeakerBio">Bio *</Label>
+                <Textarea
+                  id="editSpeakerBio"
+                  rows={3}
+                  value={editingSpeaker.bio}
+                  onChange={(e) => setEditingSpeaker((prev) => (prev ? { ...prev, bio: e.target.value } : prev))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editSpeakerPhoto">Photo URL</Label>
+                <Input
+                  id="editSpeakerPhoto"
+                  value={editingSpeaker.photo}
+                  onChange={(e) => setEditingSpeaker((prev) => (prev ? { ...prev, photo: e.target.value } : prev))}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={handleUpdateSpeaker}>Save Speaker</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </EnhancedCard>
   )
 }

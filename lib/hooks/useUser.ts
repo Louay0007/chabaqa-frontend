@@ -1,8 +1,7 @@
-import useSWROriginal from 'swr'
-import { useSWRConfig } from 'swr'
-import { authenticatedFetch } from '@/lib/authenticated-fetch'
+'use client'
 
-const useSWR = useSWROriginal
+import useSWR, { useSWRConfig } from 'swr'
+import { authenticatedFetch } from '@/lib/authenticated-fetch'
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.170:3000/api'
 const apiOrigin = apiBase.replace(/\/api$/, '')

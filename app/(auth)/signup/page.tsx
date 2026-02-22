@@ -3,6 +3,8 @@ import { getProfileServer } from "@/lib/auth.server"
 import Image from "next/image"
 import SignUpForm from "../components/signup-form"
 
+export const dynamic = 'force-dynamic'
+
 export default async function SignUpPage() {
   const user = await getProfileServer()
 

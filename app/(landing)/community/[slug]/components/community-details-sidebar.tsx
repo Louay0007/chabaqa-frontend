@@ -55,6 +55,15 @@ export function CommunityDetailsSidebar({ community }: CommunityDetailsSidebarPr
   }, [community])
 
   const isMember = (community as any)?.isMember === true || joinedParam === '1' || clientIsMember
+  const isFree = community.priceType === 'free' || community.price === 0
+  const isPrivate =
+    typeof (community as any)?.isPrivate === 'boolean'
+      ? Boolean((community as any).isPrivate)
+      : Boolean(
+          community.settings &&
+          typeof community.settings === 'object' &&
+          community.settings.visibility === 'private',
+        )
 
   const handleJoin = async () => {
     // Check if user is authenticated
@@ -63,6 +72,11 @@ export function CommunityDetailsSidebar({ community }: CommunityDetailsSidebarPr
     if (!token) {
       toast.error("Please sign in to join this community")
       router.push(`/signin`)
+      return
+    }
+
+    if (isPrivate) {
+      toast.info("This is a private community. Use an invitation link to join.")
       return
     }
 
@@ -75,9 +89,6 @@ export function CommunityDetailsSidebar({ community }: CommunityDetailsSidebarPr
     // For free communities, use the embedded join section on the details page
     router.push(`/community/${community.slug}#join-section`)
   }
-
-  const isFree = community.priceType === 'free' || community.price === 0
-  const isPrivate = community.settings && typeof community.settings === 'object' && community.settings.visibility === 'private'
 
   return (
     <div className="space-y-6 sticky top-24">
@@ -137,13 +148,13 @@ export function CommunityDetailsSidebar({ community }: CommunityDetailsSidebarPr
           {!isMember && (
             <Button
               onClick={handleJoin}
-              disabled={isPrivate && !isFree}
+              disabled={isPrivate}
               className="w-full h-14 text-lg font-semibold bg-chabaqa-primary hover:bg-chabaqa-primary/90 text-white transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isPrivate && !isFree ? (
+              {isPrivate ? (
                 <>
                   <Lock className="w-5 h-5 mr-2" />
-                  Private Community
+                  Invitation required
                 </>
               ) : (
                 <>

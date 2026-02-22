@@ -9,6 +9,15 @@ interface CommunityDetailsHeroProps {
 }
 
 export function CommunityDetailsHero({ community }: CommunityDetailsHeroProps) {
+  const isPrivate =
+    typeof (community as any)?.isPrivate === 'boolean'
+      ? Boolean((community as any).isPrivate)
+      : Boolean(
+          community.settings &&
+          typeof community.settings === 'object' &&
+          community.settings.visibility === 'private',
+        )
+
   return (
     <div className="relative bg-white">
       {/* Cover Image with Overlay */}
@@ -84,10 +93,10 @@ export function CommunityDetailsHero({ community }: CommunityDetailsHeroProps) {
                       {String(community.category || '')}
                     </Badge>
                     <Badge 
-                      variant={community.settings && typeof community.settings === 'object' && community.settings.visibility === 'private' ? "destructive" : "outline"}
-                      className={community.settings && typeof community.settings === 'object' && community.settings.visibility === 'private' ? "flex items-center gap-1" : "border-chabaqa-primary text-chabaqa-primary bg-chabaqa-primary/5 flex items-center gap-1"}
+                      variant={isPrivate ? "destructive" : "outline"}
+                      className={isPrivate ? "flex items-center gap-1" : "border-chabaqa-primary text-chabaqa-primary bg-chabaqa-primary/5 flex items-center gap-1"}
                     >
-                      {community.settings && typeof community.settings === 'object' && community.settings.visibility === 'private' ? (
+                      {isPrivate ? (
                         <>
                           <Lock className="w-3 h-3" />
                           Private

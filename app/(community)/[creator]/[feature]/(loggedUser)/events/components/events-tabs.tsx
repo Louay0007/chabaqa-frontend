@@ -13,13 +13,17 @@ interface EventsTabsProps {
   setActiveTab: (tab: string) => void;
   availableEvents: EventWithTickets[];
   myTickets: any[];
+  ticketsLoading: boolean;
+  ticketsError?: string | null;
 }
 
 export default function EventsTabs({
   activeTab,
   setActiveTab,
   availableEvents,
-  myTickets
+  myTickets,
+  ticketsLoading,
+  ticketsError,
 }: EventsTabsProps) {
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
@@ -36,8 +40,18 @@ export default function EventsTabs({
       </div>
 
       <AvailableEventsTab availableEvents={availableEvents} />
-      <MyTicketsTab myTickets={myTickets} setActiveTab={setActiveTab} />
-      <CalendarTab myTickets={myTickets} availableEvents={availableEvents} />
+      <MyTicketsTab
+        myTickets={myTickets}
+        setActiveTab={setActiveTab}
+        isLoading={ticketsLoading}
+        errorMessage={ticketsError}
+      />
+      <CalendarTab
+        myTickets={myTickets}
+        availableEvents={availableEvents}
+        isLoading={ticketsLoading}
+        errorMessage={ticketsError}
+      />
     </Tabs>
   );
 }

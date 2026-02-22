@@ -31,6 +31,7 @@ interface CommunityHeroProps {
     verified: boolean
     tags: string[]
     isMember?: boolean
+    isPrivate?: boolean
   }
   heroContent?: PageContent["hero"] | null
   themeTokens?: CommunityThemeTokens
@@ -78,14 +79,25 @@ export function CommunityHero({
     ""
 
   const isMember = community.isMember
-  const defaultCTA = isMember ? "Explore Community" : "Join Community"
+  const isInviteRequired = Boolean(!isMember && community.isPrivate)
+  const defaultCTA = isMember
+    ? "Explore Community"
+    : isInviteRequired
+      ? "Invitation Required"
+      : "Join Community"
   const heroCTA = heroContent?.ctaButtonText?.trim() || defaultCTA
 
   const ctaLink = isMember
     ? `/community/${community.slug}/home`
-    : `#join-section`
+    : isInviteRequired
+      ? "#"
+      : `#join-section`
 
   const handleCTAClick = (e: React.MouseEvent) => {
+    if (isInviteRequired) {
+      e.preventDefault()
+      return
+    }
     if (!isMember) {
       // If not a member, prevent default Link behavior and trigger the modal event
       e.preventDefault()
@@ -328,7 +340,9 @@ export function CommunityHero({
               <Link
                 href={ctaLink}
                 onClick={handleCTAClick}
-                className="group w-full rounded-lg px-6 py-3 text-center text-sm font-semibold shadow-md transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] sm:w-auto"
+                className={`group w-full rounded-lg px-6 py-3 text-center text-sm font-semibold shadow-md transition-all duration-300 sm:w-auto ${
+                  isInviteRequired ? "opacity-70 cursor-not-allowed" : "hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
+                }`}
                 style={{
                   backgroundImage: gradient,
                   color: themeTokens?.primaryText || "#fff",
@@ -336,7 +350,7 @@ export function CommunityHero({
               >
                 <span className="flex items-center justify-center gap-1.5">
                   {heroCTA}
-                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform ${isInviteRequired ? "" : "group-hover:translate-x-1"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </span>

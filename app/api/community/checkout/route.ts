@@ -21,11 +21,15 @@ async function parseBackendResponse(response: Response): Promise<any> {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { communityId, promoCode } = body
+    const communityId =
+      typeof body?.communityId === 'string' ? body.communityId.trim() : ''
+    const promoCode = typeof body?.promoCode === 'string' ? body.promoCode : undefined
+    const inviteCode =
+      typeof body?.inviteCode === 'string' ? body.inviteCode.trim() : ''
 
-    if (!communityId) {
+    if (!communityId && !inviteCode) {
       return NextResponse.json(
-        { success: false, message: 'Community ID is required' },
+        { success: false, message: 'communityId or inviteCode is required' },
         { status: 400 }
       )
     }
@@ -51,7 +55,11 @@ export async function POST(request: NextRequest) {
     }
 
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
-    const url = new URL(`${backendUrl}/community-aff-crea-join/${communityId}/checkout`)
+    const url = inviteCode
+      ? new URL(
+          `${backendUrl}/community-aff-crea-join/checkout-private/${encodeURIComponent(inviteCode)}`,
+        )
+      : new URL(`${backendUrl}/community-aff-crea-join/${communityId}/checkout`)
 
     if (promoCode) {
       url.searchParams.set('promoCode', String(promoCode))
@@ -65,7 +73,9 @@ export async function POST(request: NextRequest) {
         ...(incomingCookies ? { 'Cookie': incomingCookies } : {}),
         ...(origin ? { 'Origin': origin } : {}),
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify({
+        ...(inviteCode ? { inviteCode } : {}),
+      }),
     })
 
     const data = await parseBackendResponse(response)
@@ -83,7 +93,7 @@ export async function POST(request: NextRequest) {
       }
 
       const message =
-        (data && typeof data === 'object' && data.message) ||
+        (data && typeof data === 'object' && (data.message || data?.error?.message)) ||
         `Checkout request failed (${response.status})`
 
       return NextResponse.json(

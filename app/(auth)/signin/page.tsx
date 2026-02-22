@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import SignInForm from "../components/signin-form"
 import { useAuthContext } from "@/app/providers/auth-provider"
@@ -9,9 +9,23 @@ import { useAuthContext } from "@/app/providers/auth-provider"
 export default function SignInPage() {
   const { user, isAuthenticated } = useAuthContext()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     if (isAuthenticated && user) {
+      const requestedRedirect =
+        searchParams.get('redirect') || searchParams.get('returnUrl')
+      const safeRedirect =
+        requestedRedirect &&
+        requestedRedirect.startsWith('/') &&
+        !requestedRedirect.startsWith('//')
+          ? requestedRedirect
+          : null
+      if (safeRedirect && safeRedirect !== '/signin') {
+        router.push(safeRedirect)
+        return
+      }
+
       const role = user.role?.toLowerCase()
       if (role === 'creator') {
         router.push('/creator/dashboard')
@@ -21,7 +35,7 @@ export default function SignInPage() {
         router.push('/explore')
       }
     }
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, user, router, searchParams])
 
 
   return (

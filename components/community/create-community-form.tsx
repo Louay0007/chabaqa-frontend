@@ -15,6 +15,8 @@ import {
   Linkedin,
   Check,
   Globe2,
+  Copy,
+  ExternalLink,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -62,6 +64,14 @@ export function CreateCommunityForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  const [createdCommunity, setCreatedCommunity] = useState<{
+    id: string
+    slug: string
+    name: string
+    isPrivate: boolean
+    inviteLink?: string
+  } | null>(null)
+  const [inviteCopied, setInviteCopied] = useState(false)
 
   const updateFormData = (field: string, value: any) => {
     if (field.includes(".")) {
@@ -110,10 +120,22 @@ export function CreateCommunityForm({
 
         const newCommunity = response.data as any
         const newCommunityId = newCommunity?._id || newCommunity?.id
-        
-        if (onSuccess && newCommunityId) {
+        const isPrivate =
+          typeof newCommunity?.isPrivate === "boolean"
+            ? Boolean(newCommunity.isPrivate)
+            : newCommunity?.settings?.visibility === "private"
+        setCreatedCommunity({
+          id: String(newCommunityId || ""),
+          slug: String(newCommunity?.slug || ""),
+          name: String(newCommunity?.name || formData.name),
+          isPrivate,
+          inviteLink:
+            typeof newCommunity?.inviteLink === "string" ? newCommunity.inviteLink : undefined,
+        })
+
+        if (!isPrivate && onSuccess && newCommunityId) {
           onSuccess(newCommunityId)
-        } else {
+        } else if (!isPrivate) {
           // Default redirect to creator dashboard
           setTimeout(() => {
             router.push('/creator/dashboard')
@@ -387,6 +409,67 @@ export function CreateCommunityForm({
       default:
         return null
     }
+  }
+
+  const handleCopyInviteLink = async () => {
+    if (!createdCommunity?.inviteLink) return
+    try {
+      await navigator.clipboard.writeText(createdCommunity.inviteLink)
+      setInviteCopied(true)
+      setTimeout(() => setInviteCopied(false), 1800)
+    } catch {
+      setError("Unable to copy invite link. Please copy it manually.")
+    }
+  }
+
+  if (success && createdCommunity?.isPrivate) {
+    return (
+      <div className="w-full max-w-3xl mx-auto">
+        <div className="rounded-3xl border border-green-200 bg-green-50 p-6 md:p-8">
+          <h2 className="text-2xl font-bold text-gray-900">Private community created</h2>
+          <p className="mt-2 text-gray-700">
+            Share this invitation link to allow people to join <span className="font-semibold">{createdCommunity.name}</span>.
+          </p>
+
+          <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Invite link</p>
+            <p className="mt-2 break-all text-sm text-gray-800">
+              {createdCommunity.inviteLink || "Invite link is being prepared. You can generate it from your communities page."}
+            </p>
+          </div>
+
+          <div className="mt-5 flex flex-col sm:flex-row gap-3">
+            <Button
+              type="button"
+              onClick={handleCopyInviteLink}
+              disabled={!createdCommunity.inviteLink}
+              className="sm:w-auto"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              {inviteCopied ? "Copied" : "Copy invite link"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push(`/community/${createdCommunity.slug}`)}
+              disabled={!createdCommunity.slug}
+              className="sm:w-auto"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Go to community
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => router.push("/creator/communities")}
+              className="sm:w-auto"
+            >
+              Manage communities
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

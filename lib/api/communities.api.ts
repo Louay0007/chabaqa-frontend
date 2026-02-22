@@ -1,5 +1,11 @@
 import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } from './client';
-import type { Community, CommunitySettings, CommunityMember, CommunityFilters } from './types';
+import type {
+  Community,
+  CommunitySettings,
+  CommunityMember,
+  CommunityFilters,
+  InvitePreview,
+} from './types';
 
 const isRouteNotFound = (error: any): boolean => {
   const statusCode = Number(error?.statusCode ?? error?.status ?? 0);
@@ -172,6 +178,18 @@ export const communitiesApi = {
     }
   },
 
+  validateInvite: async (inviteCode: string): Promise<ApiSuccessResponse<InvitePreview>> => {
+    return apiClient.get<ApiSuccessResponse<InvitePreview>>(
+      `/community-aff-crea-join/validate-invite/${encodeURIComponent(inviteCode)}`,
+    );
+  },
+
+  joinByInvite: async (inviteCode: string): Promise<ApiSuccessResponse<Community>> => {
+    return apiClient.post<ApiSuccessResponse<Community>>('/community-aff-crea-join/join-by-invite', {
+      inviteCode,
+    });
+  },
+
   // Update community with method/route fallback for backward-compatible backend deployments
   update: async (
     idOrSlug: string,
@@ -288,13 +306,30 @@ export const communitiesApi = {
     return apiClient.get<ApiSuccessResponse<Community[]>>('/community-aff-crea-join/my-manageable');
   },
 
-  checkoutCommunity: async (id: string, promoCode?: string): Promise<ApiSuccessResponse<any>> => {
+  generateInviteLink: async (
+    communityId: string,
+    regenerate: boolean = false,
+  ): Promise<ApiSuccessResponse<{ inviteCode: string; inviteLink: string }>> => {
+    return apiClient.post<ApiSuccessResponse<{ inviteCode: string; inviteLink: string }>>(
+      '/community-aff-crea-join/generate-invite',
+      { communityId, regenerate },
+    );
+  },
+
+  checkoutCommunity: async (
+    id: string,
+    promoCode?: string,
+    inviteCode?: string,
+  ): Promise<ApiSuccessResponse<any>> => {
     const payload: Record<string, any> = {
       communityId: id,
     };
 
     if (promoCode) {
       payload.promoCode = promoCode;
+    }
+    if (inviteCode) {
+      payload.inviteCode = inviteCode;
     }
 
     let headerToken: string | null = null;
@@ -324,6 +359,7 @@ export const communitiesApi = {
       body: JSON.stringify({
         communityId: id,
         promoCode,
+        inviteCode,
       }),
     });
 
@@ -340,11 +376,18 @@ export const communitiesApi = {
    * Initialize Stripe Link payment for community membership
    * Uses apiClient for proper auth token handling and automatic refresh
    */
-  initStripePayment: async (communityId: string, promoCode?: string): Promise<any> => {
+  initStripePayment: async (
+    communityId: string,
+    promoCode?: string,
+    inviteCode?: string,
+  ): Promise<any> => {
     const endpoint = promoCode
       ? `/payment/stripe-link/init/community?promoCode=${encodeURIComponent(promoCode)}`
       : `/payment/stripe-link/init/community`;
 
-    return apiClient.post<any>(endpoint, { communityId });
+    return apiClient.post<any>(endpoint, {
+      communityId,
+      ...(inviteCode ? { inviteCode } : {}),
+    });
   },
 };
