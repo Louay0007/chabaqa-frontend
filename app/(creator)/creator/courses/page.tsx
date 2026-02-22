@@ -16,6 +16,7 @@ export default function CreatorCoursesPage() {
   const [courses, setCourses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [topCourses, setTopCourses] = useState<any[]>([])
+  const [revenue, setRevenue] = useState<number | null>(null)
 
   const handleDeleted = (courseId: string) => {
     setCourses((prev) => prev.filter((c) => String(c._id || c.mongoId || c.id) !== String(courseId)))
@@ -27,10 +28,15 @@ export default function CreatorCoursesPage() {
 
     const load = async () => {
       setLoading(true)
+      setRevenue(null)
+      setTopCourses([])
       try {
         const me = await api.auth.me().catch(() => null as any)
         const user = me?.data || (me as any)?.user || null
-        if (!user) { setCourses([]); return }
+        if (!user) {
+          setCourses([])
+          return
+        }
 
         // Always fetch creator's own courses filtered by selected community
         const res = await apiClient.get<any>(`/cours/user/created`, { limit: 100, communityId: selectedCommunityId }).catch((e) => {
@@ -50,7 +56,8 @@ export default function CreatorCoursesPage() {
         const topAgg = await api.creatorAnalytics.getCourses({ from, to, communityId: selectedCommunityId }).catch(() => null as any)
 
         const raw = topAgg?.data?.byCourse || topAgg?.byCourse || topAgg?.data?.items || topAgg?.items || []
-        const normalized = (Array.isArray(raw) ? raw : []).slice(0, 3).map((x: any) => ({
+        const byCourse = Array.isArray(raw) ? raw : []
+        const normalized = byCourse.slice(0, 3).map((x: any) => ({
           id: x.contentId || x._id || x.id,
           title: x.title || x.name || `Course ${String((x.contentId || x._id || x.id || '')).slice(-6)}`,
           enrollments: Number(x.enrollments ?? x.completes ?? x.starts ?? 0),
@@ -58,6 +65,9 @@ export default function CreatorCoursesPage() {
           rating: Number(x.avgRating ?? 0),
         }))
         setTopCourses(normalized)
+
+        const totalRevenue = byCourse.reduce((sum: number, item: any) => sum + Number(item.revenue ?? 0), 0)
+        setRevenue(Number.isFinite(totalRevenue) ? totalRevenue : null)
       } finally {
         setLoading(false)
       }
@@ -68,7 +78,7 @@ export default function CreatorCoursesPage() {
   return (
     <div className="space-y-8 p-5">
       <CreatorCoursesHeader />
-      <CreatorCoursesStats allCourses={courses} />
+      <CreatorCoursesStats allCourses={courses} revenue={revenue} />
       <CreatorCoursesSearch />
       <CreatorCoursesTabs allCourses={courses} onDeleted={handleDeleted} />
       {topCourses.length > 0 && <CreatorCoursesPerformance topCourses={topCourses} />}

@@ -13,6 +13,13 @@ export default function EventAnalyticsTab({ event }: EventAnalyticsTabProps) {
   const totalAttendees = event.attendees.length
   const totalRevenue = event.tickets.reduce((acc, ticket) => acc + (ticket.price * ticket.sold), 0)
   const averageAttendance = event.sessions.reduce((acc, s) => acc + (s.attendance || 0), 0) / event.sessions.length || 0
+  const sessionAttendance = (Array.isArray(event.sessions) ? event.sessions : []).map((session) => ({
+    id: session.id,
+    title: session.title || "Untitled Session",
+    attendance: Number(session.attendance ?? 0),
+  }))
+  const maxSessionAttendance = Math.max(1, ...sessionAttendance.map((session) => session.attendance))
+  const maxTicketSales = Math.max(1, ...event.tickets.map((ticket) => Number(ticket.sold ?? 0)))
 
   return (
     <div className="space-y-6">
@@ -73,9 +80,31 @@ export default function EventAnalyticsTab({ event }: EventAnalyticsTabProps) {
             <CardDescription>Track attendee engagement over time</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-64 flex items-center justify-center text-muted-foreground">
-              <p>Attendance chart would be displayed here</p>
-            </div>
+            {sessionAttendance.length > 0 ? (
+              <div className="space-y-4">
+                {sessionAttendance.map((session) => {
+                  const percentage = Math.min(100, Math.round((session.attendance / maxSessionAttendance) * 100))
+                  return (
+                    <div key={session.id} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="truncate pr-3">{session.title}</span>
+                        <span className="text-muted-foreground">{session.attendance} attendees</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-500 h-2 rounded-full"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-muted-foreground">
+                <p>No session attendance data available.</p>
+              </div>
+            )}
           </CardContent>
         </EnhancedCard>
 
@@ -86,19 +115,33 @@ export default function EventAnalyticsTab({ event }: EventAnalyticsTabProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {event.tickets.slice(0, 5).map((ticket, index) => (
+              {event.tickets.slice(0, 5).map((ticket) => (
                 <div key={ticket.id} className="flex items-center justify-between">
                   <span className="text-sm">
                     {ticket.name} ({ticket.type})
                   </span>
                   <div className="flex items-center space-x-2">
-                    <div className="w-20 bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-events-500 h-2 rounded-full"
-                        style={{ width: `${(ticket.sold / (ticket.quantity || 100)) * 100}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm text-muted-foreground">{ticket.sold} sold</span>
+                    {(() => {
+                      const sold = Number(ticket.sold ?? 0)
+                      const quantity = typeof ticket.quantity === "number" && ticket.quantity > 0 ? ticket.quantity : null
+                      const width = quantity
+                        ? Math.min(100, (sold / quantity) * 100)
+                        : Math.min(100, (sold / maxTicketSales) * 100)
+
+                      return (
+                        <>
+                          <div className="w-20 bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-events-500 h-2 rounded-full"
+                              style={{ width: `${width}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {quantity ? `${sold}/${quantity}` : `${sold} sold`}
+                          </span>
+                        </>
+                      )
+                    })()}
                   </div>
                 </div>
               ))}

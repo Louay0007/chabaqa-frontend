@@ -17,6 +17,8 @@ export default function CreatorProductsPage() {
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [revenue, setRevenue] = useState<number | null>(null)
+  const [sales, setSales] = useState<number | null>(null)
+  const [topProducts, setTopProducts] = useState<any[]>([])
 
   // Reload when community changes
   useEffect(() => {
@@ -25,16 +27,24 @@ export default function CreatorProductsPage() {
       toast({ title: 'Select a community', description: 'Choose a community to load products.', variant: 'destructive' as any })
       setProducts([])
       setRevenue(null)
+      setSales(null)
+      setTopProducts([])
       setLoading(false)
       return
     }
 
     const load = async () => {
       setLoading(true)
+      setRevenue(null)
+      setSales(null)
+      setTopProducts([])
       try {
         const me = await api.auth.me().catch(() => null as any)
         const user = me?.data || (me as any)?.user || null
-        if (!user) { setProducts([]); return }
+        if (!user) {
+          setProducts([])
+          return
+        }
 
         // Fetch creator products - backend returns { success: true, data: { products, pagination } }
         const productsRes = await api.products.getByCreator(user._id || user.id, { limit: 50, communityId: selectedCommunityId }).catch(() => null as any)
@@ -72,9 +82,32 @@ export default function CreatorProductsPage() {
         const from = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
         const prodAgg = await api.creatorAnalytics.getProducts({ from, to, communityId: selectedCommunityId }).catch(() => null as any)
         const byProduct = prodAgg?.data?.byProduct || prodAgg?.byProduct || prodAgg?.data?.items || prodAgg?.items || []
-        const totalRevenue = (Array.isArray(byProduct) ? byProduct : []).reduce((sum: number, x: any) => sum + Number(x.revenue ?? 0), 0)
-        if (!Number.isNaN(totalRevenue)) setRevenue(totalRevenue)
+        const byProductList = Array.isArray(byProduct) ? byProduct : []
+        const totalRevenue = byProductList.reduce((sum: number, x: any) => sum + Number(x.revenue ?? 0), 0)
+        const totalSales = byProductList.reduce((sum: number, x: any) => sum + Number(x.sales ?? x.orders ?? 0), 0)
+
+        setRevenue(Number.isFinite(totalRevenue) ? totalRevenue : null)
+        setSales(Number.isFinite(totalSales) ? totalSales : null)
+        setTopProducts(
+          byProductList
+            .slice()
+            .sort((a: any, b: any) => Number(b.sales ?? b.orders ?? 0) - Number(a.sales ?? a.orders ?? 0))
+            .slice(0, 3)
+            .map((item: any) => {
+              const rating = Number(item.rating ?? item.avgRating ?? item.customerRating)
+              return {
+                id: item.contentId || item._id || item.id,
+                title: item.title || item.name || `Product ${String(item.contentId || item._id || item.id || "").slice(-6)}`,
+                sales: Number(item.sales ?? item.orders ?? 0),
+                revenue: Number(item.revenue ?? 0),
+                rating: Number.isFinite(rating) ? rating : undefined,
+              }
+            }),
+        )
       } catch (e: any) {
+        setRevenue(null)
+        setSales(null)
+        setTopProducts([])
         toast({ title: 'Failed to load products', description: e?.message || 'Please try again later.', variant: 'destructive' as any })
       } finally {
         setLoading(false)
@@ -86,10 +119,10 @@ export default function CreatorProductsPage() {
   return (
     <div className="space-y-8 p-5">
       <ProductsHeader />
-      <ProductsStatsGrid products={products} revenue={revenue} />
+      <ProductsStatsGrid products={products} revenue={revenue} sales={sales} />
       <ProductsSearch />
       <ProductsTabs products={products} communityId={selectedCommunityId || ""} />
-      <ProductsPerformance products={products} />
+      <ProductsPerformance products={products} topProducts={topProducts} />
     </div>
   )
 }

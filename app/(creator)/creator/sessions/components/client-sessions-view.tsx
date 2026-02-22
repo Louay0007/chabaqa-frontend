@@ -129,32 +129,37 @@ export default function ClientSessionsView({
   }), [allBookings])
   const hoursMentored = useMemo(() => completedThisMonth.reduce((h: number, b) => h + (Number(b.sessionDuration || 0) / 60), 0), [completedThisMonth])
   const monthRevenueFallback = useMemo(() => completedThisMonth.reduce((s: number, b) => s + Number(b.sessionPrice || 0), 0), [completedThisMonth])
+  const averageRating = useMemo(() => {
+    const ratings = allBookings
+      .map((booking) => Number((booking as any)?.rating))
+      .filter((rating) => Number.isFinite(rating) && rating > 0)
+
+    if (ratings.length === 0) return undefined
+    return ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+  }, [allBookings])
+
   const stats = [
     {
       title: "Total Sessions",
       value: allSessions.length,
-      change: { value: "+2", trend: "up" as const }, // <-- here
       icon: Calendar,
       color: "sessions" as const,
     },
     {
       title: "Active Sessions",
       value: allSessions.filter((s) => s.isActive).length,
-      change: { value: "+1", trend: "up" as const },
       icon: Eye,
       color: "success" as const,
     },
     {
       title: "Total Bookings",
       value: allBookings.length,
-      change: { value: "+3", trend: "up" as const },
       icon: Users,
       color: "primary" as const,
     },
     {
       title: "Session Revenue",
       value: `$${Number(revenue ?? bookingsRevenueFallback).toLocaleString()}`,
-      change: { value: "+25%", trend: "up" as const },
       icon: DollarSign,
       color: "success" as const,
     },
@@ -337,7 +342,12 @@ export default function ClientSessionsView({
           <GoogleCalendarIntegration onConnectionUpdated={onSessionsUpdate} />
           <UpcomingSessionsCard bookings={allBookings} onBookingUpdated={onSessionsUpdate} />
           <PendingRequestsCard bookings={allBookings} onBookingUpdated={onSessionsUpdate} />
-          <MonthlyStatsCard completed={completedThisMonth.length} hours={hoursMentored} revenue={revenue ?? monthRevenueFallback} avgRating={4.8} />
+          <MonthlyStatsCard
+            completed={completedThisMonth.length}
+            hours={hoursMentored}
+            revenue={revenue ?? monthRevenueFallback}
+            avgRating={averageRating}
+          />
         </div>
       </div>
     </div>

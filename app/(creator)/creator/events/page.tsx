@@ -32,6 +32,7 @@ export default function EventsPage() {
 
     const load = async () => {
       setLoading(true)
+      setRevenue(null)
       try {
         const me = await api.auth.me().catch(() => null as any)
         const user = me?.data || (me as any)?.user || null
@@ -97,21 +98,23 @@ export default function EventsPage() {
           const to = now.toISOString()
           const from = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
           const evtAgg = await api.creatorAnalytics.getEvents({ from, to, communityId: selectedCommunityId }).catch(() => null as any)
-          const byEvent = evtAgg?.data?.byEvent || evtAgg?.byEvent || []
-          const totalRevenue = (Array.isArray(byEvent) ? byEvent : []).reduce((sum: number, x: any) => sum + Number(x.revenue ?? 0), 0)
-          if (!Number.isNaN(totalRevenue)) setRevenue(totalRevenue)
-        } catch (err) {
-          console.warn('Failed to fetch revenue:', err)
-        }
-      } catch (e: any) {
-        console.error('❌ Failed to load events:', e)
-        toast({ title: 'Failed to load events', description: e?.message || 'Please try again later.', variant: 'destructive' as any })
-        setEvents([])
-      } finally {
-        setLoading(false)
+        const byEvent = evtAgg?.data?.byEvent || evtAgg?.byEvent || []
+        const totalRevenue = (Array.isArray(byEvent) ? byEvent : []).reduce((sum: number, x: any) => sum + Number(x.revenue ?? 0), 0)
+        if (!Number.isNaN(totalRevenue)) setRevenue(totalRevenue)
+      } catch (err) {
+        console.warn('Failed to fetch revenue:', err)
+        setRevenue(null)
       }
+    } catch (e: any) {
+      console.error('❌ Failed to load events:', e)
+      toast({ title: 'Failed to load events', description: e?.message || 'Please try again later.', variant: 'destructive' as any })
+      setEvents([])
+      setRevenue(null)
+    } finally {
+      setLoading(false)
     }
-    load()
+  }
+  load()
   }, [selectedCommunityId, selectedCommunity, communityLoading, toast])
 
   const now = new Date()
@@ -122,7 +125,6 @@ export default function EventsPage() {
   const totalUpcoming = upcomingEvents.length
   const totalPast = pastEvents.length
   const totalAttendees = events.reduce((acc, e) => acc + (e.attendees?.length || 0), 0)
-  const revenueFallback = events.reduce((acc, e) => acc + (e.tickets || []).reduce((sum: number, t: any) => sum + ((t.price || 0) * (t.sold || 0)), 0), 0)
 
   if (loading) {
     return (
@@ -144,7 +146,7 @@ export default function EventsPage() {
       <EventsStats
         totalEvents={totalEvents}
         totalAttendees={totalAttendees}
-        totalRevenue={revenue ?? revenueFallback}
+        totalRevenue={revenue}
         totalUpcoming={totalUpcoming}
       />
       <EventsActionBar

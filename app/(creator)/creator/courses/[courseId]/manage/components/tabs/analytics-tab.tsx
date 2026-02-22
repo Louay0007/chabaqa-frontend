@@ -109,10 +109,13 @@ export function AnalyticsTab({ course, totalRevenue }: AnalyticsTabProps) {
     )
   }
 
-  // Calculate average rating from chapter stats (fallback if not available)
-  const averageRating = analytics.chapterStats.length > 0 
+  const backendAverageRating = Number((analytics as any)?.averageRating ?? (analytics as any)?.avgRating)
+  const derivedAverageRating = analytics.chapterStats.length > 0
     ? (analytics.chapterStats.reduce((sum, stat) => sum + stat.completionRate, 0) / analytics.chapterStats.length / 20)
-    : 4.8
+    : undefined
+  const averageRating = Number.isFinite(backendAverageRating) && backendAverageRating > 0
+    ? backendAverageRating
+    : derivedAverageRating
 
   return (
     <div className="space-y-6">
@@ -159,7 +162,11 @@ export function AnalyticsTab({ course, totalRevenue }: AnalyticsTabProps) {
             <div className="flex items-center space-x-2">
               <BarChart3 className="h-5 w-5 text-orange-500" />
               <div>
-                <p className="text-2xl font-bold">{averageRating.toFixed(1)}</p>
+                <p className="text-2xl font-bold">
+                  {typeof averageRating === "number" && Number.isFinite(averageRating)
+                    ? averageRating.toFixed(1)
+                    : "N/A"}
+                </p>
                 <p className="text-sm text-muted-foreground">Avg. Engagement</p>
               </div>
             </div>

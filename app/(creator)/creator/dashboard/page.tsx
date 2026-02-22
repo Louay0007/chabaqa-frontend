@@ -308,7 +308,6 @@ export default function CreatorDashboardPage() {
     {
       title: "Total Members",
       value: membersCount || (selectedCommunity as any)?.membersCount || (selectedCommunity as any)?.members || 0,
-      change: { value: "+0%", trend: "up" as const }, // TODO: Implement member growth tracking
       icon: Users,
       color: "primary" as const,
     },

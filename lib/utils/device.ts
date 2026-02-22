@@ -12,6 +12,7 @@ export const getDeviceInfo = () => {
   let device = 'desktop';
   let os = 'unknown';
   let browser = 'unknown';
+  let deviceModel: string | undefined;
 
   // Device Type
   if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
@@ -40,5 +41,26 @@ export const getDeviceInfo = () => {
   else if (ua.indexOf('Chrome') !== -1 || ua.indexOf('CriOS') !== -1) browser = 'Chrome';
   else if (ua.indexOf('Safari') !== -1) browser = 'Safari';
 
-  return { device, os, browser, userAgent: ua };
+  const iosMatch = ua.match(/\((iPhone|iPad|iPod)[^)]*\)/i);
+  if (iosMatch?.[1]) {
+    deviceModel = iosMatch[1];
+  } else {
+    const androidBuildMatch = ua.match(/Android[^;)]*;\s*([^;)]+?)\s*Build\//i);
+    if (androidBuildMatch?.[1]) {
+      deviceModel = androidBuildMatch[1].trim();
+    } else {
+      const androidGenericMatch = ua.match(/Android[^;)]*;\s*([^;)]+?)\)/i);
+      if (androidGenericMatch?.[1]) {
+        deviceModel = androidGenericMatch[1].trim();
+      }
+    }
+  }
+
+  return {
+    device,
+    os,
+    browser,
+    userAgent: ua,
+    ...(deviceModel ? { deviceModel } : {}),
+  };
 };

@@ -10,12 +10,10 @@ interface StatsGridProps {
 
 export default function StatsGrid({ allChallenges, revenue }: StatsGridProps) {
   const participantsTotal = allChallenges.reduce((acc, c) => acc + (Array.isArray(c.participants) ? c.participants.length : (c.participantsCount ?? 0)), 0)
-  const revenueFallback = allChallenges.reduce((acc, c) => acc + ((c.depositAmount || 0) * (Array.isArray(c.participants) ? c.participants.length : (c.participantsCount ?? 0))), 0)
   const stats = [
     {
       title: "Total Challenges",
       value: allChallenges.length,
-      change: { value: "+1", trend: "up" as const },
       icon: Zap,
       color: "challenges" as const,
     },
@@ -25,21 +23,20 @@ export default function StatsGrid({ allChallenges, revenue }: StatsGridProps) {
         const now = new Date()
         return c.startDate <= now && c.endDate >= now
       }).length,
-      change: { value: "1", trend: "neutral" as const },
       icon: Play,
       color: "success" as const,
     },
     {
       title: "Total Participants",
       value: participantsTotal,
-      change: { value: "+47", trend: "up" as const },
       icon: Users,
       color: "primary" as const,
     },
     {
       title: "Challenge Revenue",
-      value: `$${Number((revenue ?? revenueFallback)).toLocaleString()}`,
-      change: { value: "+22%", trend: "up" as const },
+      value: typeof revenue === "number" && Number.isFinite(revenue)
+        ? `$${Number(revenue).toLocaleString()}`
+        : "N/A",
       icon: DollarSign,
       color: "success" as const,
     },
@@ -52,7 +49,6 @@ export default function StatsGrid({ allChallenges, revenue }: StatsGridProps) {
           key={stat.title}
           title={stat.title}
           value={stat.value}
-          change={stat.change.trend === "neutral" ? undefined : stat.change}
           icon={stat.icon}
           color={stat.color}
         />

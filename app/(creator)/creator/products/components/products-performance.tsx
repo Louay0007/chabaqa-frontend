@@ -3,12 +3,49 @@ import { CardContent, CardDescription, CardHeader, CardTitle } from "@/component
 import { Badge } from "@/components/ui/badge"
 import { Star, TrendingUp } from "lucide-react"
 
-interface ProductsPerformanceProps {
-  products: any[]
+interface TopProduct {
+  id: string
+  title: string
+  sales: number
+  revenue?: number
+  rating?: number
 }
 
-export function ProductsPerformance({ products }: ProductsPerformanceProps) {
-  if (products.length === 0) return null
+interface ProductsPerformanceProps {
+  products: any[]
+  topProducts?: TopProduct[]
+}
+
+const toFiniteNumber = (value: unknown): number | undefined => {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
+export function ProductsPerformance({ products, topProducts = [] }: ProductsPerformanceProps) {
+  const derivedProducts: TopProduct[] = products
+    .slice()
+    .sort((a, b) => Number(b.sales ?? b.salesCount ?? 0) - Number(a.sales ?? a.salesCount ?? 0))
+    .slice(0, 3)
+    .map((product: any) => {
+      const sales = Number(product.sales ?? product.salesCount ?? 0)
+      const revenue = sales * Number(product.price ?? 0)
+      return {
+        id: product.id,
+        title: product.title,
+        sales,
+        revenue,
+        rating: toFiniteNumber(product.rating),
+      }
+    })
+
+  const items = (topProducts.length > 0 ? topProducts : derivedProducts).map((product) => ({
+    ...product,
+    sales: Number(product.sales ?? 0),
+    revenue: toFiniteNumber(product.revenue),
+    rating: toFiniteNumber(product.rating),
+  }))
+
+  if (items.length === 0) return null
 
   return (
     <EnhancedCard variant="glass" className="bg-gradient-to-r from-primary-50 to-blue-50 border-primary-200">
@@ -21,11 +58,7 @@ export function ProductsPerformance({ products }: ProductsPerformanceProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {products
-            .slice()
-            .sort((a, b) => b.sales - a.sales)
-            .slice(0, 3)
-            .map((product, index) => (
+          {items.map((product, index) => (
               <div key={product.id} className="flex items-center space-x-4 p-4 bg-white/50 rounded-lg">
                 <div className="flex-shrink-0">
                   <Badge
@@ -45,20 +78,14 @@ export function ProductsPerformance({ products }: ProductsPerformanceProps) {
                   <h4 className="font-medium truncate">{product.title}</h4>
                   <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
                     <span>{product.sales} sales</span>
-                    <span>${(product.price * product.sales).toLocaleString()} revenue</span>
-                    {product.rating && (
+                    <span>${Number(product.revenue ?? 0).toLocaleString()} revenue</span>
+                    {typeof product.rating === "number" && product.rating > 0 && (
                       <div className="flex items-center">
                         <Star className="h-3 w-3 mr-1 text-yellow-500" />
-                        {product.rating} rating
+                        {product.rating.toFixed(1)} rating
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-green-600">
-                    +{Math.floor(Math.random() * 20 + 10)}%
-                  </div>
-                  <div className="text-xs text-muted-foreground">growth</div>
                 </div>
               </div>
             ))}

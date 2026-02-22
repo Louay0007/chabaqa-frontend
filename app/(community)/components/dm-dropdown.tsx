@@ -99,6 +99,15 @@ export function DMComponent() {
   const { onlineUsers } = useSocket()
   const myId = currentUser?.id || (currentUser as any)?._id || ''
 
+  const getErrorMessage = (err: any, fallback: string) => {
+    const e = err?.response?.data ?? err
+    if (!e) return fallback
+    if (typeof e === 'string') return e
+    if (typeof e?.message === 'string') return e.message
+    if (typeof err?.message === 'string') return err.message
+    return fallback
+  }
+
   const scrollRef = React.useRef<HTMLDivElement>(null)
   const loadedConvIdRef = React.useRef<string | null>(null)
   const loadingConvRef = React.useRef<string | null>(null)
@@ -136,7 +145,7 @@ export function DMComponent() {
       }
       scrollToBottom()
     } catch (err) {
-      setError('Failed to load messages')
+      setError(getErrorMessage(err, 'Failed to load messages'))
     } finally {
       setIsLoadingMessages(false)
       loadingConvRef.current = null
@@ -202,7 +211,7 @@ export function DMComponent() {
         }
         fetchConversations().catch(() => { })
       } catch (err: any) {
-        setError(getErrorMessage(err) || 'Failed to start conversation')
+        setError(getErrorMessage(err, 'Failed to start conversation'))
       } finally {
         setIsLoadingMessages(false)
       }
@@ -235,7 +244,7 @@ export function DMComponent() {
         fetchConversations().catch(() => { })
       }
     } catch (err: any) {
-      setError(getErrorMessage(err) || 'Failed to upload file')
+      setError(getErrorMessage(err, 'Failed to upload file'))
     } finally {
       setIsUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -351,7 +360,7 @@ export function DMComponent() {
     } catch (err: any) {
       setMessages((prev) => prev.filter(m => m.id !== tempId))
       setNewPost(text)
-      const rawMessage = getErrorMessage(err) || ''
+      const rawMessage = getErrorMessage(err, '') || ''
       if (/session chat is closed/i.test(rawMessage)) {
         setError('This session chat is closed.')
       } else {

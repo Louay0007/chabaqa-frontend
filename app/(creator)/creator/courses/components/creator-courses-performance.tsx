@@ -19,9 +19,22 @@ interface CreatorCoursesPerformanceProps {
 }
 
 export function CreatorCoursesPerformance({ allCourses = [], topCourses = [] }: CreatorCoursesPerformanceProps) {
+  const toFiniteNumber = (value: unknown): number | undefined => {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+  }
+
   const items: TopCourse[] = topCourses.length > 0
     ? topCourses
-    : (allCourses || []).slice(0,3).map((c) => ({ id: c.id, title: c.title, enrollments: Array.isArray(c.enrollments) ? c.enrollments.length : 0, revenue: c.price * (Array.isArray(c.enrollments) ? c.enrollments.length : 0), rating: 4.8 }))
+    : (allCourses || []).slice(0,3).map((c) => ({
+        id: c.id,
+        title: c.title,
+        enrollments: Array.isArray(c.enrollments) ? c.enrollments.length : 0,
+        revenue: c.price * (Array.isArray(c.enrollments) ? c.enrollments.length : 0),
+      }))
+
+  if (items.length === 0) return null
+
   return (
     <EnhancedCard variant="glass" className="bg-gradient-to-r from-courses-50 to-blue-50 border-courses-200">
       <CardHeader>
@@ -54,10 +67,12 @@ export function CreatorCoursesPerformance({ allCourses = [], topCourses = [] }: 
                 <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
                   <span>{course.enrollments} enrollments</span>
                   <span>${Number(course.revenue ?? 0).toLocaleString()} revenue</span>
-                  <div className="flex items-center">
-                    <Star className="h-3 w-3 mr-1 text-yellow-500" />
-                    {typeof course.rating === 'number' ? course.rating.toFixed(1) : (course.rating ?? 4.8)} rating
-                  </div>
+                  {typeof toFiniteNumber(course.rating) === "number" && (
+                    <div className="flex items-center">
+                      <Star className="h-3 w-3 mr-1 text-yellow-500" />
+                      {toFiniteNumber(course.rating)?.toFixed(1)} rating
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

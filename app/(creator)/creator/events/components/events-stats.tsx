@@ -6,7 +6,7 @@ import { CalendarIcon, Users, DollarSign, TrendingUp } from "lucide-react"
 interface EventsStatsProps {
   totalEvents: number
   totalAttendees: number
-  totalRevenue: number
+  totalRevenue: number | null
   totalUpcoming: number
 }
 
@@ -40,7 +40,11 @@ export function EventsStats({
         <div className="flex items-center space-x-3">
           <DollarSign className="h-5 w-5 text-purple-500" />
           <div>
-            <p className="text-2xl font-bold">${totalRevenue}</p>
+            <p className="text-2xl font-bold">
+              {typeof totalRevenue === "number" && Number.isFinite(totalRevenue)
+                ? `$${Number(totalRevenue).toLocaleString()}`
+                : "N/A"}
+            </p>
             <p className="text-sm text-muted-foreground">Total Revenue</p>
           </div>
         </div>

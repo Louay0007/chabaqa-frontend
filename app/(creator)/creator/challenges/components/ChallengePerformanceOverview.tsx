@@ -4,7 +4,14 @@ import { CardContent, CardDescription, CardHeader, CardTitle } from "@/component
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, Flame } from "lucide-react"
 
-interface TopChallenge { id: string; title: string; participants: number; deposits?: number; completion?: number }
+interface TopChallenge {
+  id: string
+  title: string
+  participants: number
+  deposits?: number
+  completion?: number
+  engagementRate?: number
+}
 
 interface ChallengePerformanceOverviewProps {
   allChallenges?: any[]
@@ -12,15 +19,32 @@ interface ChallengePerformanceOverviewProps {
 }
 
 export default function ChallengePerformanceOverview({ allChallenges = [], topChallenges = [] }: ChallengePerformanceOverviewProps) {
+  const averageCompletionFromParticipants = (participants: any[]): number | undefined => {
+    const progressValues = (Array.isArray(participants) ? participants : [])
+      .map((participant) => Number(participant?.progress))
+      .filter((value) => Number.isFinite(value))
+
+    if (progressValues.length === 0) return undefined
+    return Math.round(progressValues.reduce((sum, value) => sum + value, 0) / progressValues.length)
+  }
+
   const items: TopChallenge[] = topChallenges.length > 0
     ? topChallenges
-    : (allChallenges || []).slice(0, 3).map((c: any) => ({
-        id: c.id,
-        title: c.title,
-        participants: Array.isArray(c.participants) ? c.participants.length : Number(c.participantsCount ?? 0) || 0,
-        deposits: (c.depositAmount || 0) * (Array.isArray(c.participants) ? c.participants.length : Number(c.participantsCount ?? 0) || 0),
-        completion: Math.round(c.participants?.[0]?.progress || 0)
-      }))
+    : (allChallenges || []).slice(0, 3).map((c: any) => {
+        const completionFromParticipants = averageCompletionFromParticipants(c.participants)
+        const completionFromField = Number(c.completionRate)
+
+        return {
+          id: c.id,
+          title: c.title,
+          participants: Array.isArray(c.participants) ? c.participants.length : Number(c.participantsCount ?? 0) || 0,
+          deposits: (c.depositAmount || 0) * (Array.isArray(c.participants) ? c.participants.length : Number(c.participantsCount ?? 0) || 0),
+          completion: completionFromParticipants ?? (Number.isFinite(completionFromField) ? completionFromField : undefined),
+        }
+      })
+
+  if (items.length === 0) return null
+
   return (
     <EnhancedCard
       variant="glass"
@@ -56,17 +80,15 @@ export default function ChallengePerformanceOverview({ allChallenges = [], topCh
                 <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
                   <span>{challenge.participants} participants</span>
                   <span>${Number(challenge.deposits ?? 0).toLocaleString()} deposits</span>
-                  <div className="flex items-center">
-                    <Flame className="h-3 w-3 mr-1 text-orange-500" />
-                    {Math.round(challenge.completion ?? 0)}% completion
-                  </div>
+                  {typeof challenge.completion === "number" && Number.isFinite(challenge.completion) ? (
+                    <div className="flex items-center">
+                      <Flame className="h-3 w-3 mr-1 text-orange-500" />
+                      {Math.round(challenge.completion)}% completion
+                    </div>
+                  ) : (
+                    <span>No completion data</span>
+                  )}
                 </div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm font-medium text-green-600">
-                  +{Math.floor(Math.random() * 20 + 10)}%
-                </div>
-                <div className="text-xs text-muted-foreground">engagement</div>
               </div>
             </div>
           ))}

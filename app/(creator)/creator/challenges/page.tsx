@@ -18,6 +18,7 @@ export default function CreatorChallengesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [revenue, setRevenue] = useState<number | null>(null)
+  const [topChallenges, setTopChallenges] = useState<any[]>([])
 
   // Reload when community changes
   useEffect(() => {
@@ -28,7 +29,12 @@ export default function CreatorChallengesPage() {
       try {
         const me = await api.auth.me().catch(() => null as any)
         const user = me?.data || (me as any)?.user || null
-        if (!user) { setChallenges([]); return }
+        if (!user) {
+          setChallenges([])
+          setRevenue(null)
+          setTopChallenges([])
+          return
+        }
 
         const slug = selectedCommunity?.slug || ""
 
@@ -65,9 +71,30 @@ export default function CreatorChallengesPage() {
         const from = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
         const challAgg = await api.creatorAnalytics.getChallenges({ from, to, communityId: selectedCommunityId }).catch(() => null as any)
         const byChallenge = challAgg?.data?.byChallenge || challAgg?.byChallenge || challAgg?.data?.items || challAgg?.items || []
-        const totalRevenue = (Array.isArray(byChallenge) ? byChallenge : []).reduce((sum: number, x: any) => sum + Number(x.revenue ?? x.deposits ?? 0), 0)
-        if (!Number.isNaN(totalRevenue)) setRevenue(totalRevenue)
+        const byChallengeList = Array.isArray(byChallenge) ? byChallenge : []
+        const totalRevenue = byChallengeList.reduce((sum: number, x: any) => sum + Number(x.revenue ?? x.deposits ?? 0), 0)
+        setRevenue(Number.isFinite(totalRevenue) ? totalRevenue : null)
+        setTopChallenges(
+          byChallengeList
+            .slice()
+            .sort((a: any, b: any) => Number(b.views ?? b.participants ?? b.starts ?? 0) - Number(a.views ?? a.participants ?? a.starts ?? 0))
+            .slice(0, 3)
+            .map((x: any) => {
+              const completion = Number(x.completionRate ?? x.challengeCompletionRate)
+              const engagementRate = Number(x.engagementRate)
+              return {
+                id: x.contentId || x._id || x.id,
+                title: x.title || x.name || `Challenge ${String(x.contentId || x._id || x.id || "").slice(-6)}`,
+                participants: Number(x.participants ?? x.starts ?? 0),
+                deposits: Number(x.deposits ?? x.revenue ?? 0),
+                completion: Number.isFinite(completion) ? completion : undefined,
+                engagementRate: Number.isFinite(engagementRate) ? engagementRate : undefined,
+              }
+            }),
+        )
       } catch (e: any) {
+        setRevenue(null)
+        setTopChallenges([])
         toast({ title: 'Failed to load challenges', description: e?.message || 'Please try again later.', variant: 'destructive' as any })
       } finally {
         setLoading(false)
@@ -82,6 +109,12 @@ export default function CreatorChallengesPage() {
     return challenges.filter(c => (c.title || '').toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q))
   }, [challenges, search])
 
+  const filteredTopChallenges = useMemo(() => {
+    if (!search) return topChallenges
+    const q = search.toLowerCase()
+    return topChallenges.filter((challenge: any) => (challenge.title || "").toLowerCase().includes(q))
+  }, [topChallenges, search])
+
   return (
     <div className="space-y-8 p-5">
       <PageHeader />
@@ -93,7 +126,7 @@ export default function CreatorChallengesPage() {
       <ChallengesTabs allChallenges={filtered} />
 
       {filtered.length > 0 && (
-        <ChallengePerformanceOverview allChallenges={filtered} />
+        <ChallengePerformanceOverview allChallenges={filtered} topChallenges={filteredTopChallenges} />
       )}
 
       {!loading && filtered.length === 0 && (

@@ -7,6 +7,19 @@ export interface CreatorAnalyticsParams {
   communitySlug?: string;
 }
 
+export type CreatorAnalyticsExportScope =
+  | 'overview'
+  | 'courses'
+  | 'challenges'
+  | 'sessions'
+  | 'events'
+  | 'products'
+  | 'posts';
+
+export interface CreatorAnalyticsExportParams extends CreatorAnalyticsParams {
+  scope: CreatorAnalyticsExportScope;
+}
+
 export interface TunisianBankCredentials {
   rib: string;
   bankName: string;
@@ -48,6 +61,9 @@ export const creatorAnalyticsApi = {
   },
   backfill: async (days: number = 90): Promise<ApiSuccessResponse<any>> => {
     return apiClient.post<ApiSuccessResponse<any>>(`/analytics/creator/backfill?days=${days}`, {});
+  },
+  exportCsv: async (params: CreatorAnalyticsExportParams): Promise<ApiSuccessResponse<{ filename: string; csv: string }>> => {
+    return apiClient.get<ApiSuccessResponse<{ filename: string; csv: string }>>('/analytics/creator/export', params);
   },
 
   // Payouts

@@ -172,7 +172,7 @@ const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899'
 
 export default function ChallengeAnalyticsTab({
   challenge,
-  challengeTasks,
+  challengeTasks: _challengeTasks,
 }: {
   challenge: any
   challengeTasks: ChallengeTask[]
@@ -214,115 +214,9 @@ export default function ChallengeAnalyticsTab({
     } catch (err: any) {
       console.error('Failed to fetch analytics:', err)
       setError(err?.message || 'Failed to load analytics')
-      // Use fallback data from challenge object
-      setAnalytics(generateFallbackAnalytics())
+      setAnalytics(null)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const generateFallbackAnalytics = (): AnalyticsData => {
-    const participants = challenge.participants || []
-    const tasks = challengeTasks || []
-    const totalParticipants = participants.length
-    const activeParticipants = participants.filter((p: any) => p.isActive).length
-    const completedParticipants = participants.filter((p: any) => p.progress === 100).length
-    const averageProgress = totalParticipants > 0
-      ? Math.round(participants.reduce((acc: number, p: any) => acc + (p.progress || 0), 0) / totalParticipants)
-      : 0
-
-    return {
-      overview: {
-        totalParticipants,
-        activeParticipants,
-        completedParticipants,
-        completionRate: totalParticipants > 0 ? Math.round((completedParticipants / totalParticipants) * 100) : 0,
-        averageProgress,
-        totalTasks: tasks.length,
-        completedTasksTotal: participants.reduce((acc: number, p: any) => acc + (p.completedTasks?.length || 0), 0),
-        totalPointsEarned: participants.reduce((acc: number, p: any) => acc + (p.totalPoints || 0), 0),
-        totalRevenue: (challenge.pricing?.participationFee || 0) * totalParticipants,
-      },
-      participantStats: {
-        byStatus: { active: activeParticipants, inactive: totalParticipants - activeParticipants, completed: completedParticipants },
-        byProgress: {
-          notStarted: participants.filter((p: any) => p.progress === 0).length,
-          early: participants.filter((p: any) => p.progress > 0 && p.progress <= 25).length,
-          midway: participants.filter((p: any) => p.progress > 25 && p.progress <= 50).length,
-          advanced: participants.filter((p: any) => p.progress > 50 && p.progress < 100).length,
-          completed: completedParticipants,
-        },
-        joinTrend: [],
-        topPerformers: participants
-          .sort((a: any, b: any) => (b.progress || 0) - (a.progress || 0))
-          .slice(0, 5)
-          .map((p: any) => ({
-            odId: p.userId || p.id,
-            odName: p.user?.name || 'Participant',
-            progress: p.progress || 0,
-            totalPoints: p.totalPoints || 0,
-            completedTasks: p.completedTasks?.length || 0,
-            joinedAt: p.joinedAt,
-            lastActivityAt: p.lastActivityAt,
-          })),
-      },
-      taskStats: {
-        completionByTask: tasks.map((task: any) => ({
-          taskId: task.id,
-          day: task.day,
-          title: task.title,
-          points: task.points || 0,
-          completedCount: participants.filter((p: any) => p.completedTasks?.includes(task.id)).length,
-          completionRate: totalParticipants > 0
-            ? Math.round((participants.filter((p: any) => p.completedTasks?.includes(task.id)).length / totalParticipants) * 100)
-            : 0,
-        })),
-        taskFunnel: [],
-        mostDifficultTasks: [],
-        easiestTasks: [],
-        totalTasks: tasks.length,
-        averageCompletionRate: 0,
-      },
-      engagementStats: {
-        totalPosts: 0,
-        totalComments: 0,
-        totalLikes: 0,
-        postsTrend: [],
-        activityTrend: [],
-        averagePostsPerParticipant: 0,
-        views: 0,
-        starts: 0,
-        completes: 0,
-        likes: 0,
-        shares: 0,
-        bookmarks: 0,
-      },
-      revenueStats: {
-        totalRevenue: (challenge.pricing?.participationFee || 0) * totalParticipants,
-        participationFees: (challenge.pricing?.participationFee || 0) * totalParticipants,
-        deposits: (challenge.pricing?.depositAmount || 0) * totalParticipants,
-        averageRevenuePerParticipant: challenge.pricing?.participationFee || 0,
-        currency: challenge.pricing?.currency || 'TND',
-        isPremium: challenge.pricing?.isPremium || false,
-      },
-      timeStats: {
-        startDate: challenge.startDate,
-        endDate: challenge.endDate,
-        totalDuration: 30,
-        daysElapsed: 15,
-        daysRemaining: 15,
-        progressPercentage: 50,
-        isActive: challenge.isActive,
-        isOngoing: true,
-        isCompleted: false,
-      },
-      challenge: {
-        id: challenge.id,
-        title: challenge.title,
-        category: challenge.category || '',
-        difficulty: challenge.difficulty || '',
-        thumbnail: challenge.thumbnail || '',
-      },
     }
   }
 
