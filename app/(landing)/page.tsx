@@ -4,6 +4,7 @@ import { Features } from "@/app/(landing)/components/features"
 import { Pricing } from "@/app/(landing)/components/pricing"
 import { About } from "@/app/(landing)/components/about"
 import { FAQ } from "@/app/(landing)/components/faq"
+import { AppInstallCTA } from "@/app/(landing)/components/app-install-cta"
 import { Footer } from "@/components/footer"
 import type { Metadata } from "next"
 
@@ -74,6 +75,7 @@ export default function Home() {
         <About />
         <Features />
         <Pricing />
+        <AppInstallCTA />
         <FAQ />
         <Footer />
       </main>
