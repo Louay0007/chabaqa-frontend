@@ -972,7 +972,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                         <MapPin className="w-4 h-4" /> {[currentUser?.ville, currentUser?.pays].filter(Boolean).join(', ') || '—'}
                       </p>
                       {currentUser?.bio && (
-                        <p className="text-text-secondary text-sm mt-3 max-w-lg leading-relaxed">{currentUser.bio}</p>
+                        <p className="text-text-secondary text-sm mt-3 w-full leading-relaxed break-words whitespace-pre-wrap overflow-hidden">{currentUser.bio}</p>
                       )}
                     </div>
                   </div>
