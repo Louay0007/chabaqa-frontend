@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation"
 import { cookies, headers } from "next/headers"
-import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { CommunityHero } from "./components/community-hero"
 import { CommunityJoinCheckoutSection } from "./components/community-join-checkout-section"
@@ -500,7 +499,6 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
         background: `linear-gradient(180deg, ${themeTokens.softPrimary} 0%, #ffffff 22%, #ffffff 78%, ${themeTokens.softSecondary} 100%)`,
       }}
     >
-      <Header />
       <main className="relative isolate overflow-hidden">
         <div className="pointer-events-none absolute inset-0 -z-10">
           <div

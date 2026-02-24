@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
-import { Users, Star, CheckCircle, Tag, ArrowLeft, Verified } from "lucide-react"
+import { Users, Star, CheckCircle, Tag, Verified } from "lucide-react"
 import Link from "next/link"
 import type { PageContent } from "@/lib/api/community-page-content"
 import type { CommunityThemeTokens } from "@/lib/community-theme"
@@ -123,16 +123,21 @@ export function CommunityHero({
       style={{ borderColor: themeTokens?.mutedBorder || undefined }}
     >
       <div className={cn("relative mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7", contentWidthClass)}>
-        {/* Navigation Bar */}
-        <div className="mb-6 flex items-center justify-start sm:mb-10">
+        {/* Logo */}
+        <div className="mb-6 flex items-center justify-start sm:mb-3">
           <Link
-            href="/explore"
-            className="inline-flex items-center gap-2 text-xs sm:text-sm text-gray-600 transition-colors font-medium"
-            style={{ color: themeTokens ? "#4b5563" : undefined }}
+            href="/"
+            className="transition-opacity hover:opacity-80"
+            aria-label="Chabaqa Home"
           >
-            <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Back to Communities</span>
-            <span className="sm:hidden">Back</span>
+            <Image
+              src="/Logos/PNG/frensh1.png"
+              alt="Chabaqa Logo"
+              width={150}
+              height={28}
+              priority
+              style={{ objectFit: 'contain' }}
+            />
           </Link>
         </div>
 
