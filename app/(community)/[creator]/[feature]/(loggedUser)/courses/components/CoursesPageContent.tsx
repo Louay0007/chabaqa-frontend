@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { coursesApi } from "@/lib/api/courses.api"
 import HeaderSection from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/components/HeaderSection"
@@ -24,6 +24,7 @@ interface CoursesPageContentProps {
 }
 
 function normalizeEnrollment(enrollment: any) {
+  const hasProgressionArray = Array.isArray(enrollment?.progression) || Array.isArray(enrollment?.progress)
   const normalizedProgression = Array.isArray(enrollment?.progression)
     ? enrollment.progression
     : Array.isArray(enrollment?.progress)
@@ -31,9 +32,12 @@ function normalizeEnrollment(enrollment: any) {
       : []
   const completedFromProgression = normalizedProgression.filter((p: any) => Boolean(p?.isCompleted)).length
   const completedFromArray = Array.isArray(enrollment?.completedChapters) ? enrollment.completedChapters.length : 0
-  const chaptersCompleted = Number.isFinite(Number(enrollment?.chaptersCompleted))
-    ? Number(enrollment.chaptersCompleted)
-    : Math.max(completedFromProgression, completedFromArray)
+  const completedFromField = Number(enrollment?.chaptersCompleted)
+  const chaptersCompleted = hasProgressionArray
+    ? completedFromProgression
+    : Number.isFinite(completedFromField) && completedFromField >= 0
+      ? completedFromField
+      : completedFromArray
 
   return {
     ...enrollment,
@@ -60,22 +64,22 @@ export default function CoursesPageContent({
     () => (Array.isArray(userEnrollments) ? userEnrollments : []).map(normalizeEnrollment),
   )
 
+  const fetchEnrollments = useCallback(async () => {
+    try {
+      const response = await coursesApi.getMyEnrollments()
+      // Support both { enrollments } and { data: { enrollments } } from backend
+      const rawList = (response as any)?.data?.enrollments ?? (response as any)?.enrollments
+      const enrollmentsList = Array.isArray(rawList) ? rawList : []
+
+      setEnrollments(enrollmentsList.map(normalizeEnrollment))
+    } catch (error) {
+      setEnrollments([])
+    }
+  }, [])
+
   // Fetch enrollments client-side (requires auth token from browser)
   useEffect(() => {
-    const fetchEnrollments = async () => {
-      try {
-        const response = await coursesApi.getMyEnrollments()
-        // Support both { enrollments } and { data: { enrollments } } from backend
-        const rawList = (response as any)?.data?.enrollments ?? (response as any)?.enrollments
-        const enrollmentsList = Array.isArray(rawList) ? rawList : []
-
-        setEnrollments(enrollmentsList.map(normalizeEnrollment))
-      } catch (error) {
-        setEnrollments([])
-      }
-    }
-
-    fetchEnrollments()
+    void fetchEnrollments()
 
     const handleWindowFocus = () => {
       void fetchEnrollments()
@@ -87,14 +91,57 @@ export default function CoursesPageContent({
       }
     }
 
+    const handleCourseProgressUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ courseId?: string; chapterId?: string }>
+      const detail = customEvent?.detail || {}
+      const targetCourseId = normalizeCourseId(detail.courseId)
+      const targetChapterId = detail.chapterId ? String(detail.chapterId) : ""
+      if (!targetCourseId || !targetChapterId) return
+
+      setEnrollments((prev) =>
+        prev.map((entry) => {
+          if (!idsMatch(entry?.courseId, targetCourseId)) return entry
+
+          const existingProgression = Array.isArray(entry?.progression) ? entry.progression : []
+          const nextProgression =
+            existingProgression.length > 0
+              ? existingProgression.map((p: any) =>
+                  String(p?.chapterId) === targetChapterId ? { ...p, isCompleted: true } : p,
+                )
+              : [{ chapterId: targetChapterId, isCompleted: true }]
+
+          const completedFromProgression = nextProgression.filter((p: any) => Boolean(p?.isCompleted)).length
+          const totalChapters = Number(entry?.totalChapters)
+          const percentage =
+            Number.isFinite(totalChapters) && totalChapters > 0
+              ? Math.min(100, Math.round((completedFromProgression / totalChapters) * 100))
+              : Number(entry?.progress) || 0
+
+          return {
+            ...entry,
+            progression: nextProgression,
+            chaptersCompleted: completedFromProgression,
+            progress: percentage,
+            isCompleted: Number.isFinite(totalChapters) && totalChapters > 0
+              ? completedFromProgression >= totalChapters
+              : entry?.isCompleted,
+          }
+        }),
+      )
+
+      void fetchEnrollments()
+    }
+
     window.addEventListener("focus", handleWindowFocus)
     document.addEventListener("visibilitychange", handleVisibilityChange)
+    window.addEventListener("course-progress-updated", handleCourseProgressUpdated as EventListener)
 
     return () => {
       window.removeEventListener("focus", handleWindowFocus)
       document.removeEventListener("visibilitychange", handleVisibilityChange)
+      window.removeEventListener("course-progress-updated", handleCourseProgressUpdated as EventListener)
     }
-  }, [allCourses])
+  }, [allCourses, fetchEnrollments])
 
   // Course ids in this community (for header count and My Courses tab)
   const allCourseIds = new Set<string>()
@@ -139,14 +186,17 @@ export default function CoursesPageContent({
     const fallbackTotal = course.sections?.reduce((acc: number, s: any) => acc + (s.chapters?.length || 0), 0) || 0
     const enrollmentTotal = Number(enrollment?.totalChapters)
     const totalChapters = Number.isFinite(enrollmentTotal) && enrollmentTotal > 0 ? enrollmentTotal : fallbackTotal
-    const completedFromProgression = Array.isArray(enrollment?.progression)
+    const hasProgressionArray = Array.isArray(enrollment?.progression)
+    const completedFromProgression = hasProgressionArray
       ? enrollment.progression.filter((p: any) => Boolean(p?.isCompleted)).length
       : 0
     const completedFromArray = Array.isArray(enrollment?.completedChapters) ? enrollment.completedChapters.length : 0
     const completedFromField = Number(enrollment?.chaptersCompleted)
-    const completedRaw = Number.isFinite(completedFromField) && completedFromField >= 0
-      ? completedFromField
-      : Math.max(completedFromProgression, completedFromArray)
+    const completedRaw = hasProgressionArray
+      ? completedFromProgression
+      : Number.isFinite(completedFromField) && completedFromField >= 0
+        ? completedFromField
+        : completedFromArray
     const completed = Math.min(Math.max(completedRaw, 0), totalChapters || completedRaw)
 
     const enrollmentProgress = Number(enrollment?.progress)

@@ -200,6 +200,8 @@ export default function EnhancedVideoPlayer({
   // Send watch time to backend (throttled via lastUpdateRef). Now sends more frequently (per-second), guarded by isSendingRef.
   const isSendingRef = useRef<boolean>(false)
   const hasSentCompleteRef = useRef<boolean>(false)
+  const completeInFlightRef = useRef<boolean>(false)
+  const completeRetryPendingRef = useRef<boolean>(false)
 
   const sendWatchTime = useCallback(async (time: number, duration?: number) => {
     if (!currentChapter?.id) return
@@ -230,12 +232,76 @@ export default function EnhancedVideoPlayer({
       if (!hadEnrollment && onProgressSaved) {
         onProgressSaved()
       }
+      if (completeRetryPendingRef.current) {
+        completeRetryPendingRef.current = false
+        try {
+          await coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
+          if (typeof (window as any).__onChapterComplete === 'function') {
+            ;(window as any).__onChapterComplete()
+          }
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("course-progress-updated", {
+                detail: { courseId: String(courseId), chapterId: String(currentChapter.id) },
+              }),
+            )
+          }
+          hasSentCompleteRef.current = true
+        } catch (retryError) {
+          console.error("Completion retry after watch-time sync failed:", retryError)
+          completeRetryPendingRef.current = true
+        }
+      }
     } catch (error) {
       console.error('Failed to update watch time:', error)
     } finally {
       isSendingRef.current = false
     }
   }, [courseId, currentChapter?.id, enrollment, onWatchTimeUpdate, onProgressSaved])
+
+  const markChapterCompletedOnce = useCallback(
+    async (reason: string, context?: { currentTime?: number; duration?: number }) => {
+      if (!courseId || !currentChapter?.id) return
+      if (hasSentCompleteRef.current || completeInFlightRef.current) return
+
+      completeInFlightRef.current = true
+      hasSentCompleteRef.current = true
+      try {
+        const watchSeconds = Math.floor(
+          Number(context?.currentTime ?? watchTime ?? 0),
+        )
+        const durationSeconds =
+          typeof context?.duration === "number" && context.duration > 0
+            ? Math.floor(context.duration)
+            : videoDuration > 0
+              ? Math.floor(videoDuration)
+              : undefined
+
+        if (!enrollment && watchSeconds > 0) {
+          await sendWatchTime(watchSeconds, durationSeconds)
+        }
+
+        await coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
+        if (typeof (window as any).__onChapterComplete === "function") {
+          ;(window as any).__onChapterComplete()
+        }
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("course-progress-updated", {
+              detail: { courseId: String(courseId), chapterId: String(currentChapter.id), reason },
+            }),
+          )
+        }
+      } catch (error) {
+        hasSentCompleteRef.current = false
+        completeRetryPendingRef.current = true
+        console.error("Failed to complete chapter:", error)
+      } finally {
+        completeInFlightRef.current = false
+      }
+    },
+    [courseId, currentChapter?.id, enrollment, sendWatchTime, videoDuration, watchTime],
+  )
 
   // Initialize YouTube Player
   useEffect(() => {
@@ -276,6 +342,9 @@ export default function EnhancedVideoPlayer({
           onStateChange: (event: any) => {
             if (event.data === (window as any).YT.PlayerState.PLAYING) {
               setIsPlaying(true)
+            } else if (event.data === (window as any).YT.PlayerState.ENDED) {
+              setIsPlaying(false)
+              void markChapterCompletedOnce("youtube_ended")
             } else {
               setIsPlaying(false)
             }
@@ -296,7 +365,7 @@ export default function EnhancedVideoPlayer({
         player.destroy()
       }
     }
-  }, [youtubeId, platform, currentChapter?.id, isChapterAccessible])
+  }, [youtubeId, platform, currentChapter?.id, isChapterAccessible, markChapterCompletedOnce])
 
   // Initialize Vimeo Player tracking via postMessage API
   useEffect(() => {
@@ -313,6 +382,7 @@ export default function EnhancedVideoPlayer({
       iframeWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: 'play' }), '*')
       iframeWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: 'pause' }), '*')
       iframeWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: 'timeupdate' }), '*')
+      iframeWindow.postMessage(JSON.stringify({ method: 'addEventListener', value: 'ended' }), '*')
       iframeWindow.postMessage(JSON.stringify({ method: 'getDuration' }), '*')
     }
 
@@ -367,22 +437,16 @@ export default function EnhancedVideoPlayer({
             }
           }
 
-          // Completion trigger (>=90%) for paid chapters only
-          if (enrollment && duration > 0 && !currentChapter?.isPreview && !hasSentCompleteRef.current) {
+          // Completion trigger (>=90%) for all chapters
+          if (duration > 0 && !hasSentCompleteRef.current) {
             const pct = time / duration
             if (pct >= 0.9) {
-              hasSentCompleteRef.current = true
-              coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
-                .then(() => {
-                  if (typeof (window as any).__onChapterComplete === 'function') {
-                    ;(window as any).__onChapterComplete()
-                  }
-                })
-                .catch((e) => {
-                  console.error('Failed to complete chapter:', e)
-                })
+              void markChapterCompletedOnce("vimeo_90_percent", { currentTime: time, duration })
             }
           }
+        } else if (data.event === "ended") {
+          setIsPlaying(false)
+          void markChapterCompletedOnce("vimeo_ended")
         } else if (data.method === 'getDuration' && data.value) {
           setVideoDuration(Number(data.value))
         }
@@ -402,7 +466,7 @@ export default function EnhancedVideoPlayer({
       window.removeEventListener('message', handleMessage)
       clearTimeout(timeoutId)
     }
-  }, [vimeoId, platform, currentChapter?.id, isChapterAccessible, enrollment, sendWatchTime])
+  }, [vimeoId, platform, currentChapter?.id, isChapterAccessible, sendWatchTime, onWatchTimeUpdate, storageKey, savedWatchPosition, markChapterCompletedOnce])
 
   // Track watch time for native HTML5 video
   useEffect(() => {
@@ -454,18 +518,11 @@ export default function EnhancedVideoPlayer({
       // --- AUTO-COMPLETION RECOVERY ---
       // If High-Water Mark is already >= 90% (e.g. from local storage), ensure we mark it complete
       // This handles the "I already completed it" case where backend might have missed it.
-      if (enrollment && duration > 0 && !currentChapter?.isPreview && !hasSentCompleteRef.current) {
+      if (duration > 0 && !hasSentCompleteRef.current) {
          // Check if effective max time is enough to complete
          if (effectiveMaxTime / duration >= 0.9) {
-            hasSentCompleteRef.current = true;
             console.log(`✅ [VideoPlayer] High-Water Mark (${effectiveMaxTime}s) triggered completion recovery`);
-            coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
-              .then(() => {
-                if (typeof (window as any).__onChapterComplete === 'function') {
-                  (window as any).__onChapterComplete();
-                }
-              })
-              .catch(e => console.error("Completion recovery failed", e));
+            void markChapterCompletedOnce("high_watermark_recovery", { currentTime: effectiveMaxTime, duration });
          }
       }
 
@@ -476,15 +533,9 @@ export default function EnhancedVideoPlayer({
 
       // Standard Completion check (Live Playback)
       // (This is redundant if the block above catches it, but kept for safety during active play)
-      if (enrollment && duration > 0 && !currentChapter?.isPreview && !hasSentCompleteRef.current) {
+      if (duration > 0 && !hasSentCompleteRef.current) {
         if (currentTime / duration >= 0.9) {
-          hasSentCompleteRef.current = true;
-          coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
-            .then(() => {
-              if (typeof (window as any).__onChapterComplete === 'function') {
-                (window as any).__onChapterComplete();
-              }
-            });
+          void markChapterCompletedOnce("native_90_percent", { currentTime, duration });
         }
       }
     };
@@ -517,7 +568,10 @@ export default function EnhancedVideoPlayer({
 
     const onPlay = () => setIsPlaying(true)
     const onPause = () => setIsPlaying(false)
-    const onEnded = () => setIsPlaying(false)
+    const onEnded = () => {
+      setIsPlaying(false)
+      void markChapterCompletedOnce("native_ended", { currentTime: videoEl.currentTime, duration: videoEl.duration })
+    }
 
     videoEl.addEventListener('play', onPlay)
     videoEl.addEventListener('pause', onPause)
@@ -530,7 +584,7 @@ export default function EnhancedVideoPlayer({
       videoEl.removeEventListener('ended', onEnded)
       videoEl.removeEventListener('loadedmetadata', onLoadedMetadataResume)
     }
-  }, [currentChapter?.id, enrollment, isChapterAccessible, isLocalFileVideo, storageKey, savedWatchPosition, sendWatchTime, onWatchTimeUpdate, courseId]);
+  }, [currentChapter?.id, enrollment, isChapterAccessible, isLocalFileVideo, storageKey, savedWatchPosition, sendWatchTime, onWatchTimeUpdate, courseId, markChapterCompletedOnce]);
 
   // Track watch time when playing (run even without enrollment so backend can auto-create it)
   useEffect(() => {
@@ -566,19 +620,11 @@ export default function EnhancedVideoPlayer({
            }
         }
 
-        // Completion trigger (>=90%) for paid chapters only (requires enrollment to exist)
-        if (isPlaying && enrollment && duration > 0 && !currentChapter?.isPreview && !hasSentCompleteRef.current) {
+        // Completion trigger (>=90%) for all chapters
+        if (isPlaying && duration > 0 && !hasSentCompleteRef.current) {
           const pct = currentTime / duration
           if (pct >= 0.9) {
-            try {
-              hasSentCompleteRef.current = true
-              await coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
-              if (typeof (window as any).__onChapterComplete === 'function') {
-                ;(window as any).__onChapterComplete()
-              }
-            } catch (e) {
-              console.error('Failed to complete chapter:', e)
-            }
+            await markChapterCompletedOnce("interval_native_90_percent", { currentTime, duration })
           }
         }
       }, 1000)
@@ -622,19 +668,11 @@ export default function EnhancedVideoPlayer({
              }
           }
 
-          // Completion trigger (>=90%) for paid chapters only
-          if (enrollment && duration > 0 && !currentChapter?.isPreview && !hasSentCompleteRef.current) {
+          // Completion trigger (>=90%) for all chapters
+          if (duration > 0 && !hasSentCompleteRef.current) {
             const pct = currentTime / duration
             if (pct >= 0.9) {
-              try {
-                hasSentCompleteRef.current = true
-                await coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
-                if (typeof (window as any).__onChapterComplete === 'function') {
-                  ;(window as any).__onChapterComplete()
-                }
-              } catch (e) {
-                console.error('Failed to complete chapter:', e)
-              }
+              await markChapterCompletedOnce("interval_embedded_90_percent", { currentTime, duration })
             }
           }
         } catch (error) {
@@ -653,7 +691,7 @@ export default function EnhancedVideoPlayer({
         clearInterval(intervalRef.current)
       }
     }
-  }, [currentChapter?.id, enrollment, isLocalFileVideo, isPlaying, player, sendWatchTime])
+  }, [currentChapter?.id, enrollment, isLocalFileVideo, isPlaying, player, sendWatchTime, markChapterCompletedOnce])
 
   // Final sync on tab close / navigation
   useEffect(() => {
@@ -711,6 +749,8 @@ export default function EnhancedVideoPlayer({
   // Reset completion flag when chapter changes
   useEffect(() => {
     hasSentCompleteRef.current = false
+    completeRetryPendingRef.current = false
+    completeInFlightRef.current = false
   }, [currentChapter?.id])
 
   const chapterAccessible = currentChapter ? isChapterAccessible(currentChapter.id) : false
