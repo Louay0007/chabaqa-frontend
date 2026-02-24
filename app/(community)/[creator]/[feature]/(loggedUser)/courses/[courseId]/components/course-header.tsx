@@ -38,7 +38,7 @@ export default function CourseHeader({
       : `/${creatorSlug}/courses`
 
 return (
-  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-3 sm:space-y-0">
+  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 space-y-1 sm:space-y-0">
     <div className="flex items-center space-x-3 w-full sm:w-auto">
       <Button variant="ghost" size="icon" asChild>
         <Link href={backHref}>
