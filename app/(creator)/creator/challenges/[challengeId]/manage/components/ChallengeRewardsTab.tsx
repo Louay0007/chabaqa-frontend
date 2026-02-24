@@ -44,8 +44,6 @@ export default function ChallengeRewardsTab({
                   <SelectValue placeholder="Select currency" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USD">USD ($)</SelectItem>
-                  <SelectItem value="EUR">EUR (€)</SelectItem>
                   <SelectItem value="TND">TND (DT)</SelectItem>
                 </SelectContent>
               </Select>

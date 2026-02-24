@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { CalendarIcon, Clock, DollarSign, Video, MessageSquare, Plus, Star } from "lucide-react"
+import { CalendarIcon, Clock, Coins, Video, MessageSquare, Plus, Star } from "lucide-react"
 import { format } from "date-fns"
 import { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
@@ -213,7 +213,7 @@ export default function BookedSessions({ setActiveTab, userBookings }: BookedSes
                       </div>
                       {session?.price && (
                         <div className="flex items-center">
-                          <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />${session.price}
+                          <Coins className="h-4 w-4 mr-2 text-muted-foreground" />{session.price} TND
                         </div>
                       )}
                     </div>

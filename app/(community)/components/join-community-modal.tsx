@@ -27,7 +27,7 @@ export function JoinCommunityModal({ community, onClose }: JoinCommunityModalPro
 
   const formatPrice = (price: number, type: string) => {
     if (type === "free") return "Free"
-    return `$${price}/${type === "monthly" ? "mo" : type}`
+    return `${price} TND/${type === "monthly" ? "mo" : type}`
   }
 
   const handleJoin = async () => {

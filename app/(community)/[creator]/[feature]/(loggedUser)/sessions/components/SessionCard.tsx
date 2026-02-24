@@ -437,7 +437,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
         {/* Price and Book Button */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t">
           <div className="text-2xl font-bold text-sessions-600">
-            {session.price > 0 ? `$${session.price}` : 'Free'}
+            {session.price > 0 ? `${session.price} TND` : 'Free'}
           </div>
           <div className="flex w-full sm:w-auto items-center gap-2">
             <Dialog open={reviewsDialogOpen} onOpenChange={setReviewsDialogOpen}>
@@ -634,7 +634,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                       </div>
                       <div className="flex justify-between">
                         <span>Price:</span>
-                        <span>{session.price > 0 ? `$${session.price}` : 'Free'}</span>
+                        <span>{session.price > 0 ? `${session.price} TND` : 'Free'}</span>
                       </div>
                       {selectedDate && selectedTime && (
                         <div className="flex justify-between">
@@ -658,9 +658,9 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                         Processing...
                       </>
                     ) : isPaidSession ? (
-                      isPendingFinalizeForThisSession ? "Finalize Booking" : `Pay with Card - $${session.price}`
+                      isPendingFinalizeForThisSession ? "Finalize Booking" : `Pay with Card - ${session.price} TND`
                     ) : (
-                      `Confirm Booking${session.price > 0 ? ` - $${session.price}` : ''}`
+                      `Confirm Booking${session.price > 0 ? ` - ${session.price} TND` : ''}`
                     )}
                   </Button>
                 </div>

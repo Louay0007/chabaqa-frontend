@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarIcon, Calendar as CalendarLucide, TrendingUp, Ticket, DollarSign, AlertCircle } from "lucide-react";
+import { CalendarIcon, Calendar as CalendarLucide, TrendingUp, Ticket, Coins, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { TabsContent } from "@/components/ui/tabs";
 
@@ -183,9 +183,9 @@ export default function CalendarTab({
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-3 sm:p-4 text-center">
                   <div className="flex items-center justify-center mb-1">
-                    <DollarSign className="h-4 w-4 text-primary" />
+                    <Coins className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="text-lg sm:text-xl font-bold text-primary">${totalSpent}</div>
+                  <div className="text-lg sm:text-xl font-bold text-primary">{totalSpent} TND</div>
                   <div className="text-xs text-muted-foreground">Total Spent</div>
                 </CardContent>
               </Card>
@@ -277,10 +277,10 @@ export default function CalendarTab({
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <Coins className="h-4 w-4 text-muted-foreground" />
                     <span>Money Spent</span>
                   </div>
-                  <span className="font-semibold text-primary">${totalSpent}</span>
+                  <span className="font-semibold text-primary">{totalSpent} TND</span>
                 </div>
 
                 <div className="pt-3 border-t">

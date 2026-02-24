@@ -14,7 +14,7 @@ import {
   BookOpen,
   Zap,
   Calendar,
-  DollarSign,
+  Coins,
   TrendingUp,
   MessageSquare,
   Star,
@@ -339,7 +339,7 @@ export default function CreatorDashboardPage() {
           || overview?.totalRevenue
           || overview?.salesTotal
           || 0
-        try { return typeof rev === 'number' ? `$${rev.toLocaleString()}` : String(rev) } catch { return `$${rev}` }
+        try { return typeof rev === 'number' ? `${rev.toLocaleString()} TND` : String(rev) } catch { return `${rev} TND` }
       })(),
       change: (() => {
         const currentRev = (overview?.revenue?.total)
@@ -348,7 +348,7 @@ export default function CreatorDashboardPage() {
           || 0
         return getGrowthChange(typeof currentRev === 'number' ? currentRev : 0, previousMonthCounts.revenue)
       })(),
-      icon: DollarSign,
+      icon: Coins,
       color: "success" as const,
     },
     {
@@ -549,6 +549,16 @@ export default function CreatorDashboardPage() {
                       </EnhancedCard>
                     )
                   })}
+                  {creatorCourses.length === 0 && (
+                    <div className="col-span-full text-center py-12 bg-gray-50 rounded-lg border border-dashed">
+                      <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                      <h3 className="text-lg font-medium text-gray-900">No courses yet</h3>
+                      <p className="text-gray-500 mb-4">Create your first course to share knowledge with your community.</p>
+                      <Button asChild className="bg-courses-500 hover:bg-courses-600">
+                         <Link href="/creator/courses/new">Create Course</Link>
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
@@ -610,8 +620,8 @@ export default function CreatorDashboardPage() {
                       <CardContent className="pt-4">
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center text-sm font-medium text-gray-900">
-                             <DollarSign className="h-4 w-4 mr-1 text-green-600" />
-                             {session.price > 0 ? `$${session.price}` : 'Free'}
+                             <Coins className="h-4 w-4 mr-1 text-green-600" />
+                             {session.price > 0 ? `${session.price} TND` : 'Free'}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             1-on-1 Session

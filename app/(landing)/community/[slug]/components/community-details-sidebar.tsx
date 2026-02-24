@@ -130,7 +130,7 @@ export function CommunityDetailsSidebar({ community }: CommunityDetailsSidebarPr
               ) : (
                 <div>
                   <p className="text-4xl font-bold text-gray-900 mb-2">
-                    ${community.price}
+                    {community.price} TND
                   </p>
                   <p className="text-sm text-gray-600">
                     {community.priceType === 'monthly' ? 'Per month' : 

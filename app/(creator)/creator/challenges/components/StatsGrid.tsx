@@ -1,7 +1,7 @@
 "use client"
 
 import { MetricCard } from "@/components/ui/metric-card"
-import { Zap, Play, Users, DollarSign } from "lucide-react"
+import { Zap, Play, Users, Coins } from "lucide-react";
 
 interface StatsGridProps {
   allChallenges: any[]
@@ -35,9 +35,9 @@ export default function StatsGrid({ allChallenges, revenue }: StatsGridProps) {
     {
       title: "Challenge Revenue",
       value: typeof revenue === "number" && Number.isFinite(revenue)
-        ? `$${Number(revenue).toLocaleString()}`
+        ? `${Number(revenue).toLocaleString()} TND`
         : "N/A",
-      icon: DollarSign,
+      icon: Coins,
       color: "success" as const,
     },
   ]

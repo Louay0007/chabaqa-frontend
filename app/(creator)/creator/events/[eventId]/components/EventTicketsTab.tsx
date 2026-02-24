@@ -259,7 +259,7 @@ export default function EventTicketsTab({ event, onUpdateEvent }: EventTicketsTa
                     {ticket.type}
                   </Badge>
                   <div className="text-right">
-                    <div className="font-semibold">${ticket.price}</div>
+                    <div className="font-semibold">{ticket.price} TND</div>
                     <div className="text-sm text-muted-foreground">
                       {ticket.sold || 0} sold{ticket.quantity ? ` of ${ticket.quantity}` : ""}
                     </div>

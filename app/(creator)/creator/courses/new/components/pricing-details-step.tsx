@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DollarSign, Plus, X } from "lucide-react"
+import { Coins, Plus, X } from "lucide-react"
 
 const categories = [
   "Web Development",
@@ -51,7 +51,7 @@ export function PricingDetailsStep({
     <EnhancedCard>
       <CardHeader>
         <CardTitle className="flex items-center">
-          <DollarSign className="h-5 w-5 mr-2 text-courses-500" />
+          <Coins className="h-5 w-5 mr-2 text-courses-500" />
           Pricing & Course Details
         </CardTitle>
         <CardDescription>Set your course price and additional details</CardDescription>
@@ -66,8 +66,6 @@ export function PricingDetailsStep({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="EUR">EUR</SelectItem>
                   <SelectItem value="TND">TND</SelectItem>
                 </SelectContent>
               </Select>

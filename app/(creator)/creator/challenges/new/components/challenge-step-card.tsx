@@ -39,13 +39,6 @@ export function ChallengeStepCard({ step, index, formData, setFormData, validati
     }))
   }
 
-  const removeChallengeStep = () => {
-    setFormData((prev: any) => ({
-      ...prev,
-      steps: prev.steps.filter((_: any, i: number) => i !== index).map((s: any, i: number) => ({ ...s, day: i + 1 })),
-    }))
-  }
-
   const addResourceToStep = () => {
     const newResource = {
       id: `res-${Date.now()}`,
@@ -106,18 +99,6 @@ export function ChallengeStepCard({ step, index, formData, setFormData, validati
             {stepError("title") && (
               <p className="text-sm text-red-500">{stepError("title")}</p>
             )}
-          </div>
-          <div className="space-y-2">
-            <Label>Day *</Label>
-            <Input
-              id={`step-${index}-day`}
-              type="number"
-              min={1}
-              value={step.day}
-              onChange={(e) => updateChallengeStep("day", Number.parseInt(e.target.value, 10) || 1)}
-              className={stepError("day") ? "border-red-500 focus-visible:ring-red-500" : ""}
-            />
-            {stepError("day") && <p className="text-sm text-red-500">{stepError("day")}</p>}
           </div>
           <div className="space-y-2">
             <Label>Points</Label>

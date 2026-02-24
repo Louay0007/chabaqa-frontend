@@ -44,7 +44,7 @@ function getAuthHeader(): string | null {
 }
 
 function formatCurrency(amount: number, currency?: string): string {
-  const normalizedCurrency = currency || "USD"
+  const normalizedCurrency = currency || "TND"
   try {
     return new Intl.NumberFormat(undefined, {
       style: "currency",

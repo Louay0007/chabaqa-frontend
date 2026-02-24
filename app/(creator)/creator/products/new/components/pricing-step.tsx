@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Plus, X, DollarSign, Codesandbox } from "lucide-react"
+import { Plus, X, Coins, Codesandbox } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useProductForm } from "./product-form-context"
 import { Textarea } from "@/components/ui/textarea"
@@ -24,7 +24,7 @@ export function PricingStep() {
     <EnhancedCard>
       <CardHeader>
         <CardTitle className="flex items-center">
-          <DollarSign className="h-5 w-5 mr-2 text-primary-500" />
+          <Coins className="h-5 w-5 mr-2 text-primary-500" />
           Pricing & Variants
         </CardTitle>
         <CardDescription>Set your product price and options</CardDescription>
@@ -42,8 +42,6 @@ export function PricingStep() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="EUR">EUR</SelectItem>
                   <SelectItem value="TND">TND</SelectItem>
                 </SelectContent>
               </Select>

@@ -11,7 +11,7 @@ import {
   Users, 
   Building2, 
   FileText, 
-  DollarSign,
+  Coins,
   UserPlus,
   Building,
   Shield,
@@ -166,13 +166,13 @@ export default function AdminDashboardPage() {
         <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push('/admin/financial')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-            <DollarSign className="h-5 w-5 text-purple-600" />
+            <Coins className="h-5 w-5 text-purple-600" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {new Intl.NumberFormat('en-US', {
+              {new Intl.NumberFormat('fr-TN', {
                 style: 'currency',
-                currency: 'USD',
+                currency: 'TND',
                 maximumFractionDigits: 0,
               }).format(stats.totalRevenue || 0)}
             </div>
@@ -226,7 +226,7 @@ export default function AdminDashboardPage() {
             className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-purple-50 hover:border-purple-300 transition-colors"
             onClick={() => router.push('/admin/financial')}
           >
-            <DollarSign className="h-8 w-8 text-purple-600" />
+            <Coins className="h-8 w-8 text-purple-600" />
             <span className="font-medium">Financial Overview</span>
           </Button>
         </div>

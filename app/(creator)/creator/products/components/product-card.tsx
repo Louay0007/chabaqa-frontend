@@ -11,7 +11,7 @@ import {
   Package,
   Box,
   Tag,
-  DollarSign,
+  Coins,
   Star,
   TrendingUp,
   Edit,
@@ -49,7 +49,7 @@ export function ProductCard({ product }: { product: any }) {
           ) : pricing.type === "freemium" ? (
             <Badge className="bg-blue-500 text-white">Free + Premium</Badge>
           ) : (
-            <Badge className="bg-primary-500 text-white">${product.price}</Badge>
+            <Badge className="bg-primary-500 text-white">{product.price} TND</Badge>
           )}
           {product.type === "physical" && (
             <Badge variant="secondary" className="ml-2">
@@ -113,7 +113,7 @@ export function ProductCard({ product }: { product: any }) {
             </div>
           </div>
           <div className="flex items-center text-muted-foreground">
-            <DollarSign className="h-4 w-4 mr-2" />
+            <Coins className="h-4 w-4 mr-2" />
             <div>
               <div className="font-medium text-foreground">{product.sales}</div>
               <div>Sales</div>
@@ -167,7 +167,7 @@ export function ProductCard({ product }: { product: any }) {
               {product.variants.length} Variant{product.variants.length > 1 ? "s" : ""}
             </div>
             <div className="text-xs text-gray-600 mt-1">
-              From ${Math.min(...product.variants.map((v: any) => v.price))}
+              From {Math.min(...product.variants.map((v: any) => v.price))} TND
             </div>
           </div>
         )}

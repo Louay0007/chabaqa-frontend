@@ -14,7 +14,7 @@ import {
   Zap,
   Calendar,
   Clock,
-  DollarSign,
+  Coins,
   Trophy,
   CheckCircle2,
   Users,
@@ -128,10 +128,10 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
             </div>
             <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
               <div className="p-2 rounded-lg bg-emerald-50">
-                <DollarSign className="h-5 w-5 text-emerald-600" />
+                <Coins className="h-5 w-5 text-emerald-600" />
               </div>
               <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">Deposit</p>
-              <p className="text-sm font-bold text-gray-900">{paymentAmount > 0 ? `$${paymentAmount}` : 'Free'}</p>
+              <p className="text-sm font-bold text-gray-900">{paymentAmount > 0 ? `${paymentAmount} TND` : 'Free'}</p>
             </div>
             <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
               <div className="p-2 rounded-lg bg-amber-50">
@@ -176,7 +176,7 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
               <div className="absolute top-0 right-0 w-24 h-24 bg-amber-200/30 rounded-full blur-2xl" />
               <div className="relative flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-amber-500 shadow-sm">
-                  <DollarSign className="h-5 w-5 text-white" />
+                  <Coins className="h-5 w-5 text-white" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-amber-900 mb-1">

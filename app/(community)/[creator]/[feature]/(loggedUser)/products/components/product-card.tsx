@@ -10,15 +10,11 @@ import { getFileTypeIcon } from "@/lib/utilsmedia"
 
 interface ProductCardProps {
   creatorSlug: string
-  product: ProductWithDetails | ProductPurchase
+  product: ProductWithDetails
   isPurchased: boolean
   isSelected: boolean
   onSelect: () => void
   slug: string
-}
-
-function isProductPurchase(product: ProductWithDetails | ProductPurchase): product is ProductPurchase {
-  return (product as ProductPurchase).product !== undefined;
 }
 
 export default function ProductCard({
@@ -29,7 +25,7 @@ export default function ProductCard({
   onSelect,
   slug
 }: ProductCardProps) {
-  const productDetails = isProductPurchase(product) ? product.product : product;
+  const productDetails = product;
   const fileTypes = [...new Set((productDetails.files || []).map((f: any) => f.type))]
 
   return (
@@ -55,11 +51,11 @@ export default function ProductCard({
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Owned
               </Badge>
-            ) : (product.price || 0) === 0 ? (
+            ) : (productDetails.price || 0) === 0 ? (
               <Badge className="bg-blue-500 text-white">Free</Badge>
             ) : (
               <Badge variant="secondary" className="bg-white/90">
-                ${product.price || 0}
+                {productDetails.price || 0} TND
               </Badge>
             )}
           </div>
@@ -83,7 +79,7 @@ export default function ProductCard({
             </Badge>
             {fileTypes.map((type, i) => (
               <Badge key={i} variant="outline" className="text-xs">
-                {type}
+                {String(type)}
               </Badge>
             ))}
             <div className="flex items-center ml-auto">
@@ -125,7 +121,7 @@ export default function ProductCard({
                     Download
                   </Link>
                 </Button>
-              ) : (product.price || 0) === 0 ? (
+              ) : (productDetails.price || 0) === 0 ? (
                 <Button size="sm" variant="outline" asChild>
                   <Link href={`/${creatorSlug}/${slug}/products/${productDetails.id}`}>
                     Get Free
@@ -134,7 +130,7 @@ export default function ProductCard({
               ) : (
                 <Button size="sm" asChild>
                   <Link href={`/${creatorSlug}/${slug}/products/${productDetails.id}`}>
-                    Buy - ${product.price || 0}
+                    Buy - {productDetails.price || 0} TND
                   </Link>
                 </Button>
               )}

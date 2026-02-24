@@ -100,7 +100,7 @@ function transformSession(backendSession: any): SessionWithMentor {
     description: backendSession.description || '',
     duration: backendSession.duration || 60,
     price: backendSession.price || 0,
-    currency: backendSession.currency || 'USD',
+    currency: backendSession.currency || 'TND',
     communityId: String(backendSession.communityId || ''),
     creatorId: isPopulated 
       ? String(backendSession.creatorId?._id || backendSession.creatorId?.id || '') 
@@ -233,7 +233,7 @@ export const sessionsCommunityApi = {
           description: '',
           duration: booking.sessionDuration || 60,
           price: booking.sessionPrice || 0,
-          currency: booking.sessionCurrency || 'USD',
+          currency: booking.sessionCurrency || 'TND',
           creatorId: '',
           creatorName: booking.creatorName || 'Unknown',
           creatorAvatar: booking.creatorAvatar || undefined,

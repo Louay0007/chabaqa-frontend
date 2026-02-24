@@ -390,7 +390,7 @@ export function ContentTab({
                           )}
                           {chapter.price && (
                             <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700">
-                              ${chapter.price}
+                              {chapter.price} TND
                             </Badge>
                           )}
                         </div>

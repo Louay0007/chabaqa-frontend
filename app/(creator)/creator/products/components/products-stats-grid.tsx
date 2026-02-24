@@ -1,6 +1,6 @@
 "use client"
 import { MetricCard } from "@/components/ui/metric-card"
-import { ShoppingBag, CheckCircle, Users, DollarSign } from "lucide-react"
+import { ShoppingBag, CheckCircle, Users, Coins } from "lucide-react"
 
 interface ProductsStatsGridProps {
   products: any[]
@@ -35,9 +35,9 @@ export function ProductsStatsGrid({ products, revenue, sales }: ProductsStatsGri
     {
       title: "Total Revenue",
       value: typeof revenue === "number" && Number.isFinite(revenue)
-        ? `$${Number(revenue).toLocaleString()}`
+        ? `${Number(revenue).toLocaleString()} TND`
         : "N/A",
-      icon: DollarSign,
+      icon: Coins,
       color: "success" as const,
     },
   ]

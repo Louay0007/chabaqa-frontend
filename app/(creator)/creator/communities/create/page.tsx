@@ -11,7 +11,7 @@ import {
   Users,
   Lock,
   Globe,
-  DollarSign,
+  Coins,
   Instagram,
   Facebook,
   Youtube,

@@ -6,14 +6,30 @@ import {
   Award, 
   FileText, 
   Download, 
-  DollarSign, 
+  Coins, 
   Lock, 
   CheckCircle, 
-  PlayCircle,
-  Link as LinkIcon,
+  PlayCircle, 
+  LinkIcon
 } from "lucide-react"
 import Link from "next/link"
 import { idsMatch, resolveCourseRouteId } from "@/lib/utils/course-id"
+
+function normalizeCourseId(value: unknown): string {
+  if (!value) return ""
+  if (typeof value === "string") return value
+  if (typeof value === "object") {
+    const maybeRecord = value as Record<string, unknown>
+    const nestedId = maybeRecord._id ?? maybeRecord.id ?? maybeRecord.courseId
+    if (typeof nestedId === "string") return nestedId
+    if (typeof nestedId === "object" && nestedId) {
+      const nestedRecord = nestedId as Record<string, unknown>
+      if (typeof nestedRecord._id === "string") return nestedRecord._id
+      if (typeof nestedRecord.id === "string") return nestedRecord.id
+    }
+  }
+  return String(value)
+}
 
 interface CourseDetailsSidebarProps {
   selectedCourse: string | null
@@ -108,7 +124,7 @@ export default function CourseDetailsSidebar({
                     )}
                     {chapter.price && chapter.price > 0 && !isEnrolled && (
                       <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700">
-                        ${chapter.price}
+                        {chapter.price} TND
                       </Badge>
                     )}
                     {chapter.duration && (
@@ -186,7 +202,7 @@ export default function CourseDetailsSidebar({
                     <Button variant="ghost" size="icon" className="h-8 w-8" asChild disabled={!isEnrolled}>
                       <a href={resource.url} target="_blank" rel="noopener noreferrer">
                         {resource.type === 'link' || resource.type === 'lien' ? 
-                          <LinkIcon className="h-4 w-4" /> : 
+                          <Link className="h-4 w-4" href={""} /> : 
                           <Download className="h-4 w-4" />
                         }
                       </a>
@@ -250,7 +266,7 @@ export default function CourseDetailsSidebar({
         <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-purple-50">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <DollarSign className="h-5 w-5 mr-2 text-blue-500" />
+              <Coins className="h-5 w-5 mr-2 text-blue-500" />
               Premium Content
             </CardTitle>
           </CardHeader>
@@ -270,7 +286,7 @@ export default function CourseDetailsSidebar({
                       {chapter.title}
                     </span>
                     <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                      ${chapter.price}
+                      {chapter.price} TND
                     </Badge>
                   </div>
                 ))}

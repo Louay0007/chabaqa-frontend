@@ -78,7 +78,7 @@ export function ProductsPerformance({ products, topProducts = [] }: ProductsPerf
                   <h4 className="font-medium truncate">{product.title}</h4>
                   <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
                     <span>{product.sales} sales</span>
-                    <span>${Number(product.revenue ?? 0).toLocaleString()} revenue</span>
+                    <span>{Number(product.revenue ?? 0).toLocaleString()} TND revenue</span>
                     {typeof product.rating === "number" && product.rating > 0 && (
                       <div className="flex items-center">
                         <Star className="h-3 w-3 mr-1 text-yellow-500" />

@@ -148,8 +148,6 @@ export function TimelinePricingStep({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="TND">TND</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="EUR">EUR</SelectItem>
                 </SelectContent>
               </Select>
               <Input
@@ -175,8 +173,6 @@ export function TimelinePricingStep({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="TND">TND</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="EUR">EUR</SelectItem>
                 </SelectContent>
               </Select>
               <Input
@@ -219,13 +215,11 @@ export function TimelinePricingStep({
                 Completion Reward
               </Label>
               <div className="flex">
-                <Select value={formData.currency || 'USD'} onValueChange={(value) => handleInputChange('currency', value)}>
+                <Select value={formData.currency || 'TND'} onValueChange={(value) => handleInputChange('currency', value)}>
                   <SelectTrigger className="w-20">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
                     <SelectItem value="TND">TND</SelectItem>
                   </SelectContent>
                 </Select>
@@ -246,13 +240,11 @@ export function TimelinePricingStep({
                 Top Performer Bonus
               </Label>
               <div className="flex">
-                <Select value={formData.currency || 'USD'} onValueChange={(value) => handleInputChange('currency', value)}>
+                <Select value={formData.currency || 'TND'} onValueChange={(value) => handleInputChange('currency', value)}>
                   <SelectTrigger className="w-20">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
                     <SelectItem value="TND">TND</SelectItem>
                   </SelectContent>
                 </Select>
@@ -273,13 +265,11 @@ export function TimelinePricingStep({
                 Streak Bonus
               </Label>
               <div className="flex">
-                <Select value={formData.currency || 'USD'} onValueChange={(value) => handleInputChange('currency', value)}>
+                <Select value={formData.currency || 'TND'} onValueChange={(value) => handleInputChange('currency', value)}>
                   <SelectTrigger className="w-20">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
                     <SelectItem value="TND">TND</SelectItem>
                   </SelectContent>
                 </Select>

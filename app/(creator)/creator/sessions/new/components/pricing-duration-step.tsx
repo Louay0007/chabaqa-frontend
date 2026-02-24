@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { DollarSign, Clock, Users } from "lucide-react"
+import { Coins, Clock, Users } from "lucide-react"
 
 const durations = [
   { label: "30 minutes", value: "30" },
@@ -58,7 +58,7 @@ export function PricingDurationStep({ formData, handleInputChange, handleDayTogg
     <EnhancedCard>
       <CardHeader>
         <CardTitle className="flex items-center">
-          <DollarSign className="h-5 w-5 mr-2 text-sessions-500" />
+          <Coins className="h-5 w-5 mr-2 text-sessions-500" />
           Pricing & Duration
         </CardTitle>
         <CardDescription>Set your session price, duration, and availability</CardDescription>
@@ -92,8 +92,6 @@ export function PricingDurationStep({ formData, handleInputChange, handleDayTogg
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="EUR">EUR</SelectItem>
                   <SelectItem value="TND">TND</SelectItem>
                 </SelectContent>
               </Select>

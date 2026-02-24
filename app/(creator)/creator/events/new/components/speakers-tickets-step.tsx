@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Plus, X, DollarSign, Mic, Ticket, Upload, ImageIcon } from "lucide-react"
+import { Plus, X, Coins, Mic, Ticket, Upload, ImageIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { storageApi } from "@/lib/api/storage.api"
 import { useToast } from "@/hooks/use-toast"
@@ -322,7 +322,7 @@ export function SpeakersTicketsStep({
                       <div className="space-y-2">
                         <Label>Price *</Label>
                         <div className="relative">
-                          <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Coins className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             type="number"
                             placeholder="0.00"

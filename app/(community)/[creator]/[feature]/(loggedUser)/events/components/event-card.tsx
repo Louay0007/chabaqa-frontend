@@ -30,7 +30,7 @@ interface EventCardProps {
 
 function formatMoney(amount: number): string {
   if (!Number.isFinite(amount) || amount <= 0) return "Free";
-  return `$${amount}`;
+  return `${amount} TND`;
 }
 
 function formatTimeRange(startTime?: string, endTime?: string): string {

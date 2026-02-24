@@ -134,9 +134,9 @@ const formatNumber = (num: number): string => {
 }
 
 const formatCurrency = (num: number): string => {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('fr-TN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'TND',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(num)
@@ -1372,7 +1372,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                 <div>
                                   <p className="text-base font-medium line-clamp-2">{product.title || product.name || 'Untitled product'}</p>
                                   {typeof product.price === 'number' && (
-                                    <p className="text-sm text-text-secondary">{new Intl.NumberFormat('en-US', { style: 'currency', currency: product.currency || 'USD' }).format(product.price)}</p>
+                                    <p className="text-sm text-text-secondary">{new Intl.NumberFormat('fr-TN', { style: 'currency', currency: product.currency || 'TND' }).format(product.price)}</p>
                                   )}
                                   {product.status && (
                                     <div className="mt-2 flex items-center gap-2">

@@ -1,7 +1,7 @@
 "use client"
 
 import { MetricCard } from "@/components/ui/metric-card"
-import { BookOpen, Eye, Users, DollarSign } from "lucide-react"
+import { BookOpen, Eye, Users, Coins } from "lucide-react"
 import { Course } from "@/lib/models" // Make sure this type is properly defined
 
 interface CreatorCoursesStatsProps {
@@ -35,9 +35,9 @@ export function CreatorCoursesStats({ allCourses, revenue }: CreatorCoursesStats
     {
       title: "Course Revenue",
       value: typeof revenue === "number" && Number.isFinite(revenue)
-        ? `$${Number(revenue).toLocaleString()}`
+        ? `${Number(revenue).toLocaleString()} TND`
         : "N/A",
-      icon: DollarSign,
+      icon: Coins,
       color: "success" as const,
     },
   ]

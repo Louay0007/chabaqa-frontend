@@ -18,7 +18,7 @@ export function ProductPricingTab() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Price (USD)</Label>
+            <Label>Price (TND)</Label>
             <Input
               type="number"
               value={formData.price}
