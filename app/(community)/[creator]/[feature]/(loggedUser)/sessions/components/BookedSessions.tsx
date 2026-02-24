@@ -1,15 +1,21 @@
 "use client"
 
+import React from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { StatusBadge } from "@/components/ui/status-badge"
-import { CalendarIcon, Clock, DollarSign, Video, MessageSquare, Plus } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { CalendarIcon, Clock, DollarSign, Video, MessageSquare, Plus, Star } from "lucide-react"
 import { format } from "date-fns"
 import { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { api } from "@/lib/api"
 import { getErrorMessage } from "@/lib/utils/error-messages"
+import { feedbackApi, type Feedback, type FeedbackStats } from "@/lib/api/feedback.api"
+import { ReviewForm } from "@/components/reviews/review-form"
+import { ReviewsList } from "@/components/reviews/reviews-list"
+import { StarRating } from "@/components/reviews/star-rating"
 
 interface BookedSessionsProps {
   setActiveTab: (tab: string) => void
@@ -19,6 +25,22 @@ interface BookedSessionsProps {
 export default function BookedSessions({ setActiveTab, userBookings }: BookedSessionsProps) {
   const { toast } = useToast()
   const [openingChatBookingId, setOpeningChatBookingId] = useState<string | null>(null)
+  const [reviewDialogTarget, setReviewDialogTarget] = useState<{
+    bookingId: string
+    sessionId: string
+    sessionTitle: string
+  } | null>(null)
+  const [feedbackBySession, setFeedbackBySession] = useState<
+    Record<
+      string,
+      {
+        isLoading: boolean
+        reviews: Feedback[]
+        stats: FeedbackStats | null
+        myReview: Feedback | null
+      }
+    >
+  >({})
 
   // Filter out cancelled bookings
   const activeBookings = userBookings?.filter(b => 
@@ -70,6 +92,68 @@ export default function BookedSessions({ setActiveTab, userBookings }: BookedSes
     }
   }
 
+  const fetchSessionFeedback = async (sessionId: string) => {
+    if (!sessionId) return
+
+    setFeedbackBySession((prev) => ({
+      ...prev,
+      [sessionId]: {
+        isLoading: true,
+        reviews: prev[sessionId]?.reviews || [],
+        stats: prev[sessionId]?.stats || null,
+        myReview: prev[sessionId]?.myReview || null,
+      },
+    }))
+
+    try {
+      const [reviewsData, statsData, myReviewData] = await Promise.allSettled([
+        feedbackApi.getByRelated("Session", sessionId),
+        feedbackApi.getStats("Session", sessionId),
+        feedbackApi.getMyFeedback("Session", sessionId).catch(() => null),
+      ])
+
+      setFeedbackBySession((prev) => ({
+        ...prev,
+        [sessionId]: {
+          isLoading: false,
+          reviews:
+            reviewsData.status === "fulfilled" && Array.isArray(reviewsData.value)
+              ? reviewsData.value
+              : [],
+          stats: statsData.status === "fulfilled" ? statsData.value : null,
+          myReview: myReviewData.status === "fulfilled" ? myReviewData.value : null,
+        },
+      }))
+    } catch {
+      setFeedbackBySession((prev) => ({
+        ...prev,
+        [sessionId]: {
+          isLoading: false,
+          reviews: [],
+          stats: null,
+          myReview: null,
+        },
+      }))
+    }
+  }
+
+  const openReviewDialog = (booking: any, session: any) => {
+    const sessionId = String(session?.id || booking?.sessionId || "").trim()
+    if (!sessionId) return
+
+    setReviewDialogTarget({
+      bookingId: String(booking?.id || ""),
+      sessionId,
+      sessionTitle: String(session?.title || "Session"),
+    })
+    void fetchSessionFeedback(sessionId)
+  }
+
+  const handleReviewSubmitted = async () => {
+    if (!reviewDialogTarget?.sessionId) return
+    await fetchSessionFeedback(reviewDialogTarget.sessionId)
+  }
+
   if (activeBookings.length > 0) {
     return (
       <div className="space-y-4">
@@ -80,6 +164,9 @@ export default function BookedSessions({ setActiveTab, userBookings }: BookedSes
           const isSessionEnded = Date.now() >= sessionEnd.getTime()
           const canMessageMentor = booking.status === "confirmed" && !isSessionEnded
           const isOpeningChat = openingChatBookingId === String(booking.id)
+          const sessionId = String(session?.id || booking?.sessionId || "").trim()
+          const sessionFeedbackState = sessionId ? feedbackBySession[sessionId] : null
+          const hasMyReview = Boolean(sessionFeedbackState?.myReview?._id)
           const mentor = session?.mentor || {
             name: session?.creatorName || 'Unknown',
             avatar: session?.creatorAvatar || undefined,
@@ -159,6 +246,23 @@ export default function BookedSessions({ setActiveTab, userBookings }: BookedSes
                         {isOpeningChat ? "Opening chat..." : "Message Mentor"}
                       </Button>
                     </div>
+                    {booking.status === "completed" && sessionId && (
+                      <Button
+                        variant="outline"
+                        className="w-full bg-transparent"
+                        onClick={() => openReviewDialog(booking, session)}
+                      >
+                        <Star className="h-4 w-4 mr-2" />
+                        {hasMyReview ? "Update Review" : "Leave Review"}
+                      </Button>
+                    )}
+                    {sessionFeedbackState?.stats && sessionFeedbackState.stats.ratingCount > 0 && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Session rating: {sessionFeedbackState.stats.averageRating.toFixed(1)} (
+                        {sessionFeedbackState.stats.ratingCount}{" "}
+                        {sessionFeedbackState.stats.ratingCount === 1 ? "review" : "reviews"})
+                      </p>
+                    )}
                     {booking.status === "confirmed" && !booking.meetingUrl && (
                       <p className="text-xs text-muted-foreground mt-2">
                         Meeting link is being prepared. It will appear here automatically.
@@ -180,6 +284,71 @@ export default function BookedSessions({ setActiveTab, userBookings }: BookedSes
             </Card>
           )
         })}
+        <Dialog
+          open={Boolean(reviewDialogTarget)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setReviewDialogTarget(null)
+            }
+          }}
+        >
+          <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+            <DialogHeader className="text-left">
+              <DialogTitle className="text-lg sm:text-xl">
+                {reviewDialogTarget?.sessionTitle || "Session"} Reviews
+              </DialogTitle>
+              <DialogDescription className="text-sm">
+                Share your experience and view what others said.
+              </DialogDescription>
+            </DialogHeader>
+            {reviewDialogTarget && (
+              <div className="space-y-6 py-2">
+                <div className="rounded-lg border bg-sessions-50 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Average Rating</p>
+                      <p className="text-2xl font-semibold">
+                        {Number(
+                          feedbackBySession[reviewDialogTarget.sessionId]?.stats?.averageRating || 0,
+                        ).toFixed(1)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <StarRating
+                        rating={Number(
+                          feedbackBySession[reviewDialogTarget.sessionId]?.stats?.averageRating || 0,
+                        )}
+                        size="md"
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {Number(
+                          feedbackBySession[reviewDialogTarget.sessionId]?.stats?.ratingCount || 0,
+                        )}{" "}
+                        {Number(
+                          feedbackBySession[reviewDialogTarget.sessionId]?.stats?.ratingCount || 0,
+                        ) === 1
+                          ? "review"
+                          : "reviews"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <ReviewForm
+                  relatedId={reviewDialogTarget.sessionId}
+                  relatedModel="Session"
+                  existingReview={feedbackBySession[reviewDialogTarget.sessionId]?.myReview || null}
+                  onReviewSubmitted={() => void handleReviewSubmitted()}
+                />
+                <ReviewsList
+                  reviews={feedbackBySession[reviewDialogTarget.sessionId]?.reviews || []}
+                  isLoading={feedbackBySession[reviewDialogTarget.sessionId]?.isLoading}
+                  currentUserId={feedbackBySession[reviewDialogTarget.sessionId]?.myReview?.user?._id}
+                  emptyMessage="No reviews yet for this session."
+                />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     )
   }

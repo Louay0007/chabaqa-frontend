@@ -332,6 +332,8 @@ export interface Session {
   currency: string;
   availableSlots: number;
   bookedSlots: number;
+  averageRating?: number;
+  ratingCount?: number;
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;

@@ -12,6 +12,8 @@ export interface SessionWithMentor extends Session {
     rating?: number;
     reviews?: number;
   };
+  averageRating?: number;
+  ratingCount?: number;
   communitySlug?: string;
   tags?: string[];
   category?: string;
@@ -64,12 +66,15 @@ function transformSession(backendSession: any): SessionWithMentor {
     creatorName = backendSession.creatorName || 'Unknown';
   }
   
+  const averageRating = Number(backendSession.averageRating || 0);
+  const ratingCount = Number(backendSession.ratingCount || 0);
+
   const mentor = {
     name: creatorName,
     avatar: creatorAvatar,
     role: 'Mentor',
-    rating: 4.9,
-    reviews: backendSession.bookingsCount || 0,
+    rating: averageRating,
+    reviews: ratingCount,
   };
 
   // Extract tags from category or description
@@ -90,7 +95,7 @@ function transformSession(backendSession: any): SessionWithMentor {
   }
 
   return {
-    id: String(backendSession._id || backendSession.id || ''),
+    id: String(backendSession.id || backendSession._id || ''),
     title: backendSession.title || '',
     description: backendSession.description || '',
     duration: backendSession.duration || 60,
@@ -107,6 +112,8 @@ function transformSession(backendSession: any): SessionWithMentor {
     createdAt: backendSession.createdAt || new Date().toISOString(),
     updatedAt: backendSession.updatedAt || new Date().toISOString(),
     mentor,
+    averageRating,
+    ratingCount,
     tags,
     category: backendSession.category || 'General',
     bookingsCount: backendSession.bookingsCount || 0,

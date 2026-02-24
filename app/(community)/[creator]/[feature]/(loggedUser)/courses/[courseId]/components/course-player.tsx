@@ -21,6 +21,9 @@ interface CoursePlayerProps {
   onRefreshProgress?: () => Promise<void>
   onRefreshUnlockedChapters?: () => Promise<void>
   onOpenEnrollment?: () => void
+  pendingPaidChapterId?: string | null
+  chapterUnlockState?: "idle" | "syncing" | "unlocked" | "timeout"
+  onRetryUnlock?: () => Promise<void> | void
 }
 
 export default function CoursePlayer({
@@ -36,6 +39,9 @@ export default function CoursePlayer({
   onRefreshProgress,
   onRefreshUnlockedChapters,
   onOpenEnrollment,
+  pendingPaidChapterId,
+  chapterUnlockState,
+  onRetryUnlock,
 }: CoursePlayerProps) {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("content")
@@ -56,6 +62,11 @@ export default function CoursePlayer({
 
   const allChapters = course.sections.flatMap((s: any) => s.chapters)
   const hasEnrollment = Boolean(enrollment)
+  const resolvedCourseId = String(course?.mongoId || course?.id || courseId)
+  const forceUnlockedChapterId =
+    chapterUnlockState === "unlocked" && pendingPaidChapterId
+      ? String(pendingPaidChapterId)
+      : null
 
   const unlockedMap = useMemo(() => {
     if (!Array.isArray(unlockedChapters)) return new Map<string, any>()
@@ -66,7 +77,6 @@ export default function CoursePlayer({
   // This avoids changing many prop signatures; CoursePlayer will refresh progress/unlocked-chapters when notified.
   useEffect(() => {
     (window as any).__onChapterComplete = async () => {
-      const resolvedCourseId = String(course?.mongoId || courseId)
       if (onRefreshProgress) await onRefreshProgress()
       if (onRefreshUnlockedChapters) await onRefreshUnlockedChapters()
     }
@@ -75,7 +85,7 @@ export default function CoursePlayer({
         delete (window as any).__onChapterComplete
       } catch {}
     }
-  }, [course, courseId, onRefreshProgress, onRefreshUnlockedChapters])
+  }, [onRefreshProgress, onRefreshUnlockedChapters])
 
   const resolveChapterAccess = useCallback(
     async (chapterId: string): Promise<{ canAccess: boolean; reason?: string }> => {
@@ -88,7 +98,8 @@ export default function CoursePlayer({
 
       // Ask backend for paid access decision (covers freemium membership rule)
       try {
-        const paidAccess = await coursesApi.checkChapterAccessPaid(String(courseId), resolvedChapterId)
+        const paidAccessRaw = await coursesApi.checkChapterAccessPaid(resolvedCourseId, resolvedChapterId)
+        const paidAccess = (paidAccessRaw as any)?.data || paidAccessRaw
         const paidAllowed = Boolean((paidAccess as any)?.canAccess)
         if (!paidAllowed) {
           return {
@@ -118,8 +129,9 @@ export default function CoursePlayer({
 
       // Fallback to backend sequential access check when unlocked-chapters list isn't enough
       try {
-        const seqAccess = await coursesApi.checkChapterAccessSequential(String(courseId), resolvedChapterId)
-        const hasAccess = Boolean((seqAccess as any)?.hasAccess)
+        const seqAccessRaw = await coursesApi.checkChapterAccessSequential(resolvedCourseId, resolvedChapterId)
+        const seqAccess = (seqAccessRaw as any)?.data || seqAccessRaw
+        const hasAccess = Boolean((seqAccess as any)?.hasAccess ?? (seqAccess as any)?.canAccess)
         if (hasAccess) {
           return { canAccess: true }
         }
@@ -139,7 +151,7 @@ export default function CoursePlayer({
     },
     [
       allChapters,
-      courseId,
+      resolvedCourseId,
       hasEnrollment,
       sequentialProgressionEnabled,
       unlockedMap,
@@ -177,6 +189,9 @@ export default function CoursePlayer({
   const isChapterAccessible = useCallback(
     (chapterId: string) => {
       const key = String(chapterId)
+      if (forceUnlockedChapterId && key === forceUnlockedChapterId) {
+        return true
+      }
       const known = accessibleChapters[key]
       if (typeof known === "boolean") return known
 
@@ -188,7 +203,7 @@ export default function CoursePlayer({
         !Boolean(chapter.isPaidChapter)
       return Boolean(isFreeChapter)
     },
-    [accessibleChapters, allChapters],
+    [accessibleChapters, allChapters, forceUnlockedChapterId],
   )
 
   useEffect(() => {
@@ -197,6 +212,27 @@ export default function CoursePlayer({
     setChapterAccessReason({})
     accessCheckInFlight.current = {}
   }, [courseId, sequentialProgressionEnabled, unlockedChapters, hasEnrollment])
+
+  useEffect(() => {
+    if (!forceUnlockedChapterId) return
+    setAccessibleChapters((prev) => ({
+      ...prev,
+      [forceUnlockedChapterId]: true,
+    }))
+    setChapterAccessReason((prev) => ({
+      ...prev,
+      [forceUnlockedChapterId]: undefined,
+    }))
+    setSelectedChapter(forceUnlockedChapterId)
+  }, [forceUnlockedChapterId])
+
+  useEffect(() => {
+    if (!pendingPaidChapterId) return
+    const targetChapter = allChapters.find((c: any) => String(c.id) === String(pendingPaidChapterId))
+    if (!targetChapter) return
+    if (!isChapterAccessible(String(targetChapter.id))) return
+    setSelectedChapter(String(targetChapter.id))
+  }, [pendingPaidChapterId, allChapters, isChapterAccessible])
 
   // Handler called by EnhancedVideoPlayer with latest seconds (and optional duration)
   const handleWatchTimeUpdate = useCallback(
@@ -329,11 +365,10 @@ export default function CoursePlayer({
     const accessAllowed = isChapterAccessible(String(currentChapter.id)) || Boolean(currentChapter?.isPreview)
     if (!accessAllowed) return
     trackingSentRef.current.start = true
-    const trackingId = String(course?.id || courseId)
-    void coursesApi.trackStart(trackingId).catch(() => {
+    void coursesApi.trackStart(resolvedCourseId).catch(() => {
       // ignore tracking failures
     })
-  }, [course?.id, courseId, currentChapter?.id, currentChapter?.isPreview, isChapterAccessible])
+  }, [resolvedCourseId, currentChapter?.id, currentChapter?.isPreview, isChapterAccessible])
 
   // Clear optimistic overrides when switching chapters
   useEffect(() => {
@@ -416,7 +451,7 @@ export default function CoursePlayer({
 
     try {
       if (enrollment) {
-        await coursesApi.startChapter(String(courseId), String(chapter.sectionId), String(chapterId), { watchTime: 0 })
+        await coursesApi.startChapter(resolvedCourseId, String(chapter.sectionId), String(chapterId), { watchTime: 0 })
       }
     } catch (error) {
       toast({
@@ -430,7 +465,7 @@ export default function CoursePlayer({
   const handleCompleteChapter = async (chapterId: string) => {
     if (!enrollment) return
     try {
-      await coursesApi.completeChapterEnrollment(String(courseId), String(chapterId))
+      await coursesApi.completeChapterEnrollment(resolvedCourseId, String(chapterId))
       toast({ title: "Chapter completed" })
       if (onRefreshProgress) {
         await onRefreshProgress()
@@ -471,7 +506,7 @@ export default function CoursePlayer({
   const handleCompleteCourse = useCallback(async () => {
     if (!isCourseCompleted) return
     try {
-      await coursesApi.completeCourseEnrollment(String(courseId))
+      await coursesApi.completeCourseEnrollment(resolvedCourseId)
 
       toast({ title: "Course completed" })
       if (onRefreshProgress) {
@@ -490,7 +525,7 @@ export default function CoursePlayer({
         variant: "destructive",
       })
     }
-  }, [course?.id, courseId, isCourseCompleted, onRefreshProgress, onRefreshUnlockedChapters, toast])
+  }, [resolvedCourseId, isCourseCompleted, onRefreshProgress, onRefreshUnlockedChapters, toast])
 
   const handleEnrollNow = useCallback(async () => {
     console.debug('[CoursePlayer] handleEnrollNow called', {
@@ -531,11 +566,12 @@ export default function CoursePlayer({
     if (currentChapter?.isPaidChapter || (currentChapter?.price && Number(currentChapter.price) > 0)) {
       try {
         const payment = await coursesApi.initChapterStripePayment(
-          String(course?.id || courseId),
+          resolvedCourseId,
           String(currentChapter.id),
         )
-        if (payment?.checkoutUrl) {
-          window.location.href = payment.checkoutUrl
+        const checkoutUrl = (payment as any)?.checkoutUrl || (payment as any)?.data?.checkoutUrl
+        if (checkoutUrl) {
+          window.location.href = checkoutUrl
           return
         }
         throw new Error("Checkout URL missing")
@@ -560,7 +596,7 @@ export default function CoursePlayer({
 
     // Fallback for when no parent handler is provided
     try {
-      await coursesApi.enroll(String(courseId))
+      await coursesApi.enroll(resolvedCourseId)
       toast({ title: "Enrolled successfully" })
       if (onRefreshProgress) {
         await onRefreshProgress()
@@ -575,7 +611,7 @@ export default function CoursePlayer({
         variant: "destructive",
       })
     }
-  }, [course?.price, courseId, enrollment, onOpenEnrollment, onRefreshProgress, onRefreshUnlockedChapters, toast, currentChapter, setSelectedChapter])
+  }, [course?.price, resolvedCourseId, enrollment, onOpenEnrollment, onRefreshProgress, onRefreshUnlockedChapters, toast, currentChapter, setSelectedChapter])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -619,7 +655,7 @@ export default function CoursePlayer({
               isChapterAccessible={isChapterAccessible}
               enrollment={enrollment}
               slug={slug}
-              courseId={courseId}
+              courseId={resolvedCourseId}
               onWatchTimeUpdate={handleWatchTimeUpdate}
               onEnrollNow={handleEnrollNow}
               onProgressSaved={onRefreshProgress}
@@ -635,7 +671,7 @@ export default function CoursePlayer({
               onCompleteChapter={handleCompleteChapter}
               isCurrentChapterCompleted={isCurrentChapterCompleted}
               nextChapterId={nextChapterId}
-              courseId={courseId}
+              courseId={resolvedCourseId}
               onRefreshCourse={onRefreshCourse}
               onGoToNextChapter={async () => {
                 if (!nextChapterId) return
@@ -657,7 +693,10 @@ export default function CoursePlayer({
             selectedChapter={selectedChapter}
             setSelectedChapter={handleSelectChapter}
             isChapterAccessible={isChapterAccessible}
-            courseId={courseId}
+            courseId={resolvedCourseId}
+            chapterUnlockState={chapterUnlockState}
+            pendingPaidChapterId={pendingPaidChapterId}
+            onRetryUnlock={onRetryUnlock}
             currentChapterProgress={
               currentChapter?.id
                 ? {

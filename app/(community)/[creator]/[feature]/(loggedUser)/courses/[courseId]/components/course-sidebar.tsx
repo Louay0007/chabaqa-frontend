@@ -26,6 +26,9 @@ interface CourseSidebarProps {
   currentChapterProgress?: { watchTime: number; duration: number }
   /** ID used for storage keys (matches what player uses) */
   courseId?: string
+  pendingPaidChapterId?: string | null
+  chapterUnlockState?: "idle" | "syncing" | "unlocked" | "timeout"
+  onRetryUnlock?: () => Promise<void> | void
 }
 
 export default function CourseSidebar({ 
@@ -40,6 +43,9 @@ export default function CourseSidebar({
   isChapterAccessible,
   currentChapterProgress,
   courseId,
+  pendingPaidChapterId,
+  chapterUnlockState = "idle",
+  onRetryUnlock,
 }: CourseSidebarProps) {
   const [activeTab, setActiveTab] = useState("content")
   const [noteContent, setNoteContent] = useState("")
@@ -122,19 +128,38 @@ export default function CourseSidebar({
       // Initiate payment for the next chapter
       setPurchasing(true);
       try {
+        const resolvedCourseId = String(course?.mongoId || course?.id || courseId || "");
+        if (!resolvedCourseId) {
+          throw new Error("Missing course identifier")
+        }
         const data = await coursesApi.initChapterStripePayment(
-          String(course.id),
+          resolvedCourseId,
           String(nextChapter.id),
         );
-        if (data.checkoutUrl) {
-          window.location.href = data.checkoutUrl;
+        const checkoutUrl = data?.checkoutUrl || data?.data?.checkoutUrl
+        if (checkoutUrl) {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem(
+              "pending_chapter_checkout",
+              JSON.stringify({
+                courseId: resolvedCourseId,
+                chapterId: String(nextChapter.id),
+                createdAt: Date.now(),
+              }),
+            )
+          }
+          window.location.href = checkoutUrl;
         } else {
           throw new Error("Payment initialization failed");
         }
       } catch (error) {
+        console.error("Chapter checkout init failed:", error)
         toast({ 
           title: "Error starting payment", 
-          description: "Please try again later",
+          description:
+            typeof error === "object" && error && "message" in error
+              ? String((error as any).message)
+              : "Please try again later",
           variant: "destructive" 
         });
       } finally {
@@ -158,6 +183,35 @@ export default function CourseSidebar({
         </TabsList>
 
         <TabsContent value="content" className="space-y-3 mt-4">
+          {chapterUnlockState === "syncing" && pendingPaidChapterId && (
+            <Card className="border-blue-200 bg-blue-50/60 shadow-sm">
+              <CardContent className="py-3">
+                <p className="text-xs text-blue-700">Payment received. Unlock is syncing for your chapter...</p>
+              </CardContent>
+            </Card>
+          )}
+          {chapterUnlockState === "unlocked" && pendingPaidChapterId && (
+            <Card className="border-green-200 bg-green-50/60 shadow-sm">
+              <CardContent className="py-3">
+                <p className="text-xs text-green-700">Chapter unlocked successfully.</p>
+              </CardContent>
+            </Card>
+          )}
+          {chapterUnlockState === "timeout" && pendingPaidChapterId && (
+            <Card className="border-amber-200 bg-amber-50/60 shadow-sm">
+              <CardContent className="py-3 space-y-2">
+                <p className="text-xs text-amber-800">Payment received, unlock still syncing. Click retry unlock.</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => void onRetryUnlock?.()}
+                >
+                  Retry Unlock
+                </Button>
+              </CardContent>
+            </Card>
+          )}
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2 pt-3">
               <CardTitle className="text-sm">Current Progress</CardTitle>

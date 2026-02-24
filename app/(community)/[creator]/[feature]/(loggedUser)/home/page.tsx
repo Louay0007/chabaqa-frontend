@@ -61,6 +61,64 @@ const EMPTY_PAGINATION: FeedPagination = {
   totalPages: 0,
 }
 
+const normalizeSavedPostForCard = (post: Post): Post => {
+  const rawAuthor = ((post as any)?.author || {}) as Record<string, any>
+  const authorName =
+    (typeof rawAuthor.username === "string" && rawAuthor.username.trim()) ||
+    (typeof rawAuthor.name === "string" && rawAuthor.name.trim()) ||
+    (typeof rawAuthor.firstName === "string" && rawAuthor.firstName.trim()) ||
+    "Anonymous"
+
+  const authorId =
+    (typeof rawAuthor.id === "string" && rawAuthor.id) ||
+    (typeof rawAuthor._id === "string" && rawAuthor._id) ||
+    (typeof post.authorId === "string" ? post.authorId : "")
+
+  const firstName = (() => {
+    if (typeof rawAuthor.firstName === "string" && rawAuthor.firstName.trim()) return rawAuthor.firstName.trim()
+    const [head] = authorName.split(" ")
+    return head || authorName
+  })()
+
+  const lastName =
+    (typeof rawAuthor.lastName === "string" && rawAuthor.lastName.trim())
+      ? rawAuthor.lastName.trim()
+      : undefined
+
+  const avatar =
+    (typeof rawAuthor.avatar === "string" && rawAuthor.avatar) ||
+    (typeof rawAuthor.profile_picture === "string" && rawAuthor.profile_picture) ||
+    (typeof rawAuthor.photo_profil === "string" && rawAuthor.photo_profil) ||
+    undefined
+
+  const role = ((typeof rawAuthor.role === "string" && rawAuthor.role.trim()) || "member") as
+    | "admin"
+    | "creator"
+    | "member"
+
+  return {
+    ...post,
+    author: {
+      id: authorId,
+      email: (typeof rawAuthor.email === "string" && rawAuthor.email) || "",
+      username: authorName,
+      firstName,
+      lastName,
+      avatar,
+      role,
+      verified: Boolean(rawAuthor.verified),
+      createdAt:
+        (typeof rawAuthor.createdAt === "string" && rawAuthor.createdAt) ||
+        post.createdAt ||
+        new Date().toISOString(),
+      updatedAt:
+        (typeof rawAuthor.updatedAt === "string" && rawAuthor.updatedAt) ||
+        post.updatedAt ||
+        new Date().toISOString(),
+    },
+  }
+}
+
 export default function CommunityDashboard({ params }: { params: Promise<{ creator?: string; feature: string }> }) {
   const resolvedParams = React.use(params)
   const { feature } = resolvedParams
@@ -87,6 +145,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   const [isLoadingSaved, setIsLoadingSaved] = useState(false)
   const [isLoadingMoreSaved, setIsLoadingMoreSaved] = useState(false)
   const [savedError, setSavedError] = useState<string | null>(null)
+  const [hasLoadedSavedOnce, setHasLoadedSavedOnce] = useState(false)
 
   const [links, setLinks] = useState<PostLink[]>([])
   const [linkUrl, setLinkUrl] = useState<string>("")
@@ -146,6 +205,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
         setSavedPosts([])
         setSavedPagination(EMPTY_PAGINATION)
         setSavedError(null)
+        setHasLoadedSavedOnce(false)
         return
       }
 
@@ -158,7 +218,10 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
       try {
         setSavedError(null)
         const response = await postsApi.getBookmarks({ page, limit: POSTS_LIMIT })
-        const fetchedPosts = (response.posts || []).map((post) => ({ ...post, isBookmarkedByUser: true }))
+        const fetchedPosts = (response.posts || []).map((post) => ({
+          ...normalizeSavedPostForCard(post),
+          isBookmarkedByUser: true,
+        }))
 
         if (append) {
           setSavedPosts((prev) => {
@@ -186,6 +249,9 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
           variant: "destructive",
         })
       } finally {
+        if (!append) {
+          setHasLoadedSavedOnce(true)
+        }
         setIsLoadingSaved(false)
         setIsLoadingMoreSaved(false)
       }
@@ -199,12 +265,19 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   }, [fetchHomeData])
 
   useEffect(() => {
-    if (activeFeedTab !== "saved") return
-    if (!data?.currentUser) return
-    if (isLoadingSaved) return
-    if (savedPosts.length > 0) return
+    // Prefetch saved posts once so Saved badge count is accurate before tab is opened.
+    if (!data?.currentUser?.id) return
+    if (isLoadingSaved || isLoadingMoreSaved) return
+    if (hasLoadedSavedOnce) return
     void loadSavedPosts(1, false)
-  }, [activeFeedTab, data?.currentUser, isLoadingSaved, loadSavedPosts, savedPosts.length])
+  }, [data?.currentUser?.id, hasLoadedSavedOnce, isLoadingMoreSaved, isLoadingSaved, loadSavedPosts])
+
+  useEffect(() => {
+    setSavedPosts([])
+    setSavedPagination(EMPTY_PAGINATION)
+    setSavedError(null)
+    setHasLoadedSavedOnce(false)
+  }, [feature, data?.currentUser?.id])
 
   const insertEmojiIntoPost = (emoji: string) => {
     const el = postTextareaRef.current
@@ -924,7 +997,10 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                         type="button"
                         variant={activeFeedTab === "saved" ? "default" : "ghost"}
                         size="sm"
-                        onClick={() => setActiveFeedTab("saved")}
+                        onClick={() => {
+                          setHasLoadedSavedOnce(false)
+                          setActiveFeedTab("saved")
+                        }}
                       >
                         Saved ({savedCount})
                       </Button>
