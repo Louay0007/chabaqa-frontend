@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Heart, MessageCircle, Share2, Trash2, Edit2, Loader2 } from "lucide-react"
+import type { Post } from "@/lib/api/types"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,11 +18,12 @@ import {
 } from "@/components/ui/alert-dialog"
 
 interface PostsListProps {
-  posts: any[]
+  posts: Post[]
   onPostDeleted: () => void
+  onEdit: (post: Post) => void
 }
 
-export function PostsList({ posts, onPostDeleted }: PostsListProps) {
+export function PostsList({ posts, onPostDeleted, onEdit }: PostsListProps) {
   const { toast } = useToast()
   const [deletePostId, setDeletePostId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -68,7 +70,7 @@ export function PostsList({ posts, onPostDeleted }: PostsListProps) {
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" onClick={() => onEdit(post)}>
                   <Edit2 className="h-4 w-4" />
                 </Button>
                 <Button

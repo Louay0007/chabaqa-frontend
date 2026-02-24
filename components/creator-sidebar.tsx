@@ -147,7 +147,7 @@ export function CreatorSidebar() {
         api.courses.getByCreator(userId, { limit: 1 }).catch(() => ({ data: { courses: [], pagination: { total: 0, page: 1, limit: 1, totalPages: 0 } } })),
         api.challenges.getByCreator(userId, { limit: 1, status: 'active' }).catch(() => ({ data: { courses: [], pagination: { total: 0, page: 1, limit: 1, totalPages: 0 } } })),
         api.sessions.getByCreator(userId, { limit: 1 }).catch(() => ({ data: { courses: [], pagination: { total: 0, page: 1, limit: 1, totalPages: 0 } } })),
-        api.posts.getByCreator(userId, { page: 1, limit: 1 }).catch(() => ({ data: [], pagination: { total: 0, page: 1, limit: 1, totalPages: 0 } } as any)),
+        api.posts.getByCreator(userId, { page: 1, limit: 1 }).catch(() => ({ posts: [], pagination: { total: 0, page: 1, limit: 1, totalPages: 0 } } as any)),
       ])
 
       // Calculate total members across all manageable communities
@@ -170,7 +170,7 @@ export function CreatorSidebar() {
         courses: formatNumber(coursesRes.data?.pagination?.total || coursesRes.data?.length || 0),
         challenges: challengesCount > 0 ? `${challengesCount} Active` : "0",
         sessions: formatNumber(sessionsRes.data?.pagination?.total || sessionsRes.data?.length || 0),
-        posts: formatNumber(postsRes.pagination?.total || postsRes.data?.length || 0),
+        posts: formatNumber(postsRes.pagination?.total || postsRes.posts?.length || 0),
         members: formatNumber(totalMembers),
       })
     } catch (err) {

@@ -683,7 +683,7 @@ export default function CreatorDashboardPage() {
                             </span>
                           </div>
                           <Button size="sm" variant="outline" className="w-full" asChild>
-                            <Link href={`/creator/posts/${post.id}/manage`}>Edit Post</Link>
+                            <Link href={`/creator/posts?edit=${post.id}`}>Edit Post</Link>
                           </Button>
                         </CardContent>
                       </EnhancedCard>

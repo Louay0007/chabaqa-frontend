@@ -1,3 +1,4 @@
+# Deprecated for production. Use /home/ubuntu/chabaqa/docker-compose.prod.yml
 version: '3.8'
 
 services:

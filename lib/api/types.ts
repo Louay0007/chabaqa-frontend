@@ -474,6 +474,7 @@ export interface Post {
   shareCount: number;
   isLikedByUser?: boolean;
   isSharedByUser?: boolean;
+  isBookmarkedByUser?: boolean;
   comments?: PostComment[];
   images?: string[];
   videos?: string[];

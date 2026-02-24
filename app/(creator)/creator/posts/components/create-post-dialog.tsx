@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { api } from "@/lib/api"
 import { storageApi } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Image as ImageIcon, Video, Link as LinkIcon, Smile, Loader2, X } from "lucide-react"
+import type { Post } from "@/lib/api/types"
 
 // Common emojis for quick access
 const COMMON_EMOJIS = ["😀", "😂", "😍", "🎉", "🔥", "👍", "❤️", "🚀", "✨", "💯"]
@@ -27,14 +28,20 @@ interface CreatePostDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   communityId: string
-  onPostCreated: () => void
+  onPostSaved: () => void
+  mode?: "create" | "edit"
+  postToEdit?: Post | null
+  showTrigger?: boolean
 }
 
 export function CreatePostDialog({
   open,
   onOpenChange,
   communityId,
-  onPostCreated,
+  onPostSaved,
+  mode = "create",
+  postToEdit = null,
+  showTrigger = true,
 }: CreatePostDialogProps) {
   const { toast } = useToast()
   const { user: authUser } = useAuthContext()
@@ -45,12 +52,49 @@ export function CreatePostDialog({
   const [isLoading, setIsLoading] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
-  const [videoUrl, setVideoUrl] = useState("")
   const [linkUrl, setLinkUrl] = useState("")
   const [linkTitle, setLinkTitle] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const isEditing = mode === "edit" && !!postToEdit
+
+  const resetForm = () => {
+    setContent("")
+    setTitle("")
+    setTags([])
+    setTagInput("")
+    setShowEmojiPicker(false)
+    setUploadedFiles([])
+    setLinkUrl("")
+    setLinkTitle("")
+  }
+
+  useEffect(() => {
+    if (!open) return
+    if (isEditing && postToEdit) {
+      setContent(postToEdit.content || "")
+      setTitle(postToEdit.title || "")
+      setTags(Array.isArray(postToEdit.tags) ? postToEdit.tags : [])
+      setTagInput("")
+      setShowEmojiPicker(false)
+      setLinkUrl("")
+      setLinkTitle("")
+      const initialFiles = [
+        ...(postToEdit.images || []).map((url) => ({ type: "photo", url, originalName: url })),
+        ...(postToEdit.videos || []).map((url) => ({ type: "video", url, originalName: url })),
+        ...(postToEdit.links || []).map((link) => ({
+          type: "link",
+          url: link.url,
+          title: link.title || link.url,
+          originalName: link.title || link.url,
+        })),
+      ]
+      setUploadedFiles(initialFiles)
+      return
+    }
+    resetForm()
+  }, [open, isEditing, postToEdit])
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -86,16 +130,13 @@ export function CreatePostDialog({
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.currentTarget.files
     if (!files || files.length === 0) {
-      console.log("No files selected")
       return
     }
 
-    console.log("Photo upload started:", files.length, "files")
     setIsLoading(true)
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
-        console.log("Uploading file:", file.name, file.type)
         
         if (!file.type.startsWith("image/")) {
           toast({
@@ -107,7 +148,6 @@ export function CreatePostDialog({
         }
 
         const uploadedFile = await storageApi.upload(file)
-        console.log("File uploaded:", uploadedFile)
         setUploadedFiles((prev) => [...prev, { ...uploadedFile, type: "photo" }])
         
         toast({
@@ -131,16 +171,13 @@ export function CreatePostDialog({
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.currentTarget.files
     if (!files || files.length === 0) {
-      console.log("No video files selected")
       return
     }
 
-    console.log("Video upload started:", files.length, "files")
     setIsLoading(true)
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
-        console.log("Uploading video:", file.name, file.type)
         
         if (!file.type.startsWith("video/")) {
           toast({
@@ -152,7 +189,6 @@ export function CreatePostDialog({
         }
 
         const uploadedFile = await storageApi.upload(file)
-        console.log("Video uploaded:", uploadedFile)
         setUploadedFiles((prev) => [...prev, { ...uploadedFile, type: "video" }])
         
         toast({
@@ -174,7 +210,6 @@ export function CreatePostDialog({
   }
 
   const handleAddLink = () => {
-    console.log("Adding link:", linkUrl)
     if (linkUrl.trim()) {
       setUploadedFiles((prev) => [
         ...prev,
@@ -224,8 +259,7 @@ export function CreatePostDialog({
           url: f.url,
           title: f.title || undefined,
         }))
-
-      const response = await api.posts.create({
+      const payload = {
         title: title || undefined,
         content,
         communityId,
@@ -234,28 +268,27 @@ export function CreatePostDialog({
         images: images.length > 0 ? images : undefined,
         videos: videos.length > 0 ? videos : undefined,
         links: links.length > 0 ? links : undefined,
-      })
+      }
+
+      if (isEditing && postToEdit) {
+        await api.posts.update(postToEdit.id, payload)
+      } else {
+        await api.posts.create(payload)
+      }
 
       toast({
         title: "Success",
-        description: "Post created successfully",
+        description: isEditing ? "Post updated successfully" : "Post created successfully",
       })
 
-      // Reset form
-      setContent("")
-      setTitle("")
-      setTags([])
-      setUploadedFiles([])
-      setVideoUrl("")
-      setLinkUrl("")
-      setLinkTitle("")
+      resetForm()
       onOpenChange(false)
-      onPostCreated()
+      onPostSaved()
     } catch (error: any) {
-      console.error("Post creation error:", error)
+      console.error("Post save error:", error)
       toast({
         title: "Error",
-        description: error?.response?.data?.message || "Failed to create post",
+        description: error?.response?.data?.message || (isEditing ? "Failed to update post" : "Failed to create post"),
         variant: "destructive",
       })
     } finally {
@@ -265,16 +298,20 @@ export function CreatePostDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button className="bg-purple-600 hover:bg-purple-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Post
-        </Button>
-      </DialogTrigger>
+      {showTrigger && (
+        <DialogTrigger asChild>
+          <Button className="bg-purple-600 hover:bg-purple-700">
+            <Plus className="h-4 w-4 mr-2" />
+            {isEditing ? "Edit Post" : "Create Post"}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Post</DialogTitle>
-          <DialogDescription>Share your thoughts with your community</DialogDescription>
+          <DialogTitle>{isEditing ? "Edit Post" : "Create New Post"}</DialogTitle>
+          <DialogDescription>
+            {isEditing ? "Update your post content and attachments" : "Share your thoughts with your community"}
+          </DialogDescription>
         </DialogHeader>
 
         {/* User Avatar Section */}
@@ -326,10 +363,7 @@ export function CreatePostDialog({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => {
-                console.log("Photo button clicked")
-                fileInputRef.current?.click()
-              }}
+              onClick={() => fileInputRef.current?.click()}
               disabled={isLoading}
               className="hover:bg-blue-50 hover:text-blue-600"
             >
@@ -349,10 +383,7 @@ export function CreatePostDialog({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => {
-                console.log("Video button clicked")
-                videoInputRef.current?.click()
-              }}
+              onClick={() => videoInputRef.current?.click()}
               disabled={isLoading}
               className="hover:bg-red-50 hover:text-red-600"
             >
@@ -372,10 +403,7 @@ export function CreatePostDialog({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => {
-                console.log("Emoji button clicked, current state:", showEmojiPicker)
-                setShowEmojiPicker(!showEmojiPicker)
-              }}
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               className={`hover:bg-yellow-50 hover:text-yellow-600 ${showEmojiPicker ? 'bg-yellow-100' : ''}`}
             >
               <Smile className="h-4 w-4 mr-2" />
@@ -517,10 +545,10 @@ export function CreatePostDialog({
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Publishing...
+                {isEditing ? "Saving..." : "Publishing..."}
               </>
             ) : (
-              "Publish Post"
+              isEditing ? "Save Changes" : "Publish Post"
             )}
           </Button>
         </div>

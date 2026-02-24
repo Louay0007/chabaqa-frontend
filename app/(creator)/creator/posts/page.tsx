@@ -1,33 +1,36 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { CreatePostDialog } from "./components/create-post-dialog"
 import { PostsList } from "./components/posts-list"
+import type { Post } from "@/lib/api/types"
 
 export default function CreatorPostsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const { user: authUser, isAuthenticated, loading: authLoading } = useAuthContext()
   const { selectedCommunity, selectedCommunityId, isLoading: communityLoading } = useCreatorCommunity()
 
-  const [posts, setPosts] = useState<any[]>([])
+  const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isPostDialogOpen, setIsPostDialogOpen] = useState(false)
+  const [editingPost, setEditingPost] = useState<Post | null>(null)
   const [stats, setStats] = useState({
     total: 0,
     likes: 0,
     comments: 0,
   })
+  const editPostId = searchParams.get("edit")
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -36,8 +39,7 @@ export default function CreatorPostsPage() {
     }
   }, [authLoading, isAuthenticated, router])
 
-  // Load posts when community changes
-  useEffect(() => {
+  const refreshPosts = useCallback(async () => {
     if (communityLoading || !authUser) return
     if (!selectedCommunityId) {
       setPosts([])
@@ -46,62 +48,79 @@ export default function CreatorPostsPage() {
       return
     }
 
-    const loadPosts = async () => {
-      setLoading(true)
-      try {
-        const response: any = await api.posts.getByCreator(authUser._id || authUser.id, {
-          page: 1,
-          limit: 50,
-          communityId: selectedCommunityId,
-        })
+    setLoading(true)
+    try {
+      const response = await api.posts.getByCreator(authUser._id || authUser.id, {
+        page: 1,
+        limit: 50,
+        communityId: selectedCommunityId,
+      })
 
-        const postsList = response?.data || response || []
-        setPosts(Array.isArray(postsList) ? postsList : [])
+      const postsList = response.posts || []
+      setPosts(postsList)
+    } catch (error: any) {
+      console.error('Failed to load posts:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load posts",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [communityLoading, authUser, selectedCommunityId, toast])
 
-        // Calculate stats
-        const totalLikes = (Array.isArray(postsList) ? postsList : []).reduce(
-          (sum, post) => sum + (post.likes || 0),
-          0
-        )
-        const totalComments = (Array.isArray(postsList) ? postsList : []).reduce(
-          (sum, post) => sum + (post.comments?.length || 0),
-          0
-        )
+  // Load posts when community changes
+  useEffect(() => {
+    void refreshPosts()
+  }, [refreshPosts])
 
-        setStats({
-          total: Array.isArray(postsList) ? postsList.length : 0,
-          likes: totalLikes,
-          comments: totalComments,
-        })
-      } catch (error: any) {
-        console.error('Failed to load posts:', error)
-        toast({
-          title: "Error",
-          description: "Failed to load posts",
-          variant: "destructive",
-        })
-      } finally {
-        setLoading(false)
+  useEffect(() => {
+    const totalLikes = posts.reduce((sum, post) => sum + (post.likes || 0), 0)
+    const totalComments = posts.reduce((sum, post) => sum + (post.commentsCount || post.comments?.length || 0), 0)
+    setStats({
+      total: posts.length,
+      likes: totalLikes,
+      comments: totalComments,
+    })
+  }, [posts])
+
+  useEffect(() => {
+    if (!editPostId) return
+    const matchedPost = posts.find((post) => post.id === editPostId)
+    if (!matchedPost) return
+    setEditingPost(matchedPost)
+    setIsPostDialogOpen(true)
+  }, [editPostId, posts])
+
+  const handlePostSaved = useCallback(() => {
+    setEditingPost(null)
+    setIsPostDialogOpen(false)
+    if (editPostId) {
+      router.replace("/creator/posts")
+    }
+    void refreshPosts()
+  }, [editPostId, refreshPosts, router])
+
+  const handleOpenCreate = useCallback(() => {
+    setEditingPost(null)
+    setIsPostDialogOpen(true)
+    if (editPostId) {
+      router.replace("/creator/posts")
+    }
+  }, [editPostId, router])
+
+  const handleDialogOpenChange = useCallback((open: boolean) => {
+    setIsPostDialogOpen(open)
+    if (!open) {
+      setEditingPost(null)
+      if (editPostId) {
+        router.replace("/creator/posts")
       }
     }
+  }, [editPostId, router])
 
-    loadPosts()
-  }, [selectedCommunityId, authUser, communityLoading, toast])
-
-  const handlePostCreated = () => {
-    setIsCreateDialogOpen(false)
-    // Reload posts
-    if (authUser && selectedCommunityId) {
-      api.posts.getByCreator(authUser._id || authUser.id, { page: 1, limit: 50, communityId: selectedCommunityId })
-        .then((response: any) => {
-          const postsList = response?.data || response || []
-          setPosts(Array.isArray(postsList) ? postsList : [])
-        })
-        .catch((error) => console.error('Failed to reload posts:', error))
-    } else {
-      setPosts([])
-    }
-  }
+  const mode = useMemo(() => (editingPost ? "edit" : "create"), [editingPost])
 
   if (!selectedCommunity) {
     return (
@@ -124,13 +143,21 @@ export default function CreatorPostsPage() {
           <h1 className="text-3xl font-bold">Posts Management</h1>
           <p className="text-gray-600 mt-1">Manage posts for {selectedCommunity.name}</p>
         </div>
-        <CreatePostDialog
-          open={isCreateDialogOpen}
-          onOpenChange={setIsCreateDialogOpen}
-          communityId={selectedCommunityId || ""}
-          onPostCreated={handlePostCreated}
-        />
+        <Button onClick={handleOpenCreate}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Post
+        </Button>
       </div>
+
+      <CreatePostDialog
+        open={isPostDialogOpen}
+        onOpenChange={handleDialogOpenChange}
+        communityId={selectedCommunityId || ""}
+        onPostSaved={handlePostSaved}
+        mode={mode}
+        postToEdit={editingPost}
+        showTrigger={false}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -174,13 +201,20 @@ export default function CreatorPostsPage() {
           ) : posts.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-600 mb-4">No posts yet</p>
-              <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Button onClick={handleOpenCreate}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Your First Post
               </Button>
             </div>
           ) : (
-            <PostsList posts={posts} onPostDeleted={handlePostCreated} />
+            <PostsList
+              posts={posts}
+              onPostDeleted={handlePostSaved}
+              onEdit={(post) => {
+                setEditingPost(post)
+                setIsPostDialogOpen(true)
+              }}
+            />
           )}
         </CardContent>
       </Card>

@@ -6,7 +6,7 @@ WORKDIR /app
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm ci --legacy-peer-deps
 
 # Stage 2: Builder
 FROM base AS builder
@@ -23,8 +23,8 @@ ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 ENV NEXT_PUBLIC_GA_MEASUREMENT_ID=${NEXT_PUBLIC_GA_MEASUREMENT_ID}
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build Next.js with increased timeout and retry
-RUN npm run build || npm run build || npm run build
+# Build Next.js for production standalone output
+RUN npm run build
 
 # Stage 3: Development
 FROM base AS dev
@@ -58,5 +58,8 @@ EXPOSE 8080
 
 ENV PORT=8080
 ENV HOSTNAME="0.0.0.0"
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:8080 >/dev/null || exit 1
 
 CMD ["node", "server.js"]

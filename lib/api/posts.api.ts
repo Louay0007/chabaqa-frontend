@@ -1,4 +1,4 @@
-import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } from './client';
+import { apiClient, ApiSuccessResponse, PaginationParams } from './client';
 import type { Post, PostComment, PostLink, PostStats } from './types';
 
 export interface CreatePostData {
@@ -19,12 +19,65 @@ export interface CreateCommentData {
   content: string;
 }
 
+export interface NormalizedPostListResponse<T = Post> {
+  posts: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 10;
+
+export const normalizePostListResponse = <T = Post>(
+  response: any,
+  fallback: { page?: number; limit?: number } = {},
+): NormalizedPostListResponse<T> => {
+  const fallbackPage = fallback.page ?? DEFAULT_PAGE;
+  const fallbackLimit = fallback.limit ?? DEFAULT_LIMIT;
+
+  const postsSource =
+    response?.data?.posts
+    || response?.data?.items
+    || response?.posts
+    || response?.items
+    || response?.data
+    || response
+    || [];
+
+  const posts = Array.isArray(postsSource) ? postsSource : [];
+
+  const paginationSource =
+    response?.data?.pagination
+    || response?.pagination
+    || {};
+
+  const page = Number(paginationSource?.page ?? fallbackPage) || fallbackPage;
+  const limit = Number(paginationSource?.limit ?? fallbackLimit) || fallbackLimit;
+  const total = Number(paginationSource?.total ?? posts.length) || posts.length;
+  const totalPages = Number(paginationSource?.totalPages ?? Math.max(1, Math.ceil(total / Math.max(limit, 1)))) || 1;
+
+  return {
+    posts: posts as T[],
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+    },
+  };
+};
+
 // Posts API
 export const postsApi = {
   // Get all posts
 
-  getAll: async (params?: PaginationParams): Promise<PaginatedResponse<Post>> => {
-    return apiClient.get<PaginatedResponse<Post>>('/posts', params);
+  getAll: async (params?: PaginationParams): Promise<NormalizedPostListResponse<Post>> => {
+    const response = await apiClient.get<any>('/posts', params);
+    return normalizePostListResponse<Post>(response, params);
   },
 
   // Create post
@@ -48,8 +101,12 @@ export const postsApi = {
   },
 
   // Get posts by community
-  getByCommunity: async (communityId: string, params?: PaginationParams & { userId?: string }): Promise<PaginatedResponse<Post>> => {
-    return apiClient.get<PaginatedResponse<Post>>(`/posts/community/${communityId}`, params);
+  getByCommunity: async (
+    communityId: string,
+    params?: PaginationParams & { userId?: string },
+  ): Promise<NormalizedPostListResponse<Post>> => {
+    const response = await apiClient.get<any>(`/posts/community/${communityId}`, params);
+    return normalizePostListResponse<Post>(response, params);
   },
 
   // Like post
@@ -68,8 +125,8 @@ export const postsApi = {
   },
 
   // Get comments
-  getComments: async (id: string, params?: PaginationParams): Promise<PaginatedResponse<PostComment>> => {
-    return apiClient.get<PaginatedResponse<PostComment>>(`/posts/${id}/comments`, params);
+  getComments: async (id: string, params?: PaginationParams): Promise<ApiSuccessResponse<PostComment[]>> => {
+    return apiClient.get<ApiSuccessResponse<PostComment[]>>(`/posts/${id}/comments`, params);
   },
 
   // Create comment
@@ -88,8 +145,33 @@ export const postsApi = {
   },
 
   // Get posts by user (creator)
-  getByCreator: async (userId: string, params?: PaginationParams & { communityId?: string }): Promise<PaginatedResponse<Post>> => {
-    return apiClient.get<PaginatedResponse<Post>>(`/posts/user/${userId}`, params);
+  getByCreator: async (
+    userId: string,
+    params?: PaginationParams & { communityId?: string; currentUserId?: string },
+  ): Promise<NormalizedPostListResponse<Post>> => {
+    const response = await apiClient.get<any>(`/posts/user/${userId}`, params);
+    return normalizePostListResponse<Post>(response, params);
+  },
+
+  // Bookmark post
+  bookmark: async (id: string): Promise<{ success: boolean; message: string }> => {
+    return apiClient.post<{ success: boolean; message: string }>(`/posts/${id}/bookmark`);
+  },
+
+  // Unbookmark post
+  unbookmark: async (id: string): Promise<{ success: boolean; message: string }> => {
+    return apiClient.delete<{ success: boolean; message: string }>(`/posts/${id}/bookmark`);
+  },
+
+  // Get bookmarked posts for current user
+  getBookmarks: async (params?: PaginationParams): Promise<NormalizedPostListResponse<Post>> => {
+    const response = await apiClient.get<any>('/posts/user/bookmarks', params);
+    return normalizePostListResponse<Post>(response, params);
+  },
+
+  // Get post stats
+  getStats: async (id: string, params?: { userId?: string }): Promise<ApiSuccessResponse<PostStats>> => {
+    return apiClient.get<ApiSuccessResponse<PostStats>>(`/posts/${id}/stats`, params);
   },
 };
 

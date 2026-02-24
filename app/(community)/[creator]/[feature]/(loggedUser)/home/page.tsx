@@ -1,12 +1,23 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import React from 'react'
+import { useCallback, useEffect, useRef, useState } from "react"
+import React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import {
   MessageSquare,
   ImageIcon,
@@ -17,38 +28,74 @@ import {
   X,
   ChevronDown,
   ChevronUp,
-  Calendar,
   BookOpen,
   Zap,
-  Trophy,
-  TrendingUp,
   Loader2,
   AlertCircle,
   Star,
+  Settings2,
+  Hash,
+  PencilLine,
 } from "lucide-react"
 import Link from "next/link"
 import { communityHomeApi, type CommunityHomeData } from "@/lib/api/community-home.api"
 import { postsApi } from "@/lib/api/posts.api"
 import type { Post, PostLink } from "@/lib/api/types"
 import { PostCard } from "@/app/(community)/components/post-card"
+import { useToast } from "@/hooks/use-toast"
+
+const POSTS_PAGE = 1
+const POSTS_LIMIT = 10
+
+interface FeedPagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
+const EMPTY_PAGINATION: FeedPagination = {
+  page: 1,
+  limit: POSTS_LIMIT,
+  total: 0,
+  totalPages: 0,
+}
 
 export default function CommunityDashboard({ params }: { params: Promise<{ creator?: string; feature: string }> }) {
   const resolvedParams = React.use(params)
   const { feature } = resolvedParams
+  const { toast } = useToast()
 
   // State management
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<CommunityHomeData | null>(null)
+
   const [newPost, setNewPost] = useState("")
+  const [postTitle, setPostTitle] = useState("")
+  const [postTags, setPostTags] = useState<string[]>([])
+  const [tagInput, setTagInput] = useState("")
+  const [showMetadata, setShowMetadata] = useState(false)
+  const [editingPost, setEditingPost] = useState<Post | null>(null)
+
   const [isCreatingPost, setIsCreatingPost] = useState(false)
-  const [bookmarkedPosts, setBookmarkedPosts] = useState<Set<string>>(new Set())
-  const [postsPage] = useState(1)
+  const [activeFeedTab, setActiveFeedTab] = useState<"all" | "saved">("all")
+  const [bookmarkPendingIds, setBookmarkPendingIds] = useState<Set<string>>(new Set())
+
+  const [savedPosts, setSavedPosts] = useState<Post[]>([])
+  const [savedPagination, setSavedPagination] = useState<FeedPagination>(EMPTY_PAGINATION)
+  const [isLoadingSaved, setIsLoadingSaved] = useState(false)
+  const [isLoadingMoreSaved, setIsLoadingMoreSaved] = useState(false)
+  const [savedError, setSavedError] = useState<string | null>(null)
+
   const [links, setLinks] = useState<PostLink[]>([])
   const [linkUrl, setLinkUrl] = useState<string>("")
   const [linkTitle, setLinkTitle] = useState<string>("")
   const [showLinks, setShowLinks] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+
+  const [deletePostId, setDeletePostId] = useState<string | null>(null)
+  const [isDeletingPost, setIsDeletingPost] = useState(false)
 
   // Media upload state
   const [uploadedImages, setUploadedImages] = useState<string[]>([])
@@ -61,6 +108,103 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   const postTextareaRef = useRef<HTMLTextAreaElement>(null)
 
   const COMMON_EMOJIS = ["😀", "😂", "😍", "🎉", "🔥", "👍", "❤️", "🚀", "✨", "💯"]
+
+  const resetComposer = useCallback(() => {
+    setEditingPost(null)
+    setNewPost("")
+    setPostTitle("")
+    setPostTags([])
+    setTagInput("")
+    setUploadedImages([])
+    setUploadedVideos([])
+    setLinks([])
+    setLinkUrl("")
+    setLinkTitle("")
+    setShowLinks(false)
+    setShowEmojiPicker(false)
+    setShowMetadata(false)
+  }, [])
+
+  const fetchHomeData = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const homeData = await communityHomeApi.getHomeData(feature, POSTS_PAGE, POSTS_LIMIT)
+      setData(homeData)
+    } catch (err: any) {
+      console.error("Error fetching community home data:", err)
+      setError(err?.message || "Failed to load community data")
+    } finally {
+      setLoading(false)
+    }
+  }, [feature])
+
+  const loadSavedPosts = useCallback(
+    async (page = 1, append = false) => {
+      if (!data?.currentUser) {
+        setSavedPosts([])
+        setSavedPagination(EMPTY_PAGINATION)
+        setSavedError(null)
+        return
+      }
+
+      if (append) {
+        setIsLoadingMoreSaved(true)
+      } else {
+        setIsLoadingSaved(true)
+      }
+
+      try {
+        setSavedError(null)
+        const response = await postsApi.getBookmarks({ page, limit: POSTS_LIMIT })
+        const fetchedPosts = (response.posts || []).map((post) => ({ ...post, isBookmarkedByUser: true }))
+
+        if (append) {
+          setSavedPosts((prev) => {
+            const map = new Map<string, Post>()
+            prev.forEach((post) => map.set(post.id, post))
+            fetchedPosts.forEach((post) => map.set(post.id, post))
+            return Array.from(map.values())
+          })
+        } else {
+          setSavedPosts(fetchedPosts)
+        }
+
+        setSavedPagination({
+          page: response.pagination?.page ?? page,
+          limit: response.pagination?.limit ?? POSTS_LIMIT,
+          total: response.pagination?.total ?? fetchedPosts.length,
+          totalPages: response.pagination?.totalPages ?? (fetchedPosts.length > 0 ? 1 : 0),
+        })
+      } catch (err: any) {
+        console.error("Error loading bookmarks:", err)
+        setSavedError(err?.message || "Failed to load saved posts")
+        toast({
+          title: "Could not load saved posts",
+          description: err?.message || "Please try again.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoadingSaved(false)
+        setIsLoadingMoreSaved(false)
+      }
+    },
+    [data?.currentUser, toast],
+  )
+
+  // Fetch data on mount and feature changes
+  useEffect(() => {
+    void fetchHomeData()
+  }, [fetchHomeData])
+
+  useEffect(() => {
+    if (activeFeedTab !== "saved") return
+    if (!data?.currentUser) return
+    if (isLoadingSaved) return
+    if (savedPosts.length > 0) return
+    void loadSavedPosts(1, false)
+  }, [activeFeedTab, data?.currentUser, isLoadingSaved, loadSavedPosts, savedPosts.length])
 
   const insertEmojiIntoPost = (emoji: string) => {
     const el = postTextareaRef.current
@@ -82,29 +226,337 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
     })
   }
 
-  // Fetch data on mount
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true)
-        setError(null)
+  const handleAddTag = () => {
+    const normalizedTag = tagInput.trim().replace(/^#/, "")
+    if (!normalizedTag) return
+    if (postTags.includes(normalizedTag)) {
+      setTagInput("")
+      return
+    }
+    setPostTags((prev) => [...prev, normalizedTag])
+    setTagInput("")
+  }
 
-        const homeData = await communityHomeApi.getHomeData(feature, postsPage, 10)
-        setData(homeData)
+  const handleRemoveTag = (tag: string) => {
+    setPostTags((prev) => prev.filter((item) => item !== tag))
+  }
 
-        // Initialize liked/bookmarked posts from user data if available
-        // This would come from user preferences API in the future
-      } catch (err: any) {
-        console.error('Error fetching community home data:', err)
-        setError(err.message || 'Failed to load community data')
-
-      } finally {
-        setLoading(false)
+  const handlePostUpdate = (updatedPost: Post) => {
+    setData((prevData) => {
+      if (!prevData) return prevData
+      return {
+        ...prevData,
+        posts: prevData.posts.map((post) => (post.id === updatedPost.id ? { ...post, ...updatedPost } : post)),
       }
+    })
+
+    setSavedPosts((prev) => prev.map((post) => (post.id === updatedPost.id ? { ...post, ...updatedPost } : post)))
+  }
+
+  const handleBookmarkToggle = async (post: Post) => {
+    if (!data?.currentUser) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to save posts.",
+        variant: "destructive",
+      })
+      return
     }
 
-    fetchData()
-  }, [feature, postsPage])
+    let alreadyPending = false
+    setBookmarkPendingIds((prev) => {
+      if (prev.has(post.id)) {
+        alreadyPending = true
+        return prev
+      }
+      const next = new Set(prev)
+      next.add(post.id)
+      return next
+    })
+    if (alreadyPending) return
+
+    const shouldBookmark = !Boolean(post.isBookmarkedByUser)
+
+    setData((prevData) => {
+      if (!prevData) return prevData
+      return {
+        ...prevData,
+        posts: prevData.posts.map((item) =>
+          item.id === post.id ? { ...item, isBookmarkedByUser: shouldBookmark } : item,
+        ),
+      }
+    })
+
+    setSavedPosts((prev) => {
+      if (shouldBookmark) {
+        const existing = prev.find((saved) => saved.id === post.id)
+        if (existing) {
+          return prev.map((saved) => (saved.id === post.id ? { ...saved, isBookmarkedByUser: true } : saved))
+        }
+        return [{ ...post, isBookmarkedByUser: true }, ...prev]
+      }
+      return prev.filter((saved) => saved.id !== post.id)
+    })
+
+    setSavedPagination((prev) => ({
+      ...prev,
+      total: Math.max(0, prev.total + (shouldBookmark ? 1 : -1)),
+      totalPages:
+        prev.limit > 0
+          ? Math.ceil(Math.max(0, prev.total + (shouldBookmark ? 1 : -1)) / prev.limit)
+          : prev.totalPages,
+    }))
+
+    try {
+      if (shouldBookmark) {
+        await postsApi.bookmark(post.id)
+      } else {
+        await postsApi.unbookmark(post.id)
+      }
+    } catch (err: any) {
+      console.error("Bookmark toggle failed:", err)
+
+      // rollback optimistic updates
+      setData((prevData) => {
+        if (!prevData) return prevData
+        return {
+          ...prevData,
+          posts: prevData.posts.map((item) =>
+            item.id === post.id ? { ...item, isBookmarkedByUser: !shouldBookmark } : item,
+          ),
+        }
+      })
+
+      setSavedPosts((prev) => {
+        if (!shouldBookmark) {
+          const exists = prev.some((saved) => saved.id === post.id)
+          if (exists) {
+            return prev.map((saved) => (saved.id === post.id ? { ...saved, isBookmarkedByUser: true } : saved))
+          }
+          return [{ ...post, isBookmarkedByUser: true }, ...prev]
+        }
+        return prev.filter((saved) => saved.id !== post.id)
+      })
+
+      setSavedPagination((prev) => ({
+        ...prev,
+        total: Math.max(0, prev.total + (shouldBookmark ? -1 : 1)),
+        totalPages:
+          prev.limit > 0
+            ? Math.ceil(Math.max(0, prev.total + (shouldBookmark ? -1 : 1)) / prev.limit)
+            : prev.totalPages,
+      }))
+
+      toast({
+        title: "Save failed",
+        description: err?.message || "Could not update saved state.",
+        variant: "destructive",
+      })
+    } finally {
+      setBookmarkPendingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(post.id)
+        return next
+      })
+    }
+  }
+
+  const handleRequestDelete = (postId: string) => {
+    setDeletePostId(postId)
+  }
+
+  const handleDeletePost = async () => {
+    if (!deletePostId || isDeletingPost) return
+
+    setIsDeletingPost(true)
+    try {
+      await postsApi.delete(deletePostId)
+      setData((prevData) => {
+        if (!prevData) return prevData
+        return {
+          ...prevData,
+          posts: prevData.posts.filter((post) => post.id !== deletePostId),
+        }
+      })
+      setSavedPosts((prev) => prev.filter((post) => post.id !== deletePostId))
+
+      setDeletePostId(null)
+      toast({
+        title: "Post deleted",
+      })
+    } catch (err: any) {
+      console.error("Error deleting post:", err)
+      toast({
+        title: "Delete failed",
+        description: err?.message || "Failed to delete post.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeletingPost(false)
+    }
+  }
+
+  const handleEditPost = (post: Post) => {
+    setEditingPost(post)
+    setNewPost(post.content || "")
+    setPostTitle(post.title || "")
+    setPostTags(Array.isArray(post.tags) ? post.tags : [])
+    setUploadedImages(Array.isArray(post.images) ? post.images : [])
+    setUploadedVideos(Array.isArray(post.videos) ? post.videos : [])
+    setLinks(Array.isArray(post.links) ? post.links : [])
+    setShowMetadata(Boolean(post.title || (post.tags && post.tags.length > 0)))
+    setShowLinks(Boolean(post.links && post.links.length > 0))
+    setShowEmojiPicker(false)
+
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }
+  }
+
+  const handleCreateOrUpdatePost = async () => {
+    const community = data?.community
+    const currentUser = data?.currentUser
+    if (!newPost.trim() || !community || !currentUser) return
+
+    setIsCreatingPost(true)
+    try {
+      const payload = {
+        title: postTitle.trim() || undefined,
+        content: newPost.trim(),
+        tags: postTags.length > 0 ? postTags : undefined,
+        images: uploadedImages.length > 0 ? uploadedImages : undefined,
+        videos: uploadedVideos.length > 0 ? uploadedVideos : undefined,
+        links: links.length > 0 ? links : undefined,
+      }
+
+      if (editingPost) {
+        await postsApi.update(editingPost.id, payload)
+      } else {
+        await postsApi.create({
+          ...payload,
+          communityId: community.id,
+        })
+      }
+
+      await fetchHomeData()
+      if (activeFeedTab === "saved") {
+        await loadSavedPosts(1, false)
+      }
+
+      toast({
+        title: editingPost ? "Post updated" : "Post created",
+      })
+      resetComposer()
+    } catch (err: any) {
+      console.error("Error saving post:", err)
+      toast({
+        title: editingPost ? "Update failed" : "Create failed",
+        description: err?.message || "Failed to save post.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsCreatingPost(false)
+    }
+  }
+
+  // Handle image upload
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setIsUploadingMedia(true)
+    try {
+      const { storageApi } = await import("@/lib/api")
+      const newImages: string[] = []
+
+      for (const file of Array.from(files)) {
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            title: "Image too large",
+            description: `${file.name} exceeds 10MB limit.`,
+            variant: "destructive",
+          })
+          continue
+        }
+        const response = await storageApi.upload(file)
+        if (response?.url) {
+          newImages.push(response.url)
+        }
+      }
+
+      setUploadedImages((prev) => [...prev, ...newImages])
+    } catch (err: any) {
+      console.error("Error uploading image:", err)
+      toast({
+        title: "Upload failed",
+        description: err?.message || "Failed to upload image.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsUploadingMedia(false)
+      if (imageInputRef.current) imageInputRef.current.value = ""
+    }
+  }
+
+  // Handle video upload
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setIsUploadingMedia(true)
+    try {
+      const { storageApi } = await import("@/lib/api")
+      const newVideos: string[] = []
+
+      for (const file of Array.from(files)) {
+        if (file.size > 100 * 1024 * 1024) {
+          toast({
+            title: "Video too large",
+            description: `${file.name} exceeds 100MB limit.`,
+            variant: "destructive",
+          })
+          continue
+        }
+        const response = await storageApi.upload(file)
+        if (response?.url) {
+          newVideos.push(response.url)
+        }
+      }
+
+      setUploadedVideos((prev) => [...prev, ...newVideos])
+    } catch (err: any) {
+      console.error("Error uploading video:", err)
+      toast({
+        title: "Upload failed",
+        description: err?.message || "Failed to upload video.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsUploadingMedia(false)
+      if (videoInputRef.current) videoInputRef.current.value = ""
+    }
+  }
+
+  // Remove uploaded media
+  const removeImage = (index: number) => {
+    setUploadedImages((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const removeVideo = (index: number) => {
+    setUploadedVideos((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleAddLink = () => {
+    const url = linkUrl.trim()
+    if (!url) return
+    setLinks((prev) => [...prev, { url, title: linkTitle.trim() || undefined }])
+    setLinkUrl("")
+    setLinkTitle("")
+  }
+
+  const handleRemoveLink = (index: number) => {
+    setLinks((prev) => prev.filter((_, i) => i !== index))
+  }
 
   if (loading) {
     return (
@@ -123,7 +575,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
         <div className="text-center max-w-md mx-auto p-6">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Failed to load community</h2>
-          <p className="text-gray-600 mb-4">{error || 'Community not found'}</p>
+          <p className="text-gray-600 mb-4">{error || "Community not found"}</p>
           <Button onClick={() => window.location.reload()}>Retry</Button>
         </div>
       </div>
@@ -134,177 +586,29 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
 
   // Use /[creator_name]/[feature] route structure for all navigation
   const basePath = `/${community.creator.name}/${feature}`
-
-  const handleBookmark = (postId: string) => {
-    // For now, bookmark is local only (no API endpoint yet)
-    setBookmarkedPosts(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(postId)) {
-
-        newSet.delete(postId)
-      } else {
-        newSet.add(postId)
-      }
-      return newSet
-    })
-  }
-
-  const handlePostUpdate = (updatedPost: Post) => {
-    setData(prevData => {
-      if (!prevData) return prevData
-      return {
-        ...prevData,
-        posts: prevData.posts.map(p => p.id === updatedPost.id ? updatedPost : p)
-      }
-    })
-  }
-  
-  const handlePostDelete = async (postId: string) => {
-    if (!confirm("Are you sure you want to delete this post?")) return;
-    
-    try {
-      await postsApi.delete(postId)
-      setData(prevData => {
-        if (!prevData) return prevData
-        return {
-          ...prevData,
-          posts: prevData.posts.filter(p => p.id !== postId)
-        }
-      })
-    } catch (error: any) {
-      console.error('Error deleting post:', error)
-      alert(error.message || 'Failed to delete post')
-    }
-  }
-
-  const handleCreatePost = async () => {
-    if (!newPost.trim() || !currentUser || !community) return
-
-    setIsCreatingPost(true)
-    try {
-      console.log('📝 Creating post with community:', { communityId: community.id, content: newPost, images: uploadedImages, videos: uploadedVideos })
-      await postsApi.create({
-        content: newPost,
-        communityId: community.id,
-        images: uploadedImages.length > 0 ? uploadedImages : undefined,
-        videos: uploadedVideos.length > 0 ? uploadedVideos : undefined,
-        links: links.length > 0 ? links : undefined,
-      })
-
-      // Refresh posts
-      const updatedData = await communityHomeApi.getHomeData(feature, postsPage, 10)
-      setData(updatedData)
-      setNewPost("")
-      setUploadedImages([])
-      setUploadedVideos([])
-      setLinks([])
-      setLinkUrl("")
-      setLinkTitle("")
-      console.log('✅ Post created successfully')
-    } catch (error: any) {
-      console.error('❌ Error creating post:', error)
-      alert(error.message || 'Failed to create post')
-    } finally {
-
-      setIsCreatingPost(false)
-    }
-  }
-
-  // Handle image upload
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || files.length === 0) return
-
-    setIsUploadingMedia(true)
-    try {
-      const { storageApi } = await import('@/lib/api')
-      const newImages: string[] = []
-
-      for (const file of Array.from(files)) {
-        if (file.size > 10 * 1024 * 1024) {
-          alert('Image size must be less than 10MB')
-          continue
-        }
-        const response = await storageApi.upload(file)
-        if (response?.url) {
-          newImages.push(response.url)
-        }
-      }
-
-      setUploadedImages(prev => [...prev, ...newImages])
-    } catch (error) {
-      console.error('Error uploading image:', error)
-      alert('Failed to upload image')
-    } finally {
-      setIsUploadingMedia(false)
-      if (imageInputRef.current) imageInputRef.current.value = ''
-    }
-  }
-
-  // Handle video upload
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || files.length === 0) return
-
-    setIsUploadingMedia(true)
-    try {
-      const { storageApi } = await import('@/lib/api')
-      const newVideos: string[] = []
-
-      for (const file of Array.from(files)) {
-        if (file.size > 100 * 1024 * 1024) {
-          alert('Video size must be less than 100MB')
-          continue
-        }
-        const response = await storageApi.upload(file)
-        if (response?.url) {
-          newVideos.push(response.url)
-        }
-      }
-
-      setUploadedVideos(prev => [...prev, ...newVideos])
-    } catch (error) {
-      console.error('Error uploading video:', error)
-      alert('Failed to upload video')
-    } finally {
-      setIsUploadingMedia(false)
-      if (videoInputRef.current) videoInputRef.current.value = ''
-    }
-  }
-
-  // Remove uploaded media
-  const removeImage = (index: number) => {
-    setUploadedImages(prev => prev.filter((_, i) => i !== index))
-  }
-
-  const removeVideo = (index: number) => {
-    setUploadedVideos(prev => prev.filter((_, i) => i !== index))
-  }
-
-  const handleAddLink = () => {
-    const url = linkUrl.trim()
-    if (!url) return
-    setLinks((prev) => [...prev, { url, title: linkTitle.trim() || undefined }])
-    setLinkUrl("")
-    setLinkTitle("")
-  }
-
-  const handleRemoveLink = (index: number) => {
-    setLinks((prev) => prev.filter((_, i) => i !== index))
-  }
+  const feedPosts = activeFeedTab === "saved" ? savedPosts : posts
+  const isSavedFeedEmpty = activeFeedTab === "saved" && !isLoadingSaved && feedPosts.length === 0
+  const canLoadMoreSaved =
+    activeFeedTab === "saved" &&
+    !isLoadingSaved &&
+    !isLoadingMoreSaved &&
+    savedPagination.totalPages > 0 &&
+    savedPagination.page < savedPagination.totalPages
+  const savedCount = Math.max(savedPagination.total, savedPosts.length)
+  const isEditMode = Boolean(editingPost)
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-6 sm:py-8">
         <div className="flex flex-col space-y-6">
-          {/* Create Post */}
+          {/* Create / Edit Post */}
           <Card className="border-0 shadow-sm bg-white">
             <CardContent className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
                 <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
                   <AvatarImage src={currentUser?.avatar || "/placeholder.svg?height=48&width=48"} />
                   <AvatarFallback>
-                    {(currentUser?.username || currentUser?.firstName || 'U')
+                    {(currentUser?.username || currentUser?.firstName || "U")
                       .split(" ")
                       .map((n) => n[0])
                       .join("")
@@ -312,6 +616,25 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 space-y-3">
+                  {isEditMode && (
+                    <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                      <div className="flex items-center gap-2 text-sm text-amber-800">
+                        <PencilLine className="h-4 w-4" />
+                        Editing post
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={resetComposer}
+                        disabled={isCreatingPost}
+                        className="text-amber-800 hover:text-amber-900"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+
                   <Textarea
                     placeholder="Share your progress, ask questions, or celebrate wins..."
                     value={newPost}
@@ -319,6 +642,74 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                     ref={postTextareaRef}
                     className="min-h-[80px] sm:min-h-[100px] resize-none border-0 bg-gray-100 rounded-lg focus-visible:ring-2 focus-visible:ring-primary-300 text-sm transition-all duration-200"
                   />
+
+                  {/* Optional metadata */}
+                  <div className="space-y-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowMetadata((value) => !value)}
+                      className="w-fit text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors rounded-full p-2 sm:p-3"
+                    >
+                      <Settings2 className="h-4 w-4 mr-2" />
+                      {showMetadata ? "Hide details" : "Add title & tags"}
+                      {showMetadata ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+                    </Button>
+
+                    {showMetadata && (
+                      <div className="rounded-lg border bg-white p-3 space-y-3">
+                        <Input
+                          placeholder="Post title (optional)"
+                          value={postTitle}
+                          onChange={(e) => setPostTitle(e.target.value)}
+                        />
+
+                        <div className="space-y-2">
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <Input
+                              placeholder="Add a tag (press Enter)"
+                              value={tagInput}
+                              onChange={(e) => setTagInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  handleAddTag()
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={handleAddTag}
+                              disabled={!tagInput.trim()}
+                              className="shrink-0"
+                            >
+                              <Hash className="h-4 w-4 mr-1" />
+                              Add Tag
+                            </Button>
+                          </div>
+
+                          {postTags.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {postTags.map((tag) => (
+                                <Badge key={tag} variant="secondary" className="flex items-center gap-1 pr-1">
+                                  #{tag}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveTag(tag)}
+                                    className="rounded-full p-0.5 hover:bg-gray-300"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Media Preview */}
                   {(uploadedImages.length > 0 || uploadedVideos.length > 0) && (
@@ -388,11 +779,11 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
 
                         {links.length > 0 && (
                           <div className="space-y-2">
-                            {links.map((l, idx) => (
-                              <div key={`${l.url}-${idx}`} className="flex items-center justify-between gap-2 rounded-lg border bg-white px-3 py-2">
+                            {links.map((link, idx) => (
+                              <div key={`${link.url}-${idx}`} className="flex items-center justify-between gap-2 rounded-lg border bg-white px-3 py-2">
                                 <div className="min-w-0">
-                                  <div className="text-sm font-medium truncate">{l.title || l.url}</div>
-                                  <div className="text-xs text-muted-foreground truncate">{l.url}</div>
+                                  <div className="text-sm font-medium truncate">{link.title || link.url}</div>
+                                  <div className="text-xs text-muted-foreground truncate">{link.url}</div>
                                 </div>
                                 <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveLink(idx)}>
                                   <X className="h-4 w-4" />
@@ -422,6 +813,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                       </div>
                     </div>
                   )}
+
                   {/* Hidden file inputs */}
                   <input
                     ref={imageInputRef}
@@ -442,6 +834,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-1 sm:gap-2">
                       <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         className="text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors rounded-full p-2 sm:p-3"
@@ -451,10 +844,11 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                       >
                         <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                         <span className="hidden sm:inline ml-2 text-xs sm:text-sm">
-                          {isUploadingMedia ? 'Uploading...' : 'Photo'}
+                          {isUploadingMedia ? "Uploading..." : "Photo"}
                         </span>
                       </Button>
                       <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         className="text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors rounded-full p-2 sm:p-3"
@@ -466,15 +860,18 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                         <span className="hidden sm:inline ml-2 text-xs sm:text-sm">Video</span>
                       </Button>
                       <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         className="text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors rounded-full p-2 sm:p-3"
                         title="Add Link"
+                        onClick={() => setShowLinks(true)}
                       >
                         <LinkIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                         <span className="hidden sm:inline ml-2 text-xs sm:text-sm">Link</span>
                       </Button>
                       <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         className="text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors rounded-full p-2 sm:p-3"
@@ -486,19 +883,19 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                       </Button>
                     </div>
                     <Button
-                      onClick={handleCreatePost}
+                      onClick={handleCreateOrUpdatePost}
                       disabled={!newPost.trim() || isCreatingPost || !currentUser || isUploadingMedia}
                       className="bg-primary-500 hover:bg-primary-600 text-white text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-full transition-colors disabled:opacity-50"
                     >
                       {isCreatingPost ? (
                         <>
                           <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
-                          <span className="hidden sm:inline">Posting...</span>
+                          <span className="hidden sm:inline">{isEditMode ? "Saving..." : "Posting..."}</span>
                         </>
                       ) : (
                         <>
                           <Send className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                          <span className="hidden sm:inline">Post</span>
+                          <span className="hidden sm:inline">{isEditMode ? "Save changes" : "Post"}</span>
                         </>
                       )}
                     </Button>
@@ -511,33 +908,108 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Main Feed */}
             <div className="lg:col-span-3 space-y-6">
+              <Card className="border-0 shadow-sm bg-white">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="inline-flex rounded-lg border bg-gray-100 p-1">
+                      <Button
+                        type="button"
+                        variant={activeFeedTab === "all" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setActiveFeedTab("all")}
+                      >
+                        All Posts ({posts.length})
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={activeFeedTab === "saved" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setActiveFeedTab("saved")}
+                      >
+                        Saved ({savedCount})
+                      </Button>
+                    </div>
+                    {activeFeedTab === "saved" && (isLoadingSaved || isLoadingMoreSaved) && (
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        Loading saved posts...
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Posts Feed */}
               <div className="space-y-6">
-                {posts.length === 0 ? (
+                {activeFeedTab === "saved" && isLoadingSaved && feedPosts.length === 0 ? (
+                  <Card className="border-0 shadow-sm bg-white">
+                    <CardContent className="p-8 text-center">
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary-500 mb-3" />
+                      <p className="text-gray-600">Loading saved posts...</p>
+                    </CardContent>
+                  </Card>
+                ) : activeFeedTab === "saved" && savedError && feedPosts.length === 0 ? (
+                  <Card className="border-0 shadow-sm bg-white">
+                    <CardContent className="p-8 text-center">
+                      <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-3" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load saved posts</h3>
+                      <p className="text-sm text-gray-600 mb-4">{savedError}</p>
+                      <Button onClick={() => void loadSavedPosts(1, false)}>Try again</Button>
+                    </CardContent>
+                  </Card>
+                ) : feedPosts.length === 0 ? (
                   <Card className="border-0 shadow-sm bg-white">
                     <CardContent className="p-8 text-center">
                       <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No posts yet</h3>
-                      <p className="text-gray-600 mb-4">Be the first to share something with the community!</p>
-                      {currentUser && (
-                        <Button onClick={() => document.querySelector('textarea')?.focus()}>
-                          Create First Post
-                        </Button>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        {isSavedFeedEmpty ? "No saved posts yet" : "No posts yet"}
+                      </h3>
+                      <p className="text-gray-600 mb-4">
+                        {isSavedFeedEmpty
+                          ? "Saved posts will appear here when you bookmark them."
+                          : "Be the first to share something with the community!"}
+                      </p>
+                      {!isSavedFeedEmpty && currentUser && (
+                        <Button onClick={() => postTextareaRef.current?.focus()}>Create First Post</Button>
                       )}
                     </CardContent>
                   </Card>
                 ) : (
-                  posts.map((post) => (
-                    <PostCard
-                      key={post.id}
-                      post={post}
-                      currentUser={currentUser}
-                      isBookmarked={bookmarkedPosts.has(post.id)}
-                      onPostUpdate={handlePostUpdate}
-                      onDelete={handlePostDelete}
-                      onBookmark={handleBookmark}
-                    />
-                  ))
+                  <>
+                    {feedPosts.map((post) => (
+                      <PostCard
+                        key={post.id}
+                        post={post}
+                        currentUser={currentUser}
+                        isBookmarked={Boolean(post.isBookmarkedByUser)}
+                        isBookmarkPending={bookmarkPendingIds.has(post.id)}
+                        onPostUpdate={handlePostUpdate}
+                        onDelete={handleRequestDelete}
+                        onBookmark={handleBookmarkToggle}
+                        onEdit={handleEditPost}
+                      />
+                    ))}
+
+                    {canLoadMoreSaved && (
+                      <div className="flex justify-center">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => void loadSavedPosts(savedPagination.page + 1, true)}
+                          disabled={isLoadingMoreSaved}
+                        >
+                          {isLoadingMoreSaved ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            "Load more saved posts"
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -586,7 +1058,11 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                     <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
                       <AvatarImage src={community.creator.avatar || "/placeholder.svg"} />
                       <AvatarFallback>
-                        {community.creator.name.split(" ").map((n) => n[0]).join("").toUpperCase()}
+                        {community.creator.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
@@ -597,9 +1073,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
 
                   {/* Description */}
                   <div>
-                    <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
-                      {community.description}
-                    </p>
+                    <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">{community.description}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -612,8 +1086,8 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                   </CardHeader>
                   <CardContent className="space-y-2 sm:space-y-3 p-4 sm:p-6">
                     {courses.slice(0, 2).map((course) => (
-                      <Link 
-                        key={course.id} 
+                      <Link
+                        key={course.id}
                         href={`${basePath}/courses/${course.id}`}
                         className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 bg-courses-50 rounded-lg hover:bg-courses-100 transition-colors cursor-pointer"
                       >
@@ -623,14 +1097,14 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-xs sm:text-sm truncate">{course.title}</h4>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {course.enrollmentCount} student{course.enrollmentCount !== 1 ? 's' : ''}
+                            {course.enrollmentCount} student{course.enrollmentCount !== 1 ? "s" : ""}
                           </p>
                         </div>
                       </Link>
                     ))}
                     <Button variant="ghost" size="sm" className="w-full text-xs sm:text-sm" asChild>
                       <Link href={`${basePath}/courses`}>
-                        View All {courses.length} Course{courses.length !== 1 ? 's' : ''}
+                        View All {courses.length} Course{courses.length !== 1 ? "s" : ""}
                       </Link>
                     </Button>
                   </CardContent>
@@ -666,12 +1140,8 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                     <span className="text-muted-foreground">Rating</span>
                     <Link href={`${basePath}/reviews`} className="flex items-center gap-1 hover:text-primary-600 transition-colors">
                       <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                      <span className="font-semibold">
-                        {(community as any).averageRating?.toFixed(1) || community.rating?.toFixed(1) || '0.0'}
-                      </span>
-                      <span className="text-muted-foreground">
-                        ({(community as any).ratingCount || 0})
-                      </span>
+                      <span className="font-semibold">{(community as any).averageRating?.toFixed(1) || community.rating?.toFixed(1) || "0.0"}</span>
+                      <span className="text-muted-foreground">({(community as any).ratingCount || 0})</span>
                     </Link>
                   </div>
                 </CardContent>
@@ -680,6 +1150,34 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
           </div>
         </div>
       </div>
+
+      <AlertDialog open={!!deletePostId} onOpenChange={(open) => !open && setDeletePostId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone and will remove the post from the community feed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingPost}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePost}
+              disabled={isDeletingPost}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeletingPost ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
