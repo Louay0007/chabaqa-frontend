@@ -509,6 +509,7 @@ export function ContentTab({
                             type="number"
                             placeholder="9.99"
                             value={newChapter.price}
+                            disabled={newChapter.isPreview}
                             onChange={(e) => setNewChapter((prev) => ({ ...prev, price: e.target.value }))}
                           />
                         </div>

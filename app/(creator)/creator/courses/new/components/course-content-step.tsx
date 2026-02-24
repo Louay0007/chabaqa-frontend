@@ -32,6 +32,7 @@ interface CourseChapterForm {
   duration?: number
   order: number
   isPreview: boolean
+  price?: string
   notes?: string
 }
 
@@ -324,6 +325,26 @@ export function CourseContentStep({
                                       )
                                     }
                                     className="h-8 w-20 text-sm"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Chapter Price</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    placeholder="9.99"
+                                    disabled={chapter.isPreview}
+                                    value={chapter.price || ""}
+                                    onChange={(e) =>
+                                      updateChapter(
+                                        section.id,
+                                        chapter.id,
+                                        "price",
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="h-8 w-24 text-sm"
                                   />
                                 </div>
                               </div>

@@ -30,6 +30,7 @@ interface ReviewPublishStepProps {
         title: string
         duration?: number
         isPreview: boolean
+        price?: string
       }[]
     }[]
   }
@@ -167,7 +168,10 @@ export function ReviewPublishStep({ formData, handleInputChange }: ReviewPublish
                             )}
                             <span>{chapter.title || `Chapter ${chapterIndex + 1}`}</span>
                           </div>
-                          {chapter.duration && <span className="text-muted-foreground">{chapter.duration}m</span>}
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            {!chapter.isPreview && chapter.price ? <span>${chapter.price}</span> : null}
+                            {chapter.duration ? <span>{chapter.duration}m</span> : null}
+                          </div>
                         </div>
                       ))}
                     </div>

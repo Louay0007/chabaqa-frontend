@@ -493,7 +493,6 @@ export default function CoursePlayer({
   }, [course?.id, courseId, isCourseCompleted, onRefreshProgress, onRefreshUnlockedChapters, toast])
 
   const handleEnrollNow = useCallback(async () => {
-    if (enrollment) return
     console.debug('[CoursePlayer] handleEnrollNow called', {
       currentChapterId: currentChapter?.id,
       currentChapterIsPreview: currentChapter?.isPreview,
@@ -528,15 +527,29 @@ export default function CoursePlayer({
       return
     }
 
-    // If the chapter itself is paid (per-chapter) and user is not enrolled, show a payment-required message
-    if (!enrollment && (currentChapter?.isPaidChapter || (currentChapter?.price && Number(currentChapter.price) > 0))) {
-      toast({
-        title: "Payment required",
-        description: "You must pay for this chapter to access it.",
-        variant: "destructive",
-      })
+    // If the chapter itself is paid (per-chapter), start chapter checkout directly.
+    if (currentChapter?.isPaidChapter || (currentChapter?.price && Number(currentChapter.price) > 0)) {
+      try {
+        const payment = await coursesApi.initChapterStripePayment(
+          String(course?.id || courseId),
+          String(currentChapter.id),
+        )
+        if (payment?.checkoutUrl) {
+          window.location.href = payment.checkoutUrl
+          return
+        }
+        throw new Error("Checkout URL missing")
+      } catch (error) {
+        toast({
+          title: "Payment required",
+          description: "Could not start chapter checkout. Please try again.",
+          variant: "destructive",
+        })
+      }
       return
     }
+
+    if (enrollment) return
 
     // Always delegate to parent if handler is provided
     // The parent (page.tsx) handles the decision between direct enrollment (free) vs dialog (paid)
@@ -585,7 +598,9 @@ export default function CoursePlayer({
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <div className="text-sm font-medium">You completed all chapters</div>
-                    <div className="text-xs text-muted-foreground">Finalize the course to lock in your completion.</div>
+                    <div className="text-xs text-muted-foreground">
+                      Course completion is auto-recorded. Use this button only if you want to retry finalization now.
+                    </div>
                   </div>
                   <button
                     type="button"

@@ -178,6 +178,19 @@ export default function PaymentSuccessContent() {
       return;
     }
 
+    // Chapter Redirect (back to parent course page)
+    if (scope === 'chapter' && creatorSlug && communitySlug) {
+      redirectDone.current = true;
+      const courseTargetId =
+        searchParams.get('courseId') ||
+        paymentData?.sessionContentId ||
+        paymentData?.targetId;
+      if (courseTargetId) {
+        router.replace(`/${creatorSlug}/${communitySlug}/courses/${courseTargetId}`);
+        return;
+      }
+    }
+
     // Community Redirect: poll joined list until membership appears (to avoid race with webhook)
     if (scope === 'community' && creatorSlug && communitySlug) {
       redirectDone.current = true;
@@ -217,10 +230,11 @@ export default function PaymentSuccessContent() {
       router.replace(`/${creatorSlug}/${communitySlug}/sessions`);
       return;
     }
-  }, [verified, scope, creatorSlug, communitySlug, targetId, router]);
+  }, [verified, scope, creatorSlug, communitySlug, targetId, router, searchParams, paymentData]);
 
   const isRedirecting = verified && (
     (scope === 'course' && creatorSlug && communitySlug && targetId) ||
+    (scope === 'chapter' && creatorSlug && communitySlug) ||
     (scope === 'community' && creatorSlug && communitySlug) ||
     (scope === 'session' && creatorSlug && communitySlug)
   );
@@ -235,6 +249,20 @@ export default function PaymentSuccessContent() {
           Go to Course
         </Link>
       );
+    }
+
+    if (scope === 'chapter' && creatorSlug && communitySlug) {
+      const courseTargetId =
+        searchParams.get('courseId') ||
+        paymentData?.sessionContentId ||
+        paymentData?.targetId;
+      if (courseTargetId) {
+        return (
+          <Link href={`/${creatorSlug}/${communitySlug}/courses/${courseTargetId}`} className={baseClass}>
+            Go to Course
+          </Link>
+        );
+      }
     }
 
     // 2. Community

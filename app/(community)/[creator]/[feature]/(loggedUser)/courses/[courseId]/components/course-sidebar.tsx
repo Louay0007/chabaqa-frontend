@@ -7,6 +7,7 @@ import { CheckCircle, PlayCircle, Lock, MessageSquare, Star, StickyNote, ArrowRi
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/lib/api"
+import { coursesApi } from "@/lib/api/courses.api"
 import { useToast } from "@/components/ui/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { format } from "date-fns"
@@ -121,23 +122,10 @@ export default function CourseSidebar({
       // Initiate payment for the next chapter
       setPurchasing(true);
       try {
-        // Use the dedicated endpoint for single chapter purchase
-        // We assume `api.courses.buyChapter` exists or we call the payment endpoint directly
-        // Since we don't have a direct SDK method yet, we'll use a direct fetch or a helper
-        // For now, let's assume we add `buyChapter` to the api or use fetch
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payment/stripe-link/init/chapter`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}` // Assuming token is in localStorage
-          },
-          body: JSON.stringify({
-            courseId: course.id, // or courseId prop
-            chapterId: nextChapter.id
-          })
-        });
-        
-        const data = await res.json();
+        const data = await coursesApi.initChapterStripePayment(
+          String(course.id),
+          String(nextChapter.id),
+        );
         if (data.checkoutUrl) {
           window.location.href = data.checkoutUrl;
         } else {

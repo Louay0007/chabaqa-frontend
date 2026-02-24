@@ -41,7 +41,9 @@ export interface CreateChapterData {
   videoUrl?: string;
   duration: number;
   order: number;
-  isFree: boolean;
+  isPaid?: boolean;
+  isFree?: boolean;
+  price?: number;
   notes?: string;
 }
 
@@ -190,6 +192,7 @@ export const coursesApi = {
 
   // Create course chapter
   createChapter: async (courseId: string, sectionId: string, data: CreateChapterData): Promise<ApiSuccessResponse<CourseChapter>> => {
+    const isPaid = typeof data.isPaid === 'boolean' ? data.isPaid : !Boolean(data.isFree);
     // Backend expects: POST /cours/:id/sections/:sectionId/add-chapitre
     return apiClient.post<ApiSuccessResponse<CourseChapter>>(`/cours/${courseId}/sections/${sectionId}/add-chapitre`, {
       titre: data.title,
@@ -197,8 +200,9 @@ export const coursesApi = {
       videoUrl: data.videoUrl,
       duree: data.duration ? String(data.duration) : undefined,
       ordre: data.order,
-      isPaid: !data.isFree,
-      notes: "" // Add default notes if needed
+      isPaid,
+      prix: isPaid ? Number(data.price || 0) : 0,
+      notes: data.notes || undefined,
     });
   },
 
@@ -229,6 +233,18 @@ export const coursesApi = {
       : `/payment/stripe-link/init/course`;
 
     return apiClient.post<any>(endpoint, { courseId });
+  },
+
+  initChapterStripePayment: async (
+    courseId: string,
+    chapterId: string,
+    promoCode?: string,
+  ): Promise<any> => {
+    const endpoint = promoCode
+      ? `/payment/stripe-link/init/chapter?promoCode=${encodeURIComponent(promoCode)}`
+      : `/payment/stripe-link/init/chapter`;
+
+    return apiClient.post<any>(endpoint, { courseId, chapterId });
   },
 
   // Get course progress
