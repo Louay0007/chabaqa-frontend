@@ -1,7 +1,7 @@
 "use client"
 
 import { EnhancedCard } from "@/components/ui/enhanced-card"
-import { CalendarIcon, Users, DollarSign, TrendingUp } from "lucide-react"
+import { CalendarIcon, Users, Coins, TrendingUp } from "lucide-react"
 
 interface EventsStatsProps {
   totalEvents: number
@@ -38,11 +38,11 @@ export function EventsStats({
       </EnhancedCard>
       <EnhancedCard className="p-4">
         <div className="flex items-center space-x-3">
-          <DollarSign className="h-5 w-5 text-purple-500" />
+          <Coins className="h-5 w-5 text-purple-500" />
           <div>
             <p className="text-2xl font-bold">
               {typeof totalRevenue === "number" && Number.isFinite(totalRevenue)
-                ? `$${Number(totalRevenue).toLocaleString()}`
+                ? `${Number(totalRevenue).toLocaleString()} TND`
                 : "N/A"}
             </p>
             <p className="text-sm text-muted-foreground">Total Revenue</p>

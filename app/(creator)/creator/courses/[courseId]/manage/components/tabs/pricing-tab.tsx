@@ -31,9 +31,7 @@ export function PricingTab({ formData, course, onInputChange }: PricingTabProps)
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="EUR">EUR</SelectItem>
-                  <SelectItem value="GBP">GBP</SelectItem>
+                  <SelectItem value="TND">TND</SelectItem>
                 </SelectContent>
               </Select>
               <Input
@@ -69,7 +67,7 @@ export function PricingTab({ formData, course, onInputChange }: PricingTabProps)
                       <p className="text-sm text-muted-foreground">{section.title}</p>
                     </div>
                     <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                      ${chapter.price}
+                      {chapter.price} TND
                     </Badge>
                   </div>
                 )),

@@ -130,9 +130,9 @@ export default function PayoutDetailsPage() {
   }
 
   const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('fr-TN', {
       style: 'currency',
-      currency: currency || 'USD'
+      currency: currency || 'TND'
     }).format(amount || 0)
   }
 

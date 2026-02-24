@@ -12,7 +12,7 @@ import {
   Calendar,
   Search,
   Users,
-  DollarSign,
+  Coins,
   Eye,
   Edit,
   Power,
@@ -159,8 +159,8 @@ export default function ClientSessionsView({
     },
     {
       title: "Session Revenue",
-      value: `$${Number(revenue ?? bookingsRevenueFallback).toLocaleString()}`,
-      icon: DollarSign,
+      value: `${Number(revenue ?? bookingsRevenueFallback).toLocaleString()} TND`,
+      icon: Coins,
       color: "success" as const,
     },
   ];
@@ -273,7 +273,7 @@ export default function ClientSessionsView({
                                 <Calendar className="w-4 h-4 mr-1" />
                                 {session.duration} min
                             </span>
-                            <span className="font-medium">${session.price}</span>
+                            <span className="font-medium">{session.price} TND</span>
                         </div>
 
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-auto w-full">

@@ -43,7 +43,7 @@ import {
   Palette,
   BarChart,
   FileText,
-  DollarSign,
+  Coins,
   Settings,
   AlertCircle,
   CheckCircle,
@@ -671,9 +671,9 @@ export default function SettingsPage() {
                         <div>
                           <h3 className="text-lg font-semibold capitalize">{currentPlan} Plan</h3>
                           <p className="text-sm text-gray-600">
-                            {currentPlan === "starter" && "$29/month - Perfect for getting started"}
-                            {currentPlan === "growth" && "$79/month - Grow your community"}
-                            {currentPlan === "pro" && "$199/month - Full features & analytics"}
+                            {currentPlan === "starter" && "29 TND/mois - Parfait pour commencer"}
+                            {currentPlan === "growth" && "79 TND/mois - Développez votre communauté"}
+                            {currentPlan === "pro" && "199 TND/mois - Toutes les fonctionnalités & analytiques"}
                           </p>
                         </div>
                         <Button className="bg-purple-600 hover:bg-purple-700">
@@ -719,9 +719,9 @@ export default function SettingsPage() {
                     <CardContent>
                       <div className="space-y-3">
                         {[
-                          { date: "Oct 1, 2024", amount: "$79.00", status: "Paid" },
-                          { date: "Sep 1, 2024", amount: "$79.00", status: "Paid" },
-                          { date: "Aug 1, 2024", amount: "$79.00", status: "Paid" },
+                          { date: "Oct 1, 2024", amount: "79.00 TND", status: "Paid" },
+                          { date: "Sep 1, 2024", amount: "79.00 TND", status: "Paid" },
+                          { date: "Aug 1, 2024", amount: "79.00 TND", status: "Paid" },
                         ].map((invoice, idx) => (
                           <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
                             <div className="flex-1">
@@ -757,8 +757,8 @@ export default function SettingsPage() {
                     <CardContent>
                       <div className="space-y-4">
                         {[
-                          { name: "Fitness Warriors", plan: "Premium", price: "$29/mo", expires: "Nov 15, 2024" },
-                          { name: "Tech Innovators", plan: "Basic", price: "$9/mo", expires: "Nov 20, 2024" },
+                          { name: "Fitness Warriors", plan: "Premium", price: "29 TND/mois", expires: "Nov 15, 2024" },
+                          { name: "Tech Innovators", plan: "Basic", price: "9 TND/mois", expires: "Nov 20, 2024" },
                         ].map((sub, idx) => (
                           <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-3">
                             <div className="flex-1">
@@ -820,9 +820,9 @@ export default function SettingsPage() {
                     <CardContent>
                       <div className="space-y-3">
                         {[
-                          { date: "Oct 15, 2024", description: "Fitness Warriors - Premium", amount: "$29.00", status: "Paid" },
-                          { date: "Oct 20, 2024", description: "Tech Innovators - Basic", amount: "$9.00", status: "Paid" },
-                          { date: "Sep 15, 2024", description: "Fitness Warriors - Premium", amount: "$29.00", status: "Paid" },
+                          { date: "Oct 15, 2024", description: "Fitness Warriors - Premium", amount: "29.00 TND", status: "Paid" },
+                          { date: "Oct 20, 2024", description: "Tech Innovators - Basic", amount: "9.00 TND", status: "Paid" },
+                          { date: "Sep 15, 2024", description: "Fitness Warriors - Premium", amount: "29.00 TND", status: "Paid" },
                         ].map((invoice, idx) => (
                           <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-2">
                             <div className="flex-1">

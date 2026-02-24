@@ -614,7 +614,7 @@ export default function AdminSettingsPage() {
                     
                     <div className="space-y-2">
                       <Label htmlFor="highValueTransactionThreshold">
-                        High Value Transaction Threshold (USD)
+                        High Value Transaction Threshold (TND)
                       </Label>
                       <Input
                         id="highValueTransactionThreshold"

@@ -98,7 +98,7 @@ export function CourseCard({ course, onDeleted }: CourseCardProps) {
           ) : pricing.type === "freemium" ? (
             <Badge className="bg-blue-500 text-white">Free + Premium</Badge>
           ) : (
-            <Badge className="bg-courses-500 text-white">${resolvedCourse.price}</Badge>
+            <Badge className="bg-courses-500 text-white">{resolvedCourse.price} TND</Badge>
           )}
         </div>
         <div className="absolute top-3 right-3">

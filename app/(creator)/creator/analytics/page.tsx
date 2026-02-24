@@ -11,7 +11,7 @@ import {
   MessageSquare,
   TrendingUp,
   Calendar,
-  DollarSign,
+  Coins,
   BookOpen,
   Download,
   Crown,
@@ -322,7 +322,7 @@ const getReferrerChannelMeta = (channel?: string) => {
   if (normalized === "search") return { label: "Search", Icon: Search, classes: "bg-emerald-50 text-emerald-700" }
   if (normalized === "social") return { label: "Social", Icon: Share2, classes: "bg-fuchsia-50 text-fuchsia-700" }
   if (normalized === "email") return { label: "Email", Icon: Mail, classes: "bg-amber-50 text-amber-700" }
-  if (normalized === "paid") return { label: "Paid", Icon: DollarSign, classes: "bg-rose-50 text-rose-700" }
+  if (normalized === "paid") return { label: "Paid", Icon: Coins, classes: "bg-rose-50 text-rose-700" }
   if (normalized === "direct") return { label: "Direct", Icon: Globe, classes: "bg-sky-50 text-sky-700" }
   return { label: "Referral", Icon: Link2, classes: "bg-slate-100 text-slate-700" }
 }
@@ -434,8 +434,9 @@ const summarizeFeature = (items: TopItemRow[], baseOverview: NormalizedOverview 
     ? (completes / starts) * 100
     : baseOverview?.completionRate
 
+  const totalViews = toNumber(totals.views)
   return {
-    views: totals.views,
+    views: totalViews,
     starts,
     completes,
     chapterCompletes: totals.chapterCompletes,
@@ -452,7 +453,7 @@ const summarizeFeature = (items: TopItemRow[], baseOverview: NormalizedOverview 
     registrations: totals.registrations,
     completionRate,
     challengeCompletionRate: completionRate,
-    attendanceRate: starts != null && totals.views > 0 ? (starts / totals.views) * 100 : undefined,
+    attendanceRate: starts != null && totalViews > 0 ? (starts / totalViews) * 100 : undefined,
   }
 }
 
@@ -981,10 +982,10 @@ export default function CommunityAnalyticsPage() {
     }
     const customerRating = toOptionalNumber(o.customerRating)
     return [
-      { title: "Total Sales", value: `$${toNumber(o.salesTotal ?? o.totalRevenue).toLocaleString()}`, change: change(o.salesChange), icon: DollarSign },
+      { title: "Total Sales", value: `${toNumber(o.salesTotal ?? o.totalRevenue).toLocaleString()} TND`, change: change(o.salesChange), icon: Coins },
       { title: "Orders", value: toNumber(o.orders ?? o.sales).toLocaleString(), change: change(o.ordersChange), icon: TrendingUp },
       { title: "Customer Rating", value: customerRating == null ? "N/A" : customerRating.toFixed(1), change: change(o.customerRatingChange), icon: MessageSquare },
-      { title: "Revenue", value: `$${toNumber(o.totalRevenue ?? o.revenue?.total).toLocaleString()}`, change: change(o.revenueChange), icon: DollarSign },
+      { title: "Revenue", value: `${toNumber(o.totalRevenue ?? o.revenue?.total).toLocaleString()} TND`, change: change(o.revenueChange), icon: Coins },
     ]
   }, [overview, selectedFeature])
 

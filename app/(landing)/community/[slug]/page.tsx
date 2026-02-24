@@ -416,10 +416,10 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
     price: asNumber((communityData as any).price, 0),
     fees_of_join: asNumber((communityData as any).fees_of_join, 0),
     priceType: String((communityData as any).priceType || "free"),
-    currency: String((communityData as any).currency || "USD"),
+    currency: String((communityData as any).currency || "TND"),
     pricing: {
       price: asNumber((communityData as any).pricing?.price, asNumber((communityData as any).price, 0)),
-      currency: String((communityData as any).pricing?.currency || (communityData as any).currency || "USD"),
+      currency: String((communityData as any).pricing?.currency || (communityData as any).currency || "TND"),
     },
     creator: (communityData as any).creator
       ? {

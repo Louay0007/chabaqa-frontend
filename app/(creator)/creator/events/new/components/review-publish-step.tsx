@@ -158,7 +158,7 @@ export function ReviewPublishStep({
                       <div className="text-xs text-muted-foreground capitalize">{ticket.type}</div>
                     </div>
                     <div className="font-semibold text-events-600">
-                      ${ticket.price || "0"}
+                      {ticket.price || "0"} TND
                     </div>
                   </div>
                 ))}

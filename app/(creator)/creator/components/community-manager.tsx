@@ -60,7 +60,7 @@ export function CommunityManager({ communities }: CommunityManagerProps) {
                           : "bg-chabaqa-primary/10 text-chabaqa-primary"
                       }
                     >
-                      {community.priceType === "free" ? "Free" : `$${community.price}/mo`}
+                      {community.priceType === "free" ? "Free" : `${community.price} TND/mo`}
                     </Badge>
                   </div>
                 </div>

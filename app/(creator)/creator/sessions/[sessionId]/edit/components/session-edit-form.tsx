@@ -28,7 +28,7 @@ export function SessionEditForm({ session, sessionId }: SessionEditFormProps) {
     description: session.description || "",
     duration: session.duration || 60,
     price: session.price || 0,
-    currency: session.currency || "USD",
+    currency: session.currency || "TND",
     category: (session as any).category || "",
     maxBookingsPerWeek: (session as any).maxBookingsPerWeek || 5,
     notes: (session as any).notes || "",
@@ -180,8 +180,6 @@ export function SessionEditForm({ session, sessionId }: SessionEditFormProps) {
                   onChange={(e) => handleChange('currency', e.target.value)}
                   className="px-3 py-2 border rounded-md bg-white"
                 >
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
                   <option value="TND">TND</option>
                 </select>
               </div>

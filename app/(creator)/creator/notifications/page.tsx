@@ -18,7 +18,7 @@ import {
   Calendar,
   ShoppingBag,
   Zap,
-  DollarSign,
+  Coins,
   TrendingUp,
   AlertCircle,
   Info,
@@ -48,7 +48,7 @@ const getNotificationIcon = (type: string) => {
     case 'product_purchased':
       return ShoppingBag
     case 'payment_received':
-      return DollarSign
+      return Coins
     case 'analytics_update':
       return TrendingUp
     case 'system_error':

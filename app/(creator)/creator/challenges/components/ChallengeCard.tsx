@@ -3,7 +3,7 @@ import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardContent } from "@/components/ui/card"
 import { StatusBadge } from "@/components/ui/status-badge"
 import {
-  Calendar, Clock, Users, DollarSign, MoreHorizontal,
+  Calendar, Clock, Users, Coins, MoreHorizontal,
   Eye, Edit, Trash2, Trophy, TrendingUp
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -121,10 +121,10 @@ export default function ChallengeCard({ challenge }: ChallengeCardProps) {
             </div>
           </div>
           <div className="flex items-center text-muted-foreground">
-            <DollarSign className="h-4 w-4 mr-2" />
+            <Coins className="h-4 w-4 mr-2" />
             <div>
-              <div className="font-medium text-foreground">${challenge.depositAmount || 50}</div>
-              <div>Deposit</div>
+              <div className="font-medium text-foreground">{challenge.depositAmount || 50} TND</div>
+              <div>Dépôt</div>
             </div>
           </div>
         </div>
@@ -147,7 +147,7 @@ export default function ChallengeCard({ challenge }: ChallengeCardProps) {
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center space-x-2">
             <Trophy className="h-4 w-4 text-yellow-500" />
-            <span className="text-sm font-medium">${challenge.completionReward || 5000} pool</span>
+            <span className="text-sm font-medium">{challenge.completionReward || 5000} TND pool</span>
           </div>
           <div className="flex items-center space-x-2">
             <Button size="sm" variant="outline" asChild>

@@ -182,9 +182,9 @@ export default function SubscriptionsListPage() {
       accessorKey: 'amount',
       sortable: true,
       cell: (row) => {
-        const amount = new Intl.NumberFormat('en-US', {
+        const amount = new Intl.NumberFormat('fr-TN', {
           style: 'currency',
-          currency: row.currency || 'USD'
+          currency: row.currency || 'TND'
         }).format(row.amount || 0)
         return <span className="font-medium">{amount}</span>
       }

@@ -61,7 +61,7 @@ export function ProductPreviewTab() {
                 <h2 className="text-2xl font-bold">{formData.title || "Product Title"}</h2>
                 <div className="flex items-center space-x-4 mt-2">
                   {formData.price > 0 ? (
-                    <span className="text-xl font-semibold">${formData.price}</span>
+                    <span className="text-xl font-semibold">{formData.price} TND</span>
                   ) : (
                     <Badge className="bg-green-500 text-white">Free</Badge>
                   )}

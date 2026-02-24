@@ -43,7 +43,7 @@ import {
   Users,
   Building2,
   FileText,
-  DollarSign,
+  Coins,
   TrendingUp,
   Activity,
   Clock,
@@ -224,9 +224,9 @@ export default function AnalyticsDashboardPage() {
   }
 
   const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('fr-TN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'TND',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount)
@@ -380,13 +380,13 @@ export default function AnalyticsDashboardPage() {
             <MetricCard
               title="Total Revenue"
               value={formatCurrency(stats?.totalRevenue || 0)}
-              icon={DollarSign}
+              icon={Coins}
               color="primary"
             />
             <MetricCard
               title="Platform Health"
               value={`${stats?.healthScore || 0}/100`}
-              icon={stats?.healthScore >= 80 ? CheckCircle2 : AlertTriangle}
+              icon={(stats?.healthScore ?? 0) >= 80 ? CheckCircle2 : AlertTriangle}
               color={getHealthColor(stats?.healthScore || 0)}
             />
           </div>
@@ -399,10 +399,10 @@ export default function AnalyticsDashboardPage() {
           >
             <LineChart
               data={[
-                { period: 'Week 1', users: stats?.newUsers * 0.2 || 0 },
-                { period: 'Week 2', users: stats?.newUsers * 0.3 || 0 },
-                { period: 'Week 3', users: stats?.newUsers * 0.25 || 0 },
-                { period: 'Week 4', users: stats?.newUsers * 0.25 || 0 }
+                { period: 'Week 1', users: (stats?.newUsers ?? 0) * 0.2 },
+                { period: 'Week 2', users: (stats?.newUsers ?? 0) * 0.3 },
+                { period: 'Week 3', users: (stats?.newUsers ?? 0) * 0.25 },
+                { period: 'Week 4', users: (stats?.newUsers ?? 0) * 0.25 }
               ]}
               xKey="period"
               yKeys={[
@@ -493,7 +493,7 @@ export default function AnalyticsDashboardPage() {
                 {formatPercentage(engagement?.bounceRate || 0)}
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                {engagement?.bounceRate < 0.4 ? 'Excellent' : engagement?.bounceRate < 0.6 ? 'Good' : 'Needs Improvement'}
+                {(engagement?.bounceRate ?? 1) < 0.4 ? 'Excellent' : (engagement?.bounceRate ?? 1) < 0.6 ? 'Good' : 'Needs Improvement'}
               </p>
             </CardContent>
           </Card>

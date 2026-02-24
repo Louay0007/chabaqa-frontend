@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Calendar, Clock, Users, DollarSign, Trophy, Flame, ArrowRight } from "lucide-react"
+import { Calendar, Clock, Users, Coins, Trophy, Flame, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { formatDate } from "@/lib/utils"
@@ -71,9 +71,9 @@ export default function ChallengeCard({ creatorSlug, slug, challenge }: Challeng
             </div>
           </div>
           <div className="flex items-center text-muted-foreground">
-            <DollarSign className="h-4 w-4 mr-2" />
+            <Coins className="h-4 w-4 mr-2" />
             <div>
-              <div className="font-medium text-foreground">${challenge.depositAmount || 50}</div>
+              <div className="font-medium text-foreground">{challenge.depositAmount || 50} TND</div>
               <div>Deposit</div>
             </div>
           </div>

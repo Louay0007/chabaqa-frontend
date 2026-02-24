@@ -390,7 +390,7 @@ export default function BookingsPageContent({
                             {booking.sessionDuration} min
                           </span>
                           <span className="font-medium text-green-600">
-                            ${booking.sessionPrice}
+                            {booking.sessionPrice} TND
                           </span>
                         </div>
                       </div>

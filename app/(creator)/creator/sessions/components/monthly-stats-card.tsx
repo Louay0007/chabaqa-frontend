@@ -18,7 +18,7 @@ export default function MonthlyStatsCard({ completed = 0, hours = 0, revenue = 0
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Sessions Completed</span><span className="font-semibold">{completed}</span></div>
         <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Hours Mentored</span><span className="font-semibold">{Number(hours).toFixed(1)}</span></div>
-        <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Revenue Generated</span><span className="font-semibold text-green-600">${Number(revenue).toLocaleString()}</span></div>
+        <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Revenue Generated</span><span className="font-semibold text-green-600">{Number(revenue).toLocaleString()} TND</span></div>
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Avg Rating</span>
           <div className="flex items-center">
