@@ -62,6 +62,7 @@ export default function EnhancedVideoPlayer({
   const [isPlaying, setIsPlaying] = useState(false)
   const [watchTime, setWatchTime] = useState(0)
   const [videoDuration, setVideoDuration] = useState(0)
+  const [playerError, setPlayerError] = useState<string | null>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastUpdateRef = useRef<number>(0)
   const playerRef = useRef<HTMLDivElement>(null)
@@ -121,6 +122,10 @@ export default function EnhancedVideoPlayer({
   const platform = detectPlatform(videoUrl)
   const youtubeId = platform === 'youtube' ? extractYouTubeId(videoUrl) : null
   const vimeoId = platform === 'vimeo' ? extractVimeoId(videoUrl) : null
+
+  useEffect(() => {
+    setPlayerError(null)
+  }, [videoUrl, currentChapter?.id])
 
   const storageKey = useMemo(() => {
     if (!courseId || !currentChapter?.id) return null;
@@ -718,7 +723,7 @@ export default function EnhancedVideoPlayer({
   );
   
   // Show the video for preview chapters even when user isn't enrolled.
-  const shouldShowLocked = !hasValidVideoUrl || (!chapterAccessible && !currentChapter?.isPreview)
+  const shouldShowLocked = !hasValidVideoUrl || !videoUrl || Boolean(playerError) || (!chapterAccessible && !currentChapter?.isPreview)
   
   if (shouldShowLocked) {
     console.debug('[VideoPlayer] locked/preview render check', {
@@ -731,7 +736,7 @@ export default function EnhancedVideoPlayer({
     })
 
     const isAccessDenied = !chapterAccessible && !currentChapter?.isPreview
-    const isVideoMissing = !hasValidVideoUrl
+    const isVideoMissing = !hasValidVideoUrl || !videoUrl || Boolean(playerError)
 
     return (
       <Card className="border-0 shadow-sm overflow-hidden">
@@ -742,7 +747,9 @@ export default function EnhancedVideoPlayer({
                 <>
                   <PlayCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-semibold">Video Unavailable</p>
-                  <p className="text-sm text-gray-300 mt-2">The video for this chapter is currently unavailable.</p>
+                  <p className="text-sm text-gray-300 mt-2">
+                    {playerError || "The video for this chapter is currently unavailable."}
+                  </p>
                   <p className="text-xs text-gray-400 mt-1">Please contact the course creator to upload the video content.</p>
                 </>
               ) : isAccessDenied ? (
@@ -793,6 +800,16 @@ export default function EnhancedVideoPlayer({
             preload="metadata"
             className="absolute inset-0 w-full h-full"
             onError={(e) => {
+              setPlayerError("Unable to load this video right now.")
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("media:video-error", {
+                  detail: {
+                    chapterId: currentChapter?.id,
+                    playableUrl: videoUrl,
+                    originalUrl: rawVideoUrl,
+                  },
+                }))
+              }
               console.error("❌ Video Player Error:", e);
               console.error("❌ Failed URL:", videoUrl);
               console.error("❌ Original URL:", rawVideoUrl);

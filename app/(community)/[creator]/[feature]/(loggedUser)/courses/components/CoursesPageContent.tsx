@@ -24,9 +24,23 @@ interface CoursesPageContentProps {
 }
 
 function normalizeEnrollment(enrollment: any) {
+  const normalizedProgression = Array.isArray(enrollment?.progression)
+    ? enrollment.progression
+    : Array.isArray(enrollment?.progress)
+      ? enrollment.progress
+      : []
+  const completedFromProgression = normalizedProgression.filter((p: any) => Boolean(p?.isCompleted)).length
+  const completedFromArray = Array.isArray(enrollment?.completedChapters) ? enrollment.completedChapters.length : 0
+  const chaptersCompleted = Number.isFinite(Number(enrollment?.chaptersCompleted))
+    ? Number(enrollment.chaptersCompleted)
+    : Math.max(completedFromProgression, completedFromArray)
+
   return {
     ...enrollment,
     courseId: normalizeCourseId(enrollment?.courseId),
+    progression: normalizedProgression,
+    progress: Number.isFinite(Number(enrollment?.progress)) ? Number(enrollment.progress) : undefined,
+    chaptersCompleted,
   }
 }
 
@@ -62,6 +76,24 @@ export default function CoursesPageContent({
     }
 
     fetchEnrollments()
+
+    const handleWindowFocus = () => {
+      void fetchEnrollments()
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void fetchEnrollments()
+      }
+    }
+
+    window.addEventListener("focus", handleWindowFocus)
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener("focus", handleWindowFocus)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+    }
   }, [allCourses])
 
   // Course ids in this community (for header count and My Courses tab)
@@ -107,11 +139,14 @@ export default function CoursesPageContent({
     const fallbackTotal = course.sections?.reduce((acc: number, s: any) => acc + (s.chapters?.length || 0), 0) || 0
     const enrollmentTotal = Number(enrollment?.totalChapters)
     const totalChapters = Number.isFinite(enrollmentTotal) && enrollmentTotal > 0 ? enrollmentTotal : fallbackTotal
+    const completedFromProgression = Array.isArray(enrollment?.progression)
+      ? enrollment.progression.filter((p: any) => Boolean(p?.isCompleted)).length
+      : 0
     const completedFromArray = Array.isArray(enrollment?.completedChapters) ? enrollment.completedChapters.length : 0
     const completedFromField = Number(enrollment?.chaptersCompleted)
     const completedRaw = Number.isFinite(completedFromField) && completedFromField >= 0
       ? completedFromField
-      : completedFromArray
+      : Math.max(completedFromProgression, completedFromArray)
     const completed = Math.min(Math.max(completedRaw, 0), totalChapters || completedRaw)
 
     const enrollmentProgress = Number(enrollment?.progress)

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Upload, X, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { storageApi } from "@/lib/api/storage.api"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 interface ThumbnailUploadProps {
   value: string
@@ -22,6 +23,8 @@ export function ThumbnailUpload({ value, onChange }: ThumbnailUploadProps) {
   useEffect(() => {
     setPreview(value)
   }, [value])
+
+  const previewSrc = resolveImageUrl(preview) || preview
 
   const handleFileSelect = async (file: File) => {
     // Validate file type
@@ -52,8 +55,9 @@ export function ThumbnailUpload({ value, onChange }: ThumbnailUploadProps) {
       if (!imageUrl) {
         throw new Error('Upload succeeded but no URL was returned')
       }
-      setPreview(imageUrl)
-      onChange(imageUrl)
+      const normalizedUrl = resolveImageUrl(imageUrl) || imageUrl
+      setPreview(normalizedUrl)
+      onChange(normalizedUrl)
 
       toast({
         title: "Upload successful",
@@ -131,7 +135,7 @@ export function ThumbnailUpload({ value, onChange }: ThumbnailUploadProps) {
           // Image preview
           <div className="relative aspect-video w-full">
             <Image
-              src={preview}
+              src={previewSrc}
               alt="Course thumbnail"
               fill
               className="object-cover rounded-lg"

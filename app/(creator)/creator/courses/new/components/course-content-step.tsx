@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { useState } from "react"
-import { apiClient } from "@/lib/api/client"
+import { mediaApi } from "@/lib/api/media.api"
 
 function ensureAbsoluteUploadUrl(value: unknown): string {
   const v = typeof value === 'string' ? value.trim() : ''
@@ -22,17 +22,6 @@ function ensureAbsoluteUploadUrl(value: unknown): string {
     : "https://api.chabaqa.io"
   if (v.startsWith("/")) return `${origin}${v}`
   return `${origin}/${v}`
-}
-
-function extractUploadedUrl(result: any): string {
-  return (
-    result?.url ||
-    result?.data?.url ||
-    result?.data?.data?.url ||
-    result?.file?.url ||
-    result?.data?.file?.url ||
-    ""
-  )
 }
 
 interface CourseChapterForm {
@@ -88,10 +77,14 @@ export function CourseContentStep({
     
     setUploadingChapterIds((prev) => ({ ...prev, [chapterId]: true }))
     try {
-      const result = await apiClient.uploadFile<{ url: string }>("/upload/video", file, "video")
+      const result = await mediaApi.uploadSmart(file, {
+        purpose: "course_video",
+        entityType: "course_chapter",
+        entityId: chapterId,
+        visibility: "public",
+      })
       console.log('✅ [VIDEO UPLOAD] Upload successful:', result)
-      const rawUrl = extractUploadedUrl(result)
-      const url = ensureAbsoluteUploadUrl(rawUrl)
+      const url = ensureAbsoluteUploadUrl(result?.url)
       console.log('   🔗 URL received:', url)
       
       if (url) {

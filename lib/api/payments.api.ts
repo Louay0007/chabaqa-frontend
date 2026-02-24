@@ -26,27 +26,27 @@ export interface RequestPayoutData {
 export const paymentsApi = {
   // Create payment intent
   createIntent: async (data: CreatePaymentIntentData): Promise<ApiSuccessResponse<PaymentIntent>> => {
-    return apiClient.post<ApiSuccessResponse<PaymentIntent>>('/payments/intent', data);
+    return apiClient.post<ApiSuccessResponse<PaymentIntent>>('/payment/intent', data);
   },
 
   // Confirm payment
   confirm: async (data: ConfirmPaymentData): Promise<ApiSuccessResponse<any>> => {
-    return apiClient.post<ApiSuccessResponse<any>>('/payments/confirm', data);
+    return apiClient.post<ApiSuccessResponse<any>>('/payment/confirm', data);
   },
 
   // Get payment by ID
   getById: async (id: string): Promise<ApiSuccessResponse<any>> => {
-    return apiClient.get<ApiSuccessResponse<any>>(`/payments/${id}`);
+    return apiClient.get<ApiSuccessResponse<any>>(`/payment/${id}`);
   },
 
   // Create subscription
   createSubscription: async (data: CreateSubscriptionData): Promise<ApiSuccessResponse<Subscription>> => {
-    return apiClient.post<ApiSuccessResponse<Subscription>>('/payments/subscriptions', data);
+    return apiClient.post<ApiSuccessResponse<Subscription>>('/payment/subscriptions', data);
   },
 
   // Get subscription by ID
   getSubscription: async (id: string): Promise<ApiSuccessResponse<Subscription>> => {
-    return apiClient.get<ApiSuccessResponse<Subscription>>(`/payments/subscriptions/${id}`);
+    return apiClient.get<ApiSuccessResponse<Subscription>>(`/payment/subscriptions/${id}`);
   },
 
   // Get payouts

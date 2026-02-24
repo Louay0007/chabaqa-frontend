@@ -27,6 +27,8 @@ import { Button } from "@/components/ui/button"
 import { Loader2, Link as LinkIcon, FileText, X, Image as ImageIcon, Upload, Camera } from "lucide-react"
 import { toast } from "sonner"
 import Image from "next/image"
+import { mediaApi } from "@/lib/api/media.api"
+import { apiClient } from "@/lib/api/client"
 
 const submissionSchema = z.object({
   content: z.string().min(10, {
@@ -88,28 +90,14 @@ export default function SubmitProjectModal({
     if (!files || files.length === 0) return
 
     setIsUploading(true)
-    const formData = new FormData()
-    
-    // Using the /upload/multiple endpoint for potentially multiple images
-    // If only one, it still works. Let's handle single first to be safe with existing backend
     const uploadPromises = Array.from(files).map(async (file) => {
-      const singleFormData = new FormData()
-      singleFormData.append("file", file)
-      
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload/single?type=image`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: singleFormData,
+      const data = await mediaApi.upload(file, {
+        purpose: "generic",
+        entityType: "challenge_task",
+        entityId: taskId,
+        visibility: "public",
       })
-
-      if (!response.ok) throw new Error("Upload failed")
-      const data = await response.json()
-      
-      // Handle different possible backend response structures
-      const url = data.url || data.file?.url || (data.data && data.data.url) || data.filename;
-      
+      const url = data?.url
       if (!url) {
         console.error("No URL found in upload response:", data);
         throw new Error("Upload response missing URL");
@@ -139,25 +127,14 @@ export default function SubmitProjectModal({
     setIsSubmitting(true)
     try {
       const filteredLinks = links.filter(link => link.trim() !== "")
-      
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/challenges/project-submissions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: JSON.stringify({
-          challengeId,
-          taskId,
-          content: values.content,
-          links: filteredLinks,
-          files: uploadedImages, // Backend stores photo URLs in 'files' field
-        }),
-      })
 
-      if (!response.ok) {
-        throw new Error("Failed to submit project")
-      }
+      await apiClient.post(`/challenges/project-submissions`, {
+        challengeId,
+        taskId,
+        content: values.content,
+        links: filteredLinks,
+        files: uploadedImages, // Backend stores photo URLs in 'files' field
+      })
 
       console.log('Submission success')
       toast.success("Project submitted successfully!")

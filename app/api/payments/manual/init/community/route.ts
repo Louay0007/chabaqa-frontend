@@ -26,11 +26,11 @@ export async function POST(request: Request) {
         }
 
         // Build backend URL
-        // Ensure BACKEND_URL doesn't have a trailing slash if we're going to append /payments...
-        // But if BACKEND_URL is http://localhost:3000/api, we append /payments/manual/init/community
+        // Ensure BACKEND_URL doesn't have a trailing slash if we're going to append /payment...
+        // But if BACKEND_URL is http://localhost:3000/api, we append /payment/manual/init/community
         const apiBaseUrl = BACKEND_URL.replace(/\/$/, '');
 
-        let backendUrl = `${apiBaseUrl}/payments/manual/init/community`;
+        let backendUrl = `${apiBaseUrl}/payment/manual/init/community`;
         if (promoCode) {
             backendUrl += `?promoCode=${encodeURIComponent(promoCode)}`;
         }

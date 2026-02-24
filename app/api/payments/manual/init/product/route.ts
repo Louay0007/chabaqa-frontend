@@ -38,15 +38,14 @@ export async function POST(request: NextRequest) {
 
     // Create form data for backend
     const backendFormData = new FormData();
-    backendFormData.append('contentType', 'product');
-    backendFormData.append('contentId', productId);
+    backendFormData.append('productId', productId);
     backendFormData.append('proof', proofFile);
-    if (promoCode) {
-      backendFormData.append('promoCode', promoCode);
-    }
 
     // Forward to backend
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/payments/manual/init`;
+    const apiBaseUrl = (process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api').replace(/\/$/, '');
+    const backendUrl = promoCode
+      ? `${apiBaseUrl}/payment/manual/init/product?promoCode=${encodeURIComponent(promoCode)}`
+      : `${apiBaseUrl}/payment/manual/init/product`;
     
     const response = await fetch(backendUrl, {
       method: 'POST',

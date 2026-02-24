@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Users, Clock, Unlock, Lock, Eye } from "lucide-react"
 import Image from "next/image"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 interface ReviewPublishStepProps {
   formData: {
@@ -41,6 +42,7 @@ export function ReviewPublishStep({ formData, handleInputChange }: ReviewPublish
     (acc, section) => acc + section.chapters.filter((c) => c.isPreview).length,
     0,
   )
+  const previewThumbnail = resolveImageUrl(formData.thumbnail) || formData.thumbnail
 
   return (
     <EnhancedCard>
@@ -115,7 +117,7 @@ export function ReviewPublishStep({ formData, handleInputChange }: ReviewPublish
                 <div className="w-full h-32 bg-gray-200 rounded mb-3 flex items-center justify-center overflow-hidden">
                   {formData.thumbnail ? (
                     <Image
-                      src={formData.thumbnail}
+                      src={previewThumbnail}
                       alt="Course thumbnail"
                       width={400}
                       height={128}

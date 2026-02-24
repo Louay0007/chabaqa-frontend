@@ -24,7 +24,7 @@ export async function POST(request: Request) {
         }
 
         const apiBaseUrl = BACKEND_URL.replace(/\/$/, '');
-        let backendUrl = `${apiBaseUrl}/payments/manual/init/challenge`;
+        let backendUrl = `${apiBaseUrl}/payment/manual/init/challenge`;
         if (promoCode) backendUrl += `?promoCode=${encodeURIComponent(promoCode)}`;
 
         console.log('[Challenge Payment Route] Calling backend:', backendUrl);

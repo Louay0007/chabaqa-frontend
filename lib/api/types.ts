@@ -573,6 +573,7 @@ export interface Notification {
 
 // Storage types
 export interface UploadedFile {
+  assetId?: string;
   filename: string;
   originalName: string;
   url: string;

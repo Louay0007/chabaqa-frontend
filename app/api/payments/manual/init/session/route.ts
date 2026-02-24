@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     // Use internal URL for server-side requests (Docker networking)
     const apiBaseUrl = BACKEND_URL.replace(/\/$/, '');
-    let backendUrl = `${apiBaseUrl}/payments/manual/init/session`;
+    let backendUrl = `${apiBaseUrl}/payment/manual/init/session`;
     if (promoCode) {
       backendUrl += `?promoCode=${encodeURIComponent(promoCode)}`;
     }

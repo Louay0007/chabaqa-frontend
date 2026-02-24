@@ -20,7 +20,7 @@ export async function POST(request: Request) {
         }
 
         const apiBaseUrl = BACKEND_URL.replace(/\/$/, '');
-        let backendUrl = `${apiBaseUrl}/payments/manual/init/event`;
+        let backendUrl = `${apiBaseUrl}/payment/manual/init/event`;
         if (promoCode) backendUrl += `?promoCode=${encodeURIComponent(promoCode)}`;
 
         const backendResponse = await fetch(backendUrl, {
