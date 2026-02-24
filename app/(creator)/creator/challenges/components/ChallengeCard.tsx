@@ -1,10 +1,12 @@
+"use client"
 
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardContent } from "@/components/ui/card"
 import { StatusBadge } from "@/components/ui/status-badge"
 import {
   Calendar, Clock, Users, Coins, MoreHorizontal,
-  Eye, Edit, Trash2, Trophy, TrendingUp
+  Eye, Trash2, Trophy, TrendingUp,
+  Edit
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -12,12 +14,20 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
+import { api } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 interface ChallengeCardProps {
   challenge: any
 }
 
 export default function ChallengeCard({ challenge }: ChallengeCardProps) {
+  const { toast } = useToast()
+  const router = useRouter()
+  const [isDeleting, setIsDeleting] = useState(false)
+
   // Ensure dates are Date objects
   const startDate = challenge.startDate instanceof Date ? challenge.startDate : new Date(challenge.startDate)
   const endDate = challenge.endDate instanceof Date ? challenge.endDate : new Date(challenge.endDate)
@@ -39,6 +49,31 @@ export default function ChallengeCard({ challenge }: ChallengeCardProps) {
     0,
     Math.ceil((endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
   )
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this challenge? This action cannot be undone.")) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      await api.challenges.delete(challenge.id)
+      toast({
+        title: "Challenge deleted",
+        description: "The challenge has been successfully deleted.",
+      })
+      router.refresh()
+    } catch (error: any) {
+      console.error("Failed to delete challenge:", error)
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to delete challenge. Please try again.",
+        variant: "destructive" as any,
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   return (
     <EnhancedCard hover className="overflow-hidden">
@@ -69,18 +104,17 @@ export default function ChallengeCard({ challenge }: ChallengeCardProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link href={`/creator/challenges/${challenge.id}`}>
+                  <Link href={`/creator/challenges/${challenge.id}/manage`}>
                     <Eye className="mr-2 h-4 w-4" /> View Challenge
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={`/creator/challenges/${challenge.id}/edit`}>
-                    <Edit className="mr-2 h-4 w-4" /> Edit Challenge
-                  </Link>
-                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600">
-                  <Trash2 className="mr-2 h-4 w-4" /> Delete Challenge
+                <DropdownMenuItem 
+                  className="text-red-600" 
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" /> {isDeleting ? "Deleting..." : "Delete Challenge"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

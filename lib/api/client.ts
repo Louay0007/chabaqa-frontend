@@ -105,7 +105,19 @@ class ApiClient {
 
       throw error;
     }
-    return response.json();
+    
+    // Handle empty responses (e.g., 204 No Content for DELETE operations)
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return {} as T;
+    }
+    
+    // Check if response has content before parsing JSON
+    const text = await response.text();
+    if (!text) {
+      return {} as T;
+    }
+    
+    return JSON.parse(text);
   }
 
   private buildUrl(endpoint: string, params?: Record<string, any>): string {
