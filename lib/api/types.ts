@@ -332,6 +332,8 @@ export interface Session {
   currency: string;
   availableSlots: number;
   bookedSlots: number;
+  averageRating?: number;
+  ratingCount?: number;
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -474,6 +476,7 @@ export interface Post {
   shareCount: number;
   isLikedByUser?: boolean;
   isSharedByUser?: boolean;
+  isBookmarkedByUser?: boolean;
   comments?: PostComment[];
   images?: string[];
   videos?: string[];
@@ -572,6 +575,7 @@ export interface Notification {
 
 // Storage types
 export interface UploadedFile {
+  assetId?: string;
   filename: string;
   originalName: string;
   url: string;

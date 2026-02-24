@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next"
-import "@/app/globals.css"
 import { CommunityHeader } from "@/app/(community)/components/community-header"
 
 export const metadata: Metadata = {

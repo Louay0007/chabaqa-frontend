@@ -7,6 +7,7 @@ import { CheckCircle, PlayCircle, Lock, MessageSquare, Star, StickyNote, ArrowRi
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/lib/api"
+import { coursesApi } from "@/lib/api/courses.api"
 import { useToast } from "@/components/ui/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { format } from "date-fns"
@@ -25,6 +26,9 @@ interface CourseSidebarProps {
   currentChapterProgress?: { watchTime: number; duration: number }
   /** ID used for storage keys (matches what player uses) */
   courseId?: string
+  pendingPaidChapterId?: string | null
+  chapterUnlockState?: "idle" | "syncing" | "unlocked" | "timeout"
+  onRetryUnlock?: () => Promise<void> | void
 }
 
 export default function CourseSidebar({ 
@@ -39,6 +43,9 @@ export default function CourseSidebar({
   isChapterAccessible,
   currentChapterProgress,
   courseId,
+  pendingPaidChapterId,
+  chapterUnlockState = "idle",
+  onRetryUnlock,
 }: CourseSidebarProps) {
   const [activeTab, setActiveTab] = useState("content")
   const [noteContent, setNoteContent] = useState("")
@@ -121,32 +128,38 @@ export default function CourseSidebar({
       // Initiate payment for the next chapter
       setPurchasing(true);
       try {
-        // Use the dedicated endpoint for single chapter purchase
-        // We assume `api.courses.buyChapter` exists or we call the payment endpoint directly
-        // Since we don't have a direct SDK method yet, we'll use a direct fetch or a helper
-        // For now, let's assume we add `buyChapter` to the api or use fetch
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payment/stripe-link/init/chapter`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}` // Assuming token is in localStorage
-          },
-          body: JSON.stringify({
-            courseId: course.id, // or courseId prop
-            chapterId: nextChapter.id
-          })
-        });
-        
-        const data = await res.json();
-        if (data.checkoutUrl) {
-          window.location.href = data.checkoutUrl;
+        const resolvedCourseId = String(course?.mongoId || course?.id || courseId || "");
+        if (!resolvedCourseId) {
+          throw new Error("Missing course identifier")
+        }
+        const data = await coursesApi.initChapterStripePayment(
+          resolvedCourseId,
+          String(nextChapter.id),
+        );
+        const checkoutUrl = data?.checkoutUrl || data?.data?.checkoutUrl
+        if (checkoutUrl) {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem(
+              "pending_chapter_checkout",
+              JSON.stringify({
+                courseId: resolvedCourseId,
+                chapterId: String(nextChapter.id),
+                createdAt: Date.now(),
+              }),
+            )
+          }
+          window.location.href = checkoutUrl;
         } else {
           throw new Error("Payment initialization failed");
         }
       } catch (error) {
+        console.error("Chapter checkout init failed:", error)
         toast({ 
           title: "Error starting payment", 
-          description: "Please try again later",
+          description:
+            typeof error === "object" && error && "message" in error
+              ? String((error as any).message)
+              : "Please try again later",
           variant: "destructive" 
         });
       } finally {
@@ -169,12 +182,41 @@ export default function CourseSidebar({
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="content" className="space-y-4 mt-4">
+        <TabsContent value="content" className="space-y-3 mt-4">
+          {chapterUnlockState === "syncing" && pendingPaidChapterId && (
+            <Card className="border-blue-200 bg-blue-50/60 shadow-sm">
+              <CardContent className="py-3">
+                <p className="text-xs text-blue-700">Payment received. Unlock is syncing for your chapter...</p>
+              </CardContent>
+            </Card>
+          )}
+          {chapterUnlockState === "unlocked" && pendingPaidChapterId && (
+            <Card className="border-green-200 bg-green-50/60 shadow-sm">
+              <CardContent className="py-3">
+                <p className="text-xs text-green-700">Chapter unlocked successfully.</p>
+              </CardContent>
+            </Card>
+          )}
+          {chapterUnlockState === "timeout" && pendingPaidChapterId && (
+            <Card className="border-amber-200 bg-amber-50/60 shadow-sm">
+              <CardContent className="py-3 space-y-2">
+                <p className="text-xs text-amber-800">Payment received, unlock still syncing. Click retry unlock.</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => void onRetryUnlock?.()}
+                >
+                  Retry Unlock
+                </Button>
+              </CardContent>
+            </Card>
+          )}
           <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Current Progress</CardTitle>
+            <CardHeader className="pb-2 pt-3">
+              <CardTitle className="text-sm">Current Progress</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2 pb-3">
               {/* Current chapter inline progress (allChapters is flat list of chapters from CoursePlayer) */}
               {(() => {
                 const currentId = selectedChapter || (allChapters?.[0]?.id ?? null)
@@ -241,31 +283,31 @@ export default function CourseSidebar({
                   <>
                     <div>
                       {currentChapter?.title && (
-                        <p className="text-xs font-medium text-foreground mb-2 line-clamp-2">
+                        <p className="text-xs font-medium text-foreground mb-1.5 line-clamp-1">
                           {currentChapter.title}
                         </p>
                       )}
-                      <div className="flex justify-between items-center mb-1.5 text-xs">
-                        <span className="text-muted-foreground">Chapter Progress</span>
+                      <div className="flex justify-between items-center mb-1 text-xs">
+                        <span className="text-muted-foreground">Progress</span>
                         <span className="font-semibold text-foreground">{Math.round(currentPct)}%</span>
                       </div>
-                      <Progress value={currentPct} className="h-2" />
+                      <Progress value={currentPct} className="h-1.5" />
                     </div>
                     
-                    <div className="flex items-center justify-between text-xs pt-2 border-t">
+                    <div className="flex items-center justify-between text-xs pt-1.5">
                       <div className="flex items-center gap-1">
-                        <CheckCircle className="h-3.5 w-3.5 text-green-600" />
-                        <span className="text-muted-foreground">{adjustedCompletedCount} completed</span>
+                        <CheckCircle className="h-3 w-3 text-green-600" />
+                        <span className="text-muted-foreground">{adjustedCompletedCount} done</span>
                       </div>
                       <div className="text-muted-foreground">
-                        {adjustedRemainingCount} remaining
+                        {adjustedRemainingCount} left
                       </div>
                     </div>
 
                     {/* NEXT CHAPTER BUTTON */}
                     {nextChapter && (
                       <Button 
-                        className="w-full gap-2 mt-2" 
+                        className="w-full gap-2 mt-1.5 h-8" 
                         size="sm"
                         disabled={!effectiveIsCompleted || purchasing}
                         variant={effectiveIsCompleted ? "default" : "secondary"}
@@ -275,26 +317,21 @@ export default function CourseSidebar({
                           "Processing..."
                         ) : !effectiveIsCompleted ? (
                           <>
-                            <Lock className="h-3.5 w-3.5" />
+                            <Lock className="h-3 w-3" />
                             Complete to Unlock
                           </>
                         ) : nextChapter.isPaidChapter && !isChapterAccessible(nextChapter.id) && !nextChapter.isPreview ? (
                           <>
-                            <ShoppingCart className="h-3.5 w-3.5" />
-                            Buy Next Chapter
+                            <ShoppingCart className="h-3 w-3" />
+                            Buy Next
                           </>
                         ) : (
                           <>
                             Next Chapter
-                            <ArrowRight className="h-3.5 w-3.5" />
+                            <ArrowRight className="h-3 w-3" />
                           </>
                         )}
                       </Button>
-                    )}
-                    {nextChapter && effectiveIsCompleted && nextChapter.isPaidChapter && !isChapterAccessible(nextChapter.id) && !nextChapter.isPreview && (
-                      <p className="text-xs text-muted-foreground text-center mt-1">
-                        Premium content
-                      </p>
                     )}
                   </>
                 )
@@ -304,24 +341,31 @@ export default function CourseSidebar({
 
 
           <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Course Content</CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">
-                {allChapters.length} chapters • {course.sections.length} sections
-              </p>
+            <CardHeader className="pb-2 pt-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm">Course Content</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  {allChapters.length} chapters
+                </p>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="h-[500px]">
-                <div className="space-y-1 px-4 pb-4">
+              <ScrollArea className={`${
+                allChapters.length <= 5 ? 'h-auto max-h-[300px]' :
+                allChapters.length <= 10 ? 'h-[400px]' :
+                allChapters.length <= 20 ? 'h-[550px]' :
+                'h-[650px]'
+              }`}>
+                <div className="space-y-0.5 px-4 pb-4">
                   {course.sections.map((section: any, sectionIndex: number) => (
-                    <div key={section.id} className="space-y-1">
-                      <div className="flex items-center gap-2 py-2 px-2 bg-muted/30 rounded-md mt-2">
+                    <div key={section.id} className="space-y-0.5">
+                      <div className="flex items-center gap-2 py-1.5 px-2 bg-muted/30 rounded-md mt-1.5">
                         <span className="text-xs font-semibold text-muted-foreground">
-                          Section {sectionIndex + 1}
+                          {sectionIndex + 1}
                         </span>
-                        <h4 className="font-medium text-sm flex-1">{section.title}</h4>
+                        <h4 className="font-medium text-xs flex-1 truncate">{section.title}</h4>
                         <span className="text-xs text-muted-foreground">
-                          {section.chapters.length} chapters
+                          {section.chapters.length}
                         </span>
                       </div>
                       <div className="space-y-0.5">
@@ -343,7 +387,7 @@ export default function CourseSidebar({
                                 if (!accessible) return
                                 void setSelectedChapter(String(chapter.id))
                               }}
-                              className={`w-full flex flex-col p-2.5 rounded-md text-left transition-all ${
+                              className={`w-full flex flex-col p-2 rounded-md text-left transition-all ${
                                 isActive
                                   ? "bg-primary/10 border border-primary/20 shadow-sm"
                                   : accessible
@@ -351,28 +395,23 @@ export default function CourseSidebar({
                                     : "cursor-not-allowed opacity-60 border border-transparent"
                               }`}
                             >
-                              <div className="flex items-start gap-2.5 w-full">
+                              <div className="flex items-start gap-2 w-full">
                                 <div className="flex-shrink-0 mt-0.5">
                                   {isCompleted ? (
-                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                    <CheckCircle className="h-3.5 w-3.5 text-green-600" />
                                   ) : accessible ? (
-                                    <PlayCircle className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                                    <PlayCircle className={`h-3.5 w-3.5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                                   ) : (
-                                    <Lock className="h-4 w-4 text-muted-foreground" />
+                                    <Lock className="h-3.5 w-3.5 text-muted-foreground" />
                                   )}
                                 </div>
                                 
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-start justify-between gap-2 mb-1">
+                                  <div className="flex items-start justify-between gap-2">
                                     <div className="flex-1 min-w-0">
-                                      <span className={`text-xs font-medium block ${isActive ? 'text-primary' : 'text-foreground'}`}>
+                                      <span className={`text-xs font-medium block line-clamp-1 ${isActive ? 'text-primary' : 'text-foreground'}`}>
                                         {chapterIndex + 1}. {chapter.title}
                                       </span>
-                                      {chapter.description && (
-                                        <span className="text-xs text-muted-foreground line-clamp-2 mt-0.5 block">
-                                          {chapter.description}
-                                        </span>
-                                      )}
                                     </div>
                                     {chapter.duration && (
                                       <span className="text-xs text-muted-foreground whitespace-nowrap">
@@ -383,29 +422,21 @@ export default function CourseSidebar({
                                   
                                   {/* Progress bar for in-progress chapters */}
                                   {!isCompleted && progressPct > 0 && (
-                                    <div className="mt-1.5">
-                                      <Progress value={progressPct} className="h-1" />
-                                      <span className="text-xs text-muted-foreground mt-0.5 block">
-                                        {Math.round(progressPct)}% complete
-                                      </span>
+                                    <div className="mt-1">
+                                      <Progress value={progressPct} className="h-0.5" />
                                     </div>
                                   )}
                                   
                                   {/* Chapter badges */}
-                                  <div className="flex items-center gap-1.5 mt-1.5">
+                                  <div className="flex items-center gap-1 mt-1">
                                     {chapter.isPreview && (
-                                      <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">
+                                      <span className="text-xs px-1 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px]">
                                         Preview
                                       </span>
                                     )}
                                     {chapter.isPaidChapter && !accessible && (
-                                      <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">
+                                      <span className="text-xs px-1 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px]">
                                         Premium
-                                      </span>
-                                    )}
-                                    {isCompleted && (
-                                      <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 rounded">
-                                        Completed
                                       </span>
                                     )}
                                   </div>

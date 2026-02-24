@@ -1,6 +1,5 @@
 import type React from "react"
 import type { Metadata } from "next"
-import "../globals.css"
 import { AuthProvider } from "../providers/auth-provider"
 
 export const metadata: Metadata = {
@@ -15,12 +14,8 @@ export default function BuildCommunityLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
-      </body>
-    </html>
+    <AuthProvider>
+      {children}
+    </AuthProvider>
   )
 }

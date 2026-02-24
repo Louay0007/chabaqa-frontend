@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
     const sessionId = req.nextUrl.searchParams.get('sessionId');
     const paymentId = req.nextUrl.searchParams.get('paymentId');
     const authHeader = req.headers.get('authorization');
+    const incomingCookies = req.headers.get('cookie') || '';
 
     if (!sessionId && !paymentId) {
       return NextResponse.json(
@@ -17,12 +18,14 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    if (!authHeader) {
-      return NextResponse.json(
-        { message: 'Authorization header missing' },
-        { status: 401 }
-      );
-    }
+    const cookieToken =
+      req.cookies.get('accessToken')?.value ||
+      req.cookies.get('token')?.value ||
+      req.cookies.get('jwt')?.value ||
+      req.cookies.get('authToken')?.value;
+
+    const forwardedAuthHeader =
+      authHeader || (cookieToken ? `Bearer ${cookieToken}` : '');
 
     // Get the backend API URL (must include /api because Nest uses global prefix)
     const backendUrl = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
@@ -45,7 +48,8 @@ export async function GET(req: NextRequest) {
       {
         method: 'GET',
         headers: {
-          'Authorization': authHeader,
+          ...(forwardedAuthHeader ? { 'Authorization': forwardedAuthHeader } : {}),
+          ...(incomingCookies ? { 'Cookie': incomingCookies } : {}),
         },
       }
     );

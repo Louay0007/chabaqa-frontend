@@ -8,22 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Star, BookOpen, Clock, Users, CheckCircle, Lock, Play } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-
-function normalizeCourseId(value: unknown): string {
-  if (!value) return ""
-  if (typeof value === "string") return value
-  if (typeof value === "object") {
-    const maybeRecord = value as Record<string, unknown>
-    const nestedId = maybeRecord._id ?? maybeRecord.id ?? maybeRecord.courseId
-    if (typeof nestedId === "string") return nestedId
-    if (typeof nestedId === "object" && nestedId) {
-      const nestedRecord = nestedId as Record<string, unknown>
-      if (typeof nestedRecord._id === "string") return nestedRecord._id
-      if (typeof nestedRecord.id === "string") return nestedRecord.id
-    }
-  }
-  return String(value)
-}
+import { idsMatch, resolveCourseRouteId } from "@/lib/utils/course-id"
 
 interface CourseListProps {
   filteredCourses: any[]
@@ -31,7 +16,7 @@ interface CourseListProps {
   allCourses: any[]
   selectedCourse: string | null
   setSelectedCourse: (courseId: string | null) => void
-  getEnrollmentProgress: (courseId: string) => any
+  getEnrollmentProgress: (courseRef: unknown) => any
   getCoursePricing: (course: any) => any
   creatorSlug: string
   slug: string
@@ -41,7 +26,6 @@ interface CourseListProps {
 export default function CourseList({
   filteredCourses,
   userEnrollments,
-  allCourses,
   selectedCourse,
   setSelectedCourse,
   getEnrollmentProgress,
@@ -53,27 +37,20 @@ export default function CourseList({
   return (
     <div className="lg:col-span-2 space-y-6">
       {filteredCourses.map((course) => {
-        // Normalize IDs for comparison
-        const isEnrolled = userEnrollments.some((e) => {
-          const enrollmentCourseId = normalizeCourseId(e?.courseId)
-          const currentCourseId = normalizeCourseId(course?.id || course?.mongoId)
-          const match = enrollmentCourseId === currentCourseId
-          if (match) {
-            console.log(`✅ Enrollment match for course: ${course.title}`, { enrollmentCourseId, currentCourseId })
-          }
-          return match
-        })
-        const progress = getEnrollmentProgress(course.id)
+        const routeCourseId = resolveCourseRouteId(course) || String(course?.id || course?.mongoId || course?._id || "")
+        const isEnrolled = userEnrollments.some((e) => idsMatch(e?.courseId, course))
+        const progress = getEnrollmentProgress(course)
+        const isCourseCompleted = Boolean(progress?.isCompleted || Number(progress?.percentage || 0) >= 100)
         const totalChapters = course.sections?.reduce((acc: any, s: any) => acc + (s.chapters?.length || 0), 0) || 0
         const pricing = getCoursePricing(course)
 
 return (
   <Card
-    key={course.id}
+    key={routeCourseId}
     className={`border-0 shadow-sm hover:shadow-md transition-all cursor-pointer ${
-      selectedCourse === course.id ? "ring-2 ring-courses-500" : ""
+      selectedCourse && idsMatch(selectedCourse, course) ? "ring-2 ring-courses-500" : ""
     }`}
-    onClick={() => setSelectedCourse(course.id)}
+    onClick={() => setSelectedCourse(routeCourseId)}
   >
     <div className="flex flex-col md:flex-row">
       {/* Thumbnail - 16:9 aspect ratio */}
@@ -92,9 +69,9 @@ return (
         {/* Badges */}
         <div className="absolute top-3 right-3">
           {isEnrolled ? (
-            <Badge className="bg-courses-500 text-white">
+            <Badge className={isCourseCompleted ? "bg-emerald-600 text-white" : "bg-courses-500 text-white"}>
               <CheckCircle className="h-3 w-3 mr-1" />
-              Enrolled
+              {isCourseCompleted ? "Completed" : "Enrolled"}
             </Badge>
           ) : pricing.type === "free" ? (
             <Badge className="bg-green-500 text-white">Free</Badge>
@@ -196,7 +173,7 @@ return (
           {/* Actions */}
           {isEnrolled ? (
             <Button size="sm" asChild className="w-full sm:w-auto">
-              <Link href={`/${creatorSlug}/${slug}/courses/${course.id}`}>
+              <Link href={`/${creatorSlug}/${slug}/courses/${routeCourseId}`}>
                 <Play className="h-4 w-4 mr-1" />
                 Continue
               </Link>
@@ -209,7 +186,7 @@ return (
               onClick={(event) => {
                 event.preventDefault()
                 event.stopPropagation()
-                onEnroll(String(course.id))
+                onEnroll(routeCourseId)
               }}
             >
               Enroll Free
@@ -222,7 +199,7 @@ return (
               onClick={(event) => {
                 event.preventDefault()
                 event.stopPropagation()
-                onEnroll(String(course.id))
+                onEnroll(routeCourseId)
               }}
             >
               Start Free
@@ -235,7 +212,7 @@ return (
               onClick={(event) => {
                 event.preventDefault()
                 event.stopPropagation()
-                onEnroll(String(course.id))
+                onEnroll(routeCourseId)
               }}
             >
               Enroll - ${course.price}

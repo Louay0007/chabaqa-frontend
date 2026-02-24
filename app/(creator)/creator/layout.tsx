@@ -1,6 +1,5 @@
 import type React from "react"
 import type { Metadata } from "next"
-import "../../globals.css"
 import CreatorClientLayout from "@/app/(creator)/creator/creator-client-layout"
 
 export const metadata: Metadata = {
@@ -14,16 +13,12 @@ import { CommunityProvider } from "@/app/providers/community-context"
 
 export default function CreatorLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body>
-        <AuthProvider>
-          <CommunityProvider>
-            <CreatorClientLayout>
-              {children}
-            </CreatorClientLayout>
-          </CommunityProvider>
-        </AuthProvider>
-      </body>
-    </html>
+    <AuthProvider>
+      <CommunityProvider>
+        <CreatorClientLayout>
+          {children}
+        </CreatorClientLayout>
+      </CommunityProvider>
+    </AuthProvider>
   )
 }

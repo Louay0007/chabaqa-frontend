@@ -63,6 +63,7 @@ export default function PaymentSuccessContent() {
   const sessionId = searchParams.get('sessionId');
   const scope = searchParams.get('scope');
   const id = searchParams.get('id');
+  const chapterId = searchParams.get('chapterId') || id;
   const provider = searchParams.get('provider'); // Add provider check
 
   console.log('Payment Success Params:', searchParams.toString());
@@ -84,26 +85,43 @@ export default function PaymentSuccessContent() {
       try {
         // Determine correct endpoint based on provider
         let verifyUrl = `/api/payments/verify?paymentId=${sessionId}`; // Default to Flouci
-        
         if (provider === 'stripe' || provider === 'stripe-link') {
           verifyUrl = `/api/payments/verify?sessionId=${sessionId}`;
         }
 
-        const response = await fetch(
-          verifyUrl,
-          {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('accessToken') || localStorage.getItem('token') || ''}`,
-            },
-          }
-        );
+        const shouldRetry = scope === 'chapter';
+        const retryDelays = shouldRetry ? [0, 1000, 2000, 3000, 4000, 5000] : [0];
+        let response: Response | null = null;
+        let data: any = null;
 
-        const data = await response.json();
+        for (const delay of retryDelays) {
+          if (delay > 0) {
+            await new Promise((resolve) => setTimeout(resolve, delay));
+          }
+
+          const accessToken =
+            (typeof window !== 'undefined' && (localStorage.getItem('accessToken') || localStorage.getItem('token'))) ||
+            '';
+
+          response = await fetch(verifyUrl, {
+            method: 'GET',
+            credentials: 'include',
+            headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+          });
+          data = await response.json().catch(() => null);
+
+          const payload = data?.data || data;
+          const status = payload?.status;
+          const isSuccess = data?.success === true || response.ok;
+          if (!shouldRetry || (isSuccess && (status === 'paid' || status === 'complete' || status === 'succeeded'))) {
+            break;
+          }
+        }
+
         setVerificationData(data);
 
         // Check both potential structures (active wrapper or direct response)
-        const isSuccess = data.success === true || response.ok;
+        const isSuccess = data?.success === true || Boolean(response?.ok);
         const payload = data.data || data;
         const status = payload?.status;
         const action = payload?.action;
@@ -140,7 +158,14 @@ export default function PaymentSuccessContent() {
           router.replace(redirectUrl);
           return;
         } else {
-          setError(data.error || 'Payment verification failed');
+          if (scope === 'chapter') {
+            setError(
+              data?.error ||
+                'Payment may be successful but unlock verification is still syncing. Please wait and retry.',
+            );
+          } else {
+            setError(data?.error || 'Payment verification failed');
+          }
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Verification failed';
@@ -176,6 +201,24 @@ export default function PaymentSuccessContent() {
       redirectDone.current = true;
       router.replace(`/${creatorSlug}/${communitySlug}/courses/${targetId}`);
       return;
+    }
+
+    // Chapter Redirect (back to parent course page)
+    if (scope === 'chapter' && creatorSlug && communitySlug) {
+      redirectDone.current = true;
+      const courseTargetId =
+        searchParams.get('courseId') ||
+        paymentData?.sessionContentId ||
+        paymentData?.targetId;
+      if (courseTargetId) {
+        const nextParams = new URLSearchParams();
+        if (chapterId) nextParams.set('paidChapterId', String(chapterId));
+        nextParams.set('checkout', 'success');
+        if (sessionId) nextParams.set('sessionId', String(sessionId));
+        const query = nextParams.toString();
+        router.replace(`/${creatorSlug}/${communitySlug}/courses/${courseTargetId}${query ? `?${query}` : ''}`);
+        return;
+      }
     }
 
     // Community Redirect: poll joined list until membership appears (to avoid race with webhook)
@@ -217,10 +260,11 @@ export default function PaymentSuccessContent() {
       router.replace(`/${creatorSlug}/${communitySlug}/sessions`);
       return;
     }
-  }, [verified, scope, creatorSlug, communitySlug, targetId, router]);
+  }, [verified, scope, creatorSlug, communitySlug, targetId, router, searchParams, paymentData, chapterId, sessionId]);
 
   const isRedirecting = verified && (
     (scope === 'course' && creatorSlug && communitySlug && targetId) ||
+    (scope === 'chapter' && creatorSlug && communitySlug) ||
     (scope === 'community' && creatorSlug && communitySlug) ||
     (scope === 'session' && creatorSlug && communitySlug)
   );
@@ -235,6 +279,25 @@ export default function PaymentSuccessContent() {
           Go to Course
         </Link>
       );
+    }
+
+    if (scope === 'chapter' && creatorSlug && communitySlug) {
+      const courseTargetId =
+        searchParams.get('courseId') ||
+        paymentData?.sessionContentId ||
+        paymentData?.targetId;
+      if (courseTargetId) {
+        const nextParams = new URLSearchParams();
+        if (chapterId) nextParams.set('paidChapterId', String(chapterId));
+        nextParams.set('checkout', 'success');
+        if (sessionId) nextParams.set('sessionId', String(sessionId));
+        const query = nextParams.toString();
+        return (
+          <Link href={`/${creatorSlug}/${communitySlug}/courses/${courseTargetId}${query ? `?${query}` : ''}`} className={baseClass}>
+            Go to Course
+          </Link>
+        );
+      }
     }
 
     // 2. Community

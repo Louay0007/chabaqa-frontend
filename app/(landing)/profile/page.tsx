@@ -96,6 +96,25 @@ interface User {
   activityData?: ActivityData[];
 }
 
+interface DisplayAchievement {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  iconComponent?: any;
+  earnedAt?: string;
+}
+
+interface DisplayActivity {
+  id: string;
+  actionType: string;
+  contentTitle?: string;
+  title?: string;
+  timestamp: string;
+  icon?: any;
+  color?: string;
+}
+
 // Utility function to deduplicate array by id or _id
 const deduplicateById = <T extends { id?: string; _id?: string }>(items: T[]): T[] => {
   const seen = new Set<string>()
@@ -121,6 +140,58 @@ const formatCurrency = (num: number): string => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(num)
+}
+
+const activityActionMap: Record<string, { label: string; icon: any; color: string }> = {
+  view: { label: 'Viewed', icon: Users, color: '#47c7ea' },
+  start: { label: 'Started', icon: Flag, color: '#ff9b28' },
+  complete: { label: 'Completed', icon: Check, color: '#10b981' },
+  like: { label: 'Liked', icon: Star, color: '#f65887' },
+  share: { label: 'Shared', icon: MessageSquare, color: '#8e78fb' },
+  download: { label: 'Downloaded', icon: Trophy, color: '#6366f1' },
+  bookmark: { label: 'Bookmarked', icon: Lock, color: '#f59e0b' },
+  comment: { label: 'Commented on', icon: MessageSquare, color: '#ec4899' },
+  rate: { label: 'Rated', icon: Star, color: '#eab308' },
+  join: { label: 'Joined', icon: Users, color: '#b07df8' },
+  create: { label: 'Created', icon: Sparkles, color: '#8e78fb' },
+  enroll: { label: 'Enrolled in', icon: GraduationCap, color: '#47c7ea' },
+  publish: { label: 'Published', icon: Award, color: '#10b981' },
+  manage: { label: 'Managing', icon: ShieldCheck, color: '#6366f1' },
+  book: { label: 'Booked', icon: Calendar, color: '#f65887' },
+}
+
+const extractArrayPayload = (payload: any): any[] => {
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.data)) return payload.data
+  if (Array.isArray(payload?.items)) return payload.items
+  if (Array.isArray(payload?.actions)) return payload.actions
+  if (Array.isArray(payload?.data?.items)) return payload.data.items
+  if (Array.isArray(payload?.data?.actions)) return payload.data.actions
+  return []
+}
+
+const safeToDate = (value?: any): Date | null => {
+  if (!value) return null
+  const parsedDate = new Date(value)
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate
+}
+
+const formatTimeAgo = (dateValue?: string) => {
+  const date = safeToDate(dateValue)
+  if (!date) return "Recently"
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+  const clampedSeconds = Math.max(seconds, 1)
+  let interval = clampedSeconds / 31536000
+  if (interval >= 1) return `${Math.floor(interval)} year${Math.floor(interval) === 1 ? "" : "s"} ago`
+  interval = clampedSeconds / 2592000
+  if (interval >= 1) return `${Math.floor(interval)} month${Math.floor(interval) === 1 ? "" : "s"} ago`
+  interval = clampedSeconds / 86400
+  if (interval >= 1) return `${Math.floor(interval)} day${Math.floor(interval) === 1 ? "" : "s"} ago`
+  interval = clampedSeconds / 3600
+  if (interval >= 1) return `${Math.floor(interval)} hour${Math.floor(interval) === 1 ? "" : "s"} ago`
+  interval = clampedSeconds / 60
+  if (interval >= 1) return `${Math.floor(interval)} minute${Math.floor(interval) === 1 ? "" : "s"} ago`
+  return `${Math.floor(clampedSeconds)} second${Math.floor(clampedSeconds) === 1 ? "" : "s"} ago`
 }
 
 // Dynamic stats based on user role (null-safe)
@@ -287,6 +358,222 @@ const getAchievements = (user: any) => {
   }))
 }
 
+const normalizeFetchedAchievements = (items: any[]): DisplayAchievement[] => {
+  return items
+    .map((achievement: any, index: number) => {
+      const source = achievement?.achievement || achievement
+      const id = String(source?.id || source?._id || achievement?.id || achievement?._id || `achievement-${index}`)
+      const name = source?.name || source?.title || achievement?.name || achievement?.title
+      if (!name) return null
+
+      return {
+        id,
+        name,
+        description: source?.description || achievement?.description,
+        icon: source?.icon || achievement?.icon,
+        earnedAt: achievement?.earnedAt || achievement?.dateEarned || achievement?.createdAt,
+      }
+    })
+    .filter(Boolean) as DisplayAchievement[]
+}
+
+const normalizeFetchedActivity = (items: any[]): DisplayActivity[] => {
+  return items
+    .map((activity: any, index: number) => {
+      const timestampRaw = activity?.timestamp || activity?.createdAt || activity?.updatedAt
+      const fallbackTime = new Date().toISOString()
+      const timestamp = safeToDate(timestampRaw)?.toISOString() || fallbackTime
+
+      const actionType = String(
+        activity?.actionType ||
+        activity?.action ||
+        activity?.type ||
+        "view",
+      ).toLowerCase()
+
+      const contentTitle =
+        activity?.contentDetails?.title ||
+        activity?.content?.title ||
+        activity?.title ||
+        activity?.name ||
+        "an item"
+
+      return {
+        id: String(activity?.id || activity?._id || `activity-${index}`),
+        actionType,
+        contentTitle,
+        timestamp,
+      }
+    })
+    .filter(Boolean) as DisplayActivity[]
+}
+
+const buildDerivedAchievements = (
+  user: any,
+  isCreator: boolean,
+  collections: {
+    communities: any[];
+    courses: any[];
+    challenges: any[];
+    sessions: any[];
+    products: any[];
+  },
+): DisplayAchievement[] => {
+  const userId = String(user?._id || user?.id || "")
+  const results: DisplayAchievement[] = []
+  const added = new Set<string>()
+
+  const addAchievement = (
+    id: string,
+    name: string,
+    description: string,
+    iconComponent: any,
+    earnedAt?: string,
+  ) => {
+    if (added.has(id)) return
+    added.add(id)
+    results.push({ id, name, description, iconComponent, earnedAt })
+  }
+
+  if (user?.createdAt) {
+    addAchievement("member-since", "Member Since", "Joined Chabaqa platform", Sparkles, user.createdAt)
+  }
+  if (user?.avatar || user?.bio || user?.ville || user?.pays) {
+    addAchievement("profile-complete", "Profile Complete", "Completed your profile basics", Pencil, user?.updatedAt || user?.createdAt)
+  }
+
+  if (collections.communities.length > 0) {
+    addAchievement("community-explorer", "Community Explorer", "Joined at least one community", Users, collections.communities[0]?.joinedAt || user?.createdAt)
+  }
+  if (
+    collections.communities.some((community) =>
+      ["owner", "admin", "moderator"].includes(String(community?.role || "").toLowerCase()),
+    )
+  ) {
+    addAchievement("community-leader", "Community Leader", "Managing a community role", ShieldCheck, user?.updatedAt || user?.createdAt)
+  }
+
+  if (collections.courses.length > 0) {
+    addAchievement("lifelong-learner", "Lifelong Learner", "Active in courses", GraduationCap, collections.courses[0]?.updatedAt || collections.courses[0]?.createdAt)
+  }
+  if (
+    collections.courses.some((course) =>
+      String(course?.type || "").toLowerCase() === "created" ||
+      String(course?.creatorId || "") === userId,
+    )
+  ) {
+    addAchievement("course-creator", "Course Creator", "Published educational content", Award, user?.updatedAt || user?.createdAt)
+  }
+
+  if (collections.challenges.length > 0) {
+    addAchievement("challenge-taker", "Challenge Taker", "Participated in challenges", Target, collections.challenges[0]?.updatedAt || collections.challenges[0]?.createdAt)
+  }
+  if (collections.sessions.length > 0) {
+    addAchievement("session-active", "Session Active", "Booked or hosted sessions", Calendar, collections.sessions[0]?.startTime || collections.sessions[0]?.createdAt)
+  }
+  if (collections.products.length > 0) {
+    addAchievement("marketplace-active", "Marketplace Active", "Created or purchased products", ShoppingBag, collections.products[0]?.updatedAt || collections.products[0]?.createdAt)
+  }
+  if (isCreator) {
+    addAchievement("creator-badge", "Creator", "Building and sharing with your audience", Trophy, user?.updatedAt || user?.createdAt)
+  }
+
+  return results.slice(0, 8)
+}
+
+const buildDerivedActivity = (
+  user: any,
+  collections: {
+    communities: any[];
+    courses: any[];
+    challenges: any[];
+    sessions: any[];
+    products: any[];
+  },
+): DisplayActivity[] => {
+  const items: DisplayActivity[] = []
+  const userCreatedAt = safeToDate(user?.createdAt)?.toISOString() || new Date().toISOString()
+
+  const pushActivity = (
+    id: string,
+    actionType: string,
+    contentTitle: string,
+    timestamp?: string,
+    title?: string,
+  ) => {
+    items.push({
+      id,
+      actionType,
+      contentTitle,
+      timestamp: safeToDate(timestamp)?.toISOString() || userCreatedAt,
+      title,
+    })
+  }
+
+  collections.communities.slice(0, 3).forEach((community: any, idx: number) => {
+    const name = community?.name || "community"
+    const role = String(community?.role || "").toLowerCase()
+    const isManager = ["owner", "admin", "moderator"].includes(role)
+    pushActivity(
+      `community-${community?.id || community?._id || idx}`,
+      isManager ? "manage" : "join",
+      name,
+      community?.joinedAt || community?.updatedAt || community?.createdAt,
+    )
+  })
+
+  collections.courses.slice(0, 2).forEach((course: any, idx: number) => {
+    const title = course?.titre || course?.title || "course"
+    const isCreated = String(course?.type || "").toLowerCase() === "created"
+    pushActivity(
+      `course-${course?.id || course?._id || idx}`,
+      isCreated ? "publish" : "enroll",
+      title,
+      course?.updatedAt || course?.createdAt || course?.enrolledAt,
+    )
+  })
+
+  collections.challenges.slice(0, 2).forEach((challenge: any, idx: number) => {
+    const title = challenge?.title || challenge?.name || "challenge"
+    const status = String(challenge?.status || "").toLowerCase()
+    const actionType = status.includes("complete") ? "complete" : "start"
+    pushActivity(
+      `challenge-${challenge?.id || challenge?._id || idx}`,
+      actionType,
+      title,
+      challenge?.updatedAt || challenge?.createdAt,
+    )
+  })
+
+  collections.sessions.slice(0, 2).forEach((session: any, idx: number) => {
+    const title = session?.title || session?.name || "session"
+    const isCreated = String(session?.type || "").toLowerCase() === "created"
+    pushActivity(
+      `session-${session?.id || session?._id || idx}`,
+      isCreated ? "create" : "book",
+      title,
+      session?.startTime || session?.updatedAt || session?.createdAt,
+    )
+  })
+
+  collections.products.slice(0, 2).forEach((product: any, idx: number) => {
+    const title = product?.title || product?.name || "product"
+    const actionType = String(product?.type || "").toLowerCase() === "created" ? "create" : "view"
+    pushActivity(
+      `product-${product?.id || product?._id || idx}`,
+      actionType,
+      title,
+      product?.updatedAt || product?.createdAt,
+    )
+  })
+
+  pushActivity("joined-platform", "join", "Chabaqa", user?.createdAt, "Joined Chabaqa")
+
+  return items
+    .sort((a, b) => (safeToDate(b.timestamp)?.getTime() || 0) - (safeToDate(a.timestamp)?.getTime() || 0))
+    .slice(0, 5)
+}
+
 
 interface ProfilePageProps {
   overrideUser?: any
@@ -321,9 +608,9 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
   const [communitiesPage, setCommunitiesPage] = useState(1)
   const [communitiesTotalPages, setCommunitiesTotalPages] = useState(1)
 
-  const [fetchedAchievements, setFetchedAchievements] = useState<any[]>([])
+  const [fetchedAchievements, setFetchedAchievements] = useState<DisplayAchievement[]>([])
   const [achievementsLoading, setAchievementsLoading] = useState(false)
-  const [fetchedActivity, setFetchedActivity] = useState<any[]>([])
+  const [fetchedActivity, setFetchedActivity] = useState<DisplayActivity[]>([])
   const [activityLoading, setActivityLoading] = useState(false)
 
   // Fetch user data
@@ -562,15 +849,18 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
         const headers: HeadersInit = { 'Content-Type': 'application/json' }
         if (token) headers['Authorization'] = `Bearer ${token}`
 
-        const res = await fetch(`${apiBase}/achievements/user`, { headers })
+        const res = await fetch(`${apiBase}/achievements/user`, { headers, credentials: 'include' })
         if (res.ok) {
           const data = await res.json()
-          // Filter for unlocked ones
-          const unlocked = (Array.isArray(data) ? data : []).filter((a: any) => a.isUnlocked)
-          setFetchedAchievements(unlocked)
+          const list = extractArrayPayload(data)
+          const unlocked = list.filter((a: any) => a?.isUnlocked === undefined ? true : Boolean(a.isUnlocked))
+          setFetchedAchievements(normalizeFetchedAchievements(unlocked))
+        } else {
+          setFetchedAchievements([])
         }
       } catch (error) {
         console.error("Error fetching achievements:", error)
+        setFetchedAchievements([])
       } finally {
         setAchievementsLoading(false)
       }
@@ -589,13 +879,17 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
         const headers: HeadersInit = { 'Content-Type': 'application/json' }
         if (token) headers['Authorization'] = `Bearer ${token}`
 
-        const res = await fetch(`${apiBase}/tracking/user/actions/recent?limit=5`, { headers })
+        const res = await fetch(`${apiBase}/tracking/user/actions/recent?limit=5`, { headers, credentials: 'include' })
         if (res.ok) {
           const data = await res.json()
-          setFetchedActivity(Array.isArray(data) ? data : [])
+          const normalized = normalizeFetchedActivity(extractArrayPayload(data))
+          setFetchedActivity(normalized.slice(0, 5))
+        } else {
+          setFetchedActivity([])
         }
       } catch (error) {
         console.error("Error fetching activity:", error)
+        setFetchedActivity([])
       } finally {
         setActivityLoading(false)
       }
@@ -607,13 +901,32 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
   // Current authenticated user only (no mock fallback)
   const currentUser = user
   const isCreator = currentUser?.role === "creator"
-  const currentCommunity = "main" // Default community for profile page
 
   // Get dynamic data based on user role
   // Get dynamic data based on current user
   const stats = getStatsForUser(currentUser, isCreator)
-  const achievements = getAchievements(currentUser)
-  const activityData = getActivityData(currentUser)
+  const displayAchievements = fetchedAchievements.length > 0
+    ? fetchedAchievements
+    : buildDerivedAchievements(currentUser, isCreator, { communities, courses, challenges, sessions, products })
+  const displayActivity = fetchedActivity.length > 0
+    ? fetchedActivity
+    : buildDerivedActivity(currentUser, { communities, courses, challenges, sessions, products })
+  const totalLearningItems = courses.length + challenges.length
+  const totalOffers = sessions.length + products.length
+  const profileChecklist = [
+    Boolean(currentUser?.name),
+    Boolean(currentUser?.email),
+    Boolean(currentUser?.avatar),
+    Boolean(currentUser?.bio),
+    Boolean(currentUser?.ville || currentUser?.pays),
+  ]
+  const profileCompleteness = Math.round((profileChecklist.filter(Boolean).length / profileChecklist.length) * 100)
+  const profileHighlights = [
+    { label: "Achievements", value: displayAchievements.length, icon: Trophy, color: "#8e78fb" },
+    { label: "Communities", value: communities.length, icon: Users, color: "#b07df8" },
+    { label: "Learning", value: totalLearningItems, icon: GraduationCap, color: "#47c7ea" },
+    { label: "Offers", value: totalOffers, icon: ShoppingBag, color: "#f65887" },
+  ]
   const profileHandle = (currentUser?.email || "").split("@")[0] || (currentUser?.name || "user").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
 
   if (!loading && !currentUser) {
@@ -623,10 +936,10 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
         <main className="container mx-auto px-4 py-16">
           <div className="max-w-md mx-auto text-center space-y-4">
             <h2 className="text-2xl font-semibold">Connectez-vous pour voir votre profil</h2>
-            <p className="text-muted-foreground">Votre session a expiré ou vous n'êtes pas connecté.</p>
+            <p className="text-muted-foreground">Votre session a expiré ou vous n&apos;êtes pas connecté.</p>
             <div className="flex justify-center">
               <Button asChild>
-                <a href="/signin">Se connecter</a>
+                <Link href="/signin">Se connecter</Link>
               </Button>
             </div>
           </div>
@@ -659,7 +972,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                         <MapPin className="w-4 h-4" /> {[currentUser?.ville, currentUser?.pays].filter(Boolean).join(', ') || '—'}
                       </p>
                       {currentUser?.bio && (
-                        <p className="text-text-secondary text-sm mt-3 max-w-lg leading-relaxed">{currentUser.bio}</p>
+                        <p className="text-text-secondary text-sm mt-3 w-full leading-relaxed break-words whitespace-pre-wrap overflow-hidden">{currentUser.bio}</p>
                       )}
                     </div>
                   </div>
@@ -1192,12 +1505,12 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                       )}
                                     </div>
                                     {community.role?.toLowerCase() === 'owner' && (
-                                      <a
+                                      <Link
                                         href="/creator/dashboard"
                                         className="w-full text-center text-xs px-3 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white transition-colors font-medium"
                                       >
                                         Manage Dashboard
-                                      </a>
+                                      </Link>
                                     )}
                                   </div>
                                 </div>
@@ -1249,104 +1562,6 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                 )}
               </div>
             </div>
-
-            {/* Sidebar */}
-            <aside className="w-full max-w-xs hidden lg:flex flex-col gap-6">
-              <div className="border border-border-color rounded-xl p-6 bg-white shadow-subtle">
-                <h2 className="text-xl font-bold">Achievements</h2>
-                {achievementsLoading ? (
-                  <div className="grid grid-cols-4 gap-4 mt-4 animate-pulse">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                      <div key={i} className="bg-gray-200 rounded-lg aspect-square" />
-                    ))}
-                  </div>
-                ) : fetchedAchievements.length > 0 ? (
-                  <div className="grid grid-cols-4 gap-4 mt-4">
-                    {fetchedAchievements.slice(0, 8).map((ach) => (
-                      <div key={ach.id} className="bg-gray-50 p-3 rounded-lg flex items-center justify-center aspect-square group relative hover:bg-gray-100 transition-colors" title={ach.name}>
-                        {ach.icon ? (
-                          <img src={ach.icon} alt={ach.name} className="w-7 h-7 object-contain" />
-                        ) : (
-                          <Trophy className="w-7 h-7 text-primary" />
-                        )}
-                        {/* Tooltip on hover */}
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                          {ach.name}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-text-secondary text-sm mt-4">No achievements yet.</p>
-                )}
-              </div>
-              <div className="border border-border-color rounded-xl p-6 bg-white shadow-subtle">
-                <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
-                {activityLoading ? (
-                  <div className="space-y-4 animate-pulse">
-                     {Array.from({ length: 3 }).map((_, i) => (
-                       <div key={i} className="flex items-start gap-3">
-                         <div className="w-8 h-8 bg-gray-200 rounded-full" />
-                         <div className="flex-1 space-y-2">
-                           <div className="h-3 bg-gray-200 rounded w-3/4" />
-                           <div className="h-2 bg-gray-200 rounded w-1/4" />
-                         </div>
-                       </div>
-                     ))}
-                  </div>
-                ) : fetchedActivity.length > 0 ? (
-                  <ul className="space-y-4">
-                    {fetchedActivity.map((action) => {
-                      const actionMap: any = {
-                        'view': { label: 'Viewed', icon: Users, color: '#47c7ea' },
-                        'start': { label: 'Started', icon: Flag, color: '#ff9b28' },
-                        'complete': { label: 'Completed', icon: Check, color: '#10b981' },
-                        'like': { label: 'Liked', icon: Star, color: '#f65887' },
-                        'share': { label: 'Shared', icon: MessageSquare, color: '#8e78fb' },
-                        'download': { label: 'Downloaded', icon: Trophy, color: '#6366f1' },
-                        'bookmark': { label: 'Bookmarked', icon: Lock, color: '#f59e0b' },
-                        'comment': { label: 'Commented on', icon: MessageSquare, color: '#ec4899' },
-                        'rate': { label: 'Rated', icon: Star, color: '#eab308' },
-                      };
-                      const config = actionMap[action.actionType] || { label: 'Acted on', icon: Zap, color: '#9ca3af' };
-                      const Icon = config.icon;
-                      
-                      // Calculate time ago
-                      const timeAgo = (date: string) => {
-                        const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-                        let interval = seconds / 31536000;
-                        if (interval > 1) return Math.floor(interval) + " years ago";
-                        interval = seconds / 2592000;
-                        if (interval > 1) return Math.floor(interval) + " months ago";
-                        interval = seconds / 86400;
-                        if (interval > 1) return Math.floor(interval) + " days ago";
-                        interval = seconds / 3600;
-                        if (interval > 1) return Math.floor(interval) + " hours ago";
-                        interval = seconds / 60;
-                        if (interval > 1) return Math.floor(interval) + " minutes ago";
-                        return Math.floor(seconds) + " seconds ago";
-                      };
-
-                      return (
-                        <li key={action.id || action._id} className="flex items-start gap-3">
-                          <div className={`rounded-full p-2 flex items-center justify-center bg-opacity-10`} style={{ backgroundColor: `${config.color}20`, color: config.color }}>
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">
-                              {config.label} {action.contentDetails?.title ? `'${action.contentDetails.title}'` : 'an item'}
-                            </p>
-                            <p className="text-xs text-muted-foreground">{timeAgo(action.timestamp || action.createdAt)}</p>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <p className="text-text-secondary text-sm">No recent activity.</p>
-                )}
-              </div>
-            </aside>
           </div>
         </div>
       </main>

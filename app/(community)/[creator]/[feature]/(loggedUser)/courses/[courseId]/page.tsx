@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState, use } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import CoursePlayer from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/[courseId]/components/course-player"
 import EnrollCourseDialog from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/components/EnrollCourseDialog"
 import { coursesApi } from "@/lib/api/courses.api"
@@ -17,6 +17,7 @@ type CoursePlayerPageProps = {
 export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
   const { creator, feature, courseId } = use(params)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
 
   const [isEnrollDialogOpen, setIsEnrollDialogOpen] = useState(false)
@@ -30,6 +31,8 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
   const [sequentialProgressionEnabled, setSequentialProgressionEnabled] = useState(false)
   const [unlockMessage, setUnlockMessage] = useState<string | undefined>(undefined)
   const [isEnrolled, setIsEnrolled] = useState<boolean | null>(null)
+  const [pendingPaidChapterId, setPendingPaidChapterId] = useState<string | null>(null)
+  const [chapterUnlockState, setChapterUnlockState] = useState<"idle" | "syncing" | "unlocked" | "timeout">("idle")
 
   const trackingSentRef = useMemo(
     () => ({ view: false, start: false }),
@@ -87,6 +90,66 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
   ) => {
     await refreshEnrollmentProgress(resolvedCourseId, courseForFallback)
     await refreshUnlockedChapters(resolvedCourseId)
+  }
+
+  const clearCheckoutParams = () => {
+    if (typeof window === "undefined") return
+    const url = new URL(window.location.href)
+    url.searchParams.delete("paidChapterId")
+    url.searchParams.delete("checkout")
+    url.searchParams.delete("sessionId")
+    window.history.replaceState({}, "", `${url.pathname}${url.search}`)
+  }
+
+  const consumePendingCheckoutFromStorage = (): string | null => {
+    if (typeof window === "undefined") return null
+    const raw = sessionStorage.getItem("pending_chapter_checkout")
+    if (!raw) return null
+    try {
+      const parsed = JSON.parse(raw)
+      const createdAt = Number(parsed?.createdAt || 0)
+      const chapterId = parsed?.chapterId ? String(parsed.chapterId) : null
+      const maxAgeMs = 30 * 60 * 1000
+      sessionStorage.removeItem("pending_chapter_checkout")
+      if (!chapterId) return null
+      if (!createdAt || Date.now() - createdAt > maxAgeMs) return null
+      return chapterId
+    } catch {
+      sessionStorage.removeItem("pending_chapter_checkout")
+      return null
+    }
+  }
+
+  const runChapterUnlockReconciliation = async (chapterId: string): Promise<boolean> => {
+    const resolvedCourseId = String(course?.mongoId || courseId)
+    const delays = [0, 1000, 2000, 3000, 4000, 5000]
+    setChapterUnlockState("syncing")
+    for (const delay of delays) {
+      if (delay > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delay))
+      }
+      try {
+        await refreshEnrollmentProgress(resolvedCourseId, course)
+        await refreshUnlockedChapters(resolvedCourseId)
+        const paidRaw = await coursesApi.checkChapterAccessPaid(resolvedCourseId, chapterId).catch(() => null)
+        const seqRaw = await coursesApi.checkChapterAccessSequential(resolvedCourseId, chapterId).catch(() => null)
+        const paid = (paidRaw as any)?.data || paidRaw
+        const seq = (seqRaw as any)?.data || seqRaw
+        const paidAllowed = Boolean((paid as any)?.canAccess)
+        const seqAllowed = Boolean((seq as any)?.canAccess ?? (seq as any)?.hasAccess ?? true)
+        if (paidAllowed && seqAllowed) {
+          setPendingPaidChapterId(chapterId)
+          setChapterUnlockState("unlocked")
+          clearCheckoutParams()
+          return true
+        }
+      } catch {
+        // continue polling window
+      }
+    }
+    setPendingPaidChapterId(chapterId)
+    setChapterUnlockState("timeout")
+    return false
   }
 
   const refreshCourse = async () => {
@@ -229,6 +292,15 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
     }
   }, [courseId])
 
+  useEffect(() => {
+    const fromQuery = searchParams.get("paidChapterId")
+    const shouldReconcile = searchParams.get("checkout") === "success" || Boolean(fromQuery)
+    if (!shouldReconcile) return
+    const chapterId = fromQuery || consumePendingCheckoutFromStorage()
+    if (!chapterId) return
+    void runChapterUnlockReconciliation(String(chapterId))
+  }, [searchParams, course?.mongoId, courseId])
+
   // Only show a status block for loading, error, or course not found. Never block with "Enrollment Required" — always show the course player.
   const status = useMemo(() => {
     if (isLoading) return { title: "Loading...", description: "" }
@@ -280,6 +352,15 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
           await refreshUnlockedChapters(resolvedCourseId)
         }}
         onOpenEnrollment={handleEnrollmentRequest}
+        pendingPaidChapterId={pendingPaidChapterId}
+        chapterUnlockState={chapterUnlockState}
+        onRetryUnlock={
+          pendingPaidChapterId
+            ? async () => {
+                await runChapterUnlockReconciliation(pendingPaidChapterId)
+              }
+            : undefined
+        }
       />
 
       <EnrollCourseDialog

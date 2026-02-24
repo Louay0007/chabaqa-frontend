@@ -101,13 +101,9 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
     },
     {
       title: "Communities",
+      href: "/creator/communities",
       icon: Building,
-      expandable: true,
-      section: "communities",
-      items: [
-        { title: "All Communities", href: "/creator/communities", badge: "2" },
-        { title: "Create New", href: "/creator/communities/create", badge: null },
-      ],
+      badge: null
     },
     {
       title: "Analytics",

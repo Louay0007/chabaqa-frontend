@@ -9,25 +9,11 @@ import {
   DollarSign, 
   Lock, 
   CheckCircle, 
-  PlayCircle 
+  PlayCircle,
+  Link as LinkIcon,
 } from "lucide-react"
 import Link from "next/link"
-
-function normalizeCourseId(value: unknown): string {
-  if (!value) return ""
-  if (typeof value === "string") return value
-  if (typeof value === "object") {
-    const maybeRecord = value as Record<string, unknown>
-    const nestedId = maybeRecord._id ?? maybeRecord.id ?? maybeRecord.courseId
-    if (typeof nestedId === "string") return nestedId
-    if (typeof nestedId === "object" && nestedId) {
-      const nestedRecord = nestedId as Record<string, unknown>
-      if (typeof nestedRecord._id === "string") return nestedRecord._id
-      if (typeof nestedRecord.id === "string") return nestedRecord.id
-    }
-  }
-  return String(value)
-}
+import { idsMatch, resolveCourseRouteId } from "@/lib/utils/course-id"
 
 interface CourseDetailsSidebarProps {
   selectedCourse: string | null
@@ -64,13 +50,9 @@ export default function CourseDetailsSidebar({
     )
   }
 
-  const course = allCourses.find((c) => c.id === selectedCourse)
-  // Normalize IDs for comparison
-  const isEnrolled = userEnrollments.some((e) => {
-    const enrollmentCourseId = normalizeCourseId(e?.courseId)
-    const currentCourseId = normalizeCourseId(selectedCourse)
-    return enrollmentCourseId === currentCourseId
-  })
+  const course = allCourses.find((c) => idsMatch(c, selectedCourse))
+  const routeCourseId = resolveCourseRouteId(course ?? selectedCourse)
+  const isEnrolled = userEnrollments.some((e) => idsMatch(e?.courseId, course ?? selectedCourse))
   const pricing = course ? getCoursePricing(course) : null
 
   if (!course) return null
@@ -81,7 +63,7 @@ export default function CourseDetailsSidebar({
         <Card className="border-0 shadow-sm">
           <CardContent className="pt-6">
             <Button className="w-full" asChild>
-              <Link href={`/${creatorSlug}/${slug}/courses/${selectedCourse}`}>
+              <Link href={`/${creatorSlug}/${slug}/courses/${routeCourseId}`}>
                 <PlayCircle className="h-4 w-4 mr-2" />
                 Continue
               </Link>
@@ -147,7 +129,7 @@ export default function CourseDetailsSidebar({
         <CardHeader>
           <CardTitle className="flex items-center text-lg">
             <Award className="h-5 w-5 mr-2 text-yellow-500" />
-            What You'll Learn
+            What You&apos;ll Learn
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -193,7 +175,7 @@ export default function CourseDetailsSidebar({
                   <div className="flex items-center gap-3 overflow-hidden">
                     <div className="h-8 w-8 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0">
                       {resource.type === 'video' ? <PlayCircle className="h-4 w-4 text-blue-600" /> : 
-                       resource.type === 'link' ? <Link className="h-4 w-4 text-blue-600" /> :
+                       resource.type === 'link' ? <LinkIcon className="h-4 w-4 text-blue-600" /> :
                        <FileText className="h-4 w-4 text-blue-600" />}
                     </div>
                     <span className="text-sm font-medium truncate">
@@ -204,7 +186,7 @@ export default function CourseDetailsSidebar({
                     <Button variant="ghost" size="icon" className="h-8 w-8" asChild disabled={!isEnrolled}>
                       <a href={resource.url} target="_blank" rel="noopener noreferrer">
                         {resource.type === 'link' || resource.type === 'lien' ? 
-                          <Link className="h-4 w-4" /> : 
+                          <LinkIcon className="h-4 w-4" /> : 
                           <Download className="h-4 w-4" />
                         }
                       </a>
@@ -297,7 +279,7 @@ export default function CourseDetailsSidebar({
               <Button
                 size="sm"
                 className="w-full mt-4"
-                onClick={() => onEnroll(String(selectedCourse))}
+                onClick={() => onEnroll(routeCourseId)}
               >
                 Unlock Premium Content
               </Button>

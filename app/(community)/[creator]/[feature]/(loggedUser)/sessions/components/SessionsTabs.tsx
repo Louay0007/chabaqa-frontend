@@ -6,6 +6,7 @@ import { Filter } from "lucide-react"
 import AvailableSessions from "@/app/(community)/[creator]/[feature]/(loggedUser)/sessions/components/AvailableSessions"
 import BookedSessions from "@/app/(community)/[creator]/[feature]/(loggedUser)/sessions/components/BookedSessions"
 import CalendarView from "@/app/(community)/[creator]/[feature]/(loggedUser)/sessions/components/CalendarView"
+import Review from "@/app/(community)/[creator]/[feature]/(loggedUser)/sessions/components/review"
 
 interface SessionsTabsProps {
   activeTab: string
@@ -23,10 +24,11 @@ export default function SessionsTabs({
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
       <div className="flex items-center justify-between">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList className="grid w-full max-w-xl grid-cols-4">
           <TabsTrigger value="available">Available</TabsTrigger>
           <TabsTrigger value="booked">My Sessions</TabsTrigger>
           <TabsTrigger value="calendar">Calendar</TabsTrigger>
+          <TabsTrigger value="review">Review</TabsTrigger>
         </TabsList>
         <Button variant="outline" size="sm">
           <Filter className="h-4 w-4 mr-2" />
@@ -44,6 +46,10 @@ export default function SessionsTabs({
 
       <TabsContent value="calendar" className="space-y-6">
         <CalendarView sessions={sessions} userBookings={userBookings} />
+      </TabsContent>
+
+      <TabsContent value="review" className="space-y-6">
+        <Review userBookings={userBookings} />
       </TabsContent>
     </Tabs>
   )

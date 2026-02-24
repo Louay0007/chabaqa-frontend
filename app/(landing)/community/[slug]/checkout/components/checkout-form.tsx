@@ -394,9 +394,7 @@ export function CheckoutForm({
             <h2 className="text-gray-900 text-2xl font-bold leading-tight tracking-tight">
               Complete your purchase
             </h2>
-            <p className="text-gray-600 text-base font-normal leading-normal mt-2 mb-4">
-              Join {community.name} and unlock full access immediately after payment.
-            </p>
+
 
             <div className="mb-4 flex items-center justify-between">
               <div>

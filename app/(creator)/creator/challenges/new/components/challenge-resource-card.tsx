@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Loader2, Trash2, Upload } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { getResourceIcon } from "@/lib/utils"
-import { apiClient } from "@/lib/api/client"
 import { useToast } from "@/hooks/use-toast"
+import { mediaApi } from "@/lib/api/media.api"
 
 interface ChallengeResourceCardProps {
   resource: {
@@ -38,17 +38,6 @@ function ensureAbsoluteUploadUrl(value: unknown): string {
 
   if (raw.startsWith("/")) return `${origin}${raw}`
   return `${origin}/${raw}`
-}
-
-function extractUploadedUrl(result: any): string {
-  return (
-    result?.url ||
-    result?.data?.url ||
-    result?.data?.data?.url ||
-    result?.file?.url ||
-    result?.data?.file?.url ||
-    ""
-  )
 }
 
 function deriveTitleFromFileName(filename: string): string {
@@ -150,8 +139,13 @@ export function ChallengeResourceCard({
 
     setIsUploadingVideo(true)
     try {
-      const result = await apiClient.uploadFile<any>("/upload/video", file, "video")
-      const uploadedUrl = ensureAbsoluteUploadUrl(extractUploadedUrl(result))
+      const result = await mediaApi.uploadSmart(file, {
+        purpose: "challenge_video",
+        entityType: "challenge_resource",
+        entityId: resource.id,
+        visibility: "public",
+      })
+      const uploadedUrl = ensureAbsoluteUploadUrl(result?.url)
       if (!uploadedUrl) {
         throw new Error("Upload did not return a usable URL.")
       }

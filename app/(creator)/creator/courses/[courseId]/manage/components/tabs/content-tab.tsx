@@ -20,8 +20,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { useState } from "react"
 import { Course } from "@/lib/models"
-import { apiClient } from "@/lib/api/client"
 import { coursesApi } from "@/lib/api/courses.api"
+import { mediaApi } from "@/lib/api/media.api"
 
 type ContentTabProps = {
   course: Course
@@ -55,17 +55,6 @@ function ensureAbsoluteUploadUrl(value: unknown): string {
   const origin = apiBase.replace(/\/api$/, "")
   if (v.startsWith("/")) return `${origin}${v}`
   return `${origin}/${v}`
-}
-
-function extractUploadedUrl(result: any): string {
-  return (
-    result?.url ||
-    result?.data?.url ||
-    result?.data?.data?.url ||
-    result?.file?.url ||
-    result?.data?.file?.url ||
-    ""
-  )
 }
 
 export function ContentTab({
@@ -116,9 +105,12 @@ export function ContentTab({
   const uploadNewChapterVideo = async (file: File): Promise<string | null> => {
     setIsUploading(true)
     try {
-      const result = await apiClient.uploadFile<{ url: string }>("/upload/video", file, "video")
-      const rawUrl = extractUploadedUrl(result)
-      const url = ensureAbsoluteUploadUrl(rawUrl)
+      const result = await mediaApi.uploadSmart(file, {
+        purpose: "course_video",
+        entityType: "course_chapter",
+        visibility: "public",
+      })
+      const url = ensureAbsoluteUploadUrl(result?.url)
       return url || null
     } finally {
       setIsUploading(false)
@@ -517,6 +509,7 @@ export function ContentTab({
                             type="number"
                             placeholder="9.99"
                             value={newChapter.price}
+                            disabled={newChapter.isPreview}
                             onChange={(e) => setNewChapter((prev) => ({ ...prev, price: e.target.value }))}
                           />
                         </div>

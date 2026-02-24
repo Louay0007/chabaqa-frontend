@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Search, Filter } from "lucide-react"
 import { BookOpen } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { idsMatch } from "@/lib/utils/course-id"
 
 interface CoursesTabsProps {
   activeTab: string
@@ -28,6 +29,11 @@ export default function CoursesTabs({
   filteredCourses,
   children
 }: CoursesTabsProps) {
+const enrolledCoursesCount = allCourses.filter((course) =>
+  userEnrollments.some((enrollment) => idsMatch(enrollment?.courseId, course)),
+).length
+const availableCoursesCount = Math.max(0, allCourses.length - enrolledCoursesCount)
+
 return (
   <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
     {/* Header Section */}
@@ -38,7 +44,7 @@ return (
           All ({allCourses.length})
         </TabsTrigger>
         <TabsTrigger value="enrolled" className="whitespace-nowrap">
-          My Courses ({userEnrollments.length})
+          My Courses ({enrolledCoursesCount})
         </TabsTrigger>
         <TabsTrigger value="free" className="whitespace-nowrap">
           Free ({allCourses.filter((c) => c.price === 0).length})
@@ -47,11 +53,7 @@ return (
           Paid ({allCourses.filter((c) => c.price > 0).length})
         </TabsTrigger>
         <TabsTrigger value="available" className="whitespace-nowrap">
-          Available (
-          {allCourses.filter(
-            (c) => !userEnrollments.some((e) => e.courseId === c.id)
-          ).length}
-          )
+          Available ({availableCoursesCount})
         </TabsTrigger>
       </TabsList>
 

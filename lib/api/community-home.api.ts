@@ -170,6 +170,7 @@ function transformPost(backendPost: any): Post {
     shareCount: backendPost.shareCount || backendPost.totalShares || 0,
     isLikedByUser: backendPost.isLikedByUser || false,
     isSharedByUser: backendPost.isSharedByUser || false,
+    isBookmarkedByUser: backendPost.isBookmarkedByUser || false,
     images: backendPost.images || [],
     videos: backendPost.videos || [],
     links: backendPost.links || [],
@@ -323,24 +324,13 @@ export const communityHomeApi = {
         : undefined;
 
       try {
-        const postsResult = await postsApi.getByCommunity(community.id, { 
+        const postsResult = await postsApi.getByCommunity(community.id, {
           page: postsPage, 
           limit: postsLimit,
           userId 
-        }) as any;
-        if (postsResult) {
-          // Handle both array and paginated response formats
-          const postsArray = Array.isArray(postsResult.data)
-            ? postsResult.data
-            : Array.isArray((postsResult.data as any)?.items)
-              ? (postsResult.data as any).items
-              : Array.isArray((postsResult.data as any)?.posts)
-                ? (postsResult.data as any).posts
-                : [];
-
-          posts = postsArray.map(transformPost);
-          pagination = postsResult.pagination || { page: postsPage, limit: postsLimit, total: postsArray.length, totalPages: 1 };
-        }
+        });
+        posts = postsResult.posts.map(transformPost);
+        pagination = postsResult.pagination || { page: postsPage, limit: postsLimit, total: postsResult.posts.length, totalPages: 1 };
       } catch (error) {
         console.warn('Failed to fetch posts:', error);
         // Continue with empty posts array
@@ -420,13 +410,10 @@ export const communityHomeApi = {
     params?: PaginationParams
   ): Promise<{ posts: Post[]; pagination: any }> {
     const response = await postsApi.getByCommunity(communityId, params);
-    if (response.success) {
-      return {
-        posts: response.data.map(transformPost),
-        pagination: response.pagination,
-      };
-    }
-    return { posts: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } };
+    return {
+      posts: response.posts.map(transformPost),
+      pagination: response.pagination,
+    };
   },
 
   /**
