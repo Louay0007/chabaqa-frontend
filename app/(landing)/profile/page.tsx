@@ -709,7 +709,16 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.data) {
-            setCourses(deduplicateById(data.data.courses || []))
+            // Map courses to include community name
+            // NOTE: Backend issue - community field not populated in response
+            // Fix needed: Backend should populate community data in /api/cours/by-user/:userId
+            const coursesWithCommunity = (data.data.courses || []).map((course: any) => ({
+              ...course,
+              communityName: course.communityName || 
+                             course.community?.name || 
+                             (typeof course.community === 'string' ? course.community : null)
+            }))
+            setCourses(deduplicateById(coursesWithCommunity))
             setCoursesTotalPages(data.data.pagination?.totalPages || 1)
           }
         } else {
@@ -1068,6 +1077,12 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                     <p className="text-text-secondary text-sm mt-1">
                                       Status: {course.status === 'published' ? 'Published' : 'Draft'}
                                     </p>
+                                  )}
+                                  {course.communityName && (
+                                    <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full w-fit mt-2">
+                                      <Users className="w-3 h-3" />
+                                      <span className="font-medium">{course.communityName}</span>
+                                    </div>
                                   )}
                                 </div>
                                 {course.slug && (
