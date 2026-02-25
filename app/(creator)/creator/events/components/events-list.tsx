@@ -29,9 +29,10 @@ interface EventsListProps {
   upcomingEvents: Event[]
   pastEvents: Event[]
   loading?: boolean
+  communityEventBaseUrl?: string | null
 }
 
-export function EventsList({ activeTab, upcomingEvents, pastEvents, loading }: EventsListProps) {
+export function EventsList({ activeTab, upcomingEvents, pastEvents, loading, communityEventBaseUrl }: EventsListProps) {
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null)
 
   const toggleExpandEvent = (eventId: string) => {
@@ -59,6 +60,7 @@ export function EventsList({ activeTab, upcomingEvents, pastEvents, loading }: E
           event={event}
           isExpanded={expandedEvent === event.id}
           onToggleExpand={toggleExpandEvent}
+          communityEventBaseUrl={communityEventBaseUrl}
         />
       ))}
 
@@ -71,9 +73,10 @@ interface EventCardProps {
   event: Event
   isExpanded: boolean
   onToggleExpand: (eventId: string) => void
+  communityEventBaseUrl?: string | null
 }
 
-function EventCard({ event, isExpanded, onToggleExpand }: EventCardProps) {
+function EventCard({ event, isExpanded, onToggleExpand, communityEventBaseUrl }: EventCardProps) {
   const totalSessions = event.sessions?.length || 0
   const totalTicketsSold = (event.tickets || []).reduce((acc, ticket) => acc + (ticket.sold || 0), 0)
   const revenue = (event.tickets || []).reduce((acc, ticket) => acc + ((ticket.price || 0) * (ticket.sold || 0)), 0)
@@ -85,6 +88,7 @@ function EventCard({ event, isExpanded, onToggleExpand }: EventCardProps) {
           event={event}
           isExpanded={isExpanded}
           onToggleExpand={onToggleExpand}
+          communityEventBaseUrl={communityEventBaseUrl}
         />
 
         {isExpanded && (
@@ -107,7 +111,7 @@ function EventCard({ event, isExpanded, onToggleExpand }: EventCardProps) {
   )
 }
 
-function EventCardHeader({ event, isExpanded, onToggleExpand }: EventCardProps) {
+function EventCardHeader({ event, isExpanded, onToggleExpand, communityEventBaseUrl }: EventCardProps) {
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div className="flex items-start space-x-4">
@@ -122,6 +126,7 @@ function EventCardHeader({ event, isExpanded, onToggleExpand }: EventCardProps) 
         eventId={event.id}
         isExpanded={isExpanded}
         onToggleExpand={onToggleExpand}
+        communityEventBaseUrl={communityEventBaseUrl}
       />
     </div>
   )
@@ -190,15 +195,20 @@ function EventBadges({ event }: { event: Event }) {
   )
 }
 
-function EventActions({ eventId, isExpanded, onToggleExpand }: {
+function EventActions({ eventId, isExpanded, onToggleExpand, communityEventBaseUrl }: {
   eventId: string
   isExpanded: boolean
   onToggleExpand: (eventId: string) => void
+  communityEventBaseUrl?: string | null
 }) {
+  const viewHref = communityEventBaseUrl
+    ? `${communityEventBaseUrl}?eventId=${encodeURIComponent(String(eventId))}`
+    : `/creator/events/${eventId}`
+
   return (
     <div className="flex items-center space-x-2">
       <Button variant="outline" size="sm" asChild>
-        <Link href={`/events/${eventId}`}>
+        <Link href={viewHref}>
           <Eye className="h-4 w-4 mr-2" />
           View
         </Link>
