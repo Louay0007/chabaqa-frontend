@@ -1,33 +1,55 @@
 import { Sparkles } from "lucide-react";
-import { EventWithTickets } from "@/lib/api/events-community.api";
+import { EventRegistration, EventWithTickets } from "@/lib/api/events-community.api";
 
 interface EventsHeaderProps {
   availableEvents: EventWithTickets[];
-  myTickets: any[];
+  myTickets: EventRegistration[];
 }
 
 export default function EventsHeader({ availableEvents, myTickets }: EventsHeaderProps) {
-  // Filter only published and active events
   const now = new Date();
-  const upcomingEvents = availableEvents?.filter((event) => {
-    if (!event.isActive || event.isPublished === false) {
+
+  // Upcoming means active + published + future start date.
+  const upcomingEventsCount = (availableEvents || []).filter((event) => {
+    if (!event?.isActive || event?.isPublished === false || !event?.startDate) {
       return false;
     }
-    if (!event.startDate) {
-      return true;
-    }
+
     const startDate = new Date(event.startDate);
     if (Number.isNaN(startDate.getTime())) {
-      return true;
+      return false;
     }
-    return startDate >= now;
-  }) || []
 
-  // Calculate total tickets sold
-  const totalTicketsSold = availableEvents?.reduce(
-    (acc, ev) => acc + (ev.tickets?.reduce((t, tk) => t + (tk.sold || 0), 0) || 0),
-    0
-  ) || 0
+    return startDate >= now;
+  }).length;
+
+  // Count actual ticket quantity owned by user, ignoring cancelled registrations.
+  const myTicketsCount = (myTickets || []).reduce((total, registration) => {
+    if (registration?.status === "cancelled") {
+      return total;
+    }
+
+    const quantity = Number(registration?.quantity || 1);
+    return total + (Number.isFinite(quantity) && quantity > 0 ? quantity : 1);
+  }, 0);
+
+  // Prefer attendee count when available, fall back to sold values on ticket types.
+  const totalTicketsSold = (availableEvents || []).reduce((acc, event) => {
+    if (!event?.isActive || event?.isPublished === false) {
+      return acc;
+    }
+
+    const soldFromTickets = (event?.tickets || []).reduce((sum, ticket) => {
+      const sold = Number(ticket?.sold || 0);
+      return sum + (Number.isFinite(sold) && sold > 0 ? sold : 0);
+    }, 0);
+
+    const attendeeCount = Number(event?.attendeesCount || 0);
+    const normalizedAttendeeCount =
+      Number.isFinite(attendeeCount) && attendeeCount > 0 ? attendeeCount : 0;
+
+    return acc + Math.max(soldFromTickets, normalizedAttendeeCount);
+  }, 0);
 
   return (
     <div className="mb-6">
@@ -52,11 +74,11 @@ export default function EventsHeader({ availableEvents, myTickets }: EventsHeade
         {/* Stats horizontal */}
         <div className="flex space-x-6 mt-4 md:mt-0">
           <div className="text-center">
-            <div className="text-xl font-bold">{upcomingEvents.length}</div>
+            <div className="text-xl font-bold">{upcomingEventsCount}</div>
             <div className="text-purple-100 text-xs">Upcoming Events</div>
           </div>
           <div className="text-center">
-            <div className="text-xl font-bold">{myTickets?.length || 0}</div>
+            <div className="text-xl font-bold">{myTicketsCount}</div>
             <div className="text-purple-100 text-xs">My Tickets</div>
           </div>
           <div className="text-center">

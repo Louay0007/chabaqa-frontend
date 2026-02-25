@@ -43,6 +43,7 @@ import { postsApi } from "@/lib/api/posts.api"
 import type { Post, PostLink } from "@/lib/api/types"
 import { PostCard } from "@/app/(community)/components/post-card"
 import { useToast } from "@/hooks/use-toast"
+import { useSearchParams } from "next/navigation"
 
 const POSTS_PAGE = 1
 const POSTS_LIMIT = 10
@@ -123,6 +124,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   const resolvedParams = React.use(params)
   const { feature } = resolvedParams
   const { toast } = useToast()
+  const searchParams = useSearchParams()
 
   // State management
   const [loading, setLoading] = useState(true)
@@ -155,6 +157,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
 
   const [deletePostId, setDeletePostId] = useState<string | null>(null)
   const [isDeletingPost, setIsDeletingPost] = useState(false)
+  const [highlightedPostId, setHighlightedPostId] = useState<string | null>(null)
 
   // Media upload state
   const [uploadedImages, setUploadedImages] = useState<string[]>([])
@@ -165,6 +168,9 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   const imageInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
   const postTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const focusedSharedPostIdsRef = useRef<Set<string>>(new Set())
+  const fetchedSharedPostIdsRef = useRef<Set<string>>(new Set())
 
   const COMMON_EMOJIS = ["😀", "😂", "😍", "🎉", "🔥", "👍", "❤️", "🚀", "✨", "💯"]
 
@@ -183,6 +189,38 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
     setShowEmojiPicker(false)
     setShowMetadata(false)
   }, [])
+
+  const focusPostById = useCallback((postId: string) => {
+    if (!postId || typeof window === "undefined") return
+
+    const targetElementId = `post-${postId}`
+    let attempts = 0
+
+    const scrollToPost = () => {
+      const el = document.getElementById(targetElementId)
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+        setHighlightedPostId(postId)
+
+        if (highlightTimerRef.current) {
+          clearTimeout(highlightTimerRef.current)
+        }
+        highlightTimerRef.current = setTimeout(() => {
+          setHighlightedPostId((prev) => (prev === postId ? null : prev))
+        }, 3500)
+        return
+      }
+
+      attempts += 1
+      if (attempts < 8) {
+        window.setTimeout(scrollToPost, 120)
+      }
+    }
+
+    scrollToPost()
+  }, [])
+
+  const sharedPostId = (searchParams.get("post") || "").trim()
 
   const fetchHomeData = useCallback(async () => {
     try {
@@ -278,6 +316,68 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
     setSavedError(null)
     setHasLoadedSavedOnce(false)
   }, [feature, data?.currentUser?.id])
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!sharedPostId || !data?.community?.id) return
+
+    if (activeFeedTab !== "all") {
+      setActiveFeedTab("all")
+      return
+    }
+
+    const postExistsInFeed = data.posts.some((post) => String(post.id) === sharedPostId)
+    if (postExistsInFeed) {
+      if (!focusedSharedPostIdsRef.current.has(sharedPostId)) {
+        focusedSharedPostIdsRef.current.add(sharedPostId)
+        focusPostById(sharedPostId)
+      }
+      return
+    }
+
+    if (fetchedSharedPostIdsRef.current.has(sharedPostId)) return
+    fetchedSharedPostIdsRef.current.add(sharedPostId)
+
+    let isMounted = true
+    const loadSharedPost = async () => {
+      try {
+        const response = await postsApi.getById(sharedPostId)
+        if (!isMounted) return
+
+        const fetchedPost = normalizeSavedPostForCard(response.data as Post)
+        const fetchedCommunityId = String((response.data as any)?.communityId || "")
+        if (fetchedCommunityId && fetchedCommunityId !== String(data.community.id)) {
+          return
+        }
+
+        setData((prevData) => {
+          if (!prevData) return prevData
+          if (prevData.posts.some((post) => String(post.id) === String(fetchedPost.id))) {
+            return prevData
+          }
+          return {
+            ...prevData,
+            posts: [fetchedPost, ...prevData.posts],
+          }
+        })
+      } catch (error) {
+        console.error("Unable to load shared post:", error)
+      }
+    }
+
+    void loadSharedPost()
+
+    return () => {
+      isMounted = false
+    }
+  }, [activeFeedTab, data?.community?.id, data?.posts, focusPostById, sharedPostId])
 
   const insertEmojiIntoPost = (emoji: string) => {
     const el = postTextareaRef.current
@@ -1057,6 +1157,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                         key={post.id}
                         post={post}
                         currentUser={currentUser}
+                        isHighlighted={highlightedPostId === post.id}
                         isBookmarked={Boolean(post.isBookmarkedByUser)}
                         isBookmarkPending={bookmarkPendingIds.has(post.id)}
                         onPostUpdate={handlePostUpdate}

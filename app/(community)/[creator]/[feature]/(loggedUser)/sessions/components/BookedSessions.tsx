@@ -53,6 +53,13 @@ export default function BookedSessions({ setActiveTab, userBookings }: BookedSes
     return new Date(scheduledAt.getTime() + durationMinutes * 60 * 1000)
   }
 
+  const isReviewEligible = (booking: any, session: any): boolean => {
+    if (!booking || booking?.status === "cancelled") return false
+    if (booking?.status === "completed") return true
+    if (booking?.status !== "confirmed") return false
+    return Date.now() >= getSessionEndTime(booking, session).getTime()
+  }
+
   const handleMessageMentor = async (booking: any, session: any) => {
     if (booking?.status !== "confirmed") {
       toast({
@@ -163,6 +170,7 @@ export default function BookedSessions({ setActiveTab, userBookings }: BookedSes
           const sessionEnd = getSessionEndTime(booking, session)
           const isSessionEnded = Date.now() >= sessionEnd.getTime()
           const canMessageMentor = booking.status === "confirmed" && !isSessionEnded
+          const canReview = isReviewEligible(booking, session)
           const isOpeningChat = openingChatBookingId === String(booking.id)
           const sessionId = String(session?.id || booking?.sessionId || "").trim()
           const sessionFeedbackState = sessionId ? feedbackBySession[sessionId] : null
@@ -246,7 +254,7 @@ export default function BookedSessions({ setActiveTab, userBookings }: BookedSes
                         {isOpeningChat ? "Opening chat..." : "Message Mentor"}
                       </Button>
                     </div>
-                    {booking.status === "completed" && sessionId && (
+                    {canReview && sessionId && (
                       <Button
                         variant="outline"
                         className="w-full bg-transparent"

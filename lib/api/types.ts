@@ -487,6 +487,31 @@ export interface Post {
   author: User;
 }
 
+export type PostShareMethod =
+  | 'native'
+  | 'copy_link'
+  | 'whatsapp'
+  | 'x'
+  | 'facebook'
+  | 'linkedin'
+  | 'telegram'
+  | 'email';
+
+export interface PostShareMeta {
+  postId: string;
+  shareUrl: string;
+  title: string;
+  text: string;
+  platformUrls: {
+    whatsapp: string;
+    x: string;
+    facebook: string;
+    linkedin: string;
+    telegram: string;
+    email: string;
+  };
+}
+
 export interface PostStats {
   postId: string;
   totalLikes: number;
