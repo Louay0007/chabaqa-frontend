@@ -10,66 +10,34 @@ interface FAQItem {
 }
 
 const faqData: FAQItem[] = [
-  {
-    question: "What is Chabaqa and how does it help creators?",
-    answer: "Chabaqa is an all-in-one community platform designed specifically for creators, coaches, and educators. It empowers you to build, manage, and monetize your community through integrated tools including online courses, interactive challenges, one-on-one coaching sessions, virtual events, and digital product sales. Unlike other platforms, Chabaqa provides everything you need in one place, eliminating the need for multiple subscriptions and complex integrations.",
-    category: "Platform"
-  },
-  {
-    question: "How can I monetize my content and community on Chabaqa?",
-    answer: "Chabaqa offers multiple revenue streams to maximize your earning potential: sell premium online courses with video lessons and certificates, offer paid challenges with progress tracking, provide one-on-one coaching sessions at your own rates, host paid virtual events and workshops, sell digital products like ebooks and templates, and create membership tiers with recurring revenue. You set your own pricing and keep the majority of your earnings with transparent, creator-friendly fees.",
-    category: "Monetization"
-  },
-  {
-    question: "What features does Chabaqa offer for building and managing communities?",
-    answer: "Chabaqa provides comprehensive community management tools including dedicated community spaces for discussions and networking, member management with roles and permissions, content creation tools for posts and updates, real-time analytics dashboard to track engagement and growth, integrated payment processing with multiple currencies, automated email notifications and reminders, mobile-responsive design for access anywhere, and engagement features like challenges, leaderboards, and badges to keep members active.",
-    category: "Features"
-  },
-  {
-    question: "Is Chabaqa suitable for beginners with no technical experience?",
-    answer: "Absolutely! Chabaqa is designed with user-friendliness as a priority. Our intuitive interface requires no coding or technical skills. Whether you're launching your first online course or building your first community, our step-by-step onboarding process, comprehensive documentation, video tutorials, and responsive customer support team will guide you every step of the way. You can have your community up and running in minutes, not days.",
-    category: "Getting Started"
-  },
-  {
-    question: "How do I create and sell online courses on Chabaqa?",
-    answer: "Creating courses on Chabaqa is straightforward: upload video lessons, PDFs, and other materials; organize content into logical modules and lessons; add quizzes and assignments to reinforce learning; set pricing (one-time payment or subscription); track student progress with built-in analytics; engage with students through comments and discussions; issue certificates upon completion; and offer course bundles for increased value. Our course builder is intuitive and supports various content formats.",
-    category: "Courses"
-  },
-  {
-    question: "What are Chabaqa Challenges and how do they increase engagement?",
-    answer: "Challenges are time-bound, goal-oriented activities that drive community engagement and help members achieve results. Create fitness challenges with daily check-ins, learning sprints with progress milestones, creative contests with submissions, habit-building challenges with streak tracking, or team competitions with leaderboards. Challenges include progress tracking, social sharing features, automated reminders, achievement badges, and community support forums. They're proven to increase member retention and satisfaction.",
-    category: "Challenges"
-  },
-  {
-    question: "Can I schedule and manage one-on-one coaching sessions through Chabaqa?",
-    answer: "Yes! Our integrated coaching feature allows you to offer personalized sessions seamlessly. Set your availability with calendar integration, define session types and durations, set individual pricing for different services, allow members to book directly through the platform, receive automated booking confirmations and reminders, conduct sessions via integrated video calls or external tools, take session notes for continuity, and collect payments automatically. It's a complete coaching management system.",
-    category: "Coaching"
-  },
-  {
-    question: "How does payment processing work and when do I get paid?",
-    answer: "Chabaqa handles all payment processing securely through industry-leading payment gateways. We support major credit cards, debit cards, and digital wallets; process payments in multiple currencies; provide automatic invoicing and receipts; offer flexible payout schedules (weekly, bi-weekly, or monthly); give detailed transaction reports and analytics; handle refunds and disputes; and ensure PCI-DSS compliance for security. You'll receive payouts directly to your bank account on your chosen schedule.",
-    category: "Payments"
-  },
-  {
-    question: "Can I host live virtual events, webinars, and workshops on Chabaqa?",
-    answer: "Yes! Chabaqa's event management system lets you create and promote events, manage registrations and ticket sales, send automated reminders to attendees, host live or pre-recorded sessions, enable Q&A and polls during events, create breakout rooms for networking, share resources and materials, record sessions for replay, and collect feedback post-event. Perfect for webinars, workshops, masterclasses, networking events, and community meetups.",
-    category: "Events"
-  },
-  {
-    question: "What analytics and insights does Chabaqa provide to grow my business?",
-    answer: "Our comprehensive analytics dashboard gives you actionable insights: member growth and retention metrics, revenue tracking and forecasting, content performance analytics, engagement rates and patterns, course completion rates, challenge participation statistics, session booking trends, traffic sources and conversion rates, and member demographics and behavior. Use these insights to make data-driven decisions, optimize your content, and grow your community strategically.",
-    category: "Analytics"
-  },
-  {
-    question: "Is Chabaqa accessible on mobile devices and tablets?",
-    answer: "Yes! Chabaqa is fully responsive and optimized for all devices. Members can access your community, courses, challenges, and content from any smartphone, tablet, or desktop browser. The mobile experience includes full functionality with touch-optimized navigation, fast loading times, offline content access for courses, push notifications for updates, mobile-friendly video playback, and easy payment processing. No separate app download required - it works seamlessly in any modern browser.",
-    category: "Accessibility"
-  },
-  {
-    question: "How do I get started with Chabaqa and what are the pricing plans?",
-    answer: "Getting started is simple: sign up for a free account at chabaqa.com, complete your creator profile with bio and branding, create your first community space, add your first course, challenge, or content, invite your initial members, and start growing! We offer flexible pricing plans including a free tier to get started, creator plans with advanced features, pro plans for established creators, and enterprise solutions for large organizations. All plans include core features with transparent pricing and no hidden fees.",
-    category: "Getting Started"
-  }
+  { 
+    question: "What makes Chabaqa different?", 
+    answer: "Chabaqa is an all-in-one community platform built for creators, coaches, and educators who want to grow and monetize their audience in one place. It gives you the tools to create and sell online courses, run interactive challenges, offer one-on-one coaching, host virtual events, and deliver digital products — all from a single, integrated system. Unlike fragmented solutions, Chabaqa removes the need for multiple subscriptions or complicated integrations, so you can focus on building a strong, engaged community.", 
+  }, 
+  { 
+    question: "How do I create community in Chabaqa?", 
+    answer: "After signing up at chabaqa.io, hit 'Create New Community' button—add name, description, customize colors/banners/logo, and select features for your landing page (sales page). Generate 'Invite Link' button to share anywhere; anyone clicks to join instantly. Simple, fast, fully branded from day one", 
+  }, 
+  { 
+    question: "Is Chabaqa only for creating online courses?", 
+    answer: "No, Chabaqa is a complete all-in-one community platform that lets you build interactive spaces where you engage directly with your students and audience. Beyond courses (with quizzes, certificates, and progress tracking), you can run paid challenges with leaderboards, sell digital products like templates/ebooks/templates, offer 1:1 coaching sessions with calendar booking, and host live events with ticketing all within the same community dashboard..", 
+  }, 
+  { 
+    question: "How will Chabaqa help me interact more with my students?", 
+    answer: "Chabaqa gives you powerful built-in tools to stay connected beyond just courses one dashboard with automated email sequences, WhatsApp messages, direct messages (DMs), and community feeds to nurture relationships effortlessly.Post updates that spark discussions, send targeted WhatsApp reminders for live events/challenges, trigger personalized emails (e.g., 'Complete Lesson 2!'), and chat 1:1 via member profiles. Live Q&A sessions, member request questions for deeper insights, activity feeds showing who's active, plus push notifications keep engagement high all automated to attract/retain students without extra apps. Analytics track opens/clicks/responses so you focus on teaching, not chasing.",     
+  }, 
+  { 
+    question: "How can users book a 1:1 session on Chabaqa?", 
+    answer: "Users simply navigate to the '1:1 Sessions' section in your community they'll see your pre-set availability calendar with open slots you've already configured (e.g., Tue/Thu 2-5 PM). They select a date/time, complete booking (answer any custom questions), and if priced, make secure payment.Once booked, that slot auto-blocks on your calendar, and the user instantly receives a confirmation plus a direct meeting link (Zoom/Jitsi/Google Meet) via DM in the platform or email. You get notified too, with easy reschedule/cancel options. No extra tools needed seamless from your dashboard", 
+  }, 
+  { 
+    question: "What is the difference between Courses and Challenges?", 
+    answer: "Courses are long-term learning resources that remain permanently available inside the community for all members, whether new or existing. They are designed for flexible, self-paced learning.Challenges, on the other hand, are intensive and highlystructured learning experiences built to maximize engagement and results within a specific timeframe. For example, a 7-day PHP challenge includes daily checkpoints where participants complete lessons through videos, files, or live sessions. By the end of the challenge, students are expected to fully understand the topic. Challenges are timelimited, have restricted enrollment, may include leaderboards and rewards, and require consistent progress to stay active.", 
+  }, 
+  { 
+    question: "How can I create an event in Chabaqa?", 
+    answer: "Chabaqa's Events feature lets you sell tickets for online or offline events directly in your community. For online events, buyers get an instant meeting link (Zoom/Jitsi); for offline, they see full details on the event sales page (venue, date, ticket types like VIP/normal, seat numbers, multiple prices) after that Creator can track sales, RSVPs, and attendance seamlessly (name/email/phone/ID confirmation) .", 
+  }, 
 ]
 
 export function FAQ() {
