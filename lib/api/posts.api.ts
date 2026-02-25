@@ -1,5 +1,5 @@
 import { apiClient, ApiSuccessResponse, PaginationParams } from './client';
-import type { Post, PostComment, PostLink, PostStats } from './types';
+import type { Post, PostComment, PostLink, PostShareMeta, PostShareMethod, PostStats } from './types';
 
 export interface CreatePostData {
   title?: string;
@@ -17,6 +17,11 @@ export interface UpdatePostData extends Partial<CreatePostData> { }
 
 export interface CreateCommentData {
   content: string;
+}
+
+export interface SharePostData {
+  method?: PostShareMethod;
+  targetUrl?: string;
 }
 
 export interface NormalizedPostListResponse<T = Post> {
@@ -120,8 +125,13 @@ export const postsApi = {
   },
 
   // Share post
-  share: async (id: string): Promise<ApiSuccessResponse<PostStats>> => {
-    return apiClient.post<ApiSuccessResponse<PostStats>>(`/posts/${id}/share`);
+  share: async (id: string, data?: SharePostData): Promise<ApiSuccessResponse<PostStats>> => {
+    return apiClient.post<ApiSuccessResponse<PostStats>>(`/posts/${id}/share`, data);
+  },
+
+  // Get share metadata for post
+  getShareMeta: async (id: string): Promise<ApiSuccessResponse<PostShareMeta>> => {
+    return apiClient.get<ApiSuccessResponse<PostShareMeta>>(`/posts/${id}/share`);
   },
 
   // Get comments

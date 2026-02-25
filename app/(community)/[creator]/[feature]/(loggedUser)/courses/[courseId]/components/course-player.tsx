@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import CourseHeader from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/[courseId]/components/course-header"
 import EnhancedVideoPlayer from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/[courseId]/components/enhanced-video-player"
@@ -192,6 +193,9 @@ export default function CoursePlayer({
       if (forceUnlockedChapterId && key === forceUnlockedChapterId) {
         return true
       }
+      if (unlockedMap.get(key)?.isUnlocked) {
+        return true
+      }
       const known = accessibleChapters[key]
       if (typeof known === "boolean") return known
 
@@ -203,8 +207,43 @@ export default function CoursePlayer({
         !Boolean(chapter.isPaidChapter)
       return Boolean(isFreeChapter)
     },
-    [accessibleChapters, allChapters, forceUnlockedChapterId],
+    [accessibleChapters, allChapters, forceUnlockedChapterId, unlockedMap],
   )
+
+  useEffect(() => {
+    if (!Array.isArray(unlockedChapters) || unlockedChapters.length === 0) return
+
+    const unlockedIds = unlockedChapters
+      .filter((chapter: any) => Boolean(chapter?.isUnlocked))
+      .map((chapter: any) => String(chapter.id))
+      .filter(Boolean)
+
+    if (unlockedIds.length === 0) return
+
+    setAccessibleChapters((prev) => {
+      let changed = false
+      const next = { ...prev }
+      for (const chapterId of unlockedIds) {
+        if (next[chapterId] !== true) {
+          next[chapterId] = true
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+
+    setChapterAccessReason((prev) => {
+      let changed = false
+      const next = { ...prev }
+      for (const chapterId of unlockedIds) {
+        if (typeof next[chapterId] !== "undefined") {
+          delete next[chapterId]
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [unlockedChapters])
 
   useEffect(() => {
     // Reset access cache when course or unlock state changes

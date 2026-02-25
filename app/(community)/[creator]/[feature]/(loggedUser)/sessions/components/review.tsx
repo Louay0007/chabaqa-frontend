@@ -34,9 +34,26 @@ export default function Review({ userBookings }: ReviewProps) {
     >
   >({})
 
+  const isBookingReviewEligible = (booking: any) => {
+    if (!booking || booking?.status === "cancelled") return false
+
+    if (booking?.status === "completed") return true
+
+    if (booking?.status === "confirmed") {
+      const scheduledAt = new Date(booking?.scheduledAt || 0)
+      if (Number.isNaN(scheduledAt.getTime())) return false
+
+      const sessionDuration = Number(booking?.session?.duration || booking?.sessionDuration || 60)
+      const sessionEnd = new Date(scheduledAt.getTime() + sessionDuration * 60 * 1000)
+      return sessionEnd.getTime() <= Date.now()
+    }
+
+    return false
+  }
+
   const completedBookings = useMemo(() => {
     return (userBookings || [])
-      .filter((booking) => booking?.status === "completed")
+      .filter((booking) => isBookingReviewEligible(booking))
       .sort(
         (a, b) =>
           new Date(b?.scheduledAt || 0).getTime() - new Date(a?.scheduledAt || 0).getTime(),

@@ -1,3 +1,4 @@
+import React from "react"
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -258,7 +259,6 @@ export default function CourseSidebar({
                             <button
                               key={chapter.id}
                               onClick={() => {
-                                if (!accessible) return
                                 void setSelectedChapter(String(chapter.id))
                               }}
                               className={`w-full flex flex-col p-2.5 md:p-3 rounded-lg text-left transition-all ${
