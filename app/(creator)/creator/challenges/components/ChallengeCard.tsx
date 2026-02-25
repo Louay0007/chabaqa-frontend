@@ -119,9 +119,9 @@ export default function ChallengeCard({ challenge }: ChallengeCardProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <div className="mt-8">
-            <h3 className="text-xl font-bold mb-2">{challenge.title}</h3>
-            <p className="text-challenges-100 text-sm">{challenge.description}</p>
+          <div className="mt-8 h-[120px]">
+            <h3 className="text-xl font-bold mb-2 line-clamp-2">{challenge.title}</h3>
+            <p className="text-challenges-100 text-sm line-clamp-3">{challenge.description}</p>
           </div>
         </div>
       </div>
@@ -163,20 +163,22 @@ export default function ChallengeCard({ challenge }: ChallengeCardProps) {
           </div>
         </div>
 
-        {status === "active" && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Completion Rate</span>
-              <span>{Math.round(challenge.participants[0]?.progress || 0)}%</span>
+        <div className="min-h-[60px]">
+          {status === "active" && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Completion Rate</span>
+                <span>{Math.round(challenge.participants[0]?.progress || 0)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-challenges-500 h-2 rounded-full transition-all"
+                  style={{ width: `${Math.round(challenge.participants[0]?.progress || 0)}%` }}
+                />
+              </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-challenges-500 h-2 rounded-full transition-all"
-                style={{ width: `${Math.round(challenge.participants[0]?.progress || 0)}%` }}
-              />
-            </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center space-x-2">

@@ -778,16 +778,23 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.data) {
-            setSessions(deduplicateById(data.data.sessions || []))
+            // Map sessions to include community name
+            const sessionsWithCommunity = (data.data.sessions || []).map((session: any) => ({
+              ...session,
+              communityName: session.communityName || 
+                             session.community?.name || 
+                             (typeof session.community === 'string' ? session.community : null)
+            }))
+            setSessions(deduplicateById(sessionsWithCommunity))
             setSessionsTotalPages(data.data.pagination?.totalPages || 1)
           }
         } else {
           console.warn('Failed to fetch user sessions:', response.status)
           // Fallback to mock data for now
           setSessions([
-            { id: '1', title: 'Design Systems Workshop', startTime: '2024-01-20T14:00:00Z', duration: 60, status: 'upcoming', type: 'booked', creator: { name: 'Jane Doe', avatar: 'https://placehold.co/32x32?text=JD' }, thumbnail: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=1200&auto=format&fit=crop' },
-            { id: '2', title: 'React Performance', startTime: '2024-01-18T10:00:00Z', duration: 90, status: 'past', type: 'booked', creator: { name: 'John Smith', avatar: 'https://placehold.co/32x32?text=JS' }, thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=1200&auto=format&fit=crop' },
-            { id: '3', title: 'UX Research Methods', startTime: '2024-01-25T16:00:00Z', duration: 120, status: 'upcoming', type: 'created', creator: { name: user?.name || 'You', avatar: user?.avatar || 'https://placehold.co/32x32?text=ME' }, thumbnail: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=1200&auto=format&fit=crop' }
+            { id: '1', title: 'Design Systems Workshop', startTime: '2024-01-20T14:00:00Z', duration: 60, status: 'upcoming', type: 'booked', creator: { name: 'Jane Doe', avatar: 'https://placehold.co/32x32?text=JD' }, thumbnail: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=1200&auto=format&fit=crop', communityName: 'Design Community' },
+            { id: '2', title: 'React Performance', startTime: '2024-01-18T10:00:00Z', duration: 90, status: 'past', type: 'booked', creator: { name: 'John Smith', avatar: 'https://placehold.co/32x32?text=JS' }, thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=1200&auto=format&fit=crop', communityName: 'React Devs' },
+            { id: '3', title: 'UX Research Methods', startTime: '2024-01-25T16:00:00Z', duration: 120, status: 'upcoming', type: 'created', creator: { name: user?.name || 'You', avatar: user?.avatar || 'https://placehold.co/32x32?text=ME' }, thumbnail: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=1200&auto=format&fit=crop', communityName: 'UX Designers' }
           ])
         }
       } catch (error) {
@@ -1249,40 +1256,61 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                               'live': '#10b981'
                             }
                             const color = statusColors[session.status as keyof typeof statusColors] || '#8e78fb'
-                            const startTime = new Date(session.startTime)
-                            const isToday = startTime.toDateString() === new Date().toDateString()
-                            const timeStr = isToday ?
-                              `Today ${startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` :
-                              startTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                            
+                            // Handle date safely - check if startTime exists and is valid
+                            let timeStr = "Date TBD"
+                            if (session.startTime) {
+                              const startTime = new Date(session.startTime)
+                              if (!isNaN(startTime.getTime())) {
+                                const isToday = startTime.toDateString() === new Date().toDateString()
+                                timeStr = isToday ?
+                                  `Today ${startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` :
+                                  startTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                              }
+                            }
 
                             return (
-                              <div key={session.id} className="flex flex-col gap-3 group rounded-lg border border-border-color bg-white shadow-subtle overflow-hidden hover:shadow-md transition-shadow">
-                                <div className="relative w-full bg-center bg-no-repeat aspect-video bg-cover rounded-t-lg overflow-hidden transform group-hover:scale-105 transition-transform duration-300" style={{ backgroundImage: `url(${session.thumbnail})` }}>
-                                  <div className="absolute inset-0 bg-black/20" />
-                                  <Calendar className="absolute top-3 right-3 w-8 h-8" style={{ color }} />
+                              <div key={session.id} className="flex flex-col gap-0 group rounded-xl overflow-hidden shadow-subtle hover:shadow-md transition-all duration-300 bg-white border border-gray-100">
+                                {/* Header avec gradient et icône calendrier */}
+                                <div className="relative h-32 bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 flex items-center justify-center">
+                                  <Calendar className="w-16 h-16 text-white opacity-90" />
                                   {session.type === 'created' && (
-                                    <div className="absolute top-3 left-3 px-2 py-1 bg-purple-500 text-white text-xs rounded-full">
+                                    <div className="absolute top-3 left-3 px-2 py-1 bg-purple-600 text-white text-xs rounded-full">
                                       Created
                                     </div>
                                   )}
                                   {session.status === 'live' && (
-                                    <div className="absolute bottom-3 right-3 px-2 py-1 bg-red-500 text-white text-xs rounded-full animate-pulse">
+                                    <div className="absolute top-3 right-3 px-2 py-1 bg-red-500 text-white text-xs rounded-full animate-pulse">
                                       LIVE
                                     </div>
                                   )}
                                 </div>
-                                <div className="p-4 flex-1 flex flex-col justify-between">
-                                  <div>
-                                    <p className="text-base font-medium line-clamp-2">{session.title}</p>
-                                    <p className="text-sm text-text-secondary mt-1">{timeStr}</p>
-                                    {session.duration && (
-                                      <p className="text-xs text-gray-400 mt-1">{session.duration} min • {session.creator?.name}</p>
-                                    )}
-                                  </div>
+                                
+                                {/* Contenu de la carte */}
+                                <div className="p-4 flex-1 flex flex-col gap-2">
+                                  <h3 className="text-base font-semibold line-clamp-2 min-h-[3rem]">{session.title}</h3>
+                                  <p className="text-sm text-gray-600">{timeStr}</p>
+                                  
+                                  {/* Durée et créateur sur une ligne */}
+                                  {session.duration && session.creator?.name && (
+                                    <p className="text-xs text-gray-500">
+                                      {session.duration} mins • {session.creator.name}
+                                    </p>
+                                  )}
+                                  
+                                  {/* Community name */}
+                                  {session.communityName && (
+                                    <div className="flex items-center gap-1 text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full w-fit">
+                                      <Users className="w-3 h-3" />
+                                      <span className="font-medium">{session.communityName}</span>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Bouton View Session */}
                                   {session.slug && (
                                     <a
                                       href={`/community/${session.slug}/sessions`}
-                                      className="mt-4 pt-4 border-t border-border-color w-full text-center py-2 rounded-md bg-pink-50 text-pink-600 hover:bg-pink-100 transition-colors text-sm font-medium"
+                                      className="mt-auto w-full text-center py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600 transition-all text-sm font-medium"
                                     >
                                       View Session
                                     </a>

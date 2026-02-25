@@ -4,26 +4,12 @@ import { CardHeader, CardTitle, CardDescription, CardContent } from "@/component
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "lucide-react"
-
-const categories = [
-  "Code Review",
-  "Career Mentorship",
-  "Technical Interview",
-  "Architecture Review",
-  "Portfolio Review",
-  "Skill Assessment",
-  "Project Planning",
-  "Learning Path",
-]
 
 interface BasicInfoStepProps {
   formData: {
     title: string
     description: string
-    category: string
-    targetAudience: string
     requirements: string
   }
   handleInputChange: (field: string, value: any) => void
@@ -68,37 +54,6 @@ export function BasicInfoStep({ formData, handleInputChange, validationErrors = 
           {validationErrors.description && (
             <p className="text-sm text-red-500">{validationErrors.description}</p>
           )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="category">Session Category *</Label>
-            <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
-              <SelectTrigger className={validationErrors.category ? "border-red-500" : ""}>
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {validationErrors.category && (
-              <p className="text-sm text-red-500">{validationErrors.category}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="targetAudience">Target Audience</Label>
-            <Input
-              id="targetAudience"
-              placeholder="e.g., Beginner developers, Career changers"
-              value={formData.targetAudience}
-              onChange={(e) => handleInputChange("targetAudience", e.target.value)}
-            />
-          </div>
         </div>
 
         <div className="space-y-2">

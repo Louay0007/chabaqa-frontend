@@ -3,19 +3,16 @@ import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Badge } from "@/components/ui/badge"
 import { Video, Users, Star, Eye } from "lucide-react"
 
 interface ReviewPublishStepProps {
   formData: {
     title: string
     description: string
-    category: string
     duration: string
     price: string
     currency: string
     sessionFormat: string
-    targetAudience: string
     availableDays: string[]
     availableHours: {
       start: string
@@ -25,6 +22,7 @@ interface ReviewPublishStepProps {
     whatYoullGet: string[]
     requirements: string
     preparationMaterials: string
+    isPublished?: boolean
   }
   handleInputChange: (field: string, value: any) => void
 }
@@ -49,9 +47,6 @@ export function ReviewPublishStep({ formData, handleInputChange }: ReviewPublish
                   <strong>Title:</strong> {formData.title || "Not set"}
                 </div>
                 <div>
-                  <strong>Category:</strong> {formData.category || "Not set"}
-                </div>
-                <div>
                   <strong>Duration:</strong> {formData.duration ? `${formData.duration} minutes` : "Not set"}
                 </div>
                 <div>
@@ -59,9 +54,6 @@ export function ReviewPublishStep({ formData, handleInputChange }: ReviewPublish
                 </div>
                 <div>
                   <strong>Format:</strong> {formData.sessionFormat || "Not set"}
-                </div>
-                <div>
-                  <strong>Target Audience:</strong> {formData.targetAudience || "Not specified"}
                 </div>
               </div>
             </div>
@@ -107,11 +99,6 @@ export function ReviewPublishStep({ formData, handleInputChange }: ReviewPublish
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h4 className="font-semibold text-lg">{formData.title || "Session Title"}</h4>
-                    {formData.category && (
-                      <Badge variant="secondary" className="mt-1 bg-sessions-100 text-sessions-700">
-                        {formData.category}
-                      </Badge>
-                    )}
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold text-sessions-600">
@@ -157,10 +144,13 @@ export function ReviewPublishStep({ formData, handleInputChange }: ReviewPublish
               </div>
             </div>
 
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-900">
-                <strong>Note:</strong> Sessions are created as drafts. You can publish them from the sessions page once you have an active subscription.
-              </p>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="publish"
+                checked={formData.isPublished || false}
+                onCheckedChange={(checked) => handleInputChange("isPublished", checked)}
+              />
+              <Label htmlFor="publish">Publish session immediately</Label>
             </div>
           </div>
         </div>

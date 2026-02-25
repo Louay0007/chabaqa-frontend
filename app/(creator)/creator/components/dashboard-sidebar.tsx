@@ -40,6 +40,7 @@ import {
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 import { prefetchCommunity } from "@/app/(creator)/creator/context/community-switch-cache"
 import type { Community } from "@/lib/api/types"
+import { api } from "@/lib/api"
 
 interface DashboardSidebarProps {
   user: any
@@ -65,6 +66,25 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
     error: communitiesError,
     setSelectedCommunityId,
   } = useCreatorCommunity()
+
+  // State for unread notifications count
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  // Fetch notifications and count unread
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await api.notifications.getAll()
+        const unread = response.items.filter(n => !n.isRead).length
+        setUnreadCount(unread)
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error)
+        // Keep count at 0 if fetch fails
+      }
+    }
+
+    fetchNotifications()
+  }, [])
 
   const handleCommunityChange = (communityId: string) => {
     setSelectedCommunityId(communityId)
@@ -164,7 +184,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
       title: "Notifications",
       icon: Bell,
       href: "/creator/notifications",
-      badge: "5",
+      badge: unreadCount > 0 ? unreadCount.toString() : null,
     },
     {
       title: "Help & Support",

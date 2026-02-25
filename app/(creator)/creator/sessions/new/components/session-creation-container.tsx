@@ -27,7 +27,6 @@ export function SessionCreationContainer() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    category: "",
     duration: "",
     price: "",
     currency: "TND",
@@ -41,11 +40,11 @@ export function SessionCreationContainer() {
     },
     preparationMaterials: "",
     sessionFormat: "",
-    targetAudience: "",
     // Availability settings
     recurringAvailability: [] as { dayOfWeek: number; startTime: string; endTime: string; isActive: boolean }[],
     autoGenerateSlots: true,
     advanceBookingDays: 30,
+    isPublished: false,
   })
 
   const steps = [
@@ -115,9 +114,6 @@ export function SessionCreationContainer() {
       if (!formData.description || formData.description.trim().length < 10) {
         errors.description = 'Session description must be at least 10 characters.'
       }
-      if (!formData.category) {
-        errors.category = 'Session category is required.'
-      }
     }
     
     // Step 2: Pricing & Duration validation
@@ -186,9 +182,6 @@ export function SessionCreationContainer() {
     if (!formData.currency) {
       errors.currency = 'Session currency is required.'
     }
-    if (!formData.category) {
-      errors.category = 'Session category is required.'
-    }
     if (formData.maxBookingsPerWeek) {
       const maxBookings = Number(formData.maxBookingsPerWeek)
       if (!Number.isFinite(maxBookings) || maxBookings < 1 || maxBookings > 50) {
@@ -227,11 +220,11 @@ export function SessionCreationContainer() {
         price: Number(formData.price || 0),
         currency: (formData.currency || 'TND') as CreateSessionData['currency'],
         communitySlug,
-        category: formData.category || undefined,
+        category: undefined,
         maxBookingsPerWeek: formData.maxBookingsPerWeek ? Number(formData.maxBookingsPerWeek) : undefined,
         notes: formData.requirements || formData.preparationMaterials || undefined,
-        // Always create as draft; creators need an active subscription to publish
-        isActive: false,
+        // Use isPublished to determine if session should be active
+        isActive: formData.isPublished || false,
         resources: [],
       }
 

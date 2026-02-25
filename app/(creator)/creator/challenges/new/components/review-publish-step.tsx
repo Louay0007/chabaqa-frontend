@@ -124,6 +124,11 @@ export function ReviewPublishStep({ formData, setFormData, startDate, endDate }:
                   </div>
                 )}
                 <h4 className="font-semibold text-lg">{formData.title || "Challenge Title"}</h4>
+                {formData.category && (
+                  <Badge variant="secondary" className="mt-1 bg-challenges-100 text-challenges-700">
+                    {formData.category}
+                  </Badge>
+                )}
                 <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                   {formData.description || "Challenge description will appear here..."}
                 </p>
@@ -161,10 +166,13 @@ export function ReviewPublishStep({ formData, setFormData, startDate, endDate }:
               </div>
             </div>
 
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-900">
-                <strong>Note:</strong> Challenges are created as drafts. You can publish them from the management page once you have an active subscription.
-              </p>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="publish"
+                checked={formData.isPublished}
+                onCheckedChange={(checked) => setFormData({ ...formData, isPublished: checked })}
+              />
+              <Label htmlFor="publish">Publish challenge immediately</Label>
             </div>
           </div>
         </div>

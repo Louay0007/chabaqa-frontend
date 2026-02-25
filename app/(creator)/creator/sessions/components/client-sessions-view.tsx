@@ -251,24 +251,31 @@ export default function ClientSessionsView({
                     filteredSessions.map((session) => (
                         <div
                         key={session.id}
-                        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow hover:shadow-md transition flex flex-col h-full"
+                        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow hover:shadow-md transition flex flex-col relative"
+                        style={{ height: '320px' }}
                         >
-                        <div className="flex items-start justify-between mb-3">
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <h4 className="text-lg font-semibold">{session.title}</h4>
-                                    <Badge
-                                        variant={session.isActive ? "default" : "secondary"}
-                                        className={session.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}
-                                    >
-                                        {session.isActive ? "Published" : "Draft"}
-                                    </Badge>
-                                </div>
-                                <p className="text-sm text-zinc-500 mt-1 line-clamp-2">{session.description}</p>
-                            </div>
+                        {/* Badge en position absolue */}
+                        <div className="absolute top-4 right-4">
+                            <Badge
+                                variant={session.isActive ? "default" : "secondary"}
+                                className={session.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}
+                            >
+                                {session.isActive ? "Published" : "Draft"}
+                            </Badge>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-zinc-600 dark:text-zinc-400 mb-3 gap-2">
+                        {/* Titre - hauteur fixe */}
+                        <div className="mb-3 pr-24" style={{ height: '32px' }}>
+                            <h4 className="text-lg font-semibold line-clamp-1">{session.title}</h4>
+                        </div>
+
+                        {/* Description - hauteur fixe */}
+                        <div className="mb-3" style={{ height: '60px' }}>
+                            <p className="text-sm text-zinc-500 line-clamp-3">{session.description}</p>
+                        </div>
+
+                        {/* Durée et Prix - hauteur fixe */}
+                        <div className="flex items-center justify-between text-sm text-zinc-600 dark:text-zinc-400 mb-3" style={{ height: '24px' }}>
                             <span className="flex items-center">
                                 <Calendar className="w-4 h-4 mr-1" />
                                 {session.duration} min
@@ -276,37 +283,38 @@ export default function ClientSessionsView({
                             <span className="font-medium">{session.price} TND</span>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-auto w-full">
-                          <div className="text-xs text-zinc-500">
-                              {session.category && (
-                                  <Badge variant="outline" className="text-xs">
-                                      {session.category}
-                                  </Badge>
-                              )}
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
-                              <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleToggleSessionStatus(session.id, session.isActive)}
-                                  disabled={updatingSession === session.id}
-                                  className="flex items-center gap-1 w-full sm:w-auto justify-center"
-                              >
-                                  {updatingSession === session.id ? (
-                                      <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
-                                  ) : session.isActive ? (
-                                      <PowerOff className="w-3 h-3" />
-                                  ) : (
-                                      <Power className="w-3 h-3" />
-                                  )}
-                                  {session.isActive ? 'Unpublish' : 'Publish'}
-                              </Button>
-                              <Button size="sm" variant="outline" className="w-full sm:w-auto justify-center" asChild>
-                                  <Link href={`/creator/sessions/${session.id}/edit`}>
-                                      <Edit className="w-3 h-3" />
-                                  </Link>
-                              </Button>
-                          </div>
+                        {/* Catégorie - hauteur fixe */}
+                        <div className="mb-3" style={{ height: '28px' }}>
+                            {session.category && (
+                                <Badge variant="outline" className="text-xs">
+                                    {session.category}
+                                </Badge>
+                            )}
+                        </div>
+
+                        {/* Boutons - en bas, hauteur fixe */}
+                        <div className="mt-auto flex items-center gap-2 w-full">
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleToggleSessionStatus(session.id, session.isActive)}
+                                disabled={updatingSession === session.id}
+                                className="flex-1 flex items-center justify-center gap-1"
+                            >
+                                {updatingSession === session.id ? (
+                                    <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                                ) : session.isActive ? (
+                                    <PowerOff className="w-3 h-3" />
+                                ) : (
+                                    <Power className="w-3 h-3" />
+                                )}
+                                {session.isActive ? 'Unpublish' : 'Publish'}
+                            </Button>
+                            <Button size="sm" variant="outline" className="flex items-center justify-center" asChild>
+                                <Link href={`/creator/sessions/${session.id}/edit`}>
+                                    <Edit className="w-3 h-3" />
+                                </Link>
+                            </Button>
                         </div>
                         </div>
                     ))
