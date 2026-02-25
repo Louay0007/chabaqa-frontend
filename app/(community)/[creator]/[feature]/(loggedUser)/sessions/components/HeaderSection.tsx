@@ -13,8 +13,22 @@ export default function HeaderSection({ sessions, userBookings }: HeaderSectionP
   
   const availableTypes = new Set(sessions?.map(s => s.category).filter(Boolean)).size || 0
   
-  // Calculate average rating (default to 4.9 for now)
-  const avgRating = 4.9
+  // Calculate weighted average rating from real session data
+  const totalRatings = (sessions || []).reduce((sum, session) => {
+    const count = Number(session?.ratingCount || 0)
+    return sum + (Number.isFinite(count) ? count : 0)
+  }, 0)
+
+  const weightedRatingSum = (sessions || []).reduce((sum, session) => {
+    const count = Number(session?.ratingCount || 0)
+    const rating = Number(session?.averageRating || 0)
+    if (!Number.isFinite(count) || count <= 0 || !Number.isFinite(rating)) {
+      return sum
+    }
+    return sum + rating * count
+  }, 0)
+
+  const avgRating = totalRatings > 0 ? weightedRatingSum / totalRatings : 0
 
   return (
     <div className="mb-6">
@@ -47,7 +61,7 @@ export default function HeaderSection({ sessions, userBookings }: HeaderSectionP
             <div className="text-sessions-100 text-xs">Available Types</div>
           </div>
           <div className="text-center">
-            <div className="text-xl font-bold">{avgRating}</div>
+            <div className="text-xl font-bold">{avgRating.toFixed(1)}</div>
             <div className="text-sessions-100 text-xs">Avg Rating</div>
           </div>
         </div>

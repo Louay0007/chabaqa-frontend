@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useMemo, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -30,13 +31,15 @@ import {
   Loader2,
 } from "lucide-react"
 import { postsApi } from "@/lib/api/posts.api"
-import type { Post, PostComment, User } from "@/lib/api/types"
+import type { Post, PostComment, PostStats, User } from "@/lib/api/types"
 import { resolveImageUrl } from "@/lib/hooks/useUser"
 import { useToast } from "@/hooks/use-toast"
+import { PostShareDialog } from "@/app/(community)/components/post-share-dialog"
 
 interface PostCardProps {
   post: Post
   currentUser: User | null
+  isHighlighted?: boolean
   isBookmarked?: boolean
   isBookmarkPending?: boolean
   onPostUpdate?: (updatedPost: Post) => void
@@ -48,6 +51,7 @@ interface PostCardProps {
 export function PostCard({
   post,
   currentUser,
+  isHighlighted = false,
   isBookmarked = false,
   isBookmarkPending = false,
   onPostUpdate,
@@ -59,7 +63,7 @@ export function PostCard({
 
   // Local state for interactions
   const [isLiking, setIsLiking] = useState(false)
-  const [isSharing, setIsSharing] = useState(false)
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
 
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<PostComment[]>([])
@@ -148,7 +152,7 @@ export function PostCard({
     }
   }
 
-  const handleShare = async () => {
+  const handleShare = () => {
     if (!currentUserId) {
       toast({
         title: "Sign in required",
@@ -158,33 +162,19 @@ export function PostCard({
       return
     }
 
-    if (isSharing || post.isSharedByUser) return
-    setIsSharing(true)
+    setShareDialogOpen(true)
+  }
 
-    try {
-      const response = await postsApi.share(post.id)
-      const stats = response.data
-
-      if (onPostUpdate) {
-        onPostUpdate({
-          ...post,
-          likes: stats.totalLikes,
-          commentsCount: stats.totalComments,
-          shareCount: stats.totalShares,
-          isLikedByUser: stats.isLikedByUser,
-          isSharedByUser: stats.isSharedByUser,
-        })
-      }
-    } catch (error: any) {
-      console.error("Error sharing post:", error)
-      toast({
-        title: "Share failed",
-        description: error?.message || "Could not share this post.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSharing(false)
-    }
+  const handleShareTracked = (stats: PostStats) => {
+    if (!onPostUpdate) return
+    onPostUpdate({
+      ...post,
+      likes: stats.totalLikes,
+      commentsCount: stats.totalComments,
+      shareCount: stats.totalShares,
+      isLikedByUser: stats.isLikedByUser,
+      isSharedByUser: stats.isSharedByUser,
+    })
   }
 
   const handleToggleComments = async () => {
@@ -326,7 +316,10 @@ export function PostCard({
   }
 
   return (
-    <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
+    <Card
+      id={`post-${post.id}`}
+      className={`border-0 shadow-sm hover:shadow-md transition-all bg-white ${isHighlighted ? "ring-2 ring-blue-400 shadow-md" : ""}`}
+    >
       <CardContent className="p-4 sm:p-6">
         {/* Post Header */}
         <div className="flex items-start justify-between mb-3 sm:mb-4">
@@ -514,14 +507,9 @@ export function PostCard({
               variant="ghost"
               size="sm"
               onClick={handleShare}
-              disabled={isSharing || post.isSharedByUser}
-              className={`${post.isSharedByUser ? "text-green-600" : "text-muted-foreground"} hover:text-green-500 text-xs sm:text-sm disabled:opacity-50`}
+              className={`${post.isSharedByUser ? "text-green-600" : "text-muted-foreground"} hover:text-green-500 text-xs sm:text-sm`}
             >
-              {isSharing ? (
-                <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
-              ) : (
-                <Share className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              )}
+              <Share className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               {post.shareCount || 0}
             </Button>
           </div>
@@ -540,6 +528,13 @@ export function PostCard({
             )}
           </Button>
         </div>
+
+        <PostShareDialog
+          postId={post.id}
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+          onShareTracked={handleShareTracked}
+        />
 
         {/* Comments Section */}
         {showComments && (

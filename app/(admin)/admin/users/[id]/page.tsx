@@ -24,7 +24,7 @@ import {
   Key, 
   Mail, 
   Calendar,
-  DollarSign,
+  Coins,
   Users,
   BookOpen,
   Edit
@@ -259,9 +259,9 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <Coins className="h-4 w-4 text-muted-foreground" />
               <span className="text-2xl font-bold">
-                ${statistics?.totalSpent?.toFixed(2) || '0.00'}
+                {statistics?.totalSpent?.toFixed(2) || '0.00'} TND
               </span>
             </div>
           </CardContent>

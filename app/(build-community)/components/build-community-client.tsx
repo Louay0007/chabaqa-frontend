@@ -11,7 +11,7 @@ import {
   Users,
   Lock,
   Globe,
-  DollarSign,
+  Coins,
   Instagram,
   Facebook,
   Youtube,
@@ -42,7 +42,7 @@ export default function CommunityPage() {
     status: "public",
     joinFee: "free",
     feeAmount: "0",
-    currency: "USD",
+    currency: "TND",
     socialLinks: {
       instagram: "",
       tiktok: "",
@@ -338,7 +338,7 @@ export default function CommunityPage() {
                         <div
                           className="w-10 h-10 rounded-lg flex items-center justify-center community-gradient-btn"
                         >
-                          <DollarSign className="w-5 h-5 text-white" />
+                          <Coins className="w-5 h-5 text-white" />
                         </div>
                         <div className="flex-1">
                           <Label htmlFor="paid" className="text-base font-medium cursor-pointer">
@@ -350,28 +350,14 @@ export default function CommunityPage() {
                               <Select value={formData.currency} onValueChange={(value) => updateFormData("currency", value)}>
                                 <SelectTrigger className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:border-[#8e78fb] focus:ring-2 focus:ring-[#8e78fb] focus:ring-opacity-20 bg-white shadow-sm transition-all duration-200 hover:border-gray-300">
                                   <SelectValue placeholder="Select currency">
-                                    {formData.currency === "USD" && "🇺🇸 USD"}
-                                    {formData.currency === "TND" && "🇹🇳 TND"}
-                                    {formData.currency === "EUR" && "🇪🇺 EUR"}
+                                    {formData.currency === "TND" && "🇹🇳 TND - Tunisian Dinar"}
                                   </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="USD">
-                                    <div className="flex flex-col">
-                                      <span className="font-medium">🇺🇸 USD</span>
-                                      <span className="text-sm text-gray-500">United States Dollar</span>
-                                    </div>
-                                  </SelectItem>
                                   <SelectItem value="TND">
                                     <div className="flex flex-col">
                                       <span className="font-medium">🇹🇳 TND</span>
                                       <span className="text-sm text-gray-500">Tunisian Dinar</span>
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="EUR">
-                                    <div className="flex flex-col">
-                                      <span className="font-medium">🇪🇺 EUR</span>
-                                      <span className="text-sm text-gray-500">Euro</span>
                                     </div>
                                   </SelectItem>
                                 </SelectContent>

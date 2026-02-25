@@ -14,6 +14,11 @@ const nextConfig = {
     unoptimized: true,
     remotePatterns: [
       {
+        protocol: 'https',
+        hostname: 'api.chabaqa.io',
+        pathname: '/uploads/**',
+      },
+      {
         protocol: 'http',
         hostname: '51.254.132.77',
         port: '3000',

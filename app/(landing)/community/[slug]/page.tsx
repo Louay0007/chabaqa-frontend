@@ -416,10 +416,10 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
     price: asNumber((communityData as any).price, 0),
     fees_of_join: asNumber((communityData as any).fees_of_join, 0),
     priceType: String((communityData as any).priceType || "free"),
-    currency: String((communityData as any).currency || "USD"),
+    currency: String((communityData as any).currency || "TND"),
     pricing: {
       price: asNumber((communityData as any).pricing?.price, asNumber((communityData as any).price, 0)),
-      currency: String((communityData as any).pricing?.currency || (communityData as any).currency || "USD"),
+      currency: String((communityData as any).pricing?.currency || (communityData as any).currency || "TND"),
     },
     creator: (communityData as any).creator
       ? {
@@ -549,22 +549,24 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
         />
 
         {shouldRenderOverview && (
-        <section
-          className={cn("mx-auto rounded-3xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8", contentWidthClass)}
-          style={{ backgroundColor: themeTokens.softPrimary }}
-        >
-          <div className="text-center max-w-3xl mx-auto mb-12">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-gray-900">
-                {overviewTitle}
-              </h2>
-              <p className="mt-3 text-sm sm:text-base text-gray-600 font-light">{overviewSubtitle}</p>
+        <section className={cn("mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12", contentWidthClass)}>
+          <div
+            className="overflow-hidden rounded-3xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8"
+            style={{ backgroundColor: themeTokens.softPrimary }}
+          >
+            <div className="text-center max-w-3xl mx-auto mb-12">
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-gray-900">
+                  {overviewTitle}
+                </h2>
+                <p className="mt-3 text-sm sm:text-base text-gray-600 font-light">{overviewSubtitle}</p>
+            </div>
+              <CommunityOverview
+                community={communityData}
+                overviewContent={overviewContent}
+                settingsFeatures={effectiveFeatures}
+                themeTokens={themeTokens}
+              />
           </div>
-            <CommunityOverview
-              community={communityData}
-              overviewContent={overviewContent}
-              settingsFeatures={effectiveFeatures}
-              themeTokens={themeTokens}
-            />
         </section>
         )}
 

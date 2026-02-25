@@ -86,7 +86,7 @@ export default function PayoutsListPage() {
     communityId: '',
     creatorId: '',
     amount: 0,
-    currency: 'USD',
+    currency: 'TND',
     method: 'bank_transfer',
     notes: ''
   })
@@ -203,9 +203,9 @@ export default function PayoutsListPage() {
       accessorKey: 'amount',
       sortable: true,
       cell: (row) => {
-        const amount = new Intl.NumberFormat('en-US', {
+        const amount = new Intl.NumberFormat('fr-TN', {
           style: 'currency',
-          currency: row.currency || 'USD'
+          currency: row.currency || 'TND'
         }).format(row.amount || 0)
         return <span className="font-semibold">{amount}</span>
       }
@@ -259,7 +259,7 @@ export default function PayoutsListPage() {
     try {
       const response = await adminApi.financial.calculatePayout(calculateForm)
       const data = response?.data || response
-      toast.success(`Payout calculated: ${data?.amount || 0} ${data?.currency || 'USD'}`)
+      toast.success(`Payout calculated: ${data?.amount || 0} ${data?.currency || 'TND'}`)
       setCalculateDialogOpen(false)
       setCalculateForm({
         communityId: '',
@@ -285,7 +285,7 @@ export default function PayoutsListPage() {
         communityId: '',
         creatorId: '',
         amount: 0,
-        currency: 'USD',
+        currency: 'TND',
         method: 'bank_transfer',
         notes: ''
       })
@@ -553,9 +553,7 @@ export default function PayoutsListPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="EUR">EUR</SelectItem>
-                  <SelectItem value="GBP">GBP</SelectItem>
+                  <SelectItem value="TND">TND</SelectItem>
                 </SelectContent>
               </Select>
             </div>

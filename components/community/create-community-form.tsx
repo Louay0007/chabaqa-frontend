@@ -8,7 +8,7 @@ import {
   Users,
   Lock,
   Globe,
-  DollarSign,
+  Coins,
   Instagram,
   Facebook,
   Youtube,
@@ -321,7 +321,7 @@ export function CreateCommunityForm({
                     <RadioGroupItem value="paid" id="paid" className="w-5 h-5 text-[#8e78fb]" />
                     <div className="flex items-center space-x-4 flex-1">
                       <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <DollarSign className="w-6 h-6 text-white" />
+                        <Coins className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex-1">
                         <Label htmlFor="paid" className="text-base font-semibold cursor-pointer text-gray-900">Paid Community</Label>
@@ -339,8 +339,6 @@ export function CreateCommunityForm({
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="TND">🇹🇳 TND - Tunisian Dinar</SelectItem>
-                            <SelectItem value="USD">🇺🇸 USD - US Dollar</SelectItem>
-                            <SelectItem value="EUR">🇪🇺 EUR - Euro</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

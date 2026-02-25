@@ -332,6 +332,8 @@ export interface Session {
   currency: string;
   availableSlots: number;
   bookedSlots: number;
+  averageRating?: number;
+  ratingCount?: number;
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -485,6 +487,31 @@ export interface Post {
   author: User;
 }
 
+export type PostShareMethod =
+  | 'native'
+  | 'copy_link'
+  | 'whatsapp'
+  | 'x'
+  | 'facebook'
+  | 'linkedin'
+  | 'telegram'
+  | 'email';
+
+export interface PostShareMeta {
+  postId: string;
+  shareUrl: string;
+  title: string;
+  text: string;
+  platformUrls: {
+    whatsapp: string;
+    x: string;
+    facebook: string;
+    linkedin: string;
+    telegram: string;
+    email: string;
+  };
+}
+
 export interface PostStats {
   postId: string;
   totalLikes: number;
@@ -573,6 +600,7 @@ export interface Notification {
 
 // Storage types
 export interface UploadedFile {
+  assetId?: string;
   filename: string;
   originalName: string;
   url: string;

@@ -197,7 +197,7 @@ export default function PurchaseCard({ product, purchase, isPurchased, onPurchas
                 <span className="text-sm sm:text-base text-muted-foreground font-medium">Price:</span>
                 <div className="text-right">
                   <span className="text-xl sm:text-2xl font-bold text-foreground">
-                    {product.price === 0 ? 'Free' : `$${product.price}`}
+                    {product.price === 0 ? 'Free' : `${product.price} TND`}
                   </span>
                   {product.price > 0 && (
                     <div className="text-xs text-muted-foreground mt-0.5">

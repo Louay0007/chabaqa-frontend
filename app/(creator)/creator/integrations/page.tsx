@@ -12,7 +12,7 @@ import {
   MessageSquare,
   FileText,
   Video,
-  DollarSign,
+  Coins,
   BarChart,
   Lock,
   CheckCircle2,
@@ -88,7 +88,7 @@ const integrations: Integration[] = [
     id: "7",
     name: "Stripe",
     description: "Process payments and subscriptions",
-    icon: <DollarSign className="w-8 h-8" />,
+    icon: <Coins className="w-8 h-8" />,
     category: "Payments",
     status: "coming-soon",
     popular: true

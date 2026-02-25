@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Codesandbox, FileText, DollarSign, CheckCircle } from "lucide-react"
+import { Codesandbox, FileText, Coins, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ProductWithDetails, ProductPurchase } from "@/lib/api/products-community.api"
 import { getFileTypeIcon } from "@/lib/utilsmedia"
@@ -117,7 +117,7 @@ export default function ProductDetailsSidebar({
         <Card className="border-0 shadow-sm bg-gradient-to-r from-primary-50 to-blue-50">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <DollarSign className="h-5 w-5 mr-2 text-primary-500" />
+              <Coins className="h-5 w-5 mr-2 text-primary-500" />
               {product.price === 0 ? 'Get This Free Resource' : 'Purchase Options'}
             </CardTitle>
           </CardHeader>
@@ -126,7 +126,7 @@ export default function ProductDetailsSidebar({
               {product.price > 0 && (
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Price:</span>
-                  <span className="text-2xl font-bold">${product.price}</span>
+                  <span className="text-2xl font-bold">{product.price} TND</span>
                 </div>
               )}
               <Button className="w-full" size="lg" asChild>

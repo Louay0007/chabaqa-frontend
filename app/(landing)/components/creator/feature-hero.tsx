@@ -76,9 +76,9 @@ export function FeatureHero({ feature }: FeatureHeroProps) {
 
   const formatPrice = (price: number, type: string) => {
     if (type === "free") return "Free"
-    if (type === "per session") return `$${price}/session`
-    if (type === "one-time") return `$${price}`
-    return `$${price}/${type === "monthly" ? "mo" : type}`
+    if (type === "per session") return `${price} TND/session`
+    if (type === "one-time") return `${price} TND`
+    return `${price} TND/${type === "monthly" ? "mo" : type}`
   }
 
   const formatMembers = (count: number) => {

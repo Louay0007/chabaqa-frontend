@@ -70,9 +70,9 @@ const STATUS_CONFIG: Record<
   },
 }
 
-const currencyFormatter = new Intl.NumberFormat("en", {
+const currencyFormatter = new Intl.NumberFormat("fr-TN", {
   style: "currency",
-  currency: "USD",
+  currency: "TND",
   maximumFractionDigits: 0,
 })
 

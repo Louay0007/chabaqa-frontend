@@ -79,7 +79,7 @@ export default function ChallengePerformanceOverview({ allChallenges = [], topCh
                 <h4 className="font-medium truncate">{challenge.title}</h4>
                 <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
                   <span>{challenge.participants} participants</span>
-                  <span>${Number(challenge.deposits ?? 0).toLocaleString()} deposits</span>
+                  <span>{Number(challenge.deposits ?? 0).toLocaleString()} TND dépôts</span>
                   {typeof challenge.completion === "number" && Number.isFinite(challenge.completion) ? (
                     <div className="flex items-center">
                       <Flame className="h-3 w-3 mr-1 text-orange-500" />

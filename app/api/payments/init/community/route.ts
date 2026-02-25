@@ -37,8 +37,8 @@ export async function POST(request: Request) {
 
         // Build backend URL with promo code if provided
         const backendUrl = promoCode
-            ? `${BACKEND_URL}/payments/init/community?promoCode=${encodeURIComponent(promoCode)}`
-            : `${BACKEND_URL}/payments/init/community`;
+            ? `${BACKEND_URL}/payment/init/community?promoCode=${encodeURIComponent(promoCode)}`
+            : `${BACKEND_URL}/payment/init/community`;
 
         // Forward request to backend
         const backendResponse = await fetch(backendUrl, {

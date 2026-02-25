@@ -40,7 +40,7 @@ import {
   Users, 
   TrendingUp, 
   Trophy, 
-  DollarSign, 
+  Coins, 
   Target,
   Clock,
   Activity,
@@ -351,7 +351,7 @@ function OverviewStats({ analytics }: { analytics: AnalyticsData }) {
               </p>
             </div>
             <div className="h-12 w-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-              <DollarSign className="h-6 w-6 text-yellow-600" />
+              <Coins className="h-6 w-6 text-yellow-600" />
             </div>
           </div>
         </CardContent>
@@ -907,7 +907,7 @@ function RevenueAnalytics({ analytics }: { analytics: AnalyticsData }) {
       <EnhancedCard className="lg:col-span-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+            <Coins className="h-5 w-5" />
             Revenue Overview
           </CardTitle>
           <CardDescription>Financial performance of the challenge</CardDescription>
@@ -915,7 +915,7 @@ function RevenueAnalytics({ analytics }: { analytics: AnalyticsData }) {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl">
-              <DollarSign className="h-8 w-8 mx-auto mb-2 text-purple-600" />
+              <Coins className="h-8 w-8 mx-auto mb-2 text-purple-600" />
               <p className="text-3xl font-bold text-purple-700 dark:text-purple-400">
                 {revenueStats.totalRevenue.toLocaleString()}
               </p>

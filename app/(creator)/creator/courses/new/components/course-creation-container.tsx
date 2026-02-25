@@ -21,6 +21,7 @@ interface CourseChapterForm {
   duration?: number
   order: number
   isPreview: boolean
+  price?: string
   notes?: string
 }
 
@@ -47,7 +48,7 @@ export function CourseCreationContainer() {
     description: "",
     thumbnail: "",
     price: "",
-    currency: "USD",
+    currency: "TND",
     category: "",
     level: "",
     duration: "",
@@ -137,6 +138,7 @@ export function CourseCreationContainer() {
       duration: 0,
       order: section.chapters.length + 1,
       isPreview: false,
+      price: "",
       notes: "",
     }
 
@@ -329,8 +331,10 @@ export function CourseCreationContainer() {
               titre: c.title || `Chapitre ${jdx + 1}`,
               description: c.content || "",
               videoUrl: c.videoUrl || undefined,
-              isPaid: !c.isPreview, // Use isPreview to determine if paid
-              prix: !c.isPreview ? (prixNum || 0) : 0, // If not preview, use course price
+              isPaid: !c.isPreview,
+              prix: !c.isPreview
+                ? (c.price !== undefined && c.price !== "" ? Number(c.price) : (prixNum || 0))
+                : 0,
               ordre: c.order || (jdx + 1),
               duree: typeof c.duration === 'number' && c.duration > 0 ? `${c.duration}` : undefined,
               notes: c.notes || undefined,
@@ -355,7 +359,7 @@ export function CourseCreationContainer() {
         thumbnail: formData.thumbnail || undefined,
         prix: prixNum,
         isPaid,
-        devise: formData.currency || 'USD',
+        devise: formData.currency || 'TND',
         communitySlug: formData.communitySlug,
         isPublished: Boolean(formData.isPublished),
         category: formData.category || undefined,

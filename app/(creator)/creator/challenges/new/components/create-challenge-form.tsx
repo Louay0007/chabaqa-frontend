@@ -186,9 +186,8 @@ export function CreateChallengeForm() {
         thumbnail: sanitizeText(formData.thumbnail) || undefined,
         sequentialProgression: Boolean(formData.sequentialProgression),
         unlockMessage: sanitizeText(formData.unlockMessage) || undefined,
-        // Always create as inactive (draft) - users need active subscription to publish
-        // They can publish later from the challenge management page once they have a subscription
-        isActive: false,
+        // Use isPublished to determine if challenge should be published immediately
+        isActive: formData.isPublished || false,
         resources: [],
         tasks: tasks || [],
       }
@@ -197,7 +196,13 @@ export function CreateChallengeForm() {
 
       const res = await challengesApi.create(payload)
       const created = (res as any)?.data || res
-      toast({ title: 'Challenge created as draft', description: `${payload.title} - Publish it from the management page once you have an active subscription.` })
+      const statusMessage = formData.isPublished 
+        ? 'Challenge published successfully!' 
+        : 'Challenge created as draft - Publish it from the management page once you have an active subscription.'
+      toast({ 
+        title: formData.isPublished ? 'Challenge published' : 'Challenge created as draft', 
+        description: statusMessage 
+      })
       const id = created?.id || created?._id || created?.challenge?.id || created?.challenge?._id
       if (id) router.push(`/creator/challenges/${id}/manage`)
       else router.push('/creator/challenges')

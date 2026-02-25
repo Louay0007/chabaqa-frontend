@@ -39,8 +39,8 @@ export function CommunityCard({ community, viewMode = "grid" }: CommunityCardPro
 
   const formatPrice = (price: number, type: string) => {
     if (type === "free") return "Free"
-    if (type === "per session") return `$${price}/session`
-    return `$${price}/${type === "monthly" ? "mo" : type}`
+    if (type === "per session") return `${price} TND/session`
+    return `${price} TND/${type === "monthly" ? "mo" : type}`
   }
 
   const getTypeConfig = (type?: ItemType) => {

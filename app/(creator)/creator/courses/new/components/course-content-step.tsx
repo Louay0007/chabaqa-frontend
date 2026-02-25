@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { useState } from "react"
-import { apiClient } from "@/lib/api/client"
+import { mediaApi } from "@/lib/api/media.api"
 
 function ensureAbsoluteUploadUrl(value: unknown): string {
   const v = typeof value === 'string' ? value.trim() : ''
@@ -24,17 +24,6 @@ function ensureAbsoluteUploadUrl(value: unknown): string {
   return `${origin}/${v}`
 }
 
-function extractUploadedUrl(result: any): string {
-  return (
-    result?.url ||
-    result?.data?.url ||
-    result?.data?.data?.url ||
-    result?.file?.url ||
-    result?.data?.file?.url ||
-    ""
-  )
-}
-
 interface CourseChapterForm {
   id: string
   title: string
@@ -43,6 +32,7 @@ interface CourseChapterForm {
   duration?: number
   order: number
   isPreview: boolean
+  price?: string
   notes?: string
 }
 
@@ -88,10 +78,14 @@ export function CourseContentStep({
     
     setUploadingChapterIds((prev) => ({ ...prev, [chapterId]: true }))
     try {
-      const result = await apiClient.uploadFile<{ url: string }>("/upload/video", file, "video")
+      const result = await mediaApi.uploadSmart(file, {
+        purpose: "course_video",
+        entityType: "course_chapter",
+        entityId: chapterId,
+        visibility: "public",
+      })
       console.log('✅ [VIDEO UPLOAD] Upload successful:', result)
-      const rawUrl = extractUploadedUrl(result)
-      const url = ensureAbsoluteUploadUrl(rawUrl)
+      const url = ensureAbsoluteUploadUrl(result?.url)
       console.log('   🔗 URL received:', url)
       
       if (url) {
@@ -331,6 +325,26 @@ export function CourseContentStep({
                                       )
                                     }
                                     className="h-8 w-20 text-sm"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Chapter Price</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    placeholder="9.99"
+                                    disabled={chapter.isPreview}
+                                    value={chapter.price || ""}
+                                    onChange={(e) =>
+                                      updateChapter(
+                                        section.id,
+                                        chapter.id,
+                                        "price",
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="h-8 w-24 text-sm"
                                   />
                                 </div>
                               </div>

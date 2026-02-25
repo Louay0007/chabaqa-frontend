@@ -1,3 +1,4 @@
+import React from "react"
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -7,6 +8,7 @@ import { CheckCircle, PlayCircle, Lock, MessageSquare, Star, StickyNote, ArrowRi
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/lib/api"
+import { coursesApi } from "@/lib/api/courses.api"
 import { useToast } from "@/components/ui/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { format } from "date-fns"
@@ -25,6 +27,9 @@ interface CourseSidebarProps {
   currentChapterProgress?: { watchTime: number; duration: number }
   /** ID used for storage keys (matches what player uses) */
   courseId?: string
+  pendingPaidChapterId?: string | null
+  chapterUnlockState?: "idle" | "syncing" | "unlocked" | "timeout"
+  onRetryUnlock?: () => Promise<void> | void
 }
 
 export default function CourseSidebar({ 
@@ -39,6 +44,9 @@ export default function CourseSidebar({
   isChapterAccessible,
   currentChapterProgress,
   courseId,
+  pendingPaidChapterId,
+  chapterUnlockState = "idle",
+  onRetryUnlock,
 }: CourseSidebarProps) {
   const [activeTab, setActiveTab] = useState("content")
   const [noteContent, setNoteContent] = useState("")
@@ -121,32 +129,38 @@ export default function CourseSidebar({
       // Initiate payment for the next chapter
       setPurchasing(true);
       try {
-        // Use the dedicated endpoint for single chapter purchase
-        // We assume `api.courses.buyChapter` exists or we call the payment endpoint directly
-        // Since we don't have a direct SDK method yet, we'll use a direct fetch or a helper
-        // For now, let's assume we add `buyChapter` to the api or use fetch
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payment/stripe-link/init/chapter`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}` // Assuming token is in localStorage
-          },
-          body: JSON.stringify({
-            courseId: course.id, // or courseId prop
-            chapterId: nextChapter.id
-          })
-        });
-        
-        const data = await res.json();
-        if (data.checkoutUrl) {
-          window.location.href = data.checkoutUrl;
+        const resolvedCourseId = String(course?.mongoId || course?.id || courseId || "");
+        if (!resolvedCourseId) {
+          throw new Error("Missing course identifier")
+        }
+        const data = await coursesApi.initChapterStripePayment(
+          resolvedCourseId,
+          String(nextChapter.id),
+        );
+        const checkoutUrl = data?.checkoutUrl || data?.data?.checkoutUrl
+        if (checkoutUrl) {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem(
+              "pending_chapter_checkout",
+              JSON.stringify({
+                courseId: resolvedCourseId,
+                chapterId: String(nextChapter.id),
+                createdAt: Date.now(),
+              }),
+            )
+          }
+          window.location.href = checkoutUrl;
         } else {
           throw new Error("Payment initialization failed");
         }
       } catch (error) {
+        console.error("Chapter checkout init failed:", error)
         toast({ 
           title: "Error starting payment", 
-          description: "Please try again later",
+          description:
+            typeof error === "object" && error && "message" in error
+              ? String((error as any).message)
+              : "Please try again later",
           variant: "destructive" 
         });
       } finally {
@@ -170,9 +184,151 @@ export default function CourseSidebar({
         </TabsList>
 
         <TabsContent value="content" className="space-y-3 mt-4">
+          {chapterUnlockState === "syncing" && pendingPaidChapterId && (
+            <Card className="border-blue-200 bg-blue-50/60 shadow-sm">
+              <CardContent className="py-3">
+                <p className="text-xs text-blue-700">Payment received. Unlock is syncing for your chapter...</p>
+              </CardContent>
+            </Card>
+          )}
+          {chapterUnlockState === "unlocked" && pendingPaidChapterId && (
+            <Card className="border-green-200 bg-green-50/60 shadow-sm">
+              <CardContent className="py-3">
+                <p className="text-xs text-green-700">Chapter unlocked successfully.</p>
+              </CardContent>
+            </Card>
+          )}
+          {chapterUnlockState === "timeout" && pendingPaidChapterId && (
+            <Card className="border-amber-200 bg-amber-50/60 shadow-sm">
+              <CardContent className="py-3 space-y-2">
+                <p className="text-xs text-amber-800">Payment received, unlock still syncing. Click retry unlock.</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => void onRetryUnlock?.()}
+                >
+                  Retry Unlock
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+
           <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3 pt-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm md:text-base font-semibold">Course Content</CardTitle>
+                <p className="text-xs md:text-sm text-muted-foreground font-medium">
+                  {allChapters.length} chapters
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ScrollArea className={`${
+                allChapters.length <= 5 ? 'h-auto max-h-[350px] md:max-h-[400px]' :
+                allChapters.length <= 10 ? 'h-[450px] md:h-[500px]' :
+                allChapters.length <= 20 ? 'h-[600px] md:h-[650px]' :
+                'h-[700px] md:h-[750px]'
+              }`}>
+                <div className="space-y-1 px-3 md:px-4 pb-4">
+                  {course.sections.map((section: any, sectionIndex: number) => (
+                    <div key={section.id} className="space-y-1">
+                      <div className="flex items-center gap-2 py-2 px-2.5 md:px-3 bg-muted/40 rounded-lg mt-2">
+                        <span className="text-xs md:text-sm font-bold text-muted-foreground">
+                          {sectionIndex + 1}
+                        </span>
+                        <h4 className="font-semibold text-xs md:text-sm flex-1 truncate">{section.title}</h4>
+                        <span className="text-xs md:text-sm text-muted-foreground font-medium">
+                          {section.chapters.length}
+                        </span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {section.chapters.map((chapter: any, chapterIndex: number) => {
+                          const chapterProgress = enrollment?.progress?.find((p: any) => String(p.chapterId) === String(chapter.id))
+                          const isCompleted = chapterProgress?.isCompleted
+                          const isActive = String(selectedChapter) === String(chapter.id)
+                          const accessible = isChapterAccessible(String(chapter.id))
+                          
+                          // Calculate chapter progress percentage
+                          const watchTime = Number(chapterProgress?.watchTime ?? 0)
+                          const duration = Number(chapterProgress?.videoDuration ?? chapter.duration ?? 0)
+                          const progressPct = isCompleted ? 100 : (duration > 0 ? Math.min((watchTime / duration) * 100, 100) : 0)
+
+                          return (
+                            <button
+                              key={chapter.id}
+                              onClick={() => {
+                                void setSelectedChapter(String(chapter.id))
+                              }}
+                              className={`w-full flex flex-col p-2.5 md:p-3 rounded-lg text-left transition-all ${
+                                isActive
+                                  ? "bg-primary/10 border-2 border-primary/30 shadow-md"
+                                  : accessible
+                                    ? "hover:bg-muted/60 border-2 border-transparent hover:border-muted"
+                                    : "cursor-not-allowed opacity-60 border-2 border-transparent"
+                              }`}
+                            >
+                              <div className="flex items-start gap-2.5 md:gap-3 w-full">
+                                <div className="flex-shrink-0 mt-0.5">
+                                  {isCompleted ? (
+                                    <CheckCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-green-600" />
+                                  ) : accessible ? (
+                                    <PlayCircle className={`h-3.5 w-3.5 md:h-4 md:w-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                                  ) : (
+                                    <Lock className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+                                  )}
+                                </div>
+                                
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <span className={`text-xs md:text-sm font-semibold block line-clamp-2 ${isActive ? 'text-primary' : 'text-foreground'}`}>
+                                        {chapterIndex + 1}. {chapter.title}
+                                      </span>
+                                    </div>
+                                    {chapter.duration && (
+                                      <span className="text-xs md:text-sm text-muted-foreground whitespace-nowrap font-medium">
+                                        {Math.floor(chapter.duration / 60)}:{String(chapter.duration % 60).padStart(2, '0')}
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Progress bar for in-progress chapters */}
+                                  {!isCompleted && progressPct > 0 && (
+                                    <div className="mt-1.5 md:mt-2">
+                                      <Progress value={progressPct} className="h-0.5 md:h-1" />
+                                    </div>
+                                  )}
+                                  
+                                  {/* Chapter badges */}
+                                  <div className="flex items-center gap-1.5 mt-1.5">
+                                    {chapter.isPreview && (
+                                      <span className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
+                                        Preview
+                                      </span>
+                                    )}
+                                    {chapter.isPaidChapter && !accessible && (
+                                      <span className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 bg-amber-100 text-amber-700 rounded font-medium">
+                                        Premium
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+                    <Card className="border-0 shadow-sm">
             <CardHeader className="pb-2 pt-3">
-              <CardTitle className="text-sm">Current Progress</CardTitle>
+              <CardTitle className="text-sm md:text-base font-semibold">Current Progress</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 pb-3">
               {/* Current chapter inline progress (allChapters is flat list of chapters from CoursePlayer) */}
@@ -297,119 +453,6 @@ export default function CourseSidebar({
             </CardContent>
           </Card>
 
-
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-2 pt-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm">Course Content</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  {allChapters.length} chapters
-                </p>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <ScrollArea className={`${
-                allChapters.length <= 5 ? 'h-auto max-h-[300px]' :
-                allChapters.length <= 10 ? 'h-[400px]' :
-                allChapters.length <= 20 ? 'h-[550px]' :
-                'h-[650px]'
-              }`}>
-                <div className="space-y-0.5 px-4 pb-4">
-                  {course.sections.map((section: any, sectionIndex: number) => (
-                    <div key={section.id} className="space-y-0.5">
-                      <div className="flex items-center gap-2 py-1.5 px-2 bg-muted/30 rounded-md mt-1.5">
-                        <span className="text-xs font-semibold text-muted-foreground">
-                          {sectionIndex + 1}
-                        </span>
-                        <h4 className="font-medium text-xs flex-1 truncate">{section.title}</h4>
-                        <span className="text-xs text-muted-foreground">
-                          {section.chapters.length}
-                        </span>
-                      </div>
-                      <div className="space-y-0.5">
-                        {section.chapters.map((chapter: any, chapterIndex: number) => {
-                          const chapterProgress = enrollment?.progress?.find((p: any) => String(p.chapterId) === String(chapter.id))
-                          const isCompleted = chapterProgress?.isCompleted
-                          const isActive = String(selectedChapter) === String(chapter.id)
-                          const accessible = isChapterAccessible(String(chapter.id))
-                          
-                          // Calculate chapter progress percentage
-                          const watchTime = Number(chapterProgress?.watchTime ?? 0)
-                          const duration = Number(chapterProgress?.videoDuration ?? chapter.duration ?? 0)
-                          const progressPct = isCompleted ? 100 : (duration > 0 ? Math.min((watchTime / duration) * 100, 100) : 0)
-
-                          return (
-                            <button
-                              key={chapter.id}
-                              onClick={() => {
-                                if (!accessible) return
-                                void setSelectedChapter(String(chapter.id))
-                              }}
-                              className={`w-full flex flex-col p-2 rounded-md text-left transition-all ${
-                                isActive
-                                  ? "bg-primary/10 border border-primary/20 shadow-sm"
-                                  : accessible
-                                    ? "hover:bg-muted/50 border border-transparent"
-                                    : "cursor-not-allowed opacity-60 border border-transparent"
-                              }`}
-                            >
-                              <div className="flex items-start gap-2 w-full">
-                                <div className="flex-shrink-0 mt-0.5">
-                                  {isCompleted ? (
-                                    <CheckCircle className="h-3.5 w-3.5 text-green-600" />
-                                  ) : accessible ? (
-                                    <PlayCircle className={`h-3.5 w-3.5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                                  ) : (
-                                    <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-                                  )}
-                                </div>
-                                
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="flex-1 min-w-0">
-                                      <span className={`text-xs font-medium block line-clamp-1 ${isActive ? 'text-primary' : 'text-foreground'}`}>
-                                        {chapterIndex + 1}. {chapter.title}
-                                      </span>
-                                    </div>
-                                    {chapter.duration && (
-                                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                        {Math.floor(chapter.duration / 60)}:{String(chapter.duration % 60).padStart(2, '0')}
-                                      </span>
-                                    )}
-                                  </div>
-                                  
-                                  {/* Progress bar for in-progress chapters */}
-                                  {!isCompleted && progressPct > 0 && (
-                                    <div className="mt-1">
-                                      <Progress value={progressPct} className="h-0.5" />
-                                    </div>
-                                  )}
-                                  
-                                  {/* Chapter badges */}
-                                  <div className="flex items-center gap-1 mt-1">
-                                    {chapter.isPreview && (
-                                      <span className="text-xs px-1 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px]">
-                                        Preview
-                                      </span>
-                                    )}
-                                    {chapter.isPaidChapter && !accessible && (
-                                      <span className="text-xs px-1 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px]">
-                                        Premium
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="notes" className="mt-4">

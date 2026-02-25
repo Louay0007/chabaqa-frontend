@@ -130,7 +130,7 @@ export default function MyTicketsTab({
                     {reg.ticket?.price !== undefined && (
                       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                         <div className="text-xs text-muted-foreground">
-                          Ticket Price: ${reg.ticket.price}
+                          Ticket Price: {reg.ticket.price} TND
                         </div>
                       </div>
                     )}
@@ -192,7 +192,7 @@ export default function MyTicketsTab({
               {tickets.length} ticket{tickets.length !== 1 ? "s" : ""} total
             </span>
             <span className="font-medium text-primary">
-              Total spent: ${tickets.reduce((acc: number, reg: any) => acc + (Number(reg.ticket?.price) || 0), 0)}
+              Total spent: {tickets.reduce((acc: number, reg: any) => acc + (Number(reg.ticket?.price) || 0), 0)} TND
             </span>
           </div>
         </div>

@@ -17,7 +17,7 @@ import {
   Users,
   Building2,
   Shield,
-  DollarSign,
+  Coins,
   BarChart3,
   Lock,
   Mail,
@@ -89,7 +89,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
     {
       title: "Financial",
       href: "/admin/financial",
-      icon: DollarSign,
+      icon: Coins,
       children: [
         { title: "Dashboard", href: "/admin/financial" },
         { title: "Subscriptions", href: "/admin/financial/subscriptions" },
@@ -275,7 +275,6 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       <div className="border-t p-4">
         <div className="flex items-center space-x-3">
           <Avatar>
-            <AvatarImage src={admin?.avatar} alt={`${admin?.name || 'Admin'} profile picture`} />
             <AvatarFallback>
               {admin?.name
                 ?.split(" ")

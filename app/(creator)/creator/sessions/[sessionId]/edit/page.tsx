@@ -82,7 +82,7 @@ export default async function EditSessionPage({
 
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase">Price</p>
-                <p className="text-sm font-medium text-gray-900 mt-1">${apiSession.price} {apiSession.currency}</p>
+                <p className="text-sm font-medium text-gray-900 mt-1">{apiSession.price} {apiSession.currency}</p>
               </div>
 
               <div>

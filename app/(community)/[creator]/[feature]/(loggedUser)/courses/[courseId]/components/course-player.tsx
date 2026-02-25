@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import CourseHeader from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/[courseId]/components/course-header"
 import EnhancedVideoPlayer from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/[courseId]/components/enhanced-video-player"
@@ -21,6 +22,9 @@ interface CoursePlayerProps {
   onRefreshProgress?: () => Promise<void>
   onRefreshUnlockedChapters?: () => Promise<void>
   onOpenEnrollment?: () => void
+  pendingPaidChapterId?: string | null
+  chapterUnlockState?: "idle" | "syncing" | "unlocked" | "timeout"
+  onRetryUnlock?: () => Promise<void> | void
 }
 
 export default function CoursePlayer({
@@ -36,6 +40,9 @@ export default function CoursePlayer({
   onRefreshProgress,
   onRefreshUnlockedChapters,
   onOpenEnrollment,
+  pendingPaidChapterId,
+  chapterUnlockState,
+  onRetryUnlock,
 }: CoursePlayerProps) {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("content")
@@ -56,6 +63,11 @@ export default function CoursePlayer({
 
   const allChapters = course.sections.flatMap((s: any) => s.chapters)
   const hasEnrollment = Boolean(enrollment)
+  const resolvedCourseId = String(course?.mongoId || course?.id || courseId)
+  const forceUnlockedChapterId =
+    chapterUnlockState === "unlocked" && pendingPaidChapterId
+      ? String(pendingPaidChapterId)
+      : null
 
   const unlockedMap = useMemo(() => {
     if (!Array.isArray(unlockedChapters)) return new Map<string, any>()
@@ -66,7 +78,6 @@ export default function CoursePlayer({
   // This avoids changing many prop signatures; CoursePlayer will refresh progress/unlocked-chapters when notified.
   useEffect(() => {
     (window as any).__onChapterComplete = async () => {
-      const resolvedCourseId = String(course?.mongoId || courseId)
       if (onRefreshProgress) await onRefreshProgress()
       if (onRefreshUnlockedChapters) await onRefreshUnlockedChapters()
     }
@@ -75,7 +86,7 @@ export default function CoursePlayer({
         delete (window as any).__onChapterComplete
       } catch {}
     }
-  }, [course, courseId, onRefreshProgress, onRefreshUnlockedChapters])
+  }, [onRefreshProgress, onRefreshUnlockedChapters])
 
   const resolveChapterAccess = useCallback(
     async (chapterId: string): Promise<{ canAccess: boolean; reason?: string }> => {
@@ -88,7 +99,8 @@ export default function CoursePlayer({
 
       // Ask backend for paid access decision (covers freemium membership rule)
       try {
-        const paidAccess = await coursesApi.checkChapterAccessPaid(String(courseId), resolvedChapterId)
+        const paidAccessRaw = await coursesApi.checkChapterAccessPaid(resolvedCourseId, resolvedChapterId)
+        const paidAccess = (paidAccessRaw as any)?.data || paidAccessRaw
         const paidAllowed = Boolean((paidAccess as any)?.canAccess)
         if (!paidAllowed) {
           return {
@@ -118,8 +130,9 @@ export default function CoursePlayer({
 
       // Fallback to backend sequential access check when unlocked-chapters list isn't enough
       try {
-        const seqAccess = await coursesApi.checkChapterAccessSequential(String(courseId), resolvedChapterId)
-        const hasAccess = Boolean((seqAccess as any)?.hasAccess)
+        const seqAccessRaw = await coursesApi.checkChapterAccessSequential(resolvedCourseId, resolvedChapterId)
+        const seqAccess = (seqAccessRaw as any)?.data || seqAccessRaw
+        const hasAccess = Boolean((seqAccess as any)?.hasAccess ?? (seqAccess as any)?.canAccess)
         if (hasAccess) {
           return { canAccess: true }
         }
@@ -139,7 +152,7 @@ export default function CoursePlayer({
     },
     [
       allChapters,
-      courseId,
+      resolvedCourseId,
       hasEnrollment,
       sequentialProgressionEnabled,
       unlockedMap,
@@ -177,6 +190,12 @@ export default function CoursePlayer({
   const isChapterAccessible = useCallback(
     (chapterId: string) => {
       const key = String(chapterId)
+      if (forceUnlockedChapterId && key === forceUnlockedChapterId) {
+        return true
+      }
+      if (unlockedMap.get(key)?.isUnlocked) {
+        return true
+      }
       const known = accessibleChapters[key]
       if (typeof known === "boolean") return known
 
@@ -188,8 +207,43 @@ export default function CoursePlayer({
         !Boolean(chapter.isPaidChapter)
       return Boolean(isFreeChapter)
     },
-    [accessibleChapters, allChapters],
+    [accessibleChapters, allChapters, forceUnlockedChapterId, unlockedMap],
   )
+
+  useEffect(() => {
+    if (!Array.isArray(unlockedChapters) || unlockedChapters.length === 0) return
+
+    const unlockedIds = unlockedChapters
+      .filter((chapter: any) => Boolean(chapter?.isUnlocked))
+      .map((chapter: any) => String(chapter.id))
+      .filter(Boolean)
+
+    if (unlockedIds.length === 0) return
+
+    setAccessibleChapters((prev) => {
+      let changed = false
+      const next = { ...prev }
+      for (const chapterId of unlockedIds) {
+        if (next[chapterId] !== true) {
+          next[chapterId] = true
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+
+    setChapterAccessReason((prev) => {
+      let changed = false
+      const next = { ...prev }
+      for (const chapterId of unlockedIds) {
+        if (typeof next[chapterId] !== "undefined") {
+          delete next[chapterId]
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [unlockedChapters])
 
   useEffect(() => {
     // Reset access cache when course or unlock state changes
@@ -197,6 +251,27 @@ export default function CoursePlayer({
     setChapterAccessReason({})
     accessCheckInFlight.current = {}
   }, [courseId, sequentialProgressionEnabled, unlockedChapters, hasEnrollment])
+
+  useEffect(() => {
+    if (!forceUnlockedChapterId) return
+    setAccessibleChapters((prev) => ({
+      ...prev,
+      [forceUnlockedChapterId]: true,
+    }))
+    setChapterAccessReason((prev) => ({
+      ...prev,
+      [forceUnlockedChapterId]: undefined,
+    }))
+    setSelectedChapter(forceUnlockedChapterId)
+  }, [forceUnlockedChapterId])
+
+  useEffect(() => {
+    if (!pendingPaidChapterId) return
+    const targetChapter = allChapters.find((c: any) => String(c.id) === String(pendingPaidChapterId))
+    if (!targetChapter) return
+    if (!isChapterAccessible(String(targetChapter.id))) return
+    setSelectedChapter(String(targetChapter.id))
+  }, [pendingPaidChapterId, allChapters, isChapterAccessible])
 
   // Handler called by EnhancedVideoPlayer with latest seconds (and optional duration)
   const handleWatchTimeUpdate = useCallback(
@@ -329,11 +404,10 @@ export default function CoursePlayer({
     const accessAllowed = isChapterAccessible(String(currentChapter.id)) || Boolean(currentChapter?.isPreview)
     if (!accessAllowed) return
     trackingSentRef.current.start = true
-    const trackingId = String(course?.id || courseId)
-    void coursesApi.trackStart(trackingId).catch(() => {
+    void coursesApi.trackStart(resolvedCourseId).catch(() => {
       // ignore tracking failures
     })
-  }, [course?.id, courseId, currentChapter?.id, currentChapter?.isPreview, isChapterAccessible])
+  }, [resolvedCourseId, currentChapter?.id, currentChapter?.isPreview, isChapterAccessible])
 
   // Clear optimistic overrides when switching chapters
   useEffect(() => {
@@ -416,7 +490,7 @@ export default function CoursePlayer({
 
     try {
       if (enrollment) {
-        await coursesApi.startChapter(String(courseId), String(chapter.sectionId), String(chapterId), { watchTime: 0 })
+        await coursesApi.startChapter(resolvedCourseId, String(chapter.sectionId), String(chapterId), { watchTime: 0 })
       }
     } catch (error) {
       toast({
@@ -430,7 +504,7 @@ export default function CoursePlayer({
   const handleCompleteChapter = async (chapterId: string) => {
     if (!enrollment) return
     try {
-      await coursesApi.completeChapterEnrollment(String(courseId), String(chapterId))
+      await coursesApi.completeChapterEnrollment(resolvedCourseId, String(chapterId))
       toast({ title: "Chapter completed" })
       if (onRefreshProgress) {
         await onRefreshProgress()
@@ -471,7 +545,7 @@ export default function CoursePlayer({
   const handleCompleteCourse = useCallback(async () => {
     if (!isCourseCompleted) return
     try {
-      await coursesApi.completeCourseEnrollment(String(courseId))
+      await coursesApi.completeCourseEnrollment(resolvedCourseId)
 
       toast({ title: "Course completed" })
       if (onRefreshProgress) {
@@ -490,10 +564,9 @@ export default function CoursePlayer({
         variant: "destructive",
       })
     }
-  }, [course?.id, courseId, isCourseCompleted, onRefreshProgress, onRefreshUnlockedChapters, toast])
+  }, [resolvedCourseId, isCourseCompleted, onRefreshProgress, onRefreshUnlockedChapters, toast])
 
   const handleEnrollNow = useCallback(async () => {
-    if (enrollment) return
     console.debug('[CoursePlayer] handleEnrollNow called', {
       currentChapterId: currentChapter?.id,
       currentChapterIsPreview: currentChapter?.isPreview,
@@ -528,15 +601,30 @@ export default function CoursePlayer({
       return
     }
 
-    // If the chapter itself is paid (per-chapter) and user is not enrolled, show a payment-required message
-    if (!enrollment && (currentChapter?.isPaidChapter || (currentChapter?.price && Number(currentChapter.price) > 0))) {
-      toast({
-        title: "Payment required",
-        description: "You must pay for this chapter to access it.",
-        variant: "destructive",
-      })
+    // If the chapter itself is paid (per-chapter), start chapter checkout directly.
+    if (currentChapter?.isPaidChapter || (currentChapter?.price && Number(currentChapter.price) > 0)) {
+      try {
+        const payment = await coursesApi.initChapterStripePayment(
+          resolvedCourseId,
+          String(currentChapter.id),
+        )
+        const checkoutUrl = (payment as any)?.checkoutUrl || (payment as any)?.data?.checkoutUrl
+        if (checkoutUrl) {
+          window.location.href = checkoutUrl
+          return
+        }
+        throw new Error("Checkout URL missing")
+      } catch (error) {
+        toast({
+          title: "Payment required",
+          description: "Could not start chapter checkout. Please try again.",
+          variant: "destructive",
+        })
+      }
       return
     }
+
+    if (enrollment) return
 
     // Always delegate to parent if handler is provided
     // The parent (page.tsx) handles the decision between direct enrollment (free) vs dialog (paid)
@@ -547,7 +635,7 @@ export default function CoursePlayer({
 
     // Fallback for when no parent handler is provided
     try {
-      await coursesApi.enroll(String(courseId))
+      await coursesApi.enroll(resolvedCourseId)
       toast({ title: "Enrolled successfully" })
       if (onRefreshProgress) {
         await onRefreshProgress()
@@ -562,7 +650,7 @@ export default function CoursePlayer({
         variant: "destructive",
       })
     }
-  }, [course?.price, courseId, enrollment, onOpenEnrollment, onRefreshProgress, onRefreshUnlockedChapters, toast, currentChapter, setSelectedChapter])
+  }, [course?.price, resolvedCourseId, enrollment, onOpenEnrollment, onRefreshProgress, onRefreshUnlockedChapters, toast, currentChapter, setSelectedChapter])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -578,14 +666,16 @@ export default function CoursePlayer({
           currentChapterProgress={displayChapterPercent}
         />
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-7 xl:grid-cols-3 gap-6">
+          <div className="lg:col-span-4 xl:col-span-2 space-y-4">
             {isCourseCompleted ? (
               <div className="rounded-lg border bg-white p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <div className="text-sm font-medium">You completed all chapters</div>
-                    <div className="text-xs text-muted-foreground">Finalize the course to lock in your completion.</div>
+                    <div className="text-xs text-muted-foreground">
+                      Course completion is auto-recorded. Use this button only if you want to retry finalization now.
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -604,7 +694,7 @@ export default function CoursePlayer({
               isChapterAccessible={isChapterAccessible}
               enrollment={enrollment}
               slug={slug}
-              courseId={courseId}
+              courseId={resolvedCourseId}
               onWatchTimeUpdate={handleWatchTimeUpdate}
               onEnrollNow={handleEnrollNow}
               onProgressSaved={onRefreshProgress}
@@ -620,7 +710,7 @@ export default function CoursePlayer({
               onCompleteChapter={handleCompleteChapter}
               isCurrentChapterCompleted={isCurrentChapterCompleted}
               nextChapterId={nextChapterId}
-              courseId={courseId}
+              courseId={resolvedCourseId}
               onRefreshCourse={onRefreshCourse}
               onGoToNextChapter={async () => {
                 if (!nextChapterId) return
@@ -642,7 +732,10 @@ export default function CoursePlayer({
             selectedChapter={selectedChapter}
             setSelectedChapter={handleSelectChapter}
             isChapterAccessible={isChapterAccessible}
-            courseId={courseId}
+            courseId={resolvedCourseId}
+            chapterUnlockState={chapterUnlockState}
+            pendingPaidChapterId={pendingPaidChapterId}
+            onRetryUnlock={onRetryUnlock}
             currentChapterProgress={
               currentChapter?.id
                 ? {

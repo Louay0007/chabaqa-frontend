@@ -47,7 +47,7 @@ const PieChart = dynamic(
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DollarSign, TrendingUp, Users, CreditCard, Download, Calendar } from "lucide-react"
+import { Coins, TrendingUp, Users, CreditCard, Download, Calendar } from "lucide-react"
 import { toast } from "sonner"
 
 interface RevenueMetrics {
@@ -192,9 +192,9 @@ export default function FinancialDashboardPage() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('fr-TN', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'TND'
     }).format(amount)
   }
 
@@ -253,7 +253,7 @@ export default function FinancialDashboardPage() {
           title="Total Revenue"
           value={formatCurrency(metrics?.totalRevenue || 0)}
           change={calculateGrowth(metrics?.revenueGrowth || 0)}
-          icon={DollarSign}
+          icon={Coins}
           color="primary"
         />
         <MetricCard
@@ -277,7 +277,7 @@ export default function FinancialDashboardPage() {
         <MetricCard
           title="Avg Transaction Value"
           value={formatCurrency(metrics?.averageTransactionValue || 0)}
-          icon={DollarSign}
+          icon={Coins}
           color="primary"
         />
       </div>
@@ -321,7 +321,7 @@ export default function FinancialDashboardPage() {
             { key: 'revenue', color: 'hsl(var(--chart-1))', name: 'Revenue' }
           ]}
           height={350}
-          formatYAxis={(value) => `$${(value / 1000).toFixed(0)}k`}
+          formatYAxis={(value) => `${(value / 1000).toFixed(0)}k TND`}
           formatTooltip={(value) => formatCurrency(value)}
         />
       </ChartCard>
@@ -340,14 +340,14 @@ export default function FinancialDashboardPage() {
             { key: 'growth', color: 'hsl(var(--chart-2))', name: 'Growth %' }
           ]}
           height={350}
-          formatYAxis={(value, index) => {
+          formatYAxis={(value: number) => {
             // Format revenue axis
             if (value > 1000) {
-              return `$${(value / 1000).toFixed(0)}k`
+              return `${(value / 1000).toFixed(0)}k TND`
             }
             return `${value}%`
           }}
-          formatTooltip={(value, name) => {
+          formatTooltip={(value: number, name?: string) => {
             if (name === 'Revenue') {
               return formatCurrency(value)
             }
@@ -374,7 +374,7 @@ export default function FinancialDashboardPage() {
           onClick={() => router.push('/admin/financial/transactions')}
         >
           <div className="text-center w-full">
-            <DollarSign className="h-6 w-6 mx-auto mb-2" />
+            <Coins className="h-6 w-6 mx-auto mb-2" />
             <div className="font-semibold">View Transactions</div>
           </div>
         </Button>

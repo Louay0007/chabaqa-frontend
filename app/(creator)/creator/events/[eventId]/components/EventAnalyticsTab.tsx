@@ -2,7 +2,7 @@
 
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, Ticket, TrendingUp, DollarSign } from "lucide-react"
+import { Users, Ticket, TrendingUp, Coins } from "lucide-react"
 import { Event } from "@/lib/models"
 
 interface EventAnalyticsTabProps {
@@ -63,9 +63,9 @@ export default function EventAnalyticsTab({ event }: EventAnalyticsTabProps) {
         <EnhancedCard>
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
-              <DollarSign className="h-5 w-5 text-purple-500" />
+              <Coins className="h-5 w-5 text-purple-500" />
               <div>
-                <p className="text-2xl font-bold">${totalRevenue}</p>
+                <p className="text-2xl font-bold">{totalRevenue} TND</p>
                 <p className="text-sm text-muted-foreground">Total Revenue</p>
               </div>
             </div>

@@ -12,7 +12,7 @@ import {
   MapPin,
   Users,
   Ticket,
-  DollarSign,
+  Coins,
   Mic,
   Globe,
   ChevronDown,
@@ -273,9 +273,9 @@ function EventStats({
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center space-x-2">
-            <DollarSign className="h-5 w-5 text-purple-500" />
+            <Coins className="h-5 w-5 text-purple-500" />
             <div>
-              <p className="text-xl font-bold">${revenue.toFixed(2)}</p>
+              <p className="text-xl font-bold">{revenue.toFixed(2)} TND</p>
               <p className="text-sm text-muted-foreground">Revenue</p>
             </div>
           </div>

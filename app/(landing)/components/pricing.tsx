@@ -199,7 +199,7 @@ export function Pricing() {
                   <div className="mt-3 sm:mt-4 flex items-end justify-center gap-1">
                     <span className="text-3xl sm:text-4xl font-bold text-gray-900 leading-none">
                       {typeof currentPrice === "number" ? (
-                        <NumberFlow value={currentPrice} format={{ style: "currency", currency: "USD", maximumFractionDigits: 0 }} />
+                        <NumberFlow value={currentPrice} format={{ style: "currency", currency: "TND", maximumFractionDigits: 0 }} />
                       ) : (
                         currentPrice
                       )}
@@ -210,7 +210,7 @@ export function Pricing() {
                   {perMonth != null && (
                     <div className="mt-1 text-xs sm:text-sm text-gray-500">
                       <span className="rounded-full bg-gray-100 px-2 py-0.5">
-                        ≈ <NumberFlow value={perMonth} format={{ style: "currency", currency: "USD", maximumFractionDigits: 0 }} /> /mo
+                        ≈ <NumberFlow value={perMonth} format={{ style: "currency", currency: "TND", maximumFractionDigits: 0 }} /> /mo
                       </span>
                     </div>
                   )}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, DollarSign, TrendingUp, BarChart3, Loader2 } from "lucide-react"
+import { Users, Coins, TrendingUp, BarChart3, Loader2 } from "lucide-react"
 import { Course } from "@/lib/models"
 import { apiClient } from "@/lib/api"
 
@@ -136,9 +136,9 @@ export function AnalyticsTab({ course, totalRevenue }: AnalyticsTabProps) {
         <EnhancedCard>
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
-              <DollarSign className="h-5 w-5 text-green-500" />
+              <Coins className="h-5 w-5 text-green-500" />
               <div>
-                <p className="text-2xl font-bold">${analytics.totalRevenue}</p>
+                <p className="text-2xl font-bold">{analytics.totalRevenue} TND</p>
                 <p className="text-sm text-muted-foreground">Total Revenue</p>
               </div>
             </div>

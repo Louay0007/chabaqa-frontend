@@ -118,7 +118,7 @@ export default function Home() {
             "offers": {
               "@type": "Offer",
               "price": "0",
-              "priceCurrency": "USD"
+              "priceCurrency": "TND"
             },
             "aggregateRating": {
               "@type": "AggregateRating",

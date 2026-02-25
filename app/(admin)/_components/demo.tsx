@@ -7,7 +7,7 @@
  */
 
 import * as React from "react"
-import { Users, Building2, FileText, DollarSign } from "lucide-react"
+import { Users, Building2, FileText, Coins } from "lucide-react"
 import { MetricCard } from "./metric-card"
 import { StatusBadge } from "./status-badge"
 import { ConfirmDialog } from "./confirm-dialog"
@@ -54,9 +54,9 @@ export function ComponentDemo() {
           />
           <MetricCard
             title="Total Revenue"
-            value="$45,231"
+            value="45,231 TND"
             change={{ value: "+23%", trend: "up" }}
-            icon={DollarSign}
+            icon={Coins}
             color="info"
           />
         </div>

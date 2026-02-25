@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +24,9 @@ import { format, isSameDay } from "date-fns"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { tokenStorage } from "@/lib/token-storage"
 import { sessionsApi } from "@/lib/api/sessions.api"
+import { feedbackApi, type Feedback, type FeedbackStats } from "@/lib/api/feedback.api"
+import { ReviewsList } from "@/components/reviews/reviews-list"
+import { StarRating } from "@/components/reviews/star-rating"
 
 interface AvailableSlot {
   id: string
@@ -48,6 +52,10 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
   const [selectedSlotId, setSelectedSlotId] = useState<string>("")
   const [bookingNotes, setBookingNotes] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [reviewsDialogOpen, setReviewsDialogOpen] = useState(false)
+  const [sessionReviews, setSessionReviews] = useState<Feedback[]>([])
+  const [sessionReviewStats, setSessionReviewStats] = useState<FeedbackStats | null>(null)
+  const [loadingSessionReviews, setLoadingSessionReviews] = useState(false)
 
   const [promoCode, setPromoCode] = useState("")
   // const [paymentProof, setPaymentProof] = useState<File | null>(null) // Removed
@@ -62,6 +70,12 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
   const pendingOrderId = searchParams.get("orderId")
   const paymentAction = searchParams.get("paymentAction")
   const pendingSessionId = searchParams.get("sessionId")
+  const sessionFeedbackId = useMemo(
+    () => String(session?.id || session?._id || "").trim(),
+    [session?.id, session?._id],
+  )
+  const sessionAverageRating = Number(session?.averageRating ?? session?.mentor?.rating ?? 0)
+  const sessionRatingCount = Number(session?.ratingCount ?? session?.mentor?.reviews ?? 0)
   const isPendingFinalizeForThisSession =
     paymentAction === "choose-slot" &&
     Boolean(pendingOrderId) &&
@@ -88,6 +102,36 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
       fetchAvailableSlots()
     }
   }, [dialogOpen, session?.id])
+
+  useEffect(() => {
+    if (!reviewsDialogOpen || !sessionFeedbackId) {
+      return
+    }
+
+    const fetchReviews = async () => {
+      setLoadingSessionReviews(true)
+      try {
+        const [reviewsData, statsData] = await Promise.allSettled([
+          feedbackApi.getByRelated("Session", sessionFeedbackId),
+          feedbackApi.getStats("Session", sessionFeedbackId),
+        ])
+
+        setSessionReviews(
+          reviewsData.status === "fulfilled" && Array.isArray(reviewsData.value)
+            ? reviewsData.value
+            : [],
+        )
+        setSessionReviewStats(statsData.status === "fulfilled" ? statsData.value : null)
+      } catch {
+        setSessionReviews([])
+        setSessionReviewStats(null)
+      } finally {
+        setLoadingSessionReviews(false)
+      }
+    }
+
+    void fetchReviews()
+  }, [reviewsDialogOpen, sessionFeedbackId])
 
   const fetchAvailableSlots = async () => {
     setLoadingSlots(true)
@@ -359,9 +403,11 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
           <div className="text-right shrink-0">
             <div className="flex items-center text-sm">
               <Star className="h-3 w-3 mr-1 text-yellow-500 fill-current" />
-              {session.mentor?.rating || 4.9}
+              {sessionRatingCount > 0 ? sessionAverageRating.toFixed(1) : "New"}
             </div>
-            <div className="text-xs text-muted-foreground whitespace-nowrap">{session.mentor?.reviews || 0} reviews</div>
+            <div className="text-xs text-muted-foreground whitespace-nowrap">
+              {sessionRatingCount} {sessionRatingCount === 1 ? "review" : "reviews"}
+            </div>
           </div>
         </div>
 
@@ -391,19 +437,60 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
         {/* Price and Book Button */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t">
           <div className="text-2xl font-bold text-sessions-600">
-            {session.price > 0 ? `$${session.price}` : 'Free'}
+            {session.price > 0 ? `${session.price} TND` : 'Free'}
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                className="bg-sessions-500 hover:bg-sessions-600 w-full sm:w-auto"
-                onClick={() => setSelectedSession(session.id)}
-              >
-                <CalendarIcon className="h-4 w-4 mr-2" />
-                Book Session
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+          <div className="flex w-full sm:w-auto items-center gap-2">
+            <Dialog open={reviewsDialogOpen} onOpenChange={setReviewsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="w-full sm:w-auto">
+                  <Star className="h-4 w-4 mr-2" />
+                  View Reviews
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] overflow-y-auto p-4 sm:p-6">
+                <DialogHeader className="text-left">
+                  <DialogTitle className="text-lg sm:text-xl">{session.title} Reviews</DialogTitle>
+                  <DialogDescription className="text-sm">
+                    See what members are saying about this session.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="rounded-lg border bg-sessions-50 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Average Rating</p>
+                        <p className="text-2xl font-semibold">
+                          {Number(sessionReviewStats?.averageRating || 0).toFixed(1)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <StarRating rating={Number(sessionReviewStats?.averageRating || 0)} size="md" />
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {Number(sessionReviewStats?.ratingCount || 0)}{" "}
+                          {Number(sessionReviewStats?.ratingCount || 0) === 1 ? "review" : "reviews"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <ReviewsList
+                    reviews={sessionReviews}
+                    isLoading={loadingSessionReviews}
+                    emptyMessage="No reviews yet for this session."
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  className="bg-sessions-500 hover:bg-sessions-600 w-full sm:w-auto"
+                  onClick={() => setSelectedSession(session.id)}
+                >
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  Book Session
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
               <DialogHeader className="text-left">
                 <DialogTitle className="text-lg sm:text-xl">{session.title}</DialogTitle>
                 <DialogDescription className="text-sm">
@@ -547,7 +634,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                       </div>
                       <div className="flex justify-between">
                         <span>Price:</span>
-                        <span>{session.price > 0 ? `$${session.price}` : 'Free'}</span>
+                        <span>{session.price > 0 ? `${session.price} TND` : 'Free'}</span>
                       </div>
                       {selectedDate && selectedTime && (
                         <div className="flex justify-between">
@@ -571,15 +658,16 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
                         Processing...
                       </>
                     ) : isPaidSession ? (
-                      isPendingFinalizeForThisSession ? "Finalize Booking" : `Pay with Card - $${session.price}`
+                      isPendingFinalizeForThisSession ? "Finalize Booking" : `Pay with Card - ${session.price} TND`
                     ) : (
-                      `Confirm Booking${session.price > 0 ? ` - $${session.price}` : ''}`
+                      `Confirm Booking${session.price > 0 ? ` - ${session.price} TND` : ''}`
                     )}
                   </Button>
                 </div>
               </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </CardContent>
     </Card>

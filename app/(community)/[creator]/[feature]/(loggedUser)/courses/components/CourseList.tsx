@@ -79,7 +79,7 @@ return (
             <Badge className="bg-blue-500 text-white">Free + Premium</Badge>
           ) : (
             <Badge variant="secondary" className="bg-white/90">
-              ${course.price}
+              {course.price} TND
             </Badge>
           )}
         </div>
@@ -215,7 +215,7 @@ return (
                 onEnroll(routeCourseId)
               }}
             >
-              Enroll - ${course.price}
+              Enroll - {course.price} TND
             </Button>
           )}
         </div>

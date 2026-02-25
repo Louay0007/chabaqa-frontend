@@ -371,9 +371,9 @@ export default function CommunitiesPage() {
                   </div>
                 </div>
               </div>
-              <CardHeader className="overflow-hidden">
-                <CardTitle className="flex items-center gap-2">
-                  <span className="break-words">{community.name}</span>
+              <CardHeader className="overflow-hidden bg-white" style={{ minHeight: '120px' }}>
+                <CardTitle className="flex items-center gap-2 mb-2 text-lg font-bold text-gray-900">
+                  <span className="line-clamp-1">{community.name}</span>
                   {community.verified && (
                     <Badge variant="secondary" className="bg-blue-100 text-blue-800 flex-shrink-0">
                       <CheckCircle className="w-3 h-3 mr-1" />
@@ -381,19 +381,9 @@ export default function CommunitiesPage() {
                     </Badge>
                   )}
                 </CardTitle>
-                <div className="overflow-hidden">
-                  <CardDescription className={`break-words overflow-hidden ${expandedDescriptions[community.id] ? "" : "line-clamp-2"}`}>
-                    {community.description}
-                  </CardDescription>
-                  {shouldShowSeeMore(community.description) && (
-                    <button
-                      onClick={() => toggleDescription(community.id)}
-                      className="text-xs text-primary hover:underline mt-1 inline-block"
-                    >
-                      {expandedDescriptions[community.id] ? "Voir moins" : "Voir plus"}
-                    </button>
-                  )}
-                </div>
+                <CardDescription className="line-clamp-2 text-sm text-gray-600">
+                  {community.description}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col gap-4">

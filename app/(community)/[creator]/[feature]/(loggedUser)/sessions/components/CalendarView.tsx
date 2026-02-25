@@ -156,7 +156,7 @@ export default function CalendarView({ sessions, userBookings }: CalendarViewPro
                               {session?.price > 0 && (
                                 <>
                                   <span className="text-muted-foreground">•</span>
-                                  <span className="font-medium">${session.price}</span>
+                                  <span className="font-medium">{session.price} TND</span>
                                 </>
                               )}
                             </div>
@@ -271,7 +271,7 @@ export default function CalendarView({ sessions, userBookings }: CalendarViewPro
             <div className="border-t pt-3 mt-3">
               <div className="flex items-center justify-between text-sm">
                 <span>Total Spent</span>
-                <span className="font-semibold text-lg">${totalSpent}</span>
+                <span className="font-semibold text-lg">{totalSpent} TND</span>
               </div>
             </div>
             <div className="flex items-center justify-between text-sm">

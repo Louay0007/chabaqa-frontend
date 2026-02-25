@@ -43,6 +43,7 @@ import { postsApi } from "@/lib/api/posts.api"
 import type { Post, PostLink } from "@/lib/api/types"
 import { PostCard } from "@/app/(community)/components/post-card"
 import { useToast } from "@/hooks/use-toast"
+import { useSearchParams } from "next/navigation"
 
 const POSTS_PAGE = 1
 const POSTS_LIMIT = 10
@@ -61,10 +62,69 @@ const EMPTY_PAGINATION: FeedPagination = {
   totalPages: 0,
 }
 
+const normalizeSavedPostForCard = (post: Post): Post => {
+  const rawAuthor = ((post as any)?.author || {}) as Record<string, any>
+  const authorName =
+    (typeof rawAuthor.username === "string" && rawAuthor.username.trim()) ||
+    (typeof rawAuthor.name === "string" && rawAuthor.name.trim()) ||
+    (typeof rawAuthor.firstName === "string" && rawAuthor.firstName.trim()) ||
+    "Anonymous"
+
+  const authorId =
+    (typeof rawAuthor.id === "string" && rawAuthor.id) ||
+    (typeof rawAuthor._id === "string" && rawAuthor._id) ||
+    (typeof post.authorId === "string" ? post.authorId : "")
+
+  const firstName = (() => {
+    if (typeof rawAuthor.firstName === "string" && rawAuthor.firstName.trim()) return rawAuthor.firstName.trim()
+    const [head] = authorName.split(" ")
+    return head || authorName
+  })()
+
+  const lastName =
+    (typeof rawAuthor.lastName === "string" && rawAuthor.lastName.trim())
+      ? rawAuthor.lastName.trim()
+      : undefined
+
+  const avatar =
+    (typeof rawAuthor.avatar === "string" && rawAuthor.avatar) ||
+    (typeof rawAuthor.profile_picture === "string" && rawAuthor.profile_picture) ||
+    (typeof rawAuthor.photo_profil === "string" && rawAuthor.photo_profil) ||
+    undefined
+
+  const role = ((typeof rawAuthor.role === "string" && rawAuthor.role.trim()) || "member") as
+    | "admin"
+    | "creator"
+    | "member"
+
+  return {
+    ...post,
+    author: {
+      id: authorId,
+      email: (typeof rawAuthor.email === "string" && rawAuthor.email) || "",
+      username: authorName,
+      firstName,
+      lastName,
+      avatar,
+      role,
+      verified: Boolean(rawAuthor.verified),
+      createdAt:
+        (typeof rawAuthor.createdAt === "string" && rawAuthor.createdAt) ||
+        post.createdAt ||
+        new Date().toISOString(),
+      updatedAt:
+        (typeof rawAuthor.updatedAt === "string" && rawAuthor.updatedAt) ||
+        post.updatedAt ||
+        new Date().toISOString(),
+    },
+  }
+}
+
 export default function CommunityDashboard({ params }: { params: Promise<{ creator?: string; feature: string }> }) {
   const resolvedParams = React.use(params)
   const { feature } = resolvedParams
   const { toast } = useToast()
+  const searchParams = useSearchParams()
 
   // State management
   const [loading, setLoading] = useState(true)
@@ -87,6 +147,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   const [isLoadingSaved, setIsLoadingSaved] = useState(false)
   const [isLoadingMoreSaved, setIsLoadingMoreSaved] = useState(false)
   const [savedError, setSavedError] = useState<string | null>(null)
+  const [hasLoadedSavedOnce, setHasLoadedSavedOnce] = useState(false)
 
   const [links, setLinks] = useState<PostLink[]>([])
   const [linkUrl, setLinkUrl] = useState<string>("")
@@ -96,6 +157,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
 
   const [deletePostId, setDeletePostId] = useState<string | null>(null)
   const [isDeletingPost, setIsDeletingPost] = useState(false)
+  const [highlightedPostId, setHighlightedPostId] = useState<string | null>(null)
 
   // Media upload state
   const [uploadedImages, setUploadedImages] = useState<string[]>([])
@@ -106,6 +168,9 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   const imageInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
   const postTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const focusedSharedPostIdsRef = useRef<Set<string>>(new Set())
+  const fetchedSharedPostIdsRef = useRef<Set<string>>(new Set())
 
   const COMMON_EMOJIS = ["😀", "😂", "😍", "🎉", "🔥", "👍", "❤️", "🚀", "✨", "💯"]
 
@@ -124,6 +189,38 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
     setShowEmojiPicker(false)
     setShowMetadata(false)
   }, [])
+
+  const focusPostById = useCallback((postId: string) => {
+    if (!postId || typeof window === "undefined") return
+
+    const targetElementId = `post-${postId}`
+    let attempts = 0
+
+    const scrollToPost = () => {
+      const el = document.getElementById(targetElementId)
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+        setHighlightedPostId(postId)
+
+        if (highlightTimerRef.current) {
+          clearTimeout(highlightTimerRef.current)
+        }
+        highlightTimerRef.current = setTimeout(() => {
+          setHighlightedPostId((prev) => (prev === postId ? null : prev))
+        }, 3500)
+        return
+      }
+
+      attempts += 1
+      if (attempts < 8) {
+        window.setTimeout(scrollToPost, 120)
+      }
+    }
+
+    scrollToPost()
+  }, [])
+
+  const sharedPostId = (searchParams.get("post") || "").trim()
 
   const fetchHomeData = useCallback(async () => {
     try {
@@ -146,6 +243,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
         setSavedPosts([])
         setSavedPagination(EMPTY_PAGINATION)
         setSavedError(null)
+        setHasLoadedSavedOnce(false)
         return
       }
 
@@ -158,7 +256,10 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
       try {
         setSavedError(null)
         const response = await postsApi.getBookmarks({ page, limit: POSTS_LIMIT })
-        const fetchedPosts = (response.posts || []).map((post) => ({ ...post, isBookmarkedByUser: true }))
+        const fetchedPosts = (response.posts || []).map((post) => ({
+          ...normalizeSavedPostForCard(post),
+          isBookmarkedByUser: true,
+        }))
 
         if (append) {
           setSavedPosts((prev) => {
@@ -186,6 +287,9 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
           variant: "destructive",
         })
       } finally {
+        if (!append) {
+          setHasLoadedSavedOnce(true)
+        }
         setIsLoadingSaved(false)
         setIsLoadingMoreSaved(false)
       }
@@ -199,12 +303,81 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   }, [fetchHomeData])
 
   useEffect(() => {
-    if (activeFeedTab !== "saved") return
-    if (!data?.currentUser) return
-    if (isLoadingSaved) return
-    if (savedPosts.length > 0) return
+    // Prefetch saved posts once so Saved badge count is accurate before tab is opened.
+    if (!data?.currentUser?.id) return
+    if (isLoadingSaved || isLoadingMoreSaved) return
+    if (hasLoadedSavedOnce) return
     void loadSavedPosts(1, false)
-  }, [activeFeedTab, data?.currentUser, isLoadingSaved, loadSavedPosts, savedPosts.length])
+  }, [data?.currentUser?.id, hasLoadedSavedOnce, isLoadingMoreSaved, isLoadingSaved, loadSavedPosts])
+
+  useEffect(() => {
+    setSavedPosts([])
+    setSavedPagination(EMPTY_PAGINATION)
+    setSavedError(null)
+    setHasLoadedSavedOnce(false)
+  }, [feature, data?.currentUser?.id])
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!sharedPostId || !data?.community?.id) return
+
+    if (activeFeedTab !== "all") {
+      setActiveFeedTab("all")
+      return
+    }
+
+    const postExistsInFeed = data.posts.some((post) => String(post.id) === sharedPostId)
+    if (postExistsInFeed) {
+      if (!focusedSharedPostIdsRef.current.has(sharedPostId)) {
+        focusedSharedPostIdsRef.current.add(sharedPostId)
+        focusPostById(sharedPostId)
+      }
+      return
+    }
+
+    if (fetchedSharedPostIdsRef.current.has(sharedPostId)) return
+    fetchedSharedPostIdsRef.current.add(sharedPostId)
+
+    let isMounted = true
+    const loadSharedPost = async () => {
+      try {
+        const response = await postsApi.getById(sharedPostId)
+        if (!isMounted) return
+
+        const fetchedPost = normalizeSavedPostForCard(response.data as Post)
+        const fetchedCommunityId = String((response.data as any)?.communityId || "")
+        if (fetchedCommunityId && fetchedCommunityId !== String(data.community.id)) {
+          return
+        }
+
+        setData((prevData) => {
+          if (!prevData) return prevData
+          if (prevData.posts.some((post) => String(post.id) === String(fetchedPost.id))) {
+            return prevData
+          }
+          return {
+            ...prevData,
+            posts: [fetchedPost, ...prevData.posts],
+          }
+        })
+      } catch (error) {
+        console.error("Unable to load shared post:", error)
+      }
+    }
+
+    void loadSharedPost()
+
+    return () => {
+      isMounted = false
+    }
+  }, [activeFeedTab, data?.community?.id, data?.posts, focusPostById, sharedPostId])
 
   const insertEmojiIntoPost = (emoji: string) => {
     const el = postTextareaRef.current
@@ -924,7 +1097,10 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                         type="button"
                         variant={activeFeedTab === "saved" ? "default" : "ghost"}
                         size="sm"
-                        onClick={() => setActiveFeedTab("saved")}
+                        onClick={() => {
+                          setHasLoadedSavedOnce(false)
+                          setActiveFeedTab("saved")
+                        }}
                       >
                         Saved ({savedCount})
                       </Button>
@@ -981,6 +1157,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                         key={post.id}
                         post={post}
                         currentUser={currentUser}
+                        isHighlighted={highlightedPostId === post.id}
                         isBookmarked={Boolean(post.isBookmarkedByUser)}
                         isBookmarkPending={bookmarkPendingIds.has(post.id)}
                         onPostUpdate={handlePostUpdate}

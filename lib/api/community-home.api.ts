@@ -158,7 +158,7 @@ function transformPost(backendPost: any): Post {
   const normalizedAuthor = normalizeUser(author);
 
   return {
-    id: String(backendPost._id || backendPost.id || ''),
+    id: String(backendPost.id || backendPost._id || ''),
     title: backendPost.title || '',
     content: backendPost.content || '',
     communityId: String(backendPost.communityId || ''),

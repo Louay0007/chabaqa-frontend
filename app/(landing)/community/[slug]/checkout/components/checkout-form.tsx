@@ -72,7 +72,7 @@ export function CheckoutForm({
     return (
       pricing?.pricing?.currency ||
       pricing?.currency ||
-      "USD"
+      "TND"
     )
   }, [pricing])
 
@@ -90,10 +90,10 @@ export function CheckoutForm({
     try {
       return new Intl.NumberFormat(undefined, {
         style: "currency",
-        currency: currency || "USD"
+        currency: currency || "TND"
       }).format(amount)
     } catch {
-      return `${amount.toFixed(2)} ${currency || "USD"}`
+      return `${amount.toFixed(2)} ${currency || "TND"}`
     }
   }
 

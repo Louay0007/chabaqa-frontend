@@ -6,7 +6,7 @@ import {
   Users, 
   Building2, 
   FileText, 
-  DollarSign, 
+  Coins, 
   Mail, 
   Shield,
   AlertCircle,
@@ -84,7 +84,7 @@ export function EmptyModerationQueue() {
 export function EmptyTransactions() {
   return (
     <EmptyState
-      icon={DollarSign}
+      icon={Coins}
       title="No transactions found"
       description="There are no transactions to display. Transactions will appear here once users start making purchases."
       compact
@@ -98,7 +98,7 @@ export function EmptyTransactions() {
 export function EmptyPayouts({ onCalculate }: { onCalculate?: () => void }) {
   return (
     <EmptyState
-      icon={DollarSign}
+      icon={Coins}
       title="No payouts found"
       description="There are no payouts scheduled. Calculate payouts to see pending creator earnings."
       action={onCalculate ? {

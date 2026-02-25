@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -40,6 +41,7 @@ import {
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 import { prefetchCommunity } from "@/app/(creator)/creator/context/community-switch-cache"
 import type { Community } from "@/lib/api/types"
+import { api } from "@/lib/api"
 
 interface DashboardSidebarProps {
   user: any
@@ -65,6 +67,25 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
     error: communitiesError,
     setSelectedCommunityId,
   } = useCreatorCommunity()
+
+  // State for unread notifications count
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  // Fetch notifications and count unread
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await api.notifications.getAll()
+        const unread = response.items.filter(n => !n.isRead).length
+        setUnreadCount(unread)
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error)
+        // Keep count at 0 if fetch fails
+      }
+    }
+
+    fetchNotifications()
+  }, [])
 
   const handleCommunityChange = (communityId: string) => {
     setSelectedCommunityId(communityId)
@@ -164,7 +185,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
       title: "Notifications",
       icon: Bell,
       href: "/creator/notifications",
-      badge: "5",
+      badge: unreadCount > 0 ? unreadCount.toString() : null,
     },
     {
       title: "Help & Support",
@@ -204,9 +225,16 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
       {/* Header with Community Selector */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-to-r from-chabaqa-primary to-chabaqa-secondary1 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">C</span>
-          </div>
+          <Link href="/" className="flex-shrink-0">
+            <div className="w-8 h-8 relative cursor-pointer hover:opacity-90 transition-opacity">
+              <Image
+                src="/Logos/PNG/brandmark.png"
+                alt="Chabaqa Logo"
+                fill
+                className="object-contain"
+              />
+            </div>
+          </Link>
           <div className="flex-1">
             {isLoadingCommunities ? (
               <div className="h-8 bg-gray-100 animate-pulse rounded"></div>
