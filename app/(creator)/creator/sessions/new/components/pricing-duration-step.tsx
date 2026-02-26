@@ -1,12 +1,10 @@
 
-import { useEffect } from "react"
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Coins, Clock, Users } from "lucide-react"
+import { Coins, Users } from "lucide-react"
 
 const durations = [
   { label: "30 minutes", value: "30" },
@@ -15,8 +13,6 @@ const durations = [
   { label: "90 minutes", value: "90" },
   { label: "120 minutes", value: "120" },
 ]
-
-const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 interface PricingDurationStepProps {
   formData: {
@@ -35,24 +31,7 @@ interface PricingDurationStepProps {
   validationErrors?: Record<string, string>
 }
 
-export function PricingDurationStep({ formData, handleInputChange, handleDayToggle, validationErrors }: PricingDurationStepProps) {
-  // Auto-calculate end time when duration or start time changes
-  useEffect(() => {
-    if (formData.duration && formData.availableHours.start) {
-      const [hours, minutes] = formData.availableHours.start.split(':').map(Number)
-      const durationMinutes = Number(formData.duration)
-      
-      const totalMinutes = hours * 60 + minutes + durationMinutes
-      const endHours = Math.floor(totalMinutes / 60) % 24
-      const endMinutes = totalMinutes % 60
-      
-      const endTime = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`
-      
-      if (formData.availableHours.end !== endTime) {
-        handleInputChange("availableHours.end", endTime)
-      }
-    }
-  }, [formData.duration, formData.availableHours.start])
+export function PricingDurationStep({ formData, handleInputChange, validationErrors }: PricingDurationStepProps) {
 
   return (
     <EnhancedCard>
@@ -120,54 +99,6 @@ export function PricingDurationStep({ formData, handleInputChange, handleDayTogg
                 className="pl-10"
                 value={formData.maxBookingsPerWeek}
                 onChange={(e) => handleInputChange("maxBookingsPerWeek", e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <Label>Available Days</Label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {daysOfWeek.map((day) => (
-              <div key={day} className="flex items-center space-x-2">
-                <Checkbox
-                  id={day}
-                  checked={formData.availableDays.includes(day)}
-                  onCheckedChange={() => handleDayToggle(day)}
-                />
-                <Label htmlFor={day} className="text-sm font-normal">
-                  {day}
-                </Label>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="startTime">Available Hours - Start</Label>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="startTime"
-                type="time"
-                className="pl-10"
-                value={formData.availableHours.start}
-                onChange={(e) => handleInputChange("availableHours.start", e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="endTime">Available Hours - End</Label>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="endTime"
-                type="time"
-                className="pl-10 bg-muted"
-                value={formData.availableHours.end}
-                readOnly
               />
             </div>
           </div>

@@ -480,7 +480,6 @@ export function CreateCommunityForm({
           className="mb-6 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          {backLabel}
         </Button>
 
         <div className="max-w-3xl">
