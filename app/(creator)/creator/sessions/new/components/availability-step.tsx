@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Clock, Plus, Trash2 } from "lucide-react"
+import { Clock, Plus, Trash2, AlertCircle } from "lucide-react"
 
 interface RecurringAvailability {
   dayOfWeek: number
@@ -40,6 +40,7 @@ export function AvailabilityStep({ formData, handleInputChange }: AvailabilitySt
   const autoGenerateSlots = formData.autoGenerateSlots ?? true
   const advanceBookingDays = formData.advanceBookingDays ?? 30
   const duration = parseInt(formData.duration) || 60
+  const [validationError, setValidationError] = useState<string>("")
 
   const addAvailabilitySlot = () => {
     const newSlot: RecurringAvailability = {
@@ -52,9 +53,46 @@ export function AvailabilityStep({ formData, handleInputChange }: AvailabilitySt
   }
 
   const updateAvailabilitySlot = (index: number, field: string, value: any) => {
-    const updated = recurringAvailability.map((slot, i) => 
-      i === index ? { ...slot, [field]: value } : slot
-    )
+    const updated = recurringAvailability.map((slot, i) => {
+      if (i === index) {
+        let updatedSlot = { ...slot, [field]: value }
+        
+        // Auto-calculate end time when start time changes
+        if (field === 'startTime' && value) {
+          const [hours, minutes] = value.split(':').map(Number)
+          const totalMinutes = hours * 60 + minutes + duration
+          const endHours = Math.floor(totalMinutes / 60) % 24
+          const endMinutes = totalMinutes % 60
+          const endTime = `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`
+          updatedSlot = { ...updatedSlot, endTime }
+        }
+        
+        // Validation: Ensure end time is after start time
+        if (field === 'startTime' || field === 'endTime') {
+          const startTime = updatedSlot.startTime
+          const endTime = updatedSlot.endTime
+          
+          if (startTime && endTime) {
+            const [startHour, startMin] = startTime.split(':').map(Number)
+            const [endHour, endMin] = endTime.split(':').map(Number)
+            const startMinutes = startHour * 60 + startMin
+            const endMinutes = endHour * 60 + endMin
+            
+            if (endMinutes <= startMinutes) {
+              // Show validation error
+              setValidationError("End time must be after start time")
+              setTimeout(() => setValidationError(""), 3000)
+              return slot
+            }
+          }
+        }
+        
+        // Clear validation error
+        setValidationError("")
+        return updatedSlot
+      }
+      return slot
+    })
     handleInputChange('recurringAvailability', updated)
   }
 
@@ -83,6 +121,12 @@ export function AvailabilityStep({ formData, handleInputChange }: AvailabilitySt
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {validationError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2 text-sm text-red-800">
+              <AlertCircle className="h-4 w-4" />
+              <span>{validationError}</span>
+            </div>
+          )}
           {recurringAvailability.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
               <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -118,8 +162,8 @@ export function AvailabilityStep({ formData, handleInputChange }: AvailabilitySt
                     <Input
                       type="time"
                       value={slot.endTime}
-                      onChange={(e) => updateAvailabilitySlot(index, 'endTime', e.target.value)}
-                      className="w-32"
+                      readOnly
+                      className="w-32 bg-muted cursor-not-allowed"
                     />
                   </div>
 
