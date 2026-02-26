@@ -219,7 +219,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     openGraph: {
       title: post.title,
       description: post.excerpt,
-      url: `https://chabaqa.com/blogs/${post.id}`,
+      url: `https://chabaqa.io/blogs/${post.id}`,
       siteName: "Chabaqa",
       type: "article",
       publishedTime: post.date,
@@ -240,7 +240,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       images: [post.image]
     },
     alternates: {
-      canonical: `https://chabaqa.com/blogs/${post.id}`
+      canonical: `https://chabaqa.io/blogs/${post.id}`
     }
   }
 }
@@ -280,12 +280,12 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
               "name": "Chabaqa",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://chabaqa.com/logo.png"
+                "url": "https://chabaqa.io/logo.png"
               }
             },
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": `https://chabaqa.com/blogs/${post.id}`
+              "@id": `https://chabaqa.io/blogs/${post.id}`
             },
             "articleSection": post.category,
             "keywords": `${post.category}, community building, creator platform, online courses, monetization`

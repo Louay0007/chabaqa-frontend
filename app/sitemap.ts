@@ -3,7 +3,7 @@ import { MetadataRoute } from 'next'
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://chabaqa.io'
   
-  // Blog post IDs
+  // Blog post IDs - update this array when adding new blog posts
   const blogPostIds = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
   
   const blogPosts = blogPostIds.map((id) => ({
@@ -14,24 +14,35 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }))
 
   return [
+    // Homepage - highest priority
     {
       url: baseUrl,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 1,
     },
+    // FAQ page - high priority for SEO
+    {
+      url: `${baseUrl}/faq`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    // Blog listing page
     {
       url: `${baseUrl}/blogs`,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.9,
     },
+    // Explore communities
     {
       url: `${baseUrl}/explore`,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.8,
     },
+    // Authentication pages
     {
       url: `${baseUrl}/signin`,
       lastModified: new Date(),
@@ -44,6 +55,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.6,
     },
+    // Individual blog posts
     ...blogPosts,
   ]
 }
