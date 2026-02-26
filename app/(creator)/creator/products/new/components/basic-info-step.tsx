@@ -12,6 +12,7 @@ import { Plus, X, ShoppingBag, Upload, ImageOff } from "lucide-react"
 import { useProductForm } from "./product-form-context"
 import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 const categories = [
   "E-books",
@@ -29,6 +30,7 @@ export function BasicInfoStep() {
   const { toast } = useToast()
   const [uploading, setUploading] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const thumbnailPreviewSrc = resolveImageUrl(formData.thumbnail) || formData.thumbnail
 
   const onPick = () => inputRef.current?.click()
 
@@ -107,7 +109,8 @@ export function BasicInfoStep() {
           {formData.thumbnail ? (
             <div className="relative border rounded-lg overflow-hidden">
               <div className="relative w-full aspect-video">
-                <img src={formData.thumbnail} alt="Thumbnail" className="w-full h-full object-cover" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={thumbnailPreviewSrc} alt="Thumbnail" className="w-full h-full object-cover" />
               </div>
               <div className="flex gap-2 p-3">
                 <Button type="button" variant="outline" size="sm" onClick={onPick} disabled={uploading}>

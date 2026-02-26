@@ -22,6 +22,7 @@ import { useState } from "react"
 import { Course } from "@/lib/models"
 import { coursesApi } from "@/lib/api/courses.api"
 import { mediaApi } from "@/lib/api/media.api"
+import { getCreatorVideoUrlError, normalizeVideoUrl } from "@/lib/utils/video-source"
 
 type ContentTabProps = {
   course: Course
@@ -82,6 +83,8 @@ export function ContentTab({
   const [isEditChapterOpen, setIsEditChapterOpen] = useState(false)
   const [editChapterSectionId, setEditChapterSectionId] = useState<string | null>(null)
   const [editChapterId, setEditChapterId] = useState<string | null>(null)
+  const [editChapterVideoUrlError, setEditChapterVideoUrlError] = useState<string | null>(null)
+  const [editChapterFormError, setEditChapterFormError] = useState<string | null>(null)
   const [editChapter, setEditChapter] = useState({
     title: "",
     content: "",
@@ -101,6 +104,29 @@ export function ContentTab({
     price: "",
     notes: "",
   })
+  const [newChapterVideoUrlError, setNewChapterVideoUrlError] = useState<string | null>(null)
+  const [newChapterFormError, setNewChapterFormError] = useState<string | null>(null)
+
+  const validateChapterDraft = (chapter: { title: string; content: string; videoUrl: string }) => {
+    const title = chapter.title.trim()
+    const content = chapter.content.trim()
+    const videoUrl = normalizeVideoUrl(chapter.videoUrl)
+
+    if (!title) {
+      return { formError: "Chapter title is required.", videoError: null as string | null }
+    }
+
+    if (!content && !videoUrl) {
+      return { formError: "Add chapter content or a video URL.", videoError: null as string | null }
+    }
+
+    const videoError = getCreatorVideoUrlError(videoUrl)
+    if (videoError) {
+      return { formError: null as string | null, videoError }
+    }
+
+    return { formError: null as string | null, videoError: null as string | null }
+  }
 
   const uploadNewChapterVideo = async (file: File): Promise<string | null> => {
     setIsUploading(true)
@@ -111,6 +137,7 @@ export function ContentTab({
         visibility: "public",
       })
       const url = ensureAbsoluteUploadUrl(result?.url)
+      setNewChapterVideoUrlError(getCreatorVideoUrlError(url))
       return url || null
     } finally {
       setIsUploading(false)
@@ -127,6 +154,7 @@ export function ContentTab({
       const newUrl = updatedChapter?.videoUrl || updatedChapter?.video_url || ""
       if (newUrl) {
         setEditChapter((p) => ({ ...p, videoUrl: String(newUrl) }))
+        setEditChapterVideoUrlError(getCreatorVideoUrlError(newUrl))
       }
       if (onRefreshCourse) {
         await onRefreshCourse()
@@ -168,15 +196,25 @@ export function ContentTab({
       price: chapter.price ? String(chapter.price) : "",
       notes: String(chapter.notes || ""),
     })
+    setEditChapterVideoUrlError(getCreatorVideoUrlError(chapter.videoUrl || ""))
+    setEditChapterFormError(null)
     setIsEditChapterOpen(true)
   }
 
   const saveEditChapter = () => {
     if (!editChapterSectionId || !editChapterId) return
+    const validation = validateChapterDraft(editChapter)
+    setEditChapterFormError(validation.formError)
+    setEditChapterVideoUrlError(validation.videoError)
+    if (validation.formError || validation.videoError) {
+      return
+    }
     void onUpdateChapter(editChapterSectionId, editChapterId, editChapter)
     setIsEditChapterOpen(false)
     setEditChapterSectionId(null)
     setEditChapterId(null)
+    setEditChapterFormError(null)
+    setEditChapterVideoUrlError(null)
   }
 
   const handleDeleteSection = (sectionId: string) => {
@@ -192,7 +230,17 @@ export function ContentTab({
   }
 
   const handleAddChapter = (sectionId: string) => {
-    void onAddChapter(sectionId, newChapter)
+    const validation = validateChapterDraft(newChapter)
+    setNewChapterFormError(validation.formError)
+    setNewChapterVideoUrlError(validation.videoError)
+    if (validation.formError || validation.videoError) {
+      return
+    }
+
+    void onAddChapter(sectionId, {
+      ...newChapter,
+      videoUrl: normalizeVideoUrl(newChapter.videoUrl),
+    })
     setNewChapter({
       title: "",
       content: "",
@@ -202,6 +250,8 @@ export function ContentTab({
       price: "",
       notes: "",
     })
+    setNewChapterFormError(null)
+    setNewChapterVideoUrlError(null)
   }
 
   return (
@@ -313,6 +363,21 @@ export function ContentTab({
                   {isUploading ? (
                     <p className="text-xs text-muted-foreground">Uploading...</p>
                   ) : null}
+                  <Label>Video URL (YouTube or /uploads/...)</Label>
+                  <Input
+                    type="url"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    value={editChapter.videoUrl}
+                    onChange={(e) => {
+                      const nextVideoUrl = e.target.value
+                      setEditChapter((p) => ({ ...p, videoUrl: nextVideoUrl }))
+                      setEditChapterVideoUrlError(getCreatorVideoUrlError(nextVideoUrl))
+                    }}
+                    className={editChapterVideoUrlError ? "border-red-500" : ""}
+                  />
+                  {editChapterVideoUrlError ? (
+                    <p className="text-xs text-red-500">{editChapterVideoUrlError}</p>
+                  ) : null}
                 </div>
                 <div className="space-y-2">
                   <Label>Chapter Content</Label>
@@ -332,6 +397,9 @@ export function ContentTab({
                     <Input type="number" value={editChapter.price} onChange={(e) => setEditChapter((p) => ({ ...p, price: e.target.value }))} disabled={editChapter.isPreview} />
                   </div>
                 </div>
+                {editChapterFormError ? (
+                  <p className="text-sm text-red-500">{editChapterFormError}</p>
+                ) : null}
               </div>
               <DialogFooter>
                 <Button type="button" onClick={saveEditChapter}>Save</Button>
@@ -470,6 +538,22 @@ export function ContentTab({
                         {isUploading ? (
                           <p className="text-xs text-muted-foreground">Uploading...</p>
                         ) : null}
+                        <Label htmlFor="chapterVideoUrl">Video URL (YouTube or /uploads/...)</Label>
+                        <Input
+                          id="chapterVideoUrl"
+                          type="url"
+                          placeholder="https://www.youtube.com/watch?v=..."
+                          value={newChapter.videoUrl}
+                          onChange={(e) => {
+                            const nextVideoUrl = e.target.value
+                            setNewChapter((prev) => ({ ...prev, videoUrl: nextVideoUrl }))
+                            setNewChapterVideoUrlError(getCreatorVideoUrlError(nextVideoUrl))
+                          }}
+                          className={newChapterVideoUrlError ? "border-red-500" : ""}
+                        />
+                        {newChapterVideoUrlError ? (
+                          <p className="text-xs text-red-500">{newChapterVideoUrlError}</p>
+                        ) : null}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="chapterContent">Chapter Content</Label>
@@ -514,6 +598,9 @@ export function ContentTab({
                           />
                         </div>
                       </div>
+                      {newChapterFormError ? (
+                        <p className="text-sm text-red-500">{newChapterFormError}</p>
+                      ) : null}
                     </div>
                     <DialogFooter>
                       <Button onClick={() => handleAddChapter(section.id)}>Add Chapter</Button>

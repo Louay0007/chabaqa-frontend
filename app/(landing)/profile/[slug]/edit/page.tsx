@@ -1,14 +1,24 @@
 "use client"
 
-import { useEffect, useMemo, useState, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { updateProfile } from "@/lib/api/user.api"
+import { changePassword, deleteAccount, updateProfile } from "@/lib/api/user.api"
 import { storageApi } from "@/lib/api/storage.api"
 import { useCurrentUser } from "@/lib/hooks/useUser"
+import { useAuthContext } from "@/app/providers/auth-provider"
 import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { AtSign, User as UserIcon, Mail as MailIcon, MapPin, Pencil, Save as SaveIcon } from "lucide-react"
+import { AtSign, Mail as MailIcon, MapPin, Pencil, Save as SaveIcon, TriangleAlert, User as UserIcon } from "lucide-react"
 
 function slugFromUser(u: any) {
   const emailLocal = (u?.email || "").split("@")[0]
@@ -19,9 +29,17 @@ function slugFromUser(u: any) {
   return emailLocal || fromName || "user"
 }
 
+function usernameFromEmail(email: string) {
+  return (email || "")
+    .split("@")[0]
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, "")
+}
+
 export default function EditProfilePage() {
   const router = useRouter()
   const params = useParams<{ slug: string }>()
+  const { logout } = useAuthContext()
   const { user, isLoading, mutate } = useCurrentUser()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -44,6 +62,20 @@ export default function EditProfilePage() {
   const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string>("")
   const [uploading, setUploading] = useState(false)
 
+  // Security actions
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmNewPassword, setConfirmNewPassword] = useState("")
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [passwordError, setPasswordError] = useState("")
+  const [passwordSuccess, setPasswordSuccess] = useState("")
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteCurrentPassword, setDeleteCurrentPassword] = useState("")
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState("")
+
   // Validation helpers
   const isValidEmail = (v: string) => /.+@.+\..+/.test((v || '').trim())
   const currentVille = (user as any)?.ville || ""
@@ -52,7 +84,6 @@ export default function EditProfilePage() {
   const isDirty = (
     fullName !== (user?.name || "") ||
     email !== (user?.email || "") ||
-    bio !== ((user as any)?.bio || "") ||
     bio !== ((user as any)?.bio || "") ||
     location !== currentLocation ||
     (!!uploadedAvatarUrl && uploadedAvatarUrl !== user?.avatar)
@@ -64,6 +95,15 @@ export default function EditProfilePage() {
   const nameError = !fullName.trim() ? "Full name is required" : ""
   const emailError = !email.trim() ? "Email is required" : (!isValidEmail(email) ? "Enter a valid email address" : "")
   const BIO_MAX = 300
+  const isPasswordSameAsCurrent = !!currentPassword && !!newPassword && currentPassword === newPassword
+  const isPasswordMismatch = !!confirmNewPassword && newPassword !== confirmNewPassword
+  const canSubmitPassword =
+    currentPassword.trim().length >= 8 &&
+    newPassword.trim().length >= 8 &&
+    confirmNewPassword.trim().length >= 8 &&
+    !isPasswordSameAsCurrent &&
+    !isPasswordMismatch
+  const canDeleteAccount = deleteCurrentPassword.trim().length >= 8 && deleteConfirmText.trim() === "DELETE"
 
   useEffect(() => {
     // when SWR provides user, prefill
@@ -78,7 +118,7 @@ export default function EditProfilePage() {
         return
       }
       const ua: any = user
-      setUsername((ua.email || "").split("@")[0])
+      setUsername(usernameFromEmail(ua.email || ""))
       setFullName(ua.name || "")
       setEmail(ua.email || "")
       const loc = [ua.ville, ua.pays].filter(Boolean).join(", ")
@@ -180,9 +220,64 @@ export default function EditProfilePage() {
     }
   }
 
+  const onPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!canSubmitPassword) {
+      if (isPasswordSameAsCurrent) {
+        setPasswordError("New password must be different from your current password.")
+      } else if (isPasswordMismatch) {
+        setPasswordError("Password confirmation does not match.")
+      } else {
+        setPasswordError("Please provide valid password fields.")
+      }
+      return
+    }
+
+    setPasswordSaving(true)
+    setPasswordError("")
+    setPasswordSuccess("")
+    try {
+      const result = await changePassword({
+        currentPassword: currentPassword.trim(),
+        newPassword: newPassword.trim(),
+      })
+      setPasswordSuccess(result.message || "Password updated successfully.")
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmNewPassword("")
+    } catch (err: any) {
+      setPasswordError(err?.message || "Failed to update password.")
+    } finally {
+      setPasswordSaving(false)
+    }
+  }
+
+  const onDeleteAccount = async () => {
+    if (!canDeleteAccount) {
+      setDeleteError("Type DELETE and provide your current password to continue.")
+      return
+    }
+
+    setDeleteLoading(true)
+    setDeleteError("")
+    try {
+      await deleteAccount({
+        currentPassword: deleteCurrentPassword.trim(),
+        confirmText: deleteConfirmText.trim(),
+      })
+
+      await mutate(null, { revalidate: false })
+      await logout()
+    } catch (err: any) {
+      setDeleteError(err?.message || "Failed to delete account.")
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-white emoji-font">
+      <div className="min-h-screen bg-white font-sans">
         <Header />
         <main className="flex justify-center pt-16 pb-32 px-4 sm:px-8 md:px-12 lg:px-20 xl:px-40">
           <div className="min-h-[40vh] flex items-center justify-center text-sm text-muted-foreground">Loading…</div>
@@ -193,19 +288,19 @@ export default function EditProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white emoji-font">
+    <div className="min-h-screen bg-white font-sans">
       <Header />
       <main className="flex justify-center pt-16 pb-32 px-4 sm:px-8 md:px-12 lg:px-20 xl:px-40">
-        <div className="flex flex-col gap-6 w-full max-w-4xl">
+        <div className="flex flex-col gap-6 w-full max-w-4xl tracking-normal">
           <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-bold">Edit Profile</h1>
-            <p className="text-text-secondary">Update your profile information and personal details.</p>
+            <h1 className="text-3xl font-bold text-text-primary">Edit Profile</h1>
+            <p className="text-sm text-text-secondary leading-normal">Update your profile information and personal details.</p>
           </div>
 
           <div className="border border-border-color rounded-xl bg-white shadow-subtle p-6 sm:p-8 relative">
             <div className="flex flex-col sm:flex-row items-start gap-6 mb-8">
               <div className="relative shrink-0">
-                <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-24 w-24 sm:h-28 sm:w-28 relative" style={{ backgroundImage: `url(${avatarUrl})` }}>
+                <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-24 w-24 sm:h-28 sm:w-28 relative ring-2 ring-white shadow-md" style={{ backgroundImage: `url(${avatarUrl})` }}>
                   {uploading && (
                     <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
                       <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -228,15 +323,16 @@ export default function EditProfilePage() {
                   <Pencil className="w-4 h-4" />
                 </button>
               </div>
-              <div className="flex flex-col gap-1 flex-1">
-                <h2 className="text-2xl font-bold leading-tight">{fullName || user?.name}</h2>
-                <p className="text-text-secondary">@{username}</p>
-                <p className="text-text-secondary mt-4">Show us that beautiful smile ✨</p>
-                <p className="text-text-secondary mt-1">Update your photo and personal details.</p>
+              <div className="flex flex-col gap-1 flex-1 min-w-0">
+                <h2 className="text-2xl font-bold leading-tight text-text-primary truncate">{fullName || user?.name}</h2>
+                <p className="text-sm text-text-secondary truncate">@{username || "user"}</p>
+                <p className="text-sm text-text-secondary mt-3 leading-normal">
+                  A clear avatar and short bio help people trust your profile faster.
+                </p>
               </div>
             </div>
 
-            <form className="space-y-6" onSubmit={onSubmit}>
+            <form className="space-y-6" onSubmit={onSubmit} noValidate>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-text-primary mb-1.5" htmlFor="username">Username</label>
@@ -250,9 +346,10 @@ export default function EditProfilePage() {
                       value={username}
                       readOnly
                       aria-readonly
-                      title="Your public handle is derived from your email"
+                      title="Public handle derived from your email"
                     />
                   </div>
+                  <p className="mt-1 text-xs text-text-tertiary">Read-only handle shown on your public profile.</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-text-primary mb-1.5" htmlFor="fullName">Full Name</label>
@@ -341,7 +438,8 @@ export default function EditProfilePage() {
               {error && <div className="text-sm text-red-600">{error}</div>}
               {success && <div className="text-sm text-green-600">{success}</div>}
 
-              <div className="border-t border-border-color pt-6 flex flex-col sm:flex-row justify-end items-center gap-3">
+              <div className="border-t border-border-color pt-6 flex flex-col sm:flex-row justify-between sm:justify-end items-center gap-3">
+                <p className="text-xs text-text-tertiary mr-auto">{isDirty ? "You have unsaved changes." : "No pending changes."}</p>
                 <button type="button" onClick={() => router.back()} className="flex min-w-[84px] items-center justify-center gap-2 rounded-lg h-10 px-4 bg-white hover:bg-gray-100 transition-colors text-text-secondary text-sm font-bold border border-border-color">Cancel</button>
                 <Button type="submit" disabled={saving || !isDirty || !isValid} aria-disabled={saving || !isDirty || !isValid} className={`flex min-w-[84px] items-center justify-center gap-2 rounded-lg h-10 px-4 text-white text-sm font-bold border ${saving || !isDirty || !isValid ? 'bg-[#8e78fb]/60 border-[#7b61f8]/60 cursor-not-allowed' : 'bg-[#8e78fb] hover:bg-[#7b61f8] border-[#7b61f8]'}`}>
                   <SaveIcon className="w-4 h-4" />
@@ -350,12 +448,173 @@ export default function EditProfilePage() {
               </div>
             </form>
           </div>
+
+          <div className="border border-border-color rounded-xl bg-white shadow-subtle p-6 sm:p-8">
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h2 className="text-xl font-bold text-text-primary">Security</h2>
+                <p className="text-sm text-text-secondary mt-1">Change your password to keep your account secure.</p>
+              </div>
+            </div>
+
+            <form className="space-y-5" onSubmit={onPasswordSubmit} noValidate>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1.5" htmlFor="currentPassword">Current Password</label>
+                <input
+                  id="currentPassword"
+                  name="currentPassword"
+                  type="password"
+                  className="w-full rounded-lg border border-border-color px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary transition"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  autoComplete="current-password"
+                  minLength={8}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1.5" htmlFor="newPassword">New Password</label>
+                  <input
+                    id="newPassword"
+                    name="newPassword"
+                    type="password"
+                    className={`w-full rounded-lg border px-4 py-2 focus:ring-2 transition ${isPasswordSameAsCurrent ? "border-red-300 focus:ring-red-200" : "border-border-color focus:ring-primary focus:border-primary"}`}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1.5" htmlFor="confirmNewPassword">Confirm New Password</label>
+                  <input
+                    id="confirmNewPassword"
+                    name="confirmNewPassword"
+                    type="password"
+                    className={`w-full rounded-lg border px-4 py-2 focus:ring-2 transition ${isPasswordMismatch ? "border-red-300 focus:ring-red-200" : "border-border-color focus:ring-primary focus:border-primary"}`}
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                  />
+                </div>
+              </div>
+
+              {isPasswordSameAsCurrent && <p className="text-sm text-red-600">New password must be different from current password.</p>}
+              {isPasswordMismatch && <p className="text-sm text-red-600">Confirmation password does not match.</p>}
+              {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+              {passwordSuccess && <p className="text-sm text-green-600">{passwordSuccess}</p>}
+
+              <div className="pt-2">
+                <Button
+                  type="submit"
+                  disabled={passwordSaving || !canSubmitPassword}
+                  className={`h-10 px-5 text-white font-semibold ${passwordSaving || !canSubmitPassword ? "bg-[#8e78fb]/60 hover:bg-[#8e78fb]/60" : "bg-[#8e78fb] hover:bg-[#7b61f8]"}`}
+                >
+                  {passwordSaving ? "Updating..." : "Update Password"}
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          <div className="border border-red-200 rounded-xl bg-red-50/40 shadow-subtle p-6 sm:p-8">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 rounded-full bg-red-100 p-2 text-red-700">
+                <TriangleAlert className="w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-red-800">Danger Zone</h2>
+                <p className="text-sm text-red-700 mt-1">
+                  Deleting your account permanently removes your profile, communities, and linked data.
+                </p>
+                <div className="mt-5">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="h-10 px-5"
+                    onClick={() => {
+                      setDeleteError("")
+                      setDeleteDialogOpen(true)
+                    }}
+                    disabled={deleteLoading}
+                  >
+                    Delete Account
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Account</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action is permanent. Enter your current password and type DELETE to confirm.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1.5" htmlFor="deleteCurrentPassword">Current Password</label>
+                  <input
+                    id="deleteCurrentPassword"
+                    name="deleteCurrentPassword"
+                    type="password"
+                    className="w-full rounded-lg border border-border-color px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary transition"
+                    value={deleteCurrentPassword}
+                    onChange={(e) => setDeleteCurrentPassword(e.target.value)}
+                    autoComplete="current-password"
+                    minLength={8}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1.5" htmlFor="deleteConfirmText">Type DELETE to confirm</label>
+                  <input
+                    id="deleteConfirmText"
+                    name="deleteConfirmText"
+                    type="text"
+                    className="w-full rounded-lg border border-border-color px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary transition"
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    autoComplete="off"
+                    required
+                  />
+                </div>
+                {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
+              </div>
+
+              <AlertDialogFooter>
+                <AlertDialogCancel
+                  disabled={deleteLoading}
+                  onClick={() => {
+                    setDeleteDialogOpen(false)
+                    setDeleteCurrentPassword("")
+                    setDeleteConfirmText("")
+                    setDeleteError("")
+                  }}
+                >
+                  Cancel
+                </AlertDialogCancel>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={onDeleteAccount}
+                  disabled={deleteLoading || !canDeleteAccount}
+                >
+                  {deleteLoading ? "Deleting..." : "Delete Permanently"}
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </main>
       <Footer />
-      <style jsx>{`
-        .emoji-font { font-family: Manrope, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; }
-      `}</style>
     </div>
   )
 }

@@ -14,6 +14,7 @@ import { ResourcesTab } from "./tabs/resources-tab"
 import { ReviewsTab } from "./tabs/reviews-tab"
 import { AnalyticsTab } from "./tabs/analytics-tab"
 import { SettingsTab } from "./tabs/settings-tab"
+import { getCreatorVideoUrlError, normalizeVideoUrl } from "@/lib/utils/video-source"
 
 export function CourseManager({ courseId }: { courseId: string }) {
   const router = useRouter()
@@ -291,11 +292,31 @@ export function CourseManager({ courseId }: { courseId: string }) {
   ) => {
     if (!course) return
     const targetId = course.mongoId || course.id
+    const normalizedVideoUrl = normalizeVideoUrl(payload.videoUrl)
+    const chapterTitle = payload.title?.trim() || ""
+    const chapterContent = payload.content?.trim() || ""
+    const videoUrlError = getCreatorVideoUrlError(normalizedVideoUrl)
+
+    if (!chapterTitle) {
+      toast.error("Chapter title is required")
+      return
+    }
+
+    if (!chapterContent && !normalizedVideoUrl) {
+      toast.error("Add chapter content or a video URL")
+      return
+    }
+
+    if (videoUrlError) {
+      toast.error(videoUrlError)
+      return
+    }
+
     try {
       await coursesApi.updateChapter(targetId, sectionId, chapterId, {
-        titre: payload.title,
-        description: payload.content,
-        videoUrl: payload.videoUrl || undefined,
+        titre: chapterTitle,
+        description: chapterContent,
+        videoUrl: normalizedVideoUrl || undefined,
         duree: payload.duration ? toHHMM(Number(payload.duration)) : undefined,
         isPaid: !Boolean(payload.isPreview),
         prix: payload.isPreview ? 0 : payload.price === "" ? 0 : Number(payload.price),
@@ -321,12 +342,31 @@ export function CourseManager({ courseId }: { courseId: string }) {
     const targetId = course.mongoId || course.id
     const section = course.sections?.find((s) => s.id === sectionId)
     const nextOrder = (section?.chapters?.length || 0) + 1
+    const chapterTitle = String(payload.title || "").trim()
+    const chapterContent = String(payload.content || "").trim()
+    const normalizedVideoUrl = normalizeVideoUrl(payload.videoUrl)
+    const videoUrlError = getCreatorVideoUrlError(normalizedVideoUrl)
+
+    if (!chapterTitle) {
+      toast.error("Chapter title is required")
+      return
+    }
+
+    if (!chapterContent && !normalizedVideoUrl) {
+      toast.error("Add chapter content or a video URL")
+      return
+    }
+
+    if (videoUrlError) {
+      toast.error(videoUrlError)
+      return
+    }
     
     try {
       await coursesApi.createChapter(targetId, sectionId, {
-        title: payload.title,
-        content: payload.content,
-        videoUrl: payload.videoUrl || undefined,
+        title: chapterTitle,
+        content: chapterContent,
+        videoUrl: normalizedVideoUrl || undefined,
         isPaid: !Boolean(payload.isPreview),
         price: payload.isPreview ? 0 : Number(payload.price || 0),
         order: nextOrder,

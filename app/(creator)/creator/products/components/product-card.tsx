@@ -26,15 +26,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 export function ProductCard({ product }: { product: any }) {
   const pricing = getProductPricing(product)
+  const rawThumbnail =
+    (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : "") || product.thumbnail || ""
+  const productImageSrc =
+    resolveImageUrl(rawThumbnail) || rawThumbnail || "/placeholder.svg?height=1080&width=1920&query=product"
 
   return (
     <EnhancedCard key={product.id} hover className="overflow-hidden">
       <div className="relative w-full aspect-video overflow-hidden">
         <Image
-          src={product.images[0] || "/placeholder.svg?height=1080&width=1920&query=product"}
+          src={productImageSrc}
           alt={product.title}
           fill
           className="object-cover"

@@ -12,6 +12,7 @@ import { PageHeader } from "./page-header"
 import { api, apiClient } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { getCreatorVideoUrlError, normalizeVideoUrl } from "@/lib/utils/video-source"
 
 interface CourseChapterForm {
   id: string
@@ -39,6 +40,7 @@ export function CourseCreationContainer() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({})
+  const [chapterValidationErrors, setChapterValidationErrors] = useState<Record<string, string>>({})
   
   // Use the selected community from context
   const { selectedCommunity, selectedCommunityId, isLoading: communityLoading } = useCreatorCommunity()
@@ -182,9 +184,37 @@ export function CourseCreationContainer() {
     }
   }, [selectedCommunity])
 
+  const validateChapterContent = (sections: CourseSectionForm[]): Record<string, string> => {
+    const nextErrors: Record<string, string> = {}
+
+    for (const section of sections) {
+      for (const chapter of section.chapters || []) {
+        const title = chapter.title?.trim() || ""
+        const content = chapter.content?.trim() || ""
+        const videoUrl = normalizeVideoUrl(chapter.videoUrl)
+
+        if (!title) {
+          nextErrors[`chapter:${chapter.id}:title`] = "Chapter title is required."
+        }
+
+        if (!content && !videoUrl) {
+          nextErrors[`chapter:${chapter.id}:contentVideo`] = "Add chapter content or a video URL."
+        }
+
+        const sourceError = getCreatorVideoUrlError(videoUrl)
+        if (sourceError) {
+          nextErrors[`chapter:${chapter.id}:videoUrl`] = sourceError
+        }
+      }
+    }
+
+    return nextErrors
+  }
+
   const validateCurrentStep = () => {
     const errors: Record<string, boolean> = {}
     let isValid = true
+    let nextChapterValidationErrors: Record<string, string> = {}
 
     switch (currentStep) {
       case 1:
@@ -252,12 +282,24 @@ export function CourseCreationContainer() {
               variant: 'destructive' 
             })
             isValid = false
+          } else {
+            nextChapterValidationErrors = validateChapterContent(formData.sections)
+            if (Object.keys(nextChapterValidationErrors).length > 0) {
+              errors.courseContent = true
+              toast({
+                title: "Validation Error",
+                description: "Fix chapter title/content/video URL issues before continuing.",
+                variant: "destructive",
+              })
+              isValid = false
+            }
           }
         }
         break
     }
     
     setValidationErrors(errors)
+    setChapterValidationErrors(nextChapterValidationErrors)
     return isValid
   }
 
@@ -291,6 +333,15 @@ export function CourseCreationContainer() {
       const hasChapter = formData.sections.some((s) => s.chapters && s.chapters.length > 0)
       if (!hasChapter) {
         errors.push("Each course must have at least one chapter.")
+      } else {
+        const nextChapterValidationErrors = validateChapterContent(formData.sections)
+        if (Object.keys(nextChapterValidationErrors).length > 0) {
+          errors.push("Fix chapter title/content/video URL issues.")
+          setValidationErrors((prev) => ({ ...prev, courseContent: true }))
+          setChapterValidationErrors(nextChapterValidationErrors)
+        } else {
+          setChapterValidationErrors({})
+        }
       }
     }
 
@@ -324,13 +375,16 @@ export function CourseCreationContainer() {
           description: s.description || "",
           ordre: s.order || (idx + 1),
           chapitres: (s.chapters || []).map((c, jdx) => {
+            const normalizedChapterTitle = c.title?.trim() || `Chapitre ${jdx + 1}`
+            const normalizedChapterContent = c.content?.trim() || ""
+            const normalizedChapterVideoUrl = normalizeVideoUrl(c.videoUrl)
             console.log(`      📄 Chapter ${jdx + 1}: "${c.title}"`)
             console.log(`         🎬 Video URL: "${c.videoUrl || '(empty)'}"`)
             
             return {
-              titre: c.title || `Chapitre ${jdx + 1}`,
-              description: c.content || "",
-              videoUrl: c.videoUrl || undefined,
+              titre: normalizedChapterTitle,
+              description: normalizedChapterContent,
+              videoUrl: normalizedChapterVideoUrl || undefined,
               isPaid: !c.isPreview,
               prix: !c.isPreview
                 ? (c.price !== undefined && c.price !== "" ? Number(c.price) : (prixNum || 0))
@@ -426,6 +480,7 @@ export function CourseCreationContainer() {
           updateChapter={updateChapter}
           removeChapter={removeChapter}
           validationErrors={validationErrors}
+          chapterValidationErrors={chapterValidationErrors}
         />
       )}
 

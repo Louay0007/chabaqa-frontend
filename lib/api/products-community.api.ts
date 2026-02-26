@@ -75,6 +75,29 @@ export interface ProductsPageData {
   currentUser: any;
 }
 
+function extractProductsList(productsResponse: any): any[] {
+  const productsList =
+    productsResponse?.data?.products ||
+    productsResponse?.products ||
+    productsResponse?.data ||
+    [];
+  return Array.isArray(productsList) ? productsList : [];
+}
+
+function collectCommunityLookupKeys(community: any, slug: string): string[] {
+  const keys = [
+    community?.id,
+    community?._id,
+    community?.communityId,
+    community?.slug,
+    slug,
+  ]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+
+  return Array.from(new Set(keys));
+}
+
 /**
  * Transform backend product data to frontend format
  */
@@ -123,6 +146,11 @@ function transformProduct(backendProduct: any): ProductWithDetails {
     uploadedAt: file.uploadedAt || new Date().toISOString(),
   }));
 
+  const normalizedImages =
+    Array.isArray(backendProduct.images) && backendProduct.images.length > 0
+      ? backendProduct.images
+      : (backendProduct.thumbnail ? [backendProduct.thumbnail] : []);
+
   return {
     id: backendProduct.id || backendProduct._id,
     _id: backendProduct._id, // Preserve MongoDB ObjectId for feedback API
@@ -132,7 +160,7 @@ function transformProduct(backendProduct: any): ProductWithDetails {
     currency: backendProduct.currency || 'TND',
     category: backendProduct.category || 'General',
     type: backendProduct.type || 'digital',
-    images: backendProduct.images || [],
+    images: normalizedImages,
     files,
     variants: backendProduct.variants || [],
     features: backendProduct.features || [],
@@ -172,10 +200,9 @@ export const productsCommunityApi = {
    */
   async getProductsPageData(slug: string): Promise<ProductsPageData> {
     try {
-      // Fetch in parallel
-      const [communityResponse, productsResponse, purchasesResponse, currentUser] = await Promise.allSettled([
+      // Fetch community + user context first.
+      const [communityResponse, purchasesResponse, currentUser] = await Promise.allSettled([
         communitiesApi.getBySlug(slug),
-        productsApi.getByCommunity(slug),
         productsApi.getMyPurchases().catch(() => ({ data: { products: [] } })),
         getMe().catch(() => null),
       ]);
@@ -186,14 +213,31 @@ export const productsCommunityApi = {
       }
       const community = communityResponse.value.data;
 
-      // Handle products
+      // Fetch products using resolved community identifiers (id/_id/slug fallback).
       let products: ProductWithDetails[] = [];
-      if (productsResponse.status === 'fulfilled') {
-        const productsData = productsResponse.value;
-        const productsList = productsData?.data?.products || productsData?.products || productsData?.data || [];
-        products = Array.isArray(productsList)
-          ? productsList.map(transformProduct)
-          : [];
+      const lookupKeys = collectCommunityLookupKeys(community, slug);
+      let firstSuccessfulProducts: ProductWithDetails[] | null = null;
+
+      for (const key of lookupKeys) {
+        try {
+          const productsResponse = await productsApi.getByCommunity(key);
+          const mappedProducts = extractProductsList(productsResponse).map(transformProduct);
+
+          if (firstSuccessfulProducts === null) {
+            firstSuccessfulProducts = mappedProducts;
+          }
+
+          if (mappedProducts.length > 0) {
+            products = mappedProducts;
+            break;
+          }
+        } catch {
+          // Try next identifier.
+        }
+      }
+
+      if (products.length === 0 && firstSuccessfulProducts) {
+        products = firstSuccessfulProducts;
       }
 
       // Handle user purchases
