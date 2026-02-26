@@ -106,22 +106,22 @@ export function Features() {
                 <div
                   className={`absolute -inset-1 rounded-2xl opacity-75 blur-sm animate-pulse ${
                     activeFeature.color === "community"
-                      ? "bg-gradient-to-r from-chabaqa-primary via-blue-500 to-indigo-600"
+                      ? "bg-gradient-to-r from-chabaqa-primary via-blue-300 to-indigo-400"
                       : activeFeature.color === "course"
-                        ? "bg-gradient-to-r from-[#47c7ea] via-cyan-500 to-blue-500"
+                        ? "bg-gradient-to-r from-[#47c7ea] via-cyan-300 to-blue-300"
                         : activeFeature.color === "challenge"
-                          ? "bg-gradient-to-r from-[#ff9b28] via-orange-500 to-yellow-500"
+                          ? "bg-gradient-to-r from-[#ff9b28] via-orange-300 to-yellow-300"
                           : activeFeature.color === "product"
-                            ? "bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600"
+                            ? "bg-gradient-to-r from-purple-400 via-purple-300 to-indigo-400"
                             : activeFeature.color === "oneToOne"
-                              ? "bg-gradient-to-r from-[#f65887] via-pink-500 to-rose-500"
+                              ? "bg-gradient-to-r from-[#f65887] via-pink-300 to-rose-500"
                               : activeFeature.color === "dms"
-                                ? "bg-gradient-to-r from-green-600 via-emerald-500 to-teal-500"
+                                ? "bg-gradient-to-r from-green-300 via-emerald-200 to-teal-200"
                                 : activeFeature.color === "analytics"
-                                  ? "bg-gradient-to-r from-teal-600 via-cyan-500 to-blue-500"
+                                  ? "bg-gradient-to-r from-teal-300 via-cyan-200 to-blue-200"
                                   : activeFeature.color === "branding"
-                                    ? "bg-gradient-to-r from-amber-600 via-yellow-500 to-orange-500"
-                                    : "bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500"
+                                    ? "bg-gradient-to-r from-amber-300 via-yellow-200 to-orange-200"
+                                    : "bg-gradient-to-r from-indigo-300 via-purple-200 to-pink-200"
                   }`}
                 ></div>
                 
