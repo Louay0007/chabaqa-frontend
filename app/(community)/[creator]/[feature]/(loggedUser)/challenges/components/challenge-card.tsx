@@ -19,6 +19,9 @@ export default function ChallengeCard({ creatorSlug, slug, challenge }: Challeng
   const status = getChallengeStatus(challenge)
   const isParticipating = challenge.isParticipating || false
   const daysRemaining = getDaysRemaining(new Date(challenge.endDate))
+  const challengeId = String(challenge.id || challenge._id || "")
+  const promoHref = `/challenge-promo/${encodeURIComponent(challengeId)}?creator=${encodeURIComponent(creatorSlug)}&feature=${encodeURIComponent(slug)}`
+  const promoDetailsHref = `${promoHref}&mode=details`
 
   return (
     <Card
@@ -111,28 +114,24 @@ export default function ChallengeCard({ creatorSlug, slug, challenge }: Challeng
           </div>
           <div className="flex items-center space-x-2">
             {isParticipating ? (
-              <Button size="sm" asChild>
-                <Link href={`/${creatorSlug}/${slug}/challenges/${challenge.id}`}>
-                  Continue <ArrowRight className="h-4 w-4 ml-1" />
-                </Link>
-              </Button>
-            ) : status === "active" ? (
-              <Button size="sm" className="bg-challenges-500 hover:bg-challenges-600" asChild>
-                <Link href={`/challenge-promo/${challenge.id}`}>
-                  View Promotion <ArrowRight className="h-4 w-4 ml-1" />
-                </Link>
-              </Button>
-            ) : status === "completed" ? (
-              <Button size="sm" variant="outline" disabled>
-                Completed
-              </Button>
+              <>
+                <Button size="sm" variant="outline" asChild>
+                  <Link href={promoDetailsHref}>
+                    See Details
+                  </Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link href={`/${creatorSlug}/${slug}/challenges/${encodeURIComponent(challengeId)}`}>
+                    Continue <ArrowRight className="h-4 w-4 ml-1" />
+                  </Link>
+                </Button>
+              </>
             ) : (
-              <Button size="sm" variant="outline" asChild>
-                <Link href={`/${creatorSlug}/${slug}/challenges/${challenge.id}`}>
-                  View Details <ArrowRight className="h-4 w-4 ml-1" />
+              <Button size="sm" className="bg-challenges-500 hover:bg-challenges-600" asChild>
+                <Link href={promoHref}>
+                  {status === "completed" ? "View Recap" : "Join Challenge"} <ArrowRight className="h-4 w-4 ml-1" />
                 </Link>
               </Button>
-              
             )}
           </div>
         </div>

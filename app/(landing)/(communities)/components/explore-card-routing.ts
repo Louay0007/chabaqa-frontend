@@ -39,10 +39,10 @@ function buildCommunityBasePath(item: Explore): string | null {
 
 function resolveAccessibleContentHref(item: Explore, itemType: ItemType): string {
   const basePath = buildCommunityBasePath(item)
-  if (!basePath) return "/explore"
+  if (!basePath) return communityOverviewHref(item.communitySlug)
 
   const contentId = encodePathSegment(item.mongoId || item.id)
-  if (!contentId) return "/explore"
+  if (!contentId) return communityOverviewHref(item.communitySlug)
 
   switch (itemType) {
     case "course":
@@ -56,7 +56,7 @@ function resolveAccessibleContentHref(item: Explore, itemType: ItemType): string
     case "event":
       return `${basePath}/events?eventId=${contentId}`
     default:
-      return "/explore"
+      return communityOverviewHref(item.communitySlug)
   }
 }
 
@@ -90,7 +90,7 @@ export function resolveExploreCardRouting(
     }
   }
 
-  if (!(item.isMember && item.hasContentAccess)) {
+  if (!item.isMember) {
     return {
       href: communityOverviewHref(item.communitySlug),
       ctaLabel: "View Community",

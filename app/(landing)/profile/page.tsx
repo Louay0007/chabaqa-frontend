@@ -37,6 +37,7 @@ import { LoginForm } from "@/components/login-form"
 import { ProfileHeader } from "@/components/profile/ProfileHeader"
 import { StatCard } from "@/components/profile/StatCard"
 import { ProfileDetails } from "@/components/profile/ProfileDetails"
+import { getUserProfileHandle } from "@/lib/profile-handle"
 
 // Types for user data
 interface UserAchievement {
@@ -647,12 +648,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
     if (!user || loading || overrideUser) return // Skip redirect for override users
     // If current path already includes a slug segment, do nothing
     const isSlugPath = /\/profile\/.+/.test(pathname || "")
-    const emailLocal = (user.email || "").split("@")[0]
-    const baseFromName = (user.name || emailLocal || "user")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
-    const handle = emailLocal || baseFromName || "user"
+    const handle = getUserProfileHandle(user)
     if (!isSlugPath) {
       router.replace(`/profile/${handle}`)
     }
@@ -943,7 +939,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
     { label: "Learning", value: totalLearningItems, icon: GraduationCap, color: "#47c7ea" },
     { label: "Offers", value: totalOffers, icon: ShoppingBag, color: "#f65887" },
   ]
-  const profileHandle = (currentUser?.email || "").split("@")[0] || (currentUser?.name || "user").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+  const profileHandle = getUserProfileHandle(currentUser)
 
   if (!loading && !currentUser) {
     return (
@@ -979,7 +975,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                       style={{ backgroundImage: `url(${currentUser?.avatar || '/placeholder.svg'})` }} />
                     <div className="flex flex-col justify-center gap-1">
                       <p className="text-2xl sm:text-3xl font-bold leading-tight tracking-tight">{currentUser?.name}</p>
-                      <p className="text-text-secondary text-base">@{(currentUser?.email || '').split('@')[0]}</p>
+                      <p className="text-text-secondary text-base">@{profileHandle}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <Mail className="w-4 h-4 text-text-tertiary" />
                         <p className="text-text-secondary text-sm break-all">{currentUser?.email}</p>

@@ -95,7 +95,7 @@ describe("resolveExploreCardRouting", () => {
     expect(product.ctaLabel).toBe("Buy")
   })
 
-  test("routes non-accessible content to community overview", () => {
+  test("routes community members to content even when hasContentAccess is false", () => {
     const item = makeExploreItem({
       type: "course",
       id: "course-locked",
@@ -103,6 +103,22 @@ describe("resolveExploreCardRouting", () => {
       communitySlug: "alpha",
       isMember: true,
       hasContentAccess: false,
+    })
+
+    const result = resolveExploreCardRouting(item, "Start")
+
+    expect(result.href).toBe("/creator-alpha/alpha/courses/course-locked")
+    expect(result.ctaLabel).toBe("Start")
+  })
+
+  test("routes non-member content cards to community overview", () => {
+    const item = makeExploreItem({
+      type: "course",
+      id: "course-1",
+      creatorSlug: "creator-alpha",
+      communitySlug: "alpha",
+      isMember: false,
+      hasContentAccess: true,
     })
 
     const result = resolveExploreCardRouting(item, "Start")
@@ -157,7 +173,7 @@ describe("resolveExploreCardRouting", () => {
     expect(result.ctaLabel).toBe("Start")
   })
 
-  test("falls back to /explore when content id is missing for accessible session/event", () => {
+  test("falls back to community overview when content id is missing for member session/event", () => {
     const session = resolveExploreCardRouting(
       makeExploreItem({
         type: "oneToOne",
@@ -181,7 +197,7 @@ describe("resolveExploreCardRouting", () => {
       "Register",
     )
 
-    expect(session.href).toBe("/explore")
-    expect(event.href).toBe("/explore")
+    expect(session.href).toBe("/community/alpha")
+    expect(event.href).toBe("/community/alpha")
   })
 })

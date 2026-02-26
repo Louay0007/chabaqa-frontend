@@ -49,6 +49,25 @@ describe("explore access enrichment", () => {
     expect(enriched.hasContentAccess).toBe(false)
   })
 
+  test("computes non-community membership by communityId when slug is missing/mismatched", () => {
+    const snapshot = buildExploreAccessSnapshot({
+      joinedCommunities: {
+        data: [{ id: "community-42", slug: "alpha" }],
+      },
+    })
+
+    const item = makeExploreItem({
+      id: "course-42",
+      type: "course",
+      communityId: "community-42",
+      communitySlug: "different-slug",
+    })
+
+    const [enriched] = enrichExploreItemsWithAccess([item], snapshot)
+
+    expect(enriched.isMember).toBe(true)
+  })
+
   test("enforces strict access gating by content type", () => {
     const snapshot = buildExploreAccessSnapshot({
       joinedCommunities: {

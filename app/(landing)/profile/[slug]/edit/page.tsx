@@ -19,21 +19,10 @@ import {
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { AtSign, Mail as MailIcon, MapPin, Pencil, Save as SaveIcon, TriangleAlert, User as UserIcon } from "lucide-react"
+import { getUserProfileHandle } from "@/lib/profile-handle"
 
 function slugFromUser(u: any) {
-  const emailLocal = (u?.email || "").split("@")[0]
-  const fromName = (u?.name || emailLocal || "user")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-  return emailLocal || fromName || "user"
-}
-
-function usernameFromEmail(email: string) {
-  return (email || "")
-    .split("@")[0]
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]/g, "")
+  return getUserProfileHandle(u)
 }
 
 export default function EditProfilePage() {
@@ -118,7 +107,7 @@ export default function EditProfilePage() {
         return
       }
       const ua: any = user
-      setUsername(usernameFromEmail(ua.email || ""))
+      setUsername(ua.username || slugFromUser(ua))
       setFullName(ua.name || "")
       setEmail(ua.email || "")
       const loc = [ua.ville, ua.pays].filter(Boolean).join(", ")
@@ -209,7 +198,7 @@ export default function EditProfilePage() {
       setSuccess("Profile updated successfully")
       // Revalidate current user cache
       try { await mutate() } catch { }
-      const handle = slugFromUser({ name: fullName || user?.name, email: email || user?.email })
+      const handle = (username || slugFromUser(user)).toLowerCase()
       setTimeout(() => router.replace(`/profile/${handle}`), 700)
     } catch (err: any) {
       // rollback to server value
@@ -346,7 +335,7 @@ export default function EditProfilePage() {
                       value={username}
                       readOnly
                       aria-readonly
-                      title="Public handle derived from your email"
+                      title="Public handle generated from your full name at signup"
                     />
                   </div>
                   <p className="mt-1 text-xs text-text-tertiary">Read-only handle shown on your public profile.</p>

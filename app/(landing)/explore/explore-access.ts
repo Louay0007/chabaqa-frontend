@@ -294,7 +294,8 @@ export function enrichExploreItemsWithAccess(
       type === "community"
         ? hasAnyId(snapshot.joinedCommunityIds, [item.id, item.mongoId]) ||
           hasSlug(snapshot.joinedCommunitySlugs, item.slug)
-        : hasSlug(snapshot.joinedCommunitySlugs, item.communitySlug)
+        : hasAnyId(snapshot.joinedCommunityIds, [(item as any).communityId]) ||
+          hasSlug(snapshot.joinedCommunitySlugs, item.communitySlug)
 
     if (type === "community") {
       return {

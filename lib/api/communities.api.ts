@@ -126,11 +126,32 @@ export interface CreateCommunityResponse extends ApiSuccessResponse<Community> {
   };
 }
 
-// Communities API
+
 export const communitiesApi = {
-  // Get all communities
+  
   getAll: async (params?: GetCommunitiesParams): Promise<PaginatedResponse<Community>> => {
-    return apiClient.get<PaginatedResponse<Community>>('/community-aff-crea-join/all-communities', params);
+    const response = await apiClient.get<any>('/community-aff-crea-join/all-communities', params);
+
+    if (Array.isArray(response?.data)) {
+      return {
+        ...response,
+        data: response.data.map((community: any) => normalizeCommunityMetrics(community)),
+      } as PaginatedResponse<Community>;
+    }
+
+    if (Array.isArray(response?.data?.communities)) {
+      return {
+        ...response,
+        data: {
+          ...response.data,
+          communities: response.data.communities.map((community: any) =>
+            normalizeCommunityMetrics(community),
+          ),
+        },
+      } as PaginatedResponse<Community>;
+    }
+
+    return response as PaginatedResponse<Community>;
   },
 
   // Create community

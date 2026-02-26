@@ -33,9 +33,16 @@ import { challengesApi } from "@/lib/api/challenges.api"
 interface ChallengeSelectionModalProps {
   challenge: any
   setSelectedChallenge: (id: string | null) => void
+  onJoined?: () => void
+  redirectPath?: string
 }
 
-export default function ChallengeSelectionModal({ challenge, setSelectedChallenge }: ChallengeSelectionModalProps) {
+export default function ChallengeSelectionModal({
+  challenge,
+  setSelectedChallenge,
+  onJoined,
+  redirectPath,
+}: ChallengeSelectionModalProps) {
   const { toast } = useToast()
 
   const [promoCode, setPromoCode] = useState("")
@@ -59,7 +66,12 @@ export default function ChallengeSelectionModal({ challenge, setSelectedChalleng
           title: "Success!",
           description: response?.message || "You have joined the challenge successfully!",
         })
-        window.location.reload()
+        onJoined?.()
+        if (redirectPath) {
+          window.location.href = redirectPath
+          return
+        }
+        setSelectedChallenge(null)
         return
       }
 

@@ -4,10 +4,12 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import ProfilePage from "../page"
+import { getUserProfileHandle } from "@/lib/profile-handle"
 
 interface SlugUser {
   _id: string
   name: string
+  username?: string
   email: string
   role: string
   avatar?: string
@@ -25,9 +27,8 @@ export default function ProfileSlugPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
-  const handle = params?.slug as string
-  const currentUserHandle = ((currentUser?.email || "").split("@")[0]) || "user"
-  const isOwnProfile = handle === currentUserHandle
+  const handle = String(params?.slug || "")
+  const currentUserHandle = getUserProfileHandle(currentUser)
 
   useEffect(() => {
     const fetchSlugUser = async () => {
@@ -41,10 +42,16 @@ export default function ProfileSlugPage() {
         setError(null)
         
         // If viewing own profile and already authenticated, use current user
-        if (isOwnProfile && currentUser && !authLoading) {
+        if (currentUser && !authLoading && handle.toLowerCase() === currentUserHandle) {
+          if (handle !== currentUserHandle) {
+            router.replace(`/profile/${currentUserHandle}`)
+            return
+          }
+
           setSlugUser({
             _id: (currentUser as any)._id || (currentUser as any).id || '',
             name: (currentUser as any).name || '',
+            username: (currentUser as any).username,
             email: currentUser.email || '',
             role: (currentUser as any).role || 'user',
             avatar: (currentUser as any).avatar,
@@ -73,6 +80,11 @@ export default function ProfileSlugPage() {
 
         const data = await response.json()
         if (data.success && data.user) {
+          const canonicalHandle = getUserProfileHandle(data.user)
+          if (canonicalHandle && canonicalHandle !== handle) {
+            router.replace(`/profile/${canonicalHandle}`)
+            return
+          }
           setSlugUser(data.user)
         } else {
           setError("Invalid response format")
@@ -86,7 +98,7 @@ export default function ProfileSlugPage() {
     }
 
     fetchSlugUser()
-  }, [handle, currentUser, authLoading, isOwnProfile])
+  }, [handle, currentUser, authLoading, currentUserHandle, router])
 
   if (loading || authLoading) {
     return (
@@ -125,6 +137,12 @@ export default function ProfileSlugPage() {
       </div>
     )
   }
+
+  const isOwnProfile = Boolean(
+    currentUser &&
+    String((currentUser as any)._id || (currentUser as any).id || "") ===
+      String((slugUser as any)._id || (slugUser as any).id || ""),
+  )
 
   // Pass the fetched user data to the existing ProfilePage component
   return <ProfilePage overrideUser={slugUser} isOwnProfile={isOwnProfile} />

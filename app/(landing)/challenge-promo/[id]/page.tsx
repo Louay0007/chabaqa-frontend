@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -80,9 +80,25 @@ const normalizeChallenge = (raw: any): Challenge | null => {
   const id = String(raw.id || raw._id || "")
   if (!id) return null
 
-  const participants = Array.isArray(raw.participants) ? raw.participants : []
-  const tasks = Array.isArray(raw.tasks) ? raw.tasks : []
-  const resources = Array.isArray(raw.resources) ? raw.resources : []
+  const participants = Array.isArray(raw.participants)
+    ? raw.participants
+    : Array.isArray(raw.users)
+      ? raw.users
+      : []
+  const tasks = Array.isArray(raw.tasks)
+    ? raw.tasks
+    : Array.isArray(raw.challengeTasks)
+      ? raw.challengeTasks
+      : Array.isArray(raw.taskList)
+        ? raw.taskList
+        : []
+  const resources = Array.isArray(raw.resources)
+    ? raw.resources
+    : Array.isArray(raw.ressources)
+      ? raw.ressources
+      : Array.isArray(raw.materials)
+        ? raw.materials
+        : []
   const pricing = raw.pricing || {}
 
   return {
@@ -158,13 +174,23 @@ const getDurationLabel = (challenge: Challenge): string => {
   return "N/A"
 }
 
+const slugifyText = (value: unknown): string =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+
 export default function ChallengePromoPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const challengeId = String(params.id || "")
 
   const [challenge, setChallenge] = useState<Challenge | null>(null)
   const [communityName, setCommunityName] = useState<string>("")
+  const [communitySlug, setCommunitySlug] = useState<string>("")
+  const [communityCreatorSlug, setCommunityCreatorSlug] = useState<string>("")
   const [relatedChallenges, setRelatedChallenges] = useState<Challenge[]>([])
   const [stats, setStats] = useState<PromoStats | null>(null)
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
@@ -175,6 +201,9 @@ export default function ChallengePromoPage() {
   const [countdownLabel, setCountdownLabel] = useState("Challenge starts in")
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 })
   const [selectedChallenge, setSelectedChallenge] = useState<any | null>(null)
+  const creatorFromQuery = String(searchParams.get("creator") || "").trim()
+  const featureFromQuery = String(searchParams.get("feature") || "").trim()
+  const detailsOnlyMode = String(searchParams.get("mode") || "").trim().toLowerCase() === "details"
 
   useEffect(() => {
     if (!challengeId) return
@@ -202,6 +231,7 @@ export default function ChallengePromoPage() {
         }
         if (cancelled) return
         setChallenge(normalized)
+        setCommunitySlug(normalized.communitySlug || "")
 
         if (statsResult.status === "fulfilled") {
           setStats(normalizeStats(unwrapResponse<any>(statsResult.value)))
@@ -227,6 +257,15 @@ export default function ChallengePromoPage() {
           if (!cancelled && communityResult.status === "fulfilled") {
             const communityPayload = unwrapResponse<any>(communityResult.value)
             setCommunityName(communityPayload?.name || "")
+            setCommunitySlug(String(communityPayload?.slug || normalized.communitySlug || "").trim())
+            const rawCreatorSlug =
+              communityPayload?.creatorSlug ||
+              communityPayload?.creator?.username ||
+              communityPayload?.creator?.slug ||
+              communityPayload?.createur?.username ||
+              communityPayload?.createur?.slug ||
+              slugifyText(communityPayload?.creator?.name || communityPayload?.createur?.name || communityPayload?.creatorName)
+            setCommunityCreatorSlug(String(rawCreatorSlug || "").trim())
           }
 
           if (!cancelled && communityChallengesResult.status === "fulfilled") {
@@ -353,6 +392,82 @@ export default function ChallengePromoPage() {
     () => (toNumber(stats?.averageRating) > 0 ? toNumber(stats?.averageRating) : 0),
     [stats?.averageRating],
   )
+  const includedItems = useMemo(() => {
+    const items: string[] = []
+    const tasksCount = challenge?.tasks?.length || 0
+    const resourcesCount = challenge?.resources?.length || 0
+
+    if (tasksCount > 0) {
+      items.push(`${tasksCount} challenge task${tasksCount > 1 ? "s" : ""} with deliverables`)
+    }
+    if (resourcesCount > 0) {
+      items.push(`${resourcesCount} curated learning resource${resourcesCount > 1 ? "s" : ""}`)
+    }
+    if (challenge?.sequentialProgression) {
+      items.push("Sequential progression with step-by-step unlocks")
+    }
+    if (participantsCount > 0) {
+      items.push(`Community support from ${participantsCount}+ member${participantsCount > 1 ? "s" : ""}`)
+    }
+    if (completionReward > 0) {
+      items.push(`Completion reward up to $${completionReward}`)
+    }
+    if (paymentAmount > 0) {
+      items.push(`One-time deposit: $${paymentAmount}`)
+    }
+    if (challenge?.category) {
+      items.push(`Category focus: ${challenge.category}`)
+    }
+    if (challenge?.difficulty) {
+      items.push(`Difficulty level: ${challenge.difficulty}`)
+    }
+    if (items.length === 0) {
+      items.push("Structured challenge plan and participation tracking")
+      items.push("Community interaction and progress visibility")
+    }
+    return items.slice(0, 7)
+  }, [
+    challenge?.tasks,
+    challenge?.resources,
+    challenge?.sequentialProgression,
+    challenge?.category,
+    challenge?.difficulty,
+    completionReward,
+    participantsCount,
+    paymentAmount,
+  ])
+
+  const resolvedCreatorSlug = useMemo(
+    () => creatorFromQuery || communityCreatorSlug,
+    [communityCreatorSlug, creatorFromQuery],
+  )
+
+  const resolvedFeatureSlug = useMemo(
+    () => featureFromQuery || communitySlug || challenge?.communitySlug || "",
+    [challenge?.communitySlug, communitySlug, featureFromQuery],
+  )
+
+  const challengeDetailHref = useMemo(() => {
+    const resolvedChallengeId = String(challenge?.id || challenge?.mongoId || "").trim()
+    if (!resolvedChallengeId || !resolvedCreatorSlug || !resolvedFeatureSlug) return ""
+    return `/${encodeURIComponent(resolvedCreatorSlug)}/${encodeURIComponent(resolvedFeatureSlug)}/challenges/${encodeURIComponent(resolvedChallengeId)}`
+  }, [challenge?.id, challenge?.mongoId, resolvedCreatorSlug, resolvedFeatureSlug])
+
+  const challengeEnded = useMemo(() => {
+    const endAt = new Date(challenge?.endDate || "").getTime()
+    return Number.isFinite(endAt) && endAt < Date.now()
+  }, [challenge?.endDate])
+
+  const handlePromoCta = () => {
+    if (!challenge) return
+    if (detailsOnlyMode) return
+    if (isJoined) {
+      if (challengeDetailHref) router.push(challengeDetailHref)
+      return
+    }
+    if (challengeEnded) return
+    setSelectedChallenge(challenge)
+  }
 
   if (loading) {
     return (
@@ -393,7 +508,39 @@ export default function ChallengePromoPage() {
     )
   }
 
-  const joinButtonLabel = isJoined ? "Already Joined" : paymentAmount > 0 ? "Join Challenge" : "Join Free"
+  const ctaDisabled = detailsOnlyMode || (!isJoined && challengeEnded) || (isJoined && !challengeDetailHref)
+  const showCtaArrow = !ctaDisabled
+  const compactCtaLabel = detailsOnlyMode
+    ? "Joined"
+    : isJoined
+    ? challengeDetailHref
+      ? "Continue"
+      : "Joined"
+    : challengeEnded
+      ? "Ended"
+      : "Join Now"
+  const heroCtaLabel = detailsOnlyMode
+    ? "Joined"
+    : isJoined
+    ? challengeDetailHref
+      ? "Continue Challenge"
+      : "Already Joined"
+    : challengeEnded
+      ? "Challenge Ended"
+      : paymentAmount > 0
+        ? `Join for $${paymentAmount}`
+        : "Join Free Challenge"
+  const joinButtonLabel = detailsOnlyMode
+    ? "Joined"
+    : isJoined
+    ? challengeDetailHref
+      ? "Go to Challenge"
+      : "Already Joined"
+    : challengeEnded
+      ? "Challenge Ended"
+      : paymentAmount > 0
+        ? "Join Challenge"
+        : "Join Free"
   const durationLabel = getDurationLabel(challenge)
   const visibleTasks = (challenge.tasks || []).slice(0, 6)
   const visibleResources = (challenge.resources || []).slice(0, 6)
@@ -410,10 +557,10 @@ export default function ChallengePromoPage() {
           <Button
             size="sm"
             className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 h-8 px-4 text-sm"
-            onClick={() => !isJoined && setSelectedChallenge(challenge)}
-            disabled={isJoined}
+            onClick={handlePromoCta}
+            disabled={ctaDisabled}
           >
-            {isJoined ? "Joined" : "Join Now"}
+            {compactCtaLabel}
           </Button>
         </div>
       </div>
@@ -517,12 +664,12 @@ export default function ChallengePromoPage() {
                 <Button
                   size="lg"
                   className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all group"
-                  onClick={() => !isJoined && setSelectedChallenge(challenge)}
-                  disabled={isJoined}
+                  onClick={handlePromoCta}
+                  disabled={ctaDisabled}
                 >
                   <span className="flex items-center justify-center gap-2">
-                    {isJoined ? "Already Joined" : paymentAmount > 0 ? `Join for $${paymentAmount}` : "Join Free Challenge"}
-                    {!isJoined && <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />}
+                    {heroCtaLabel}
+                    {showCtaArrow && <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />}
                   </span>
                 </Button>
                 {userProgress !== null && (
@@ -561,26 +708,12 @@ export default function ChallengePromoPage() {
                     What&apos;s Included
                   </h3>
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3 text-gray-700 text-base">
-                      <div className="w-2 h-2 rounded-full bg-orange-600 flex-shrink-0" />
-                      <span>{challenge.tasks?.length || 0} daily tasks and deliverables</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-gray-700 text-base">
-                      <div className="w-2 h-2 rounded-full bg-orange-600 flex-shrink-0" />
-                      <span>Progress tracking and challenge analytics</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-gray-700 text-base">
-                      <div className="w-2 h-2 rounded-full bg-orange-600 flex-shrink-0" />
-                      <span>Community support from {participantsCount}+ members</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-gray-700 text-base">
-                      <div className="w-2 h-2 rounded-full bg-orange-600 flex-shrink-0" />
-                      <span>{challenge.resources?.length || 0} curated resources</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-gray-700 text-base">
-                      <div className="w-2 h-2 rounded-full bg-orange-600 flex-shrink-0" />
-                      <span>Completion and top-performer rewards</span>
-                    </div>
+                    {includedItems.map((item) => (
+                      <div key={item} className="flex items-center gap-3 text-gray-700 text-base">
+                        <div className="w-2 h-2 rounded-full bg-orange-600 flex-shrink-0" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -693,12 +826,12 @@ export default function ChallengePromoPage() {
 
                     <Button
                       className="w-full h-14 text-base font-bold bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all group mb-6"
-                      onClick={() => !isJoined && setSelectedChallenge(challenge)}
-                      disabled={isJoined}
+                      onClick={handlePromoCta}
+                      disabled={ctaDisabled}
                     >
                       <span className="flex items-center justify-center gap-2">
                         {joinButtonLabel}
-                        {!isJoined && <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />}
+                        {showCtaArrow && <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />}
                       </span>
                     </Button>
 
@@ -757,6 +890,8 @@ export default function ChallengePromoPage() {
         <ChallengeSelectionModal
           challenge={selectedChallenge}
           setSelectedChallenge={(_id: string | null) => setSelectedChallenge(null)}
+          onJoined={() => setIsJoined(true)}
+          redirectPath={challengeDetailHref || undefined}
         />
       )}
     </div>

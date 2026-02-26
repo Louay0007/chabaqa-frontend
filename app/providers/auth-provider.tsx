@@ -8,6 +8,7 @@ import { normalizeUser } from "@/lib/hooks/useUser"
 export interface User {
   _id: string
   name: string
+  username?: string
   email: string
   role: string
   [key: string]: any

@@ -3,7 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText as FileTextIcon, Download as DownloadIcon, Video, Code, Link as LinkIcon, FileType, Wrench, MessageSquare, Star, Sparkles } from "lucide-react"
+import { FileText as FileTextIcon, Download as DownloadIcon, Video, Code, Link as LinkIcon, FileType, Wrench, Star, Sparkles } from "lucide-react"
 import { CourseReviewsSection } from "@/components/reviews/course-reviews-section"
 import AiTutorWidget from "./ai-tutor-widget"
 
@@ -63,13 +63,12 @@ export default function ChapterTabs({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList className="grid w-full grid-cols-5 md:grid-cols-6 lg:grid-cols-6 h-auto p-1.5 bg-muted/50">
+      <TabsList className="grid w-full grid-cols-5 md:grid-cols-5 lg:grid-cols-5 h-auto p-1.5 bg-muted/50">
         <TabsTrigger value="content" className="py-2.5 md:py-3 text-xs md:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">Content</TabsTrigger>
         <TabsTrigger value="ai-tutor" className="py-2.5 md:py-3 text-xs md:text-sm font-medium gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm"><Sparkles className="h-3 w-3 md:h-4 md:w-4 text-purple-500" /> AI</TabsTrigger>
         <TabsTrigger value="notes" className="py-2.5 md:py-3 text-xs md:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">Notes</TabsTrigger>
         <TabsTrigger value="resources" className="py-2.5 md:py-3 text-xs md:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">Resources</TabsTrigger>
         <TabsTrigger value="reviews" className="py-2.5 md:py-3 text-xs md:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">Reviews</TabsTrigger>
-        <TabsTrigger value="discussion" className="py-2.5 md:py-3 text-xs md:text-sm font-medium hidden md:inline-flex data-[state=active]:bg-background data-[state=active]:shadow-sm">Discussion</TabsTrigger>
       </TabsList>
 
       <TabsContent value="content" className="mt-4 md:mt-6">
@@ -192,22 +191,6 @@ export default function ChapterTabs({
             </CardContent>
           </Card>
         )}
-      </TabsContent>
-
-      <TabsContent value="discussion" className="mt-4 md:mt-6">
-        <Card className="border shadow-sm">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base md:text-lg">Discussion</CardTitle>
-            <CardDescription className="text-xs md:text-sm">Community discussion for this chapter</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-12 md:py-16 text-muted-foreground">
-              <MessageSquare className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-4 opacity-50" />
-              <p className="font-medium text-sm md:text-base">Discussion coming soon</p>
-              <p className="text-xs md:text-sm mt-2">You'll be able to ask questions and interact with other students here.</p>
-            </div>
-          </CardContent>
-        </Card>
       </TabsContent>
     </Tabs>
   )

@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation"
 import { logoutAction } from "@/app/(auth)/signin/actions"
 import Image from "next/image"
 import { useAuth } from "@/hooks/use-auth"
+import { getUserProfileHandle } from "@/lib/profile-handle"
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
@@ -22,7 +23,7 @@ export function Header() {
   const router = useRouter()
   const { user: authUser, loading, logout } = useAuth()
   const isAuthenticated = !!authUser
-  const profileHandle = ((authUser?.email || "").split("@")[0]) || "user"
+  const profileHandle = getUserProfileHandle(authUser)
   const featuresGroup = siteData.navigationGroups.find(group => group.title === "Features")
 
   const groups = siteData.navigationGroups
