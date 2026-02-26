@@ -1,7 +1,5 @@
 "use client"
-import { Check } from "lucide-react"
 import { siteData } from "@/lib/data"
-import Image from "next/image"
 import { useState } from "react"
 
 export function Features() {
@@ -23,6 +21,12 @@ export function Features() {
         return "bg-chabaqa-sessions hover:bg-chabaqa-sessions/90 border-chabaqa-sessions"
       case "event":
         return "bg-indigo-600 hover:bg-indigo-700 border-indigo-600"
+      case "dms":
+        return "bg-green-600 hover:bg-green-400 border-green-300"
+      case "analytics":
+        return "bg-teal-600 hover:bg-teal-700 border-teal-600"
+      case "branding":
+        return "bg-amber-600 hover:bg-amber-700 border-amber-600"
       default:
         return "bg-blue-600 hover:bg-blue-700 border-blue-600"
     }
@@ -60,30 +64,36 @@ export function Features() {
                 ))}
               </div>
             </div>
-            {/* Gradient Fade Edges */}
-            <div className="absolute left-0 top-0 bottom-2 w-6 bg-gradient-to-r from-white via-white to-transparent pointer-events-none"></div>
-            <div className="absolute right-0 top-0 bottom-2 w-6 bg-gradient-to-l from-white via-white to-transparent pointer-events-none"></div>
+            {/* Gradient Fade Edges with Scroll Indicators */}
+            <div className="absolute left-0 top-0 bottom-2 w-8 bg-gradient-to-r from-white via-white to-transparent pointer-events-none flex items-center">
+              <div className="w-1 h-8 bg-gray-300 rounded-full ml-2 animate-pulse"></div>
+            </div>
+            <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-white via-white to-transparent pointer-events-none flex items-center justify-end">
+              <div className="w-1 h-8 bg-gray-300 rounded-full mr-2 animate-pulse"></div>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 lg:items-center">
-          {/* Desktop Sidebar */}
-          <div className="hidden lg:block lg:w-80 flex-shrink-0">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4">
-              <div className="space-y-2">
-                {siteData.features.map((feature, index) => (
-                  <button
-                    key={feature.id}
-                    onClick={() => setActiveFeatureIndex(index)}
-                    className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-200 ${
-                      index === activeFeatureIndex
-                        ? `${getFeatureColor(feature.color)} text-white shadow-md`
-                        : "bg-gray-50 hover:bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    <div className="font-semibold text-sm md:text-base">{feature.title}</div>
-                  </button>
-                ))}
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 lg:items-start">
+          {/* Desktop Sidebar - Scrollable */}
+          <div className="hidden lg:block lg:w-64 flex-shrink-0">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-3 sticky top-4">
+              <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-1">
+                <div className="space-y-1.5">
+                  {siteData.features.map((feature, index) => (
+                    <button
+                      key={feature.id}
+                      onClick={() => setActiveFeatureIndex(index)}
+                      className={`w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                        index === activeFeatureIndex
+                          ? `${getFeatureColor(feature.color)} text-white shadow-md`
+                          : "bg-gray-50 hover:bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      <div className="font-semibold text-sm">{feature.title}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -105,20 +115,30 @@ export function Features() {
                             ? "bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600"
                             : activeFeature.color === "oneToOne"
                               ? "bg-gradient-to-r from-[#f65887] via-pink-500 to-rose-500"
-                              : "bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500"
+                              : activeFeature.color === "dms"
+                                ? "bg-gradient-to-r from-green-600 via-emerald-500 to-teal-500"
+                                : activeFeature.color === "analytics"
+                                  ? "bg-gradient-to-r from-teal-600 via-cyan-500 to-blue-500"
+                                  : activeFeature.color === "branding"
+                                    ? "bg-gradient-to-r from-amber-600 via-yellow-500 to-orange-500"
+                                    : "bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500"
                   }`}
                 ></div>
                 
-                {/* Image container */}
-                <div className="relative bg-white rounded-xl md:rounded-2xl shadow-2xl overflow-hidden">
-                  <Image
-                    src={activeFeature.image || "/placeholder.svg?height=500&width=700"}
-                    alt={`${activeFeature.title} interface`}
-                    width={700}
-                    height={500}
+                {/* Video container */}
+                <div className="relative bg-white rounded-lg md:rounded-xl shadow-xl overflow-hidden">
+                  <video
+                    key={activeFeature.id}
+                    src={activeFeature.video || "/placeholder.mp4"}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
                     className="w-full h-auto object-cover"
-                    priority={activeFeatureIndex === 0}
-                  />
+                  >
+                    <source src={activeFeature.video || "/placeholder.mp4"} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
                 </div>
               </div>
             </div>
