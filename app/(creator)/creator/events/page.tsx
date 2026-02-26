@@ -19,6 +19,14 @@ export default function EventsPage() {
   const [revenue, setRevenue] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState("upcoming")
 
+  const communityEventBaseUrl = useMemo(() => {
+    const creatorSlug = selectedCommunity?.creator?.name
+    const communitySlug = selectedCommunity?.slug
+
+    if (!creatorSlug || !communitySlug) return null
+    return `/${encodeURIComponent(String(creatorSlug))}/${encodeURIComponent(String(communitySlug))}/events`
+  }, [selectedCommunity])
+
   // Reload when community changes
   useEffect(() => {
     if (communityLoading) return
@@ -98,9 +106,25 @@ export default function EventsPage() {
           const to = now.toISOString()
           const from = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
           const evtAgg = await api.creatorAnalytics.getEvents({ from, to, communityId: selectedCommunityId }).catch(() => null as any)
-        const byEvent = evtAgg?.data?.byEvent || evtAgg?.byEvent || []
-        const totalRevenue = (Array.isArray(byEvent) ? byEvent : []).reduce((sum: number, x: any) => sum + Number(x.revenue ?? 0), 0)
-        if (!Number.isNaN(totalRevenue)) setRevenue(totalRevenue)
+          const byEvent = evtAgg?.data?.byEvent || evtAgg?.byEvent || []
+          const analyticsRevenue = (Array.isArray(byEvent) ? byEvent : []).reduce((sum: number, x: any) => {
+            const value = Number(x?.revenue ?? x?.creatorNetDT ?? x?.totalRevenue ?? 0)
+            return sum + (Number.isFinite(value) ? value : 0)
+          }, 0)
+
+          // Fallback: compute from loaded event tickets when analytics revenue is missing/zero.
+          const ticketsRevenue = normalized.reduce((sum: number, event: any) => {
+            const eventRevenue = (Array.isArray(event?.tickets) ? event.tickets : []).reduce((acc: number, ticket: any) => {
+              const price = Number(ticket?.price ?? 0)
+              const sold = Number(ticket?.sold ?? ticket?.soldCount ?? 0)
+              const ticketRevenue = (Number.isFinite(price) ? price : 0) * (Number.isFinite(sold) ? sold : 0)
+              return acc + ticketRevenue
+            }, 0)
+            return sum + eventRevenue
+          }, 0)
+
+          const totalRevenue = analyticsRevenue > 0 ? analyticsRevenue : ticketsRevenue
+          if (!Number.isNaN(totalRevenue)) setRevenue(totalRevenue)
       } catch (err) {
         console.warn('Failed to fetch revenue:', err)
         setRevenue(null)
@@ -160,6 +184,7 @@ export default function EventsPage() {
         upcomingEvents={upcomingEvents}
         pastEvents={pastEvents}
         loading={loading}
+        communityEventBaseUrl={communityEventBaseUrl}
       />
     </div>
   )

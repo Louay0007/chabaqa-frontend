@@ -120,6 +120,7 @@ export type Explore = {
   link: string
   isMember?: boolean
   hasContentAccess?: boolean
+  communityId?: string
   communityName?: string // Community name for non-community content types
   communitySlug?: string // Community slug for non-community content types
 }

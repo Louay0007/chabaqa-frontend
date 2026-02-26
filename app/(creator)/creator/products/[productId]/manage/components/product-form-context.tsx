@@ -107,7 +107,9 @@ export function ProductFormProvider({
     category: product?.category || "",
     licenseTerms: product?.licenseTerms || "",
     features: product?.features || [""],
-    images: product?.images || [],
+    images: Array.isArray(product?.images) && product.images.length > 0
+      ? product.images
+      : (product?.thumbnail ? [product.thumbnail] : []),
     files: product?.files || [],
   })
 

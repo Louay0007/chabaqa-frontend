@@ -1,5 +1,5 @@
-import Link from "next/link"
 import Image from "next/image"
+import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -7,66 +7,61 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import {
   BookOpen,
-  Flag,
-  Users,
-  CalendarDays,
-  ShoppingBag,
-  MessageSquare,
-  FileText,
   Building2,
-  Repeat,
-  Layers,
-  Timer,
-  Target,
-  Heart,
+  CalendarDays,
   CheckCircle2,
-  PlayCircle,
+  ChevronRight,
   Clock,
   ExternalLink,
-  ChevronRight,
+  FileText,
+  Flag,
+  Layers,
   MapPin,
-  Tag,
+  MessageSquare,
+  PlayCircle,
+  Repeat,
+  ShoppingBag,
   Star,
+  Target,
+  Timer,
+  Users,
 } from "lucide-react"
-import type { ProgressionItem, ProgressionContentType } from "@/lib/api/types"
+import type { ProgressionContentType, ProgressionItem } from "@/lib/api/types"
 import { cn } from "@/lib/utils"
 
 const TYPE_CONFIG: Record<
   ProgressionContentType,
-  { label: string; icon: any; color: string; bgColor: string; borderColor: string }
+  { label: string; icon: any; color: string; bgColor: string }
 > = {
-  course: { label: "Course", icon: BookOpen, color: "text-blue-600", bgColor: "bg-blue-50", borderColor: "border-blue-100" },
-  challenge: { label: "Challenge", icon: Flag, color: "text-orange-600", bgColor: "bg-orange-50", borderColor: "border-orange-100" },
-  session: { label: "Session", icon: Users, color: "text-purple-600", bgColor: "bg-purple-50", borderColor: "border-purple-100" },
-  event: { label: "Event", icon: CalendarDays, color: "text-indigo-600", bgColor: "bg-indigo-50", borderColor: "border-indigo-100" },
-  product: { label: "Product", icon: ShoppingBag, color: "text-pink-600", bgColor: "bg-pink-50", borderColor: "border-pink-100" },
-  post: { label: "Post", icon: MessageSquare, color: "text-green-600", bgColor: "bg-green-50", borderColor: "border-green-100" },
-  resource: { label: "Resource", icon: FileText, color: "text-slate-600", bgColor: "bg-slate-50", borderColor: "border-slate-100" },
-  community: { label: "Community", icon: Building2, color: "text-cyan-600", bgColor: "bg-cyan-50", borderColor: "border-cyan-100" },
-  subscription: { label: "Subscription", icon: Repeat, color: "text-yellow-600", bgColor: "bg-yellow-50", borderColor: "border-yellow-100" },
+  course: { label: "Course", icon: BookOpen, color: "text-blue-700", bgColor: "bg-blue-100" },
+  challenge: { label: "Challenge", icon: Flag, color: "text-orange-700", bgColor: "bg-orange-100" },
+  session: { label: "Session", icon: Users, color: "text-purple-700", bgColor: "bg-purple-100" },
+  event: { label: "Event", icon: CalendarDays, color: "text-indigo-700", bgColor: "bg-indigo-100" },
+  product: { label: "Product", icon: ShoppingBag, color: "text-pink-700", bgColor: "bg-pink-100" },
+  post: { label: "Post", icon: MessageSquare, color: "text-green-700", bgColor: "bg-green-100" },
+  resource: { label: "Resource", icon: FileText, color: "text-slate-700", bgColor: "bg-slate-200" },
+  community: { label: "Community", icon: Building2, color: "text-cyan-700", bgColor: "bg-cyan-100" },
+  subscription: { label: "Subscription", icon: Repeat, color: "text-yellow-700", bgColor: "bg-yellow-100" },
 }
 
 const STATUS_CONFIG: Record<
   ProgressionItem["status"],
-  { label: string; className: string; icon: any; glowColor: string }
+  { label: string; icon: any; className: string }
 > = {
   not_started: {
     label: "Not started",
-    className: "bg-slate-100 text-slate-700 border-slate-200",
     icon: PlayCircle,
-    glowColor: "group-hover:shadow-slate-200/50",
+    className: "border-slate-200 bg-slate-100 text-slate-700",
   },
   in_progress: {
     label: "In progress",
-    className: "bg-amber-100 text-amber-800 border-amber-200",
     icon: Timer,
-    glowColor: "group-hover:shadow-amber-200/50",
+    className: "border-amber-200 bg-amber-100 text-amber-700",
   },
   completed: {
     label: "Completed",
-    className: "bg-emerald-100 text-emerald-700 border-emerald-200",
     icon: CheckCircle2,
-    glowColor: "group-hover:shadow-emerald-200/50",
+    className: "border-emerald-200 bg-emerald-100 text-emerald-700",
   },
 }
 
@@ -85,7 +80,11 @@ const formatDateLabel = (value?: unknown) => {
   if (!value) return undefined
   const date = new Date(String(value))
   if (Number.isNaN(date.getTime())) return undefined
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })
 }
 
 interface ProgressItemCardProps {
@@ -93,9 +92,14 @@ interface ProgressItemCardProps {
 }
 
 export default function ProgressItemCard({ item }: ProgressItemCardProps) {
-  const config = TYPE_CONFIG[item.contentType] || { label: item.contentType, icon: Layers, color: "text-slate-600", bgColor: "bg-slate-50", borderColor: "border-slate-100" }
+  const typeConfig = TYPE_CONFIG[item.contentType] || {
+    label: item.contentType,
+    icon: Layers,
+    color: "text-slate-700",
+    bgColor: "bg-slate-200",
+  }
   const statusConfig = STATUS_CONFIG[item.status]
-  const Icon = config.icon
+  const TypeIcon = typeConfig.icon
   const StatusIcon = statusConfig.icon
 
   const metaChips = (() => {
@@ -108,152 +112,162 @@ export default function ProgressItemCard({ item }: ProgressItemCardProps) {
         if (meta.category) chips.push({ label: "Track", value: String(meta.category), icon: Layers })
         break
       case "challenge":
-        if (meta.difficulty) chips.push({ label: "Difficulty", value: String(meta.difficulty), icon: Star })
-        if (meta.startDate) chips.push({ label: "Begins", value: formatDateLabel(meta.startDate), icon: CalendarDays })
+        if (meta.difficulty) {
+          chips.push({ label: "Difficulty", value: String(meta.difficulty), icon: Star })
+        }
+        if (meta.startDate) {
+          chips.push({ label: "Starts", value: formatDateLabel(meta.startDate), icon: CalendarDays })
+        }
         break
       case "session":
         if (meta.duration) chips.push({ label: "Length", value: `${meta.duration}m`, icon: Clock })
         if (meta.category) chips.push({ label: "Focus", value: String(meta.category), icon: Target })
         break
       case "event":
-        if (meta.eventType) chips.push({ label: "Format", value: String(meta.eventType), icon: Building2 })
-        if (typeof meta.attendees === "number") chips.push({ label: "Joined", value: String(meta.attendees), icon: Users })
+        if (meta.eventType) {
+          chips.push({ label: "Format", value: String(meta.eventType), icon: Building2 })
+        }
+        if (typeof meta.attendees === "number") {
+          chips.push({ label: "Joined", value: String(meta.attendees), icon: Users })
+        }
+        break
+      case "product":
+        if (typeof meta.price === "number") {
+          chips.push({ label: "Price", value: formatCurrency(meta.price), icon: ShoppingBag })
+        }
+        if (typeof meta.sales === "number") {
+          chips.push({ label: "Sales", value: String(meta.sales), icon: Layers })
+        }
         break
       default:
         break
     }
-    return chips
+
+    return chips.filter((chip) => Boolean(chip.value))
+  })()
+
+  const timeLabel = (() => {
+    if (item.status === "completed" && item.completedAt) {
+      return `Completed ${formatDistanceToNow(new Date(item.completedAt), { addSuffix: true })}`
+    }
+
+    if (item.lastAccessedAt) {
+      return `Last active ${formatDistanceToNow(new Date(item.lastAccessedAt), { addSuffix: true })}`
+    }
+
+    return "No activity yet"
   })()
 
   return (
-    <Card className={cn(
-      "group relative overflow-hidden border-2 border-border/40 transition-all duration-300 hover:border-primary/30 hover:shadow-xl",
-      statusConfig.glowColor
-    )}>
-      {/* Decorative accent based on content type */}
-      <div className={cn("absolute top-0 left-0 w-1.5 h-full opacity-80", config.color.replace("text", "bg"))} />
-      
+    <Card className="overflow-hidden border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
       <CardContent className="p-0">
-        <div className="flex flex-col lg:flex-row">
-          {/* Visual/Icon Section */}
-          <div className="relative w-full lg:w-48 h-48 lg:h-auto shrink-0 bg-slate-50/50">
+        <div className="flex flex-col md:flex-row md:items-center">
+          <div className="relative h-44 w-full shrink-0 overflow-hidden rounded-t-lg bg-slate-100 md:mx-4 md:h-[184px] md:w-[248px] md:rounded-lg">
             {item.thumbnail ? (
               <Image
                 src={item.thumbnail}
                 alt={item.title}
                 fill
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                unoptimized
+                className="object-cover object-center"
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                <Icon className={cn("h-20 w-20", config.color)} />
+              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+                <TypeIcon className={cn("h-10 w-10", typeConfig.color)} />
               </div>
             )}
-            <div className="absolute top-3 left-3 flex flex-col gap-2">
-              <Badge className={cn("shadow-sm font-black uppercase text-[10px] tracking-widest border-none px-2.5 py-1", config.bgColor, config.color)}>
-                {config.label}
+
+            <div className="absolute left-3 top-3">
+              <Badge className={cn("border-0 text-xs font-medium", typeConfig.bgColor, typeConfig.color)}>
+                {typeConfig.label}
               </Badge>
             </div>
           </div>
 
-          {/* Content Section */}
-          <div className="flex-1 p-6 flex flex-col justify-between min-w-0">
-            <div className="space-y-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    {item.community?.name && (
-                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1">
-                        <MapPin className="h-2.5 w-2.5" />
-                        {item.community.name}
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-xl font-bold tracking-tight text-foreground leading-tight truncate group-hover:text-primary transition-colors">
-                    {item.title}
-                  </h3>
-                  {item.description && (
-                    <p className="text-sm text-muted-foreground font-medium line-clamp-2 leading-relaxed">
-                      {item.description}
-                    </p>
-                  )}
-                </div>
-                
-                <Badge variant="outline" className={cn("shrink-0 font-bold border-2 px-3 py-1", statusConfig.className)}>
-                  <StatusIcon className="h-3.5 w-3.5 mr-1.5" />
-                  {statusConfig.label}
-                </Badge>
+          <div className="flex min-h-[220px] flex-1 flex-col p-4 sm:p-5 md:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 space-y-1.5">
+                {item.community?.name && (
+                  <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <MapPin className="h-3.5 w-3.5" />
+                    {item.community.name}
+                  </p>
+                )}
+                <h3 className="text-lg font-semibold leading-snug text-foreground">
+                  {item.title}
+                </h3>
+                {item.description && (
+                  <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                    {item.description}
+                  </p>
+                )}
               </div>
 
-              {/* Progress Bar (if applicable) */}
-              {typeof item.progressPercent === "number" && (
-                <div className="space-y-2 py-1">
-                  <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest">
-                    <span className="text-muted-foreground/70">Completion Progress</span>
-                    <span className={cn("font-bold", item.progressPercent === 100 ? "text-emerald-600" : "text-primary")}>
-                      {item.progressPercent}%
-                    </span>
-                  </div>
-                  <div className="relative h-2.5 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
-                    <div 
-                      className={cn(
-                        "absolute top-0 left-0 h-full transition-all duration-1000 ease-in-out rounded-full shadow-sm z-10",
-                        item.progressPercent === 100 ? "bg-emerald-500" : "bg-primary"
-                      )}
-                      style={{ width: `${item.progressPercent}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Metadata Chips */}
-              {metaChips.length > 0 && (
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {metaChips.map((chip) => {
-                    const ChipIcon = chip.icon
-                    return (
-                      <div
-                        key={`${chip.label}-${chip.value}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 border border-slate-200/60 text-[11px] font-bold text-slate-600"
-                      >
-                        {ChipIcon && <ChipIcon className="h-3 w-3 text-slate-400" />}
-                        <span className="text-slate-400 font-medium uppercase tracking-tighter">{chip.label}:</span>
-                        <span className="text-slate-900">{chip.value}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+              <Badge
+                variant="outline"
+                className={cn("shrink-0 border text-xs font-medium", statusConfig.className)}
+              >
+                <StatusIcon className="mr-1.5 h-3.5 w-3.5" />
+                {statusConfig.label}
+              </Badge>
             </div>
 
-            {/* Footer Actions */}
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
-              <div className="flex items-center gap-4 text-[11px] font-bold text-muted-foreground/60 uppercase tracking-widest">
-                <div className="flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>
-                    {item.status === 'completed' && item.completedAt
-                      ? `Done ${formatDistanceToNow(new Date(item.completedAt), { addSuffix: true })}`
-                      : item.lastAccessedAt
-                      ? `Last active ${formatDistanceToNow(new Date(item.lastAccessedAt), { addSuffix: true })}`
-                      : 'Never started'}
-                  </span>
+            {typeof item.progressPercent === "number" && (
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Completion progress</span>
+                  <span className="font-medium text-foreground">{item.progressPercent}%</span>
                 </div>
+                <Progress
+                  value={item.progressPercent}
+                  className="h-2 bg-slate-100 [&>*]:bg-primary"
+                />
               </div>
-              
-              <div className="flex items-center gap-3">
+            )}
+
+            {metaChips.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {metaChips.map((chip) => {
+                  const ChipIcon = chip.icon
+                  return (
+                    <span
+                      key={`${chip.label}-${chip.value}`}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-700"
+                    >
+                      {ChipIcon && <ChipIcon className="h-3.5 w-3.5 text-slate-500" />}
+                      <span className="text-slate-500">{chip.label}:</span>
+                      <span className="font-medium">{chip.value}</span>
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className="mt-auto flex flex-col gap-3 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                {timeLabel}
+              </p>
+
+              <div className="flex items-center gap-2">
                 {item.actions?.view && (
-                  <Button variant="ghost" size="sm" asChild className="h-9 px-4 font-bold text-xs uppercase tracking-widest hover:bg-slate-100 transition-all gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="h-9 gap-1.5 text-xs"
+                  >
                     <Link href={item.actions.view}>
                       Details
                       <ChevronRight className="h-3.5 w-3.5" />
                     </Link>
                   </Button>
                 )}
-                {item.actions?.continue && item.status !== 'completed' && (
-                  <Button size="sm" asChild className="h-9 px-5 font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-xl hover:-translate-y-0.5 transition-all gap-2">
+
+                {item.actions?.continue && item.status !== "completed" && (
+                  <Button size="sm" asChild className="h-9 gap-1.5 text-xs">
                     <Link href={item.actions.continue}>
-                      {item.status === 'not_started' ? (
+                      {item.status === "not_started" ? (
                         <>
                           <PlayCircle className="h-3.5 w-3.5" />
                           Start
@@ -275,4 +289,3 @@ export default function ProgressItemCard({ item }: ProgressItemCardProps) {
     </Card>
   )
 }
-

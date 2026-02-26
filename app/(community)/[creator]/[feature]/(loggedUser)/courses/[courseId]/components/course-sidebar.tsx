@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { CheckCircle, PlayCircle, Lock, MessageSquare, Star, StickyNote, ArrowRight, ShoppingCart, Trash2 } from "lucide-react"
+import { CheckCircle, PlayCircle, Lock, MessageSquare, StickyNote, ArrowRight, ShoppingCart, Trash2 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/lib/api"
@@ -537,10 +537,6 @@ export default function CourseSidebar({
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm truncate">{course.creator.name}</p>
               <p className="text-xs text-muted-foreground line-clamp-1">{course.creator.bio || "Instructor"}</p>
-              <div className="flex items-center mt-0.5">
-                <Star className="h-3 w-3 text-yellow-500 mr-1 flex-shrink-0" />
-                <span className="text-xs text-muted-foreground">4.9 rating</span>
-              </div>
             </div>
           </div>
           <Button variant="outline" size="sm" className="w-full">

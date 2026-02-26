@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { useState } from "react"
 import { mediaApi } from "@/lib/api/media.api"
+import { getCreatorVideoUrlError, normalizeVideoUrl } from "@/lib/utils/video-source"
 
 function ensureAbsoluteUploadUrl(value: unknown): string {
   const v = typeof value === 'string' ? value.trim() : ''
@@ -55,6 +56,7 @@ interface CourseContentStepProps {
   updateChapter: (sectionId: string, chapterId: string, field: string, value: any) => void
   removeChapter: (sectionId: string, chapterId: string) => void
   validationErrors?: Record<string, boolean>
+  chapterValidationErrors?: Record<string, string>
 }
 
 export function CourseContentStep({
@@ -66,11 +68,25 @@ export function CourseContentStep({
   updateChapter,
   removeChapter,
   validationErrors = {},
+  chapterValidationErrors = {},
 }: CourseContentStepProps) {
   const totalChapters = formData.sections.reduce((acc, section) => acc + section.chapters.length, 0)
   const hasValidationError = validationErrors?.courseContent || false
 
   const [uploadingChapterIds, setUploadingChapterIds] = useState<Record<string, boolean>>({})
+  const [chapterVideoUrlErrors, setChapterVideoUrlErrors] = useState<Record<string, string>>({})
+
+  const setChapterVideoUrlError = (chapterId: string, error: string | null) => {
+    setChapterVideoUrlErrors((prev) => {
+      const next = { ...prev }
+      if (error) {
+        next[chapterId] = error
+      } else {
+        delete next[chapterId]
+      }
+      return next
+    })
+  }
 
   const uploadVideoForChapter = async (sectionId: string, chapterId: string, file: File) => {
     console.log('🎬 [VIDEO UPLOAD] Starting upload for chapter:', chapterId)
@@ -90,6 +106,7 @@ export function CourseContentStep({
       
       if (url) {
         updateChapter(sectionId, chapterId, "videoUrl", url)
+        setChapterVideoUrlError(chapterId, getCreatorVideoUrlError(url))
         console.log('✅ [VIDEO UPLOAD] Video URL set in chapter state:', url)
       } else {
         console.error('❌ [VIDEO UPLOAD] No URL in response:', result)
@@ -221,7 +238,15 @@ export function CourseContentStep({
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {section.chapters.map((chapter, chapterIndex) => (
+                        {section.chapters.map((chapter, chapterIndex) => {
+                          const chapterTitleError = chapterValidationErrors[`chapter:${chapter.id}:title`]
+                          const chapterVideoError =
+                            chapterVideoUrlErrors[chapter.id] ||
+                            chapterValidationErrors[`chapter:${chapter.id}:videoUrl`]
+                          const chapterContentVideoError =
+                            chapterValidationErrors[`chapter:${chapter.id}:contentVideo`]
+
+                          return (
                           <div
                             key={chapter.id}
                             className="border rounded-lg p-4 bg-white hover:bg-gray-50 transition-colors"
@@ -261,11 +286,14 @@ export function CourseContentStep({
                                   placeholder="e.g., Introduction to HTML"
                                   value={chapter.title}
                                   onChange={(e) => updateChapter(section.id, chapter.id, "title", e.target.value)}
-                                  className="h-8 text-sm"
+                                  className={`h-8 text-sm ${chapterTitleError ? "border-red-500" : ""}`}
                                 />
+                                {chapterTitleError ? (
+                                  <p className="text-xs text-red-500 mt-1">{chapterTitleError}</p>
+                                ) : null}
                               </div>
                               <div className="space-y-1">
-                                <Label className="text-xs">Chapter Video (Upload)</Label>
+                                <Label className="text-xs">Chapter Video Upload</Label>
                                 <Input
                                   type="file"
                                   accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
@@ -277,11 +305,28 @@ export function CourseContentStep({
                                   }}
                                   className="h-8 text-sm"
                                 />
-                                {chapter.videoUrl ? (
-                                  <p className="text-xs text-muted-foreground mt-1 break-all">{chapter.videoUrl}</p>
-                                ) : null}
                                 {uploadingChapterIds[chapter.id] ? (
                                   <p className="text-xs text-muted-foreground mt-1">Uploading...</p>
+                                ) : null}
+                                <Label className="text-xs mt-2 block">Video URL (YouTube or /uploads/...)</Label>
+                                <Input
+                                  type="url"
+                                  placeholder="https://www.youtube.com/watch?v=..."
+                                  value={chapter.videoUrl || ""}
+                                  onChange={(e) => {
+                                    const nextVideoUrl = e.target.value
+                                    updateChapter(section.id, chapter.id, "videoUrl", nextVideoUrl)
+                                    setChapterVideoUrlError(
+                                      chapter.id,
+                                      getCreatorVideoUrlError(normalizeVideoUrl(nextVideoUrl)),
+                                    )
+                                  }}
+                                  className={`h-8 text-sm ${chapterVideoError ? "border-red-500" : ""}`}
+                                />
+                                {chapterVideoError ? (
+                                  <p className="text-xs text-red-500 mt-1">{chapterVideoError}</p>
+                                ) : chapter.videoUrl ? (
+                                  <p className="text-xs text-muted-foreground mt-1 break-all">{chapter.videoUrl}</p>
                                 ) : null}
                               </div>
                             </div>
@@ -295,6 +340,9 @@ export function CourseContentStep({
                                 rows={2}
                                 className="text-sm"
                               />
+                              {chapterContentVideoError ? (
+                                <p className="text-xs text-red-500 mt-1">{chapterContentVideoError}</p>
+                              ) : null}
                             </div>
 
                             <div className="space-y-1 mb-3">
@@ -359,7 +407,7 @@ export function CourseContentStep({
                               </div>
                             </div>
                           </div>
-                        ))}
+                        )})}
                       </div>
                     )}
                   </div>

@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     openGraph: {
       title: post.title,
       description: post.excerpt,
-      url: `https://chabaqa.io/blogs/${post.slug}`,
+      url: `https://chabaqa.io/blogs/${post.id}`,
       siteName: "Chabaqa",
       type: "article",
       publishedTime: post.date,
@@ -60,7 +60,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       creator: post.author.social?.twitter
     },
     alternates: {
-      canonical: `https://chabaqa.io/blogs/${post.slug}`
+      canonical: `https://chabaqa.io/blogs/${post.id}`
     }
   }
 }
@@ -106,7 +106,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             },
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": `https://chabaqa.io/blogs/${post.slug}`
+              "@id": `https://chabaqa.io/blogs/${post.id}`
             },
             "articleSection": post.category,
             "keywords": post.tags.join(", "),

@@ -31,6 +31,52 @@ export interface BankCredentialsResponse {
   bankDetails: TunisianBankCredentials | null;
 }
 
+export interface CourseAnalyticsRange {
+  from: string;
+  to: string;
+}
+
+export interface CourseAnalyticsKpis {
+  enrollments: number;
+  revenue: number;
+  views: number;
+  starts: number;
+  completes: number;
+  completionRate: number;
+  avgWatchTimeSeconds: number;
+  totalWatchTimeSeconds: number;
+}
+
+export interface CourseAnalyticsRates {
+  viewsToEnrollmentRate: number;
+  dropOffRate: number;
+  engagementScore: number;
+}
+
+export interface CourseAnalyticsDailyTrend {
+  date: string;
+  views: number;
+  starts: number;
+  completes: number;
+  watchTimeSeconds: number;
+}
+
+export interface CourseAnalyticsMeta {
+  completionSource: 'progression';
+  timezone: string;
+  currency: string;
+}
+
+export interface CourseAnalyticsResponse {
+  courseId: string;
+  courseTitle: string;
+  range: CourseAnalyticsRange;
+  kpis: CourseAnalyticsKpis;
+  rates: CourseAnalyticsRates;
+  dailyTrend: CourseAnalyticsDailyTrend[];
+  meta: CourseAnalyticsMeta;
+}
+
 export const creatorAnalyticsApi = {
   getOverview: async (params?: CreatorAnalyticsParams): Promise<ApiSuccessResponse<any>> => {
     return apiClient.get<ApiSuccessResponse<any>>('/analytics/creator/overview', params);
@@ -61,6 +107,12 @@ export const creatorAnalyticsApi = {
   },
   backfill: async (days: number = 90): Promise<ApiSuccessResponse<any>> => {
     return apiClient.post<ApiSuccessResponse<any>>(`/analytics/creator/backfill?days=${days}`, {});
+  },
+  getCourseAnalytics: async (
+    courseId: string,
+    params?: { from?: string; to?: string },
+  ): Promise<ApiSuccessResponse<CourseAnalyticsResponse>> => {
+    return apiClient.get<ApiSuccessResponse<CourseAnalyticsResponse>>(`/analytics/creator/course/${courseId}`, params);
   },
   exportCsv: async (params: CreatorAnalyticsExportParams): Promise<ApiSuccessResponse<{ filename: string; csv: string }>> => {
     return apiClient.get<ApiSuccessResponse<{ filename: string; csv: string }>>('/analytics/creator/export', params);

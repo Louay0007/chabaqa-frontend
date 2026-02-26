@@ -60,6 +60,44 @@ function normalizePrice(value: unknown): number {
   return 0
 }
 
+function normalizeCount(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value
+  if (typeof value === "string") {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  if (Array.isArray(value)) return value.length
+  if (value && typeof value === "object") {
+    const countValue = (value as Record<string, unknown>).count
+    if (typeof countValue === "number" && Number.isFinite(countValue)) return countValue
+    if (typeof countValue === "string") {
+      const parsed = Number(countValue)
+      if (Number.isFinite(parsed)) return parsed
+    }
+  }
+  return fallback
+}
+
+function resolveEntityId(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    const trimmed = value.trim()
+    return trimmed || undefined
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  if (!value || typeof value !== "object") return undefined
+  const record = value as Record<string, unknown>
+  return (
+    resolveEntityId(record.id) ||
+    resolveEntityId(record._id) ||
+    resolveEntityId(record.mongoId) ||
+    resolveEntityId(record.value)
+  )
+}
+
 function resolveCreatorSlug(source: any, creatorName: string): string | undefined {
   const raw = (
     source?.creatorSlug ||
@@ -90,6 +128,10 @@ function transformCommunityToExplore(community: Community): Explore {
 
   const creatorName = community.creator?.name || (community as any).creator || 'Unknown'
   const creatorSlug = resolveCreatorSlug(community, creatorName)
+  const membersCount = Math.max(
+    normalizeCount((community as any).membersCount, 0),
+    normalizeCount((community as any).members, 0),
+  )
   
   return {
     id: String((community as any)._id || community.id),
@@ -102,7 +144,7 @@ function transformCommunityToExplore(community: Community): Explore {
     creatorAvatar: avatar,
     description: community.description,
     category: community.category,
-    members: community.members,
+    members: membersCount,
     rating: (community as any).averageRating || community.rating || 0,
     tags: community.tags,
     verified: community.verified,
@@ -127,9 +169,18 @@ async function transformCourseToExplore(course: Course): Promise<Explore> {
   // Use community data from API response (now populated by backend)
   const communityName = (course as any).communityName || 'Unknown Community'
   const communitySlug = (course as any).communitySlug || (course as any).community?.slug || ''
+  const communityId = resolveEntityId(
+    (course as any).communityId || (course as any).community?._id || (course as any).community?.id,
+  )
+  const enrollmentCount = Math.max(
+    normalizeCount((course as any).enrollmentCount, 0),
+    normalizeCount((course as any).inscriptions, 0),
+    normalizeCount((course as any).participants, 0),
+  )
+  const courseId = String((course as any).id || (course as any)._id || "").trim()
 
   return {
-    id: course.id,
+    id: courseId,
     mongoId: (course as any)._id ? String((course as any)._id) : undefined,
     type: "course",
     name: courseTitle,
@@ -139,7 +190,7 @@ async function transformCourseToExplore(course: Course): Promise<Explore> {
     creatorAvatar: avatar,
     description: course.description || '',
     category: (course as any).category || 'Education',
-    members: course.enrollmentCount || 0,
+    members: enrollmentCount,
     rating: (course as any).averageRating || course.rating || 0,
     tags: (course as any).tags || [course.level],
     verified: (course as any).verified || false,
@@ -147,7 +198,8 @@ async function transformCourseToExplore(course: Course): Promise<Explore> {
     priceType: (String((course as any).priceType || '').toLowerCase() === 'free' || normalizePrice((course as any).price || (course as any).prix) === 0) ? "free" : "paid",
     image,
     featured: (course as any).featured || false,
-    link: `/courses/${course.slug || course.id}`,
+    link: `/courses/${course.slug || courseId}`,
+    communityId,
     communityName: communityName,
     communitySlug: communitySlug
   }
@@ -164,6 +216,9 @@ async function transformChallengeToExplore(challenge: Challenge): Promise<Explor
   // Use community data from API response (already populated by backend)
   const communityName = (challenge as any).community?.name || 'Unknown Community'
   const communitySlug = (challenge as any).community?.slug || (challenge as any).communitySlug || ''
+  const communityId = resolveEntityId(
+    (challenge as any).communityId || (challenge as any).community?._id || (challenge as any).community?.id,
+  )
 
   return {
     id: challenge.id,
@@ -185,6 +240,7 @@ async function transformChallengeToExplore(challenge: Challenge): Promise<Explor
     image,
     featured: (challenge as any).featured || false,
     link: `/challenges/${challenge.slug || challenge.id}`,
+    communityId,
     communityName: communityName,
     communitySlug: communitySlug
   }
@@ -201,6 +257,9 @@ async function transformProductToExplore(product: Product): Promise<Explore> {
   // Use community data from API response (already populated by backend)
   const communityName = (product as any).community?.name || product.community?.name || 'Unknown Community'
   const communitySlug = (product as any).community?.slug || product.community?.slug || ''
+  const communityId = resolveEntityId(
+    (product as any).communityId || (product as any).community?._id || (product as any).community?.id,
+  )
 
   return {
     id: product.id,
@@ -222,6 +281,7 @@ async function transformProductToExplore(product: Product): Promise<Explore> {
     image,
     featured: (product as any).featured || false,
     link: `/products/${product.slug}`,
+    communityId,
     communityName: communityName,
     communitySlug: communitySlug
   }
@@ -238,6 +298,9 @@ async function transformSessionToExplore(session: Session): Promise<Explore> {
   // Use community data from API response (already populated by backend)
   const communityName = (session as any).community?.name || 'Unknown Community'
   const communitySlug = (session as any).communitySlug || (session as any).community?.slug || ''
+  const communityId = resolveEntityId(
+    (session as any).communityId || (session as any).community?._id || (session as any).community?.id,
+  )
 
   return {
     id: session.id,
@@ -259,6 +322,7 @@ async function transformSessionToExplore(session: Session): Promise<Explore> {
     image,
     featured: (session as any).featured || false,
     link: `/sessions/${(session as any).slug || session.id}`,
+    communityId,
     communityName: communityName,
     communitySlug: communitySlug
   }
@@ -275,6 +339,9 @@ async function transformEventToExplore(event: Event): Promise<Explore> {
   // Use community data from API response (already populated by backend)
   const communityName = (event as any).community?.name || 'Unknown Community'
   const communitySlug = (event as any).community?.slug || (event as any).communitySlug || ''
+  const communityId = resolveEntityId(
+    (event as any).communityId || (event as any).community?._id || (event as any).community?.id,
+  )
 
   return {
     id: event.id,
@@ -296,6 +363,7 @@ async function transformEventToExplore(event: Event): Promise<Explore> {
     image,
     featured: (event as any).featured || false,
     link: `/events/${event.slug}`,
+    communityId,
     communityName: communityName,
     communitySlug: communitySlug
   }
@@ -368,6 +436,14 @@ export default async function CommunitiesPage() {
       // Handle nested data.data
       if (response?.data?.data && Array.isArray(response.data.data)) {
         return response.data.data
+      }
+
+      // Handle nested wrappers with content arrays.
+      if (response?.data?.data?.courses && Array.isArray(response.data.data.courses)) {
+        return response.data.data.courses
+      }
+      if (response?.data?.data?.communities && Array.isArray(response.data.data.communities)) {
+        return response.data.data.communities
       }
 
       return []

@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Chabaqa Blog - Community Building & Creator Success",
     description: "Expert insights on building engaged communities, creating online courses, and monetization strategies for creators.",
-    url: "https://chabaqa.com/blogs",
+    url: "https://chabaqa.io/blogs",
     siteName: "Chabaqa",
     type: "website",
     images: [
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     images: ["/og-blog.jpg"]
   },
   alternates: {
-    canonical: "https://chabaqa.com/blogs"
+    canonical: "https://chabaqa.io/blogs"
   }
 }
 
@@ -64,20 +64,20 @@ export default function BlogsPage() {
             "@type": "Blog",
             "name": "Chabaqa Blog",
             "description": "Expert insights on community building, online courses, and creator monetization",
-            "url": "https://chabaqa.com/blogs",
+            "url": "https://chabaqa.io/blogs",
             "publisher": {
               "@type": "Organization",
               "name": "Chabaqa",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://chabaqa.com/logo.png"
+                "url": "https://chabaqa.io/logo.png"
               }
             },
             "blogPost": [
               {
                 "@type": "BlogPosting",
                 "headline": "Building Engaged Communities: Best Practices for Creators",
-                "url": "https://chabaqa.com/blogs/1",
+                "url": "https://chabaqa.io/blogs/1",
                 "datePublished": "2024-02-15",
                 "author": {
                   "@type": "Person",

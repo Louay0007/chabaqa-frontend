@@ -2,13 +2,15 @@
 
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
-import { Send, Bot, User, Loader2, Sparkles } from "lucide-react"
+import { Send, Bot, Loader2, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { api } from "@/lib/api"
 import { useToast } from "@/components/ui/use-toast"
+import { useAuthContext } from "@/app/providers/auth-provider"
 
 interface Message {
   role: 'user' | 'ai'
@@ -24,13 +26,54 @@ export default function AiTutorWidget({ courseId, chapterId }: AiTutorWidgetProp
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false)
   const { toast } = useToast()
+  const { user: currentUser } = useAuthContext()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const userAvatar =
+    currentUser?.avatar ||
+    (currentUser as any)?.photo_profil ||
+    (currentUser as any)?.profile_picture ||
+    "/placeholder.svg"
+  const userInitials =
+    (currentUser?.name || "You")
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || "")
+      .join("") || "U"
 
-  // Clear messages when chapter changes
+  // Load persisted messages when course/chapter changes
   useEffect(() => {
-    setMessages([])
-  }, [chapterId])
+    let isCancelled = false
+
+    const loadHistory = async () => {
+      setIsHistoryLoading(true)
+      try {
+        const history = await api.ai.getChapterHistory(courseId, chapterId)
+        if (isCancelled) return
+        const normalizedMessages = (history.messages || []).map((message) => ({
+          role: message.role === 'user' ? 'user' : 'ai',
+          content: message.content,
+        })) as Message[]
+        setMessages(normalizedMessages)
+      } catch (error) {
+        if (isCancelled) return
+        console.error("Failed to load AI history:", error)
+        setMessages([])
+      } finally {
+        if (!isCancelled) {
+          setIsHistoryLoading(false)
+        }
+      }
+    }
+
+    loadHistory()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [courseId, chapterId])
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -40,7 +83,7 @@ export default function AiTutorWidget({ courseId, chapterId }: AiTutorWidgetProp
   }, [messages, isLoading])
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return
+    if (!input.trim() || isLoading || isHistoryLoading) return
 
     const userMessage = input.trim()
     setInput("")
@@ -49,7 +92,11 @@ export default function AiTutorWidget({ courseId, chapterId }: AiTutorWidgetProp
 
     try {
       const response = await api.ai.askChapterQuestion(courseId, chapterId, userMessage)
-      setMessages(prev => [...prev, { role: 'ai', content: response.answer }])
+      const answer = typeof response?.answer === 'string' ? response.answer.trim() : ""
+      if (!answer) {
+        throw new Error("AI response was empty")
+      }
+      setMessages(prev => [...prev, { role: 'ai', content: answer }])
     } catch (error) {
       console.error(error)
       toast({
@@ -84,13 +131,22 @@ export default function AiTutorWidget({ courseId, chapterId }: AiTutorWidgetProp
       <CardContent className="flex-1 overflow-hidden p-0 relative">
         <ScrollArea className="h-full p-4">
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground mt-20">
-              <Bot className="h-12 w-12 mb-4 opacity-20" />
-              <p className="font-medium">Hello! I'm your AI Tutor.</p>
-              <p className="text-sm mt-1 max-w-xs">
-                I've read this chapter and I'm ready to answer your questions.
-              </p>
-            </div>
+            <>
+              {isHistoryLoading ? (
+                <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground mt-20">
+                  <Loader2 className="h-8 w-8 mb-3 animate-spin opacity-60" />
+                  <p className="text-sm">Loading conversation...</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground mt-20">
+                  <Bot className="h-12 w-12 mb-4 opacity-20" />
+                  <p className="font-medium">Hello! I'm your AI Tutor.</p>
+                  <p className="text-sm mt-1 max-w-xs">
+                    I've read this chapter and I'm ready to answer your questions.
+                  </p>
+                </div>
+              )}
+            </>
           ) : (
             <div className="space-y-4 pb-4">
               {messages.map((msg, i) => (
@@ -117,9 +173,12 @@ export default function AiTutorWidget({ courseId, chapterId }: AiTutorWidgetProp
                   </div>
 
                   {msg.role === 'user' && (
-                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
-                      <User className="h-5 w-5 text-blue-600" />
-                    </div>
+                    <Avatar className="h-8 w-8 flex-shrink-0 mt-1 border border-blue-200">
+                      <AvatarImage src={userAvatar} alt={currentUser?.name || "You"} />
+                      <AvatarFallback className="bg-blue-100 text-blue-700 text-[10px] font-semibold">
+                        {userInitials}
+                      </AvatarFallback>
+                    </Avatar>
                   )}
                 </div>
               ))}
@@ -146,10 +205,10 @@ export default function AiTutorWidget({ courseId, chapterId }: AiTutorWidgetProp
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isLoading}
+            disabled={isLoading || isHistoryLoading}
             className="flex-1"
           />
-          <Button onClick={handleSend} disabled={isLoading || !input.trim()} size="icon">
+          <Button onClick={handleSend} disabled={isLoading || isHistoryLoading || !input.trim()} size="icon">
             <Send className="h-4 w-4" />
           </Button>
         </div>

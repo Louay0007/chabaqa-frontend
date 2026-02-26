@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Upload, Plus, X } from "lucide-react"
 import { useProductForm } from "./product-form-context"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 export function ProductDetailsTab() {
   const {
@@ -18,6 +19,7 @@ export function ProductDetailsTab() {
     removeArrayItem
   } = useProductForm()
   const thumbnail = Array.isArray(formData.images) ? (formData.images[0] || "") : ""
+  const previewImageSrc = resolveImageUrl(thumbnail) || thumbnail
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -99,7 +101,7 @@ export function ProductDetailsTab() {
               <div className="relative w-full aspect-video bg-gray-50 flex items-center justify-center">
                 {thumbnail ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={thumbnail} alt="Product thumbnail" className="w-full h-full object-cover" />
+                  <img src={previewImageSrc} alt="Product thumbnail" className="w-full h-full object-cover" />
                 ) : (
                   <div className="p-8">
                     <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />

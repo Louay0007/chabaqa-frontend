@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react"
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Lock, PlayCircle } from "lucide-react"
 import { coursesApi } from "@/lib/api/courses.api"
+import { detectVideoPlatform, parseVimeoVideoId, parseYouTubeVideoId } from "@/lib/utils/video-source"
 
 interface EnhancedVideoPlayerProps {
   creatorSlug: string
@@ -19,32 +20,86 @@ interface EnhancedVideoPlayerProps {
   onProgressSaved?: () => void
 }
 
-// Helper to extract YouTube video ID from various URL formats
-function extractYouTubeId(url: string): string | null {
-  if (!url) return null
-  const patterns = [
-    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i,
-    /^([^"&?\/\s]{11})$/i // Just the ID
-  ]
-  for (const pattern of patterns) {
-    const match = url.match(pattern)
-    if (match) return match[1]
+type YouTubeApiPlayer = {
+  getCurrentTime: () => Promise<number> | number
+  getDuration: () => Promise<number> | number
+  getPlayerState?: () => Promise<number> | number
+  seekTo?: (seconds: number, allowSeekAhead?: boolean) => void
+  destroy?: () => void
+}
+
+let youtubeIframeApiPromise: Promise<void> | null = null
+
+const loadYouTubeIframeApi = (): Promise<void> => {
+  if (typeof window === "undefined") {
+    return Promise.resolve()
   }
-  return null
-}
 
-// Helper to extract Vimeo video ID
-function extractVimeoId(url: string): string | null {
-  if (!url) return null
-  const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/i)
-  return match ? match[1] : null
-}
+  if ((window as any).YT?.Player) {
+    return Promise.resolve()
+  }
 
-// Detect video platform
-function detectPlatform(url: string): 'youtube' | 'vimeo' | 'other' {
-  if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube'
-  if (url.includes('vimeo.com')) return 'vimeo'
-  return 'other'
+  if (youtubeIframeApiPromise) {
+    return youtubeIframeApiPromise
+  }
+
+  youtubeIframeApiPromise = new Promise<void>((resolve) => {
+    let resolved = false
+    let pollTimer = 0
+    let timeoutTimer = 0
+
+    const finish = () => {
+      if (resolved) return
+      cleanup()
+      resolved = true
+      resolve()
+    }
+
+    const cleanup = () => {
+      if (pollTimer) {
+        window.clearInterval(pollTimer)
+        pollTimer = 0
+      }
+      if (timeoutTimer) {
+        window.clearTimeout(timeoutTimer)
+        timeoutTimer = 0
+      }
+    }
+
+    const previousReady = (window as any).onYouTubeIframeAPIReady
+    ;(window as any).onYouTubeIframeAPIReady = () => {
+      if (typeof previousReady === "function") {
+        try {
+          previousReady()
+        } catch {
+          // ignore callback errors from other YouTube consumers
+        }
+      }
+      finish()
+    }
+
+    pollTimer = window.setInterval(() => {
+      if ((window as any).YT?.Player) {
+        finish()
+      }
+    }, 100)
+
+    timeoutTimer = window.setTimeout(() => {
+      finish()
+    }, 15000)
+
+    const existingScript = document.querySelector<HTMLScriptElement>(
+      'script[src="https://www.youtube.com/iframe_api"]',
+    )
+    if (!existingScript) {
+      const tag = document.createElement("script")
+      tag.src = "https://www.youtube.com/iframe_api"
+      const firstScriptTag = document.getElementsByTagName("script")[0]
+      firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag)
+    }
+  })
+
+  return youtubeIframeApiPromise
 }
 
 export default function EnhancedVideoPlayer({
@@ -58,7 +113,6 @@ export default function EnhancedVideoPlayer({
   onEnrollNow,
   onProgressSaved,
 }: EnhancedVideoPlayerProps) {
-  const [player, setPlayer] = useState<any>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [watchTime, setWatchTime] = useState(0)
   const [videoDuration, setVideoDuration] = useState(0)
@@ -70,6 +124,20 @@ export default function EnhancedVideoPlayer({
   const vimeoIframeRef = useRef<HTMLIFrameElement | null>(null)
   const vimeoReady = useRef(false) // Changed to ref to avoid re-renders
   const [isVimeoReady, setIsVimeoReady] = useState(false)
+  const lastObservedEmbeddedTimeRef = useRef<number>(0)
+  const embeddedSyncStartedRef = useRef<boolean>(false)
+  const progressRefreshTriggeredRef = useRef<boolean>(false)
+  const lastEmbeddedUiEmitRef = useRef<number>(-1)
+  const youtubeApiRef = useRef<YouTubeApiPlayer | null>(null)
+  const isYouTubeReadyRef = useRef<boolean>(false)
+  const youtubeMethodErrorLoggedRef = useRef<boolean>(false)
+  const youtubeRuntimeErrorLoggedRef = useRef<boolean>(false)
+  const youtubePollingBackoffUntilRef = useRef<number>(0)
+  const watchTimeRef = useRef<number>(0)
+  const videoDurationRef = useRef<number>(0)
+  const enrollmentRef = useRef<any>(enrollment)
+  const savedWatchPositionRef = useRef<number>(0)
+  const sendWatchTimeRef = useRef<(time: number, duration?: number) => Promise<void>>(async () => {})
 
   const rawVideoUrl = currentChapter?.videoUrl || ''
 
@@ -119,9 +187,9 @@ export default function EnhancedVideoPlayer({
     return rawVideoUrl;
   }, [rawVideoUrl])
 
-  const platform = detectPlatform(videoUrl)
-  const youtubeId = platform === 'youtube' ? extractYouTubeId(videoUrl) : null
-  const vimeoId = platform === 'vimeo' ? extractVimeoId(videoUrl) : null
+  const platform = detectVideoPlatform(videoUrl)
+  const youtubeId = platform === 'youtube' ? parseYouTubeVideoId(videoUrl) : null
+  const vimeoId = platform === 'vimeo' ? parseVimeoVideoId(videoUrl) : null
 
   useEffect(() => {
     setPlayerError(null)
@@ -157,6 +225,99 @@ export default function EnhancedVideoPlayer({
     
     return serverPosition;
   }, [currentChapter?.id, enrollment?.progress, storageKey])
+
+  const chapterAccessible = currentChapter ? isChapterAccessible(currentChapter.id) : false
+
+  useEffect(() => {
+    watchTimeRef.current = watchTime
+  }, [watchTime])
+
+  useEffect(() => {
+    videoDurationRef.current = videoDuration
+  }, [videoDuration])
+
+  useEffect(() => {
+    enrollmentRef.current = enrollment
+  }, [enrollment])
+
+  useEffect(() => {
+    savedWatchPositionRef.current = savedWatchPosition
+  }, [savedWatchPosition])
+
+  const getStoredHighWaterMark = useCallback(() => {
+    let maxStored = savedWatchPosition
+    if (typeof window === "undefined" || !storageKey) {
+      return maxStored
+    }
+
+    const localData = localStorage.getItem(storageKey)
+    if (!localData) {
+      return maxStored
+    }
+
+    try {
+      const parsed = JSON.parse(localData)
+      maxStored = Math.max(maxStored, Number(parsed?.time || 0))
+    } catch (error) {
+      localStorage.removeItem(storageKey)
+    }
+
+    return maxStored
+  }, [savedWatchPosition, storageKey])
+
+  const persistHighWaterMark = useCallback((time: number) => {
+    if (typeof window === "undefined" || !storageKey) return
+    if (!Number.isFinite(time)) return
+
+    const roundedTime = Math.max(0, Math.floor(time))
+    const maxStored = getStoredHighWaterMark()
+    if (roundedTime <= maxStored) return
+
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        time: roundedTime,
+        timestamp: Date.now(),
+      }),
+    )
+  }, [getStoredHighWaterMark, storageKey])
+
+  const mapYouTubeErrorMessage = useCallback((code: number): string => {
+    switch (code) {
+      case 100:
+        return "This YouTube video is unavailable or private."
+      case 101:
+      case 150:
+        return "This YouTube video cannot be embedded. Ask the creator to enable embedding."
+      case 2:
+        return "Invalid YouTube video URL."
+      case 5:
+        return "The YouTube player could not load this video."
+      default:
+        return "Unable to play this YouTube video right now."
+    }
+  }, [])
+
+  const getKeepAliveHeaders = useCallback((): Record<string, string> => {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        // Keep parity with apiClient auth handling for authenticated progress sync.
+        const { tokenStorage } = require("@/lib/token-storage")
+        const accessToken = tokenStorage.getAccessToken()
+        if (accessToken) {
+          headers["Authorization"] = `Bearer ${accessToken}`
+        }
+      } catch {
+        // Ignore token lookup errors; cookie auth may still work.
+      }
+    }
+
+    return headers
+  }, [])
 
   // Initial UX sync: Notify parent about the saved position immediately on mount
   useEffect(() => {
@@ -207,7 +368,6 @@ export default function EnhancedVideoPlayer({
     if (!currentChapter?.id) return
     if (isSendingRef.current) return
     isSendingRef.current = true
-    const hadEnrollment = Boolean(enrollment)
 
     try {
       const response = await coursesApi.updateChapterWatchTime(
@@ -216,6 +376,7 @@ export default function EnhancedVideoPlayer({
         Math.floor(time),
         duration ? Math.floor(duration) : undefined
       )
+      persistHighWaterMark(time)
       lastUpdateRef.current = time
 
       const percentage = duration ? Math.round((time / duration) * 100) : 0
@@ -228,9 +389,14 @@ export default function EnhancedVideoPlayer({
       if (onWatchTimeUpdate) {
         onWatchTimeUpdate(Math.floor(time), duration ? Math.floor(duration) : undefined)
       }
-      // Refetch progress when backend may have auto-created enrollment so UI gets it
-      if (!hadEnrollment && onProgressSaved) {
-        onProgressSaved()
+      // Refresh progress once per chapter session so preview YouTube playback hydrates enrollment state.
+      if (!progressRefreshTriggeredRef.current && onProgressSaved) {
+        progressRefreshTriggeredRef.current = true
+        try {
+          await onProgressSaved()
+        } catch (refreshError) {
+          console.error("Failed to refresh progress after watch-time sync:", refreshError)
+        }
       }
       if (completeRetryPendingRef.current) {
         completeRetryPendingRef.current = false
@@ -257,7 +423,11 @@ export default function EnhancedVideoPlayer({
     } finally {
       isSendingRef.current = false
     }
-  }, [courseId, currentChapter?.id, enrollment, onWatchTimeUpdate, onProgressSaved])
+  }, [courseId, currentChapter?.id, onWatchTimeUpdate, onProgressSaved, persistHighWaterMark])
+
+  useEffect(() => {
+    sendWatchTimeRef.current = sendWatchTime
+  }, [sendWatchTime])
 
   const markChapterCompletedOnce = useCallback(
     async (reason: string, context?: { currentTime?: number; duration?: number }) => {
@@ -268,17 +438,17 @@ export default function EnhancedVideoPlayer({
       hasSentCompleteRef.current = true
       try {
         const watchSeconds = Math.floor(
-          Number(context?.currentTime ?? watchTime ?? 0),
+          Number(context?.currentTime ?? watchTimeRef.current ?? 0),
         )
         const durationSeconds =
           typeof context?.duration === "number" && context.duration > 0
             ? Math.floor(context.duration)
-            : videoDuration > 0
-              ? Math.floor(videoDuration)
+            : videoDurationRef.current > 0
+              ? Math.floor(videoDurationRef.current)
               : undefined
 
-        if (!enrollment && watchSeconds > 0) {
-          await sendWatchTime(watchSeconds, durationSeconds)
+        if (!enrollmentRef.current && watchSeconds > 0) {
+          await sendWatchTimeRef.current(watchSeconds, durationSeconds)
         }
 
         await coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
@@ -300,48 +470,83 @@ export default function EnhancedVideoPlayer({
         completeInFlightRef.current = false
       }
     },
-    [courseId, currentChapter?.id, enrollment, sendWatchTime, videoDuration, watchTime],
+    [courseId, currentChapter?.id],
   )
 
   // Initialize YouTube Player
   useEffect(() => {
     if (platform !== 'youtube' || !youtubeId || !playerRef.current) return
     // Allow initializing YouTube player for preview chapters even when not enrolled.
-    if (!isChapterAccessible(currentChapter?.id) && !currentChapter?.isPreview) return
+    if (!chapterAccessible && !currentChapter?.isPreview) return
 
-    // Load YouTube IFrame API
-    if (!(window as any).YT) {
-      const tag = document.createElement('script')
-      tag.src = 'https://www.youtube.com/iframe_api'
-      const firstScriptTag = document.getElementsByTagName('script')[0]
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
+    const resumePosition = savedWatchPositionRef.current
+
+    let createdPlayer: any = null
+    let disposed = false
+
+    const setReadyPlayer = (target: any) => {
+      if (disposed) return
+
+      const hasTime = typeof target?.getCurrentTime === "function"
+      const hasDuration = typeof target?.getDuration === "function"
+      if (!hasTime || !hasDuration) {
+        youtubeApiRef.current = null
+        isYouTubeReadyRef.current = false
+        if (!youtubeMethodErrorLoggedRef.current) {
+          youtubeMethodErrorLoggedRef.current = true
+          console.warn("[VideoPlayer] YouTube player missing required methods for tracking")
+        }
+        return
+      }
+
+      youtubeApiRef.current = target as YouTubeApiPlayer
+      isYouTubeReadyRef.current = true
+      youtubeMethodErrorLoggedRef.current = false
+      youtubeRuntimeErrorLoggedRef.current = false
+      youtubePollingBackoffUntilRef.current = 0
     }
 
     const initPlayer = () => {
-      const newPlayer = new (window as any).YT.Player(playerRef.current, {
+      if (!playerRef.current) return
+
+      try {
+        playerRef.current.innerHTML = ""
+      } catch {
+        // ignore cleanup failures
+      }
+
+      createdPlayer = new (window as any).YT.Player(playerRef.current, {
         videoId: youtubeId,
         playerVars: {
           autoplay: 0,
           controls: 1,
           rel: 0,
           modestbranding: 1,
+          origin: typeof window !== "undefined" ? window.location.origin : undefined,
         },
         events: {
           onReady: (event: any) => {
+            const readyTarget = event?.target || createdPlayer
+            setReadyPlayer(readyTarget)
+            setPlayerError(null)
             // Resume position if available
-            if (savedWatchPosition && savedWatchPosition > 0) {
+            if (resumePosition && resumePosition > 0) {
               try {
-                event.target.seekTo(savedWatchPosition, true)
-                lastUpdateRef.current = savedWatchPosition
-                setWatchTime(savedWatchPosition)
+                readyTarget?.seekTo?.(resumePosition, true)
+                lastUpdateRef.current = resumePosition
+                setWatchTime(resumePosition)
               } catch (e) {
                 // ignore seek errors
               }
             }
           },
           onStateChange: (event: any) => {
+            if (event?.target) {
+              setReadyPlayer(event.target)
+            }
             if (event.data === (window as any).YT.PlayerState.PLAYING) {
               setIsPlaying(true)
+              setPlayerError(null)
             } else if (event.data === (window as any).YT.PlayerState.ENDED) {
               setIsPlaying(false)
               void markChapterCompletedOnce("youtube_ended")
@@ -349,23 +554,73 @@ export default function EnhancedVideoPlayer({
               setIsPlaying(false)
             }
           },
+          onError: (event: any) => {
+            const code = Number(event?.data || 0)
+            const message = mapYouTubeErrorMessage(code)
+            setIsPlaying(false)
+            setPlayerError(message)
+            isYouTubeReadyRef.current = false
+            youtubeApiRef.current = null
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(
+                new CustomEvent("media:video-error", {
+                  detail: {
+                    chapterId: currentChapter?.id,
+                    platform: "youtube",
+                    errorCode: code,
+                    message,
+                    playableUrl: videoUrl,
+                    originalUrl: rawVideoUrl,
+                  },
+                }),
+              )
+            }
+          },
         },
       })
-      setPlayer(newPlayer)
     }
 
-    if ((window as any).YT?.Player) {
-      initPlayer()
-    } else {
-      (window as any).onYouTubeIframeAPIReady = initPlayer
-    }
+    void loadYouTubeIframeApi()
+      .then(() => {
+        if (disposed) return
+        if (!(window as any).YT?.Player) {
+          if (!youtubeRuntimeErrorLoggedRef.current) {
+            youtubeRuntimeErrorLoggedRef.current = true
+            console.warn("[VideoPlayer] YouTube API did not initialize in time")
+          }
+          return
+        }
+        initPlayer()
+      })
+      .catch(() => {
+        if (!youtubeRuntimeErrorLoggedRef.current) {
+          youtubeRuntimeErrorLoggedRef.current = true
+          console.warn("[VideoPlayer] Failed to initialize YouTube API")
+        }
+      })
 
     return () => {
-      if (player) {
-        player.destroy()
+      disposed = true
+      isYouTubeReadyRef.current = false
+      youtubeApiRef.current = null
+      youtubeMethodErrorLoggedRef.current = false
+      youtubeRuntimeErrorLoggedRef.current = false
+      youtubePollingBackoffUntilRef.current = 0
+      if (createdPlayer && typeof createdPlayer.destroy === "function") {
+        createdPlayer.destroy()
       }
     }
-  }, [youtubeId, platform, currentChapter?.id, isChapterAccessible, markChapterCompletedOnce])
+  }, [
+    youtubeId,
+    platform,
+    currentChapter?.id,
+    currentChapter?.isPreview,
+    chapterAccessible,
+    markChapterCompletedOnce,
+    mapYouTubeErrorMessage,
+    rawVideoUrl,
+    videoUrl,
+  ])
 
   // Initialize Vimeo Player tracking via postMessage API
   useEffect(() => {
@@ -411,6 +666,7 @@ export default function EnhancedVideoPlayer({
         } else if (data.event === 'timeupdate' && data.data) {
           const time = Number(data.data.seconds || 0)
           const duration = Number(data.data.duration || 0)
+          const maxStored = getStoredHighWaterMark()
           setWatchTime(time)
           if (duration > 0) setVideoDuration(duration)
 
@@ -425,14 +681,8 @@ export default function EnhancedVideoPlayer({
 
           // Send update every 1 second (backend can auto-create enrollment)
           if (time - lastUpdateRef.current >= 1) {
-            // Check High-Water Mark: Only send if we've passed the max stored time
-            const localData = storageKey ? localStorage.getItem(storageKey) : null;
-            let maxStored = savedWatchPosition;
-            if (localData) {
-               try { maxStored = Math.max(maxStored, JSON.parse(localData).time || 0); } catch(e){}
-            }
-            
             if (time > maxStored) {
+               persistHighWaterMark(time)
                void sendWatchTime(time, duration > 0 ? duration : undefined)
             }
           }
@@ -466,7 +716,18 @@ export default function EnhancedVideoPlayer({
       window.removeEventListener('message', handleMessage)
       clearTimeout(timeoutId)
     }
-  }, [vimeoId, platform, currentChapter?.id, isChapterAccessible, sendWatchTime, onWatchTimeUpdate, storageKey, savedWatchPosition, markChapterCompletedOnce])
+  }, [
+    vimeoId,
+    platform,
+    currentChapter?.id,
+    isChapterAccessible,
+    sendWatchTime,
+    onWatchTimeUpdate,
+    markChapterCompletedOnce,
+    getStoredHighWaterMark,
+    persistHighWaterMark,
+    savedWatchPosition,
+  ])
 
   // Track watch time for native HTML5 video
   useEffect(() => {
@@ -487,17 +748,7 @@ export default function EnhancedVideoPlayer({
 
       // --- HIGH WATER MARK LOGIC ---
       // We calculate the maximum time reached across all storage layers
-      let maxStoredTime = savedWatchPosition; // Start with backend/initial load value
-      
-      if (storageKey) {
-        const localData = localStorage.getItem(storageKey);
-        if (localData) {
-          try {
-            const parsed = JSON.parse(localData);
-            maxStoredTime = Math.max(maxStoredTime, parsed.time || 0);
-          } catch (e) {}
-        }
-      }
+      const maxStoredTime = getStoredHighWaterMark()
 
       // The effective progress is the maximum of current time and anything previously saved
       const effectiveMaxTime = Math.max(maxStoredTime, Math.floor(currentTime));
@@ -508,11 +759,8 @@ export default function EnhancedVideoPlayer({
       }
 
       // Update LocalStorage Mirror (Only if current time is actually greater)
-      if (storageKey && Math.floor(currentTime) > maxStoredTime) {
-        localStorage.setItem(storageKey, JSON.stringify({
-          time: Math.floor(currentTime),
-          timestamp: Date.now()
-        }));
+      if (Math.floor(currentTime) > maxStoredTime) {
+        persistHighWaterMark(currentTime)
       }
 
       // --- AUTO-COMPLETION RECOVERY ---
@@ -584,7 +832,19 @@ export default function EnhancedVideoPlayer({
       videoEl.removeEventListener('ended', onEnded)
       videoEl.removeEventListener('loadedmetadata', onLoadedMetadataResume)
     }
-  }, [currentChapter?.id, enrollment, isChapterAccessible, isLocalFileVideo, storageKey, savedWatchPosition, sendWatchTime, onWatchTimeUpdate, courseId, markChapterCompletedOnce]);
+  }, [
+    currentChapter?.id,
+    enrollment,
+    isChapterAccessible,
+    isLocalFileVideo,
+    savedWatchPosition,
+    sendWatchTime,
+    onWatchTimeUpdate,
+    courseId,
+    markChapterCompletedOnce,
+    getStoredHighWaterMark,
+    persistHighWaterMark,
+  ]);
 
   // Track watch time when playing (run even without enrollment so backend can auto-create it)
   useEffect(() => {
@@ -608,14 +868,9 @@ export default function EnhancedVideoPlayer({
         }
 
         if (isPlaying && currentTime - lastUpdateRef.current >= 1) {
-           // High-Water Mark Check
-           const localData = storageKey ? localStorage.getItem(storageKey) : null;
-           let maxStored = savedWatchPosition;
-           if (localData) {
-              try { maxStored = Math.max(maxStored, JSON.parse(localData).time || 0); } catch(e){}
-           }
-
+           const maxStored = getStoredHighWaterMark()
            if (currentTime > maxStored) {
+              persistHighWaterMark(currentTime)
               await sendWatchTime(currentTime, duration > 0 ? duration : undefined)
            }
         }
@@ -637,33 +892,62 @@ export default function EnhancedVideoPlayer({
       }
     }
 
-    if (isPlaying && player && currentChapter?.id) {
+    if (platform === 'youtube' && currentChapter?.id) {
       intervalRef.current = setInterval(async () => {
+        if (Date.now() < youtubePollingBackoffUntilRef.current) {
+          return
+        }
+
         try {
-          const currentTime = await player.getCurrentTime()
-          const duration = await player.getDuration()
+          if (!isYouTubeReadyRef.current || !youtubeApiRef.current) {
+            return
+          }
+
+          const canReadTime = typeof youtubeApiRef.current.getCurrentTime === "function"
+          const canReadDuration = typeof youtubeApiRef.current.getDuration === "function"
+          if (!canReadTime || !canReadDuration) {
+            if (!youtubeMethodErrorLoggedRef.current) {
+              youtubeMethodErrorLoggedRef.current = true
+              console.warn("[VideoPlayer] YouTube tracking skipped: missing getCurrentTime/getDuration")
+            }
+            return
+          }
+
+          const currentTime = Number((await youtubeApiRef.current.getCurrentTime()) || 0)
+          const duration = Number((await youtubeApiRef.current.getDuration()) || 0)
+          youtubeRuntimeErrorLoggedRef.current = false
+          youtubePollingBackoffUntilRef.current = 0
+          const previousObserved = Number(lastObservedEmbeddedTimeRef.current || 0)
+          const isAdvancing = currentTime > previousObserved + 0.25
+          if (isAdvancing || currentTime > previousObserved) {
+            lastObservedEmbeddedTimeRef.current = currentTime
+          }
+          if (isAdvancing) {
+            embeddedSyncStartedRef.current = true
+          }
+
           setWatchTime(currentTime)
           if (duration > 0) setVideoDuration(duration)
 
-          // Immediately notify parent for per-second UI updates
-          if (onWatchTimeUpdate) {
+          const flooredTime = Math.floor(currentTime)
+          const shouldEmitUiUpdate =
+            isAdvancing || flooredTime > lastEmbeddedUiEmitRef.current
+
+          // Keep UI responsive while avoiding repeated identical emits.
+          if (shouldEmitUiUpdate && onWatchTimeUpdate) {
             try {
-              onWatchTimeUpdate(Math.floor(currentTime), duration > 0 ? Math.floor(duration) : undefined)
+              lastEmbeddedUiEmitRef.current = flooredTime
+              onWatchTimeUpdate(flooredTime, duration > 0 ? Math.floor(duration) : undefined)
             } catch (e) {
               // ignore
             }
           }
 
-          // Send update every 1 second
-          if (currentTime - lastUpdateRef.current >= 1) {
-             // Check High-Water Mark for YouTube/Vimeo too
-             const localData = storageKey ? localStorage.getItem(storageKey) : null;
-             let maxStored = savedWatchPosition;
-             if (localData) {
-                try { maxStored = Math.max(maxStored, JSON.parse(localData).time || 0); } catch(e){}
-             }
-
+          // Sync when playback has advanced at least once in this session.
+          if ((embeddedSyncStartedRef.current || isAdvancing) && currentTime - lastUpdateRef.current >= 1) {
+             const maxStored = getStoredHighWaterMark()
              if (currentTime > maxStored) {
+               persistHighWaterMark(currentTime)
                await sendWatchTime(currentTime, duration > 0 ? duration : undefined)
              }
           }
@@ -676,7 +960,11 @@ export default function EnhancedVideoPlayer({
             }
           }
         } catch (error) {
-          console.error('Error getting current time:', error)
+          youtubePollingBackoffUntilRef.current = Date.now() + 4000
+          if (!youtubeRuntimeErrorLoggedRef.current) {
+            youtubeRuntimeErrorLoggedRef.current = true
+            console.warn("[VideoPlayer] YouTube polling paused after runtime error")
+          }
         }
       }, 1000)
     } else {
@@ -691,7 +979,18 @@ export default function EnhancedVideoPlayer({
         clearInterval(intervalRef.current)
       }
     }
-  }, [currentChapter?.id, enrollment, isLocalFileVideo, isPlaying, player, sendWatchTime, markChapterCompletedOnce])
+  }, [
+    currentChapter?.id,
+    enrollment,
+    isLocalFileVideo,
+    isPlaying,
+    platform,
+    sendWatchTime,
+    markChapterCompletedOnce,
+    onWatchTimeUpdate,
+    getStoredHighWaterMark,
+    persistHighWaterMark,
+  ])
 
   // Final sync on tab close / navigation
   useEffect(() => {
@@ -712,16 +1011,13 @@ export default function EnhancedVideoPlayer({
 
       // UX Fix: Only save if we are actually at or beyond the saved/max position
       // This prevents sending redundant requests when the user is re-watching
-      const localData = localStorage.getItem(storageKey || '');
-      let maxTime = savedWatchPosition;
-      if (localData) {
-        try { maxTime = Math.max(maxTime, JSON.parse(localData).time); } catch (e) {}
-      }
+      const maxTime = getStoredHighWaterMark()
 
       if (Math.floor(watchTime) < maxTime) {
         console.log(`ℹ️ [VideoPlayer] Skipping final sync: Current time ${Math.floor(watchTime)}s is below max reached ${maxTime}s`);
         return;
       }
+      persistHighWaterMark(watchTime)
       
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
       const endpoint = `${backendUrl}/course-enrollment/${courseId}/chapters/${currentChapter.id}/watch-time`;
@@ -731,10 +1027,20 @@ export default function EnhancedVideoPlayer({
         videoDuration: videoDuration > 0 ? Math.floor(videoDuration) : undefined
       });
 
-      // Use sendBeacon for reliable delivery on tab close
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(endpoint, new Blob([payload], { type: 'application/json' }));
-      }
+      const keepAliveRequest = fetch(endpoint, {
+        method: "PUT",
+        credentials: "include",
+        keepalive: true,
+        headers: getKeepAliveHeaders(),
+        body: payload,
+      })
+
+      // Fallback for environments where keepalive fetch fails unexpectedly.
+      void keepAliveRequest.catch(() => {
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(endpoint, new Blob([payload], { type: "application/json" }))
+        }
+      })
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -744,17 +1050,24 @@ export default function EnhancedVideoPlayer({
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [courseId, currentChapter?.id, watchTime, videoDuration]);
+  }, [courseId, currentChapter?.id, watchTime, videoDuration, getKeepAliveHeaders, getStoredHighWaterMark, persistHighWaterMark]);
 
   // Reset completion flag when chapter changes
   useEffect(() => {
     hasSentCompleteRef.current = false
     completeRetryPendingRef.current = false
     completeInFlightRef.current = false
+    lastObservedEmbeddedTimeRef.current = 0
+    embeddedSyncStartedRef.current = false
+    progressRefreshTriggeredRef.current = false
+    lastEmbeddedUiEmitRef.current = -1
+    isYouTubeReadyRef.current = false
+    youtubeApiRef.current = null
+    youtubeMethodErrorLoggedRef.current = false
+    youtubeRuntimeErrorLoggedRef.current = false
+    youtubePollingBackoffUntilRef.current = 0
   }, [currentChapter?.id])
 
-  const chapterAccessible = currentChapter ? isChapterAccessible(currentChapter.id) : false
-  
   // Check if video URL is valid (not empty string)
   const hasValidVideoUrl = Boolean(
     currentChapter?.videoUrl && 

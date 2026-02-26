@@ -7,6 +7,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { ProductWithDetails, ProductPurchase } from "@/lib/api/products-community.api"
 import { getFileTypeIcon } from "@/lib/utilsmedia"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 interface ProductCardProps {
   creatorSlug: string
@@ -26,6 +27,14 @@ export default function ProductCard({
   slug
 }: ProductCardProps) {
   const productDetails = product;
+  const rawThumbnail =
+    (Array.isArray(productDetails.images) && productDetails.images.length > 0 ? productDetails.images[0] : "") ||
+    (productDetails as any).thumbnail ||
+    ""
+  const productImageSrc =
+    resolveImageUrl(rawThumbnail) ||
+    rawThumbnail ||
+    "/placeholder.svg?height=1080&width=1920&query=digital-product"
   const fileTypes = [...new Set((productDetails.files || []).map((f: any) => f.type))]
 
   return (
@@ -38,7 +47,7 @@ export default function ProductCard({
       <div className="flex flex-col md:flex-row">
         <div className="relative w-full md:w-80 aspect-video">
           <Image
-            src={(productDetails.images && productDetails.images[0]) || "/placeholder.svg?height=1080&width=1920&query=digital-product"}
+            src={productImageSrc}
             alt={productDetails.title}
             fill
             className="object-cover rounded-t-lg md:rounded-l-lg md:rounded-t-none"

@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardHeader, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
@@ -8,11 +9,18 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, Package, FileText, AlertTriangle } from "lucide-react"
 import { useProductForm } from "./product-form-context"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 export function ReviewStep() {
   const { formData, errors, handleInputChange } = useProductForm()
+  const [imageLoadError, setImageLoadError] = useState(false)
+  const previewImageSrc = resolveImageUrl(formData.thumbnail) || formData.thumbnail
   
   const hasErrors = Object.keys(errors).length > 0
+
+  useEffect(() => {
+    setImageLoadError(false)
+  }, [previewImageSrc])
 
   return (
     <EnhancedCard>
@@ -90,8 +98,20 @@ export function ReviewStep() {
             <div>
               <h3 className="font-semibold mb-3">Product Preview</h3>
               <div className="border rounded-lg p-4 bg-gray-50">
-                <div className="w-full h-32 bg-gray-200 rounded mb-3 flex items-center justify-center">
-                  <span className="text-gray-500">Product Thumbnail</span>
+                <div className="w-full h-32 bg-gray-200 rounded mb-3 overflow-hidden">
+                  {previewImageSrc && !imageLoadError ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={previewImageSrc}
+                      alt={formData.title || "Product thumbnail"}
+                      className="w-full h-full object-cover"
+                      onError={() => setImageLoadError(true)}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="text-gray-500">Product Thumbnail</span>
+                    </div>
+                  )}
                 </div>
                 <h4 className="font-semibold">{formData.title || "Product Name"}</h4>
                 <p className="text-sm text-gray-600 mt-1 line-clamp-2">

@@ -1,9 +1,9 @@
 "use client"
 
-import { useCallback, useMemo, useState, useEffect } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { AlertCircle, Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Loader2, RefreshCw, AlertCircle } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { progressionApi } from "@/lib/api/progression.api"
 import type {
@@ -12,11 +12,11 @@ import type {
   ProgressionItem,
   ProgressionOverview,
 } from "@/lib/api/types"
-import ProgressHeader from "./progress-header"
-import ProgressStatsGrid from "./progress-stats-grid"
 import ProgressByType from "./progress-by-type"
-import ProgressTabs from "./progress-tabs"
+import ProgressHeader from "./progress-header"
 import ProgressItemCard from "./progress-item-card"
+import ProgressStatsGrid from "./progress-stats-grid"
+import ProgressTabs from "./progress-tabs"
 
 type TypeFilter = "all" | ProgressionContentType
 
@@ -43,39 +43,7 @@ export default function ProgressionPageContent({
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Initial data sync if needed
-  useEffect(() => {
-    if (!initialData || !initialData.items) {
-      handleRefresh()
-    }
-  }, [])
-
   const activeLimit = pagination?.limit || DEFAULT_LIMIT
-
-  const filteredItems = useMemo(() => {
-    let result = [...items]
-    if (typeFilter !== "all") {
-      result = result.filter((item) => item.contentType === typeFilter)
-    }
-    if (searchQuery.trim().length > 0) {
-      const term = searchQuery.toLowerCase()
-      result = result.filter(
-        (item) =>
-          item.title.toLowerCase().includes(term) ||
-          item.description?.toLowerCase().includes(term) ||
-          (item.meta &&
-            Object.values(item.meta).some((value) =>
-              String(value).toLowerCase().includes(term),
-            )),
-      )
-    }
-    return result
-  }, [items, typeFilter, searchQuery])
-
-  const hasMore =
-    (pagination?.page || 1) < (pagination?.totalPages || 1) &&
-    !isLoading &&
-    !isLoadingMore
 
   const fetchProgress = useCallback(
     async (options?: { page?: number; append?: boolean }) => {
@@ -104,6 +72,7 @@ export default function ProgressionPageContent({
           if (!append) {
             return response.items || []
           }
+
           const existingKeys = new Set(
             prev.map((item) => `${item.contentType}-${item.contentId}`),
           )
@@ -118,13 +87,41 @@ export default function ProgressionPageContent({
         })
       } catch (err: any) {
         console.error("[ProgressionPage] Fetch error:", err)
-        const errorMessage = err.response?.data?.message || err.message || "Failed to sync your progress"
+        const errorMessage =
+          err.response?.data?.message || err.message || "Failed to sync your progress"
         setError(errorMessage)
         throw err
       }
     },
-    [slug, typeFilter, activeLimit],
+    [activeLimit, slug, typeFilter],
   )
+
+  const handleRefresh = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      await fetchProgress({ page: 1, append: false })
+      toast({
+        title: "Progress synced",
+        description: "Your latest progression data has been loaded.",
+      })
+    } catch (refreshError) {
+      console.error(refreshError)
+      toast({
+        variant: "destructive",
+        title: "Refresh failed",
+        description: "We couldn't refresh your progress right now.",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }, [fetchProgress, toast])
+
+  // Keep initial behavior: if initial payload is missing, fetch immediately.
+  useEffect(() => {
+    if (!initialData || !initialData.items) {
+      void handleRefresh()
+    }
+  }, [])
 
   const handleTypeChange = useCallback(
     async (value: string) => {
@@ -132,8 +129,8 @@ export default function ProgressionPageContent({
       setIsLoading(true)
       try {
         await fetchProgress({ page: 1, append: false })
-      } catch (error) {
-        console.error(error)
+      } catch (filterError) {
+        console.error(filterError)
         toast({
           variant: "destructive",
           title: "Unable to load data",
@@ -146,33 +143,42 @@ export default function ProgressionPageContent({
     [fetchProgress, toast],
   )
 
-  const handleRefresh = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      await fetchProgress({ page: 1, append: false })
-      toast({
-        title: "Progress updated",
-        description: "Latest progression stats have been loaded.",
-      })
-    } catch (error) {
-      console.error(error)
-      toast({
-        variant: "destructive",
-        title: "Refresh failed",
-        description: "We couldn't refresh your progress. Please try again.",
-      })
-    } finally {
-      setIsLoading(false)
+  const filteredItems = useMemo(() => {
+    let result = [...items]
+
+    if (typeFilter !== "all") {
+      result = result.filter((item) => item.contentType === typeFilter)
     }
-  }, [fetchProgress, toast])
+
+    if (searchQuery.trim().length > 0) {
+      const term = searchQuery.toLowerCase()
+      result = result.filter(
+        (item) =>
+          item.title.toLowerCase().includes(term) ||
+          item.description?.toLowerCase().includes(term) ||
+          (item.meta &&
+            Object.values(item.meta).some((value) =>
+              String(value).toLowerCase().includes(term),
+            )),
+      )
+    }
+
+    return result
+  }, [items, searchQuery, typeFilter])
+
+  const hasMore =
+    (pagination?.page || 1) < (pagination?.totalPages || 1) &&
+    !isLoading &&
+    !isLoadingMore
 
   const handleLoadMore = useCallback(async () => {
     if (!hasMore) return
+
     setIsLoadingMore(true)
     try {
       await fetchProgress({ page: (pagination?.page || 1) + 1, append: true })
-    } catch (error) {
-      console.error(error)
+    } catch (loadMoreError) {
+      console.error(loadMoreError)
       toast({
         variant: "destructive",
         title: "Unable to load more",
@@ -186,8 +192,11 @@ export default function ProgressionPageContent({
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        <ProgressHeader summary={summary} />
-        
+        <ProgressHeader
+          summary={summary}
+          communityName={community?.name || undefined}
+        />
+
         <ProgressStatsGrid summary={summary} />
 
         <ProgressByType summary={summary} />
@@ -202,18 +211,20 @@ export default function ProgressionPageContent({
           summary={summary}
         />
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {isLoading ? (
-            <div className="grid gap-6">
+            <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <Card key={i} className="overflow-hidden border-2 border-slate-100 animate-pulse">
+                <Card key={i} className="overflow-hidden border border-slate-200 bg-white shadow-sm">
                   <CardContent className="p-0">
-                    <div className="flex flex-col lg:flex-row h-48">
-                      <div className="w-full lg:w-48 bg-slate-200" />
-                      <div className="flex-1 p-6 space-y-4">
-                        <div className="h-6 bg-slate-200 rounded w-1/3" />
-                        <div className="h-4 bg-slate-200 rounded w-full" />
-                        <div className="h-4 bg-slate-200 rounded w-2/3" />
+                    <div className="flex flex-col md:flex-row">
+                      <div className="h-44 w-full animate-pulse bg-slate-200 md:h-52 md:w-56" />
+                      <div className="flex-1 space-y-3 p-5">
+                        <div className="h-5 w-2/5 animate-pulse rounded bg-slate-200" />
+                        <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
+                        <div className="h-4 w-4/5 animate-pulse rounded bg-slate-100" />
+                        <div className="h-2 w-full animate-pulse rounded bg-slate-100" />
+                        <div className="h-9 w-36 animate-pulse rounded bg-slate-100" />
                       </div>
                     </div>
                   </CardContent>
@@ -221,26 +232,26 @@ export default function ProgressionPageContent({
               ))}
             </div>
           ) : error ? (
-            <Card className="border-2 border-destructive/20 bg-destructive/5">
-              <CardContent className="py-12 text-center space-y-4">
-                <div className="inline-flex p-3 rounded-full bg-destructive/10 text-destructive">
-                  <AlertCircle className="h-8 w-8" />
+            <Card className="border border-red-200 bg-white shadow-sm">
+              <CardContent className="py-12 text-center">
+                <div className="mx-auto mb-4 inline-flex rounded-full bg-red-50 p-3 text-red-600">
+                  <AlertCircle className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold text-foreground">Something went wrong</h3>
-                <p className="text-muted-foreground max-w-md mx-auto">{error}</p>
-                <Button onClick={handleRefresh} variant="outline" className="gap-2">
+                <h3 className="text-lg font-semibold text-foreground">Unable to load progress</h3>
+                <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{error}</p>
+                <Button onClick={handleRefresh} variant="outline" className="mt-4 gap-2">
                   <RefreshCw className="h-4 w-4" />
-                  Try Again
+                  Retry
                 </Button>
               </CardContent>
             </Card>
           ) : filteredItems.length === 0 ? (
-            <Card className="border border-dashed">
-              <CardContent className="py-10 text-center">
-                <p className="text-lg font-semibold">No progress to display yet</p>
-                <p className="mt-2 max-w-xl text-sm text-muted-foreground mx-auto">
+            <Card className="border border-slate-200 bg-white shadow-sm">
+              <CardContent className="py-12 text-center">
+                <h3 className="text-lg font-semibold text-foreground">No progress to show yet</h3>
+                <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
                   Start a course, join a challenge, or register for an event to see your
-                  activity here. We'll keep this space updated as you make progress.
+                  progression history here.
                 </p>
               </CardContent>
             </Card>
@@ -254,8 +265,9 @@ export default function ProgressionPageContent({
                   />
                 ))}
               </div>
+
               {hasMore && (
-                <div className="flex justify-center pt-4">
+                <div className="flex justify-center pt-2">
                   <Button
                     variant="outline"
                     onClick={handleLoadMore}
@@ -268,7 +280,7 @@ export default function ProgressionPageContent({
                         Loading more
                       </>
                     ) : (
-                      "Load more items"
+                      "Load more"
                     )}
                   </Button>
                 </div>
@@ -280,4 +292,3 @@ export default function ProgressionPageContent({
     </div>
   )
 }
-

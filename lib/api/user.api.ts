@@ -10,7 +10,22 @@ export interface UpdateProfilePayload {
   photo_profil?: string
 }
 
+export interface ChangePasswordPayload {
+  currentPassword: string
+  newPassword: string
+}
+
+export interface DeleteAccountPayload {
+  currentPassword: string
+  confirmText: string
+}
+
 const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+
+async function readApiError(res: Response, fallback: string): Promise<string> {
+  const body = await res.json().catch(() => null)
+  return body?.message || body?.error || fallback
+}
 
 export async function getMe(): Promise<any | null> {
   const res = await authenticatedFetch(`${apiBase}/auth/me`, { method: "GET" })
@@ -33,9 +48,38 @@ export async function updateProfile(payload: UpdateProfilePayload): Promise<any>
     body: JSON.stringify(payload),
   })
   if (!res.ok) {
-    const body = await res.json().catch(() => null)
-    throw new Error(body?.message || body?.error || `Failed to update profile (${res.status})`)
+    throw new Error(await readApiError(res, `Failed to update profile (${res.status})`))
   }
   const json = await res.json().catch(() => null)
   return json?.user || json?.data || json
+}
+
+export async function changePassword(payload: ChangePasswordPayload): Promise<{ message: string }> {
+  const res = await authenticatedFetch(`${apiBase}/user/change-password`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) {
+    throw new Error(await readApiError(res, `Failed to change password (${res.status})`))
+  }
+
+  const json = await res.json().catch(() => null)
+  return { message: json?.message || "Password updated successfully" }
+}
+
+export async function deleteAccount(payload: DeleteAccountPayload): Promise<{ message: string }> {
+  const res = await authenticatedFetch(`${apiBase}/user/delete-account`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) {
+    throw new Error(await readApiError(res, `Failed to delete account (${res.status})`))
+  }
+
+  const json = await res.json().catch(() => null)
+  return { message: json?.message || "Account deleted successfully" }
 }
