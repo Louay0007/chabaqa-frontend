@@ -4,159 +4,14 @@ import { useState, useMemo } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Calendar, Clock, ArrowRight, Tag } from "lucide-react"
-
-interface BlogPost {
-  id: string
-  title: string
-  excerpt: string
-  image: string
-  category: string
-  date: string
-  readTime: string
-  author: {
-    name: string
-    avatar: string
-  }
-}
-
-const allBlogPosts: BlogPost[] = [
-  {
-    id: "1",
-    title: "Building Engaged Communities: Best Practices for Creators",
-    excerpt: "Learn the essential strategies for creating and nurturing a thriving online community that keeps members coming back.",
-    image: "/placeholder.svg?height=400&width=600",
-    category: "Community",
-    date: "2024-02-15",
-    readTime: "5 min read",
-    author: {
-      name: "Sarah Johnson",
-      avatar: "/placeholder.svg?height=100&width=100"
-    }
-  },
-  {
-    id: "2",
-    title: "Monetization Strategies: Turn Your Passion into Profit",
-    excerpt: "Discover proven methods to monetize your content and build a sustainable income stream from your community.",
-    image: "/placeholder.svg?height=400&width=600",
-    category: "Monetization",
-    date: "2024-02-12",
-    readTime: "7 min read",
-    author: {
-      name: "Michael Chen",
-      avatar: "/placeholder.svg?height=100&width=100"
-    }
-  },
-  {
-    id: "3",
-    title: "Creating Effective Online Courses: A Complete Guide",
-    excerpt: "Step-by-step guide to designing, creating, and launching successful online courses that deliver real value.",
-    image: "/placeholder.svg?height=400&width=600",
-    category: "Courses",
-    date: "2024-02-10",
-    readTime: "10 min read",
-    author: {
-      name: "Emily Rodriguez",
-      avatar: "/placeholder.svg?height=100&width=100"
-    }
-  },
-  {
-    id: "4",
-    title: "The Power of Challenges: Boost Engagement and Results",
-    excerpt: "How to design and run challenges that motivate your community and drive meaningful outcomes.",
-    image: "/placeholder.svg?height=400&width=600",
-    category: "Challenges",
-    date: "2024-02-08",
-    readTime: "6 min read",
-    author: {
-      name: "David Kim",
-      avatar: "/placeholder.svg?height=100&width=100"
-    }
-  },
-  {
-    id: "5",
-    title: "One-on-One Coaching: Scaling Personal Connection",
-    excerpt: "Learn how to offer personalized coaching sessions while maintaining work-life balance and maximizing impact.",
-    image: "/placeholder.svg?height=400&width=600",
-    category: "Coaching",
-    date: "2024-02-05",
-    readTime: "8 min read",
-    author: {
-      name: "Lisa Thompson",
-      avatar: "/placeholder.svg?height=100&width=100"
-    }
-  },
-  {
-    id: "6",
-    title: "Event Planning 101: Host Memorable Virtual Events",
-    excerpt: "Everything you need to know about planning, promoting, and executing successful virtual events.",
-    image: "/placeholder.svg?height=400&width=600",
-    category: "Events",
-    date: "2024-02-03",
-    readTime: "9 min read",
-    author: {
-      name: "James Wilson",
-      avatar: "/placeholder.svg?height=100&width=100"
-    }
-  },
-  {
-    id: "7",
-    title: "Community Growth Hacks: From 0 to 1000 Members",
-    excerpt: "Proven strategies to rapidly grow your community from scratch to your first thousand engaged members.",
-    image: "/placeholder.svg?height=400&width=600",
-    category: "Community",
-    date: "2024-02-01",
-    readTime: "7 min read",
-    author: {
-      name: "Sarah Johnson",
-      avatar: "/placeholder.svg?height=100&width=100"
-    }
-  },
-  {
-    id: "8",
-    title: "Advanced Course Design: Interactive Learning Experiences",
-    excerpt: "Take your courses to the next level with interactive elements, gamification, and engagement strategies.",
-    image: "/placeholder.svg?height=400&width=600",
-    category: "Courses",
-    date: "2024-01-28",
-    readTime: "9 min read",
-    author: {
-      name: "Emily Rodriguez",
-      avatar: "/placeholder.svg?height=100&width=100"
-    }
-  },
-  {
-    id: "9",
-    title: "30-Day Challenge Ideas to Energize Your Community",
-    excerpt: "A collection of proven challenge ideas that drive engagement and help members achieve their goals.",
-    image: "/placeholder.svg?height=400&width=600",
-    category: "Challenges",
-    date: "2024-01-25",
-    readTime: "6 min read",
-    author: {
-      name: "David Kim",
-      avatar: "/placeholder.svg?height=100&width=100"
-    }
-  },
-  {
-    id: "10",
-    title: "Pricing Psychology: What Your Audience Will Pay",
-    excerpt: "Understanding the psychology behind pricing to maximize revenue while providing value.",
-    image: "/placeholder.svg?height=400&width=600",
-    category: "Monetization",
-    date: "2024-01-22",
-    readTime: "8 min read",
-    author: {
-      name: "Michael Chen",
-      avatar: "/placeholder.svg?height=100&width=100"
-    }
-  }
-]
-
-const categories = ["All", "Community", "Monetization", "Courses", "Challenges", "Coaching", "Events"]
+import { getAllBlogPosts, getAllCategories } from "@/lib/blog-content"
 
 const POSTS_PER_PAGE = 6
 
 export function BlogList() {
+  const allBlogPosts = getAllBlogPosts()
+  const allCategories = ["All", ...getAllCategories()]
+  
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [displayCount, setDisplayCount] = useState(POSTS_PER_PAGE)
 
@@ -197,7 +52,7 @@ export function BlogList() {
         {/* Category Filter */}
         <div className="mb-12">
           <div className="flex flex-wrap justify-center gap-3">
-            {categories.map((category) => (
+            {allCategories.map((category) => (
               <button
                 key={category}
                 onClick={() => handleCategoryChange(category)}
@@ -218,7 +73,7 @@ export function BlogList() {
           <div className="mb-16">
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
               <div className="grid md:grid-cols-2 gap-0">
-                <div className="relative h-64 md:h-full">
+                <div className="relative w-full aspect-video">
                   <Image
                     src={displayedPosts[0].image}
                     alt={displayedPosts[0].title}
@@ -248,10 +103,10 @@ export function BlogList() {
                       </span>
                     </div>
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                  <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4">
                     {displayedPosts[0].title}
                   </h2>
-                  <p className="text-gray-600 mb-6 leading-relaxed">
+                  <p className=" text-sm text-gray-600 mb-6 leading-relaxed">
                     {displayedPosts[0].excerpt}
                   </p>
                   <div className="flex items-center justify-between">
@@ -289,7 +144,7 @@ export function BlogList() {
               key={post.id}
               className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group"
             >
-              <div className="relative h-48 overflow-hidden">
+              <div className="relative w-full aspect-video overflow-hidden">
                 <Image
                   src={post.image}
                   alt={post.title}
@@ -315,7 +170,7 @@ export function BlogList() {
                   </span>
                 </div>
                 
-                <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-chabaqa-primary transition-colors">
+                <h3 className="text-lg font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-chabaqa-primary transition-colors">
                   {post.title}
                 </h3>
                 
