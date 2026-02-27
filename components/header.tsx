@@ -84,8 +84,9 @@ export function Header() {
               <Link href="/#pricing" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Pricing</Link>
               <Link href="/#about" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">About</Link>
               <Link href="/blogs" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Blog</Link>
+              <Link href="/#features" className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-pink-600 dark:hover:text-pink-400 transition-colors">Features</Link>
               
-              <Popover open={isFeaturesOpen} onOpenChange={setIsFeaturesOpen}>
+              {/* <Popover open={isFeaturesOpen} onOpenChange={setIsFeaturesOpen}>
                 <PopoverTrigger asChild>
                   <div
                     onMouseEnter={handleFeaturesMouseEnter}
@@ -119,7 +120,7 @@ export function Header() {
                     ))}
                   </div>
                 </PopoverContent>
-              </Popover>
+              </Popover> */}
             </div>
 
             {/* Right: Desktop actions (auth-aware) */}

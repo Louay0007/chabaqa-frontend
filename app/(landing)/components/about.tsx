@@ -6,6 +6,7 @@ import { siteData } from "@/lib/data"
 import { cn } from "@/lib/utils"
 import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
+import Link from "next/link"
 
 export function About() {
   const [isVideoExpanded, setIsVideoExpanded] = useState(false)
@@ -148,7 +149,9 @@ export function About() {
                 size="lg"
                 className="bg-gradient-to-r from-[#8e78fb] to-[#f65887] hover:from-[#7c6bfa] hover:to-[#f54d7a] text-white px-6 sm:px-8 py-2.5 sm:py-3 text-base"
               >
-                Get Started Today
+                <Link href="/dashboard/create-community">
+                  Get Started Today
+                </Link>
               </Button>
               <Button
                 variant="outline"

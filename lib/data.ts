@@ -11,21 +11,8 @@ export const siteData = {
         { name: "Explore", href: "/explore" },
         { name: "Pricing", href: "/#pricing" },
         { name: "About", href: "/#about" },
+        { name: "Features", href: "/#features" },
 
-      ],
-    },
-    {
-      title: "Features",
-      items: [
-        { name: "Community", href: "/#community" },
-        { name: "Courses", href: "/#courses" },
-        { name: "Challenges", href: "/#challenges" },
-        { name: "Products", href: "/#products" },
-        { name: "1:1 Coaching", href: "/#coaching" },
-        { name: "Direct Messages", href: "/#dms" },
-        { name: "Analytics", href: "/#analytics" },
-        { name: "Branding", href: "/#branding" },
-        { name: "Events", href: "/#events" },
       ],
     },
 
