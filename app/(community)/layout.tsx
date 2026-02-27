@@ -4,6 +4,7 @@ import { AuthProvider } from "@/app/providers/auth-provider"
 import { CommunityProvider } from "@/app/providers/community-context"
 import { SocketProvider } from "@/lib/socket-context"
 import { Toaster } from "@/components/ui/toaster"
+import { LiveSupportWidget } from "@/components/live-support/live-support-widget"
 
 export const metadata: Metadata = {
   title: "Chabaqa - Turn your passion into buisness",
@@ -21,6 +22,7 @@ export default function RootLayout({
       <SocketProvider>
         <CommunityProvider>
           {children}
+          <LiveSupportWidget />
           <Toaster />
         </CommunityProvider>
       </SocketProvider>

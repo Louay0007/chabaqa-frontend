@@ -9,6 +9,7 @@ import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 import { eventsApi } from "@/lib/api/events.api"
+import { computeEventStartAt } from "@/lib/utils/event-time"
 
 export default function EventsPage() {
   const { toast } = useToast()
@@ -141,9 +142,28 @@ export default function EventsPage() {
   load()
   }, [selectedCommunityId, selectedCommunity, communityLoading, toast])
 
-  const now = new Date()
-  const upcomingEvents = useMemo(() => events.filter(e => new Date(e.startDate) > now), [events])
-  const pastEvents = useMemo(() => events.filter(e => new Date(e.startDate) <= now), [events])
+  const upcomingEvents = useMemo(
+    () => {
+      const now = Date.now()
+      return events.filter((event) => {
+        const startAt = computeEventStartAt(event.startDate, event.startTime, event.timezone)
+        if (!startAt) return true
+        return startAt.getTime() >= now
+      })
+    },
+    [events],
+  )
+  const pastEvents = useMemo(
+    () => {
+      const now = Date.now()
+      return events.filter((event) => {
+        const startAt = computeEventStartAt(event.startDate, event.startTime, event.timezone)
+        if (!startAt) return false
+        return startAt.getTime() < now
+      })
+    },
+    [events],
+  )
 
   const totalEvents = events.length
   const totalUpcoming = upcomingEvents.length

@@ -3,7 +3,11 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Codesandbox, Search, Filter, RefreshCw } from "lucide-react"
 import ProductCard from "./product-card"
-import { ProductWithDetails, ProductPurchase } from "@/lib/api/products-community.api"
+import {
+  ProductWithDetails,
+  ProductPurchase,
+  isProductOwnedByUser,
+} from "@/lib/api/products-community.api"
 
 interface ProductListProps {
   creatorSlug: string
@@ -118,7 +122,7 @@ export default function ProductList({
             <ProductCard
               creatorSlug={creatorSlug}
               product={product}
-              isPurchased={(userPurchases || []).some((p) => p.productId === product.id)}
+              isPurchased={isProductOwnedByUser(product, userPurchases || [])}
               isSelected={selectedProduct === product.id}
               onSelect={() => setSelectedProduct(product.id)}
               slug={slug}

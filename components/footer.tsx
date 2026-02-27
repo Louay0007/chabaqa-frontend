@@ -11,6 +11,10 @@ const iconMap = {
 }
 
 export function Footer() {
+  const legalLinks = siteData.footer.links.company.filter((link) =>
+    ["/terms-of-service", "/privacy-policy"].includes(link.href)
+  )
+
   return (
     <footer className="bg-gradient-to-t from-pink-100 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950 text-gray-900 dark:text-gray-100">
       <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
@@ -109,6 +113,19 @@ export function Footer() {
           <p className="text-sm text-gray-500 dark:text-gray-400">
             © {new Date().getFullYear()} {siteData.brand.name}. All rights reserved.
           </p>
+          {legalLinks.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+              {legalLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-sm text-gray-500 underline-offset-4 hover:text-gray-800 hover:underline dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </footer>

@@ -14,9 +14,18 @@ import EventSettingsTab from "./EventSettingsTab"
 interface EventTabsProps {
   event: Event
   onUpdateEvent: (updates: Partial<Event>) => void
+  onSetActive: (isActive: boolean) => Promise<void>
+  onTogglePublished: () => Promise<boolean>
+  isUpdatingStatus?: boolean
 }
 
-export default function EventTabs({ event, onUpdateEvent }: EventTabsProps) {
+export default function EventTabs({
+  event,
+  onUpdateEvent,
+  onSetActive,
+  onTogglePublished,
+  isUpdatingStatus = false,
+}: EventTabsProps) {
   const [activeTab, setActiveTab] = useState("details")
 
   return (
@@ -56,7 +65,12 @@ export default function EventTabs({ event, onUpdateEvent }: EventTabsProps) {
       </TabsContent>
 
       <TabsContent value="settings" className="space-y-6">
-        <EventSettingsTab event={event} onUpdateEvent={onUpdateEvent} />
+        <EventSettingsTab
+          event={event}
+          onSetActive={onSetActive}
+          onTogglePublished={onTogglePublished}
+          isUpdatingStatus={isUpdatingStatus}
+        />
       </TabsContent>
     </Tabs>
   )

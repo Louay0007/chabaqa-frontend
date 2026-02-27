@@ -33,7 +33,7 @@ export function PrivacyPolicyModal({ open, onOpenChange }: PrivacyPolicyModalPro
           <div className="space-y-4 text-sm">
             <div>
               <p className="font-semibold">App Name: Chabaqa</p>
-              <p className="font-semibold">Support Email: support@chabaqa.com</p>
+              <p className="font-semibold">Support Email: contactchabaqa@gmail.com</p>
             </div>
 
             <p>
@@ -175,7 +175,7 @@ export function PrivacyPolicyModal({ open, onOpenChange }: PrivacyPolicyModalPro
                 <div>
                   <h4 className="font-semibold">B. Delete your account</h4>
                   <p>You can delete your account inside the app.</p>
-                  <p className="mt-1">You can also request deletion by contacting us at support@chabaqa.com.</p>
+                  <p className="mt-1">You can also request deletion by contacting us at contactchabaqa@gmail.com.</p>
                 </div>
 
                 <div>
@@ -193,7 +193,7 @@ export function PrivacyPolicyModal({ open, onOpenChange }: PrivacyPolicyModalPro
               <p>
                 Chabaqa is not intended for children under 13. We do not knowingly collect personal 
                 information from children under 13. If you believe a child has provided personal data, 
-                contact us at support@chabaqa.com and we will take appropriate steps to delete it.
+                contact us at contactchabaqa@gmail.com and we will take appropriate steps to delete it.
               </p>
             </div>
 
@@ -217,7 +217,7 @@ export function PrivacyPolicyModal({ open, onOpenChange }: PrivacyPolicyModalPro
             <div>
               <h3 className="font-bold text-base mb-2">13) Contact Us</h3>
               <p>If you have questions or requests regarding this Privacy Policy, contact us:</p>
-              <p className="mt-1 font-semibold">Email: support@chabaqa.com</p>
+              <p className="mt-1 font-semibold">Email: contactchabaqa@gmail.com</p>
             </div>
           </div>
         </ScrollArea>

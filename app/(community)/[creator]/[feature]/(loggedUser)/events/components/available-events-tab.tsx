@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EventWithTickets } from "@/lib/api/events-community.api";
 import EventCard from "@/app/(community)/[creator]/[feature]/(loggedUser)/events/components/event-card";
 import { TabsContent } from "@/components/ui/tabs";
@@ -8,12 +8,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { eventsApi } from "@/lib/api/events.api";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { computeEventStartAt } from "@/lib/utils/event-time";
 
 interface AvailableEventsTabProps {
   availableEvents: EventWithTickets[];
+  highlightedEventId?: string;
+  targetEventNotice?: string | null;
 }
 
-export default function AvailableEventsTab({ availableEvents }: AvailableEventsTabProps) {
+export default function AvailableEventsTab({
+  availableEvents,
+  highlightedEventId,
+  targetEventNotice,
+}: AvailableEventsTabProps) {
   const { toast } = useToast();
   const [selectedEvent, setSelectedEvent] = useState<EventWithTickets | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<string>("");
@@ -23,23 +31,33 @@ export default function AvailableEventsTab({ availableEvents }: AvailableEventsT
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Filter only published and upcoming events, but keep events with invalid/missing dates visible.
-  const now = new Date();
-  const upcomingEvents = availableEvents?.filter((event) => {
-    if (!event?.isActive || event?.isPublished === false) {
-      return false;
-    }
+  const upcomingEvents = useMemo(
+    () => {
+      const now = Date.now();
+      return availableEvents?.filter((event) => {
+        if (!event?.isActive || event?.isPublished === false) {
+          return false;
+        }
 
-    if (!event.startDate) {
-      return true;
-    }
+        const startAt = computeEventStartAt(event.startDate, event.startTime, event.timezone);
+        if (!startAt) {
+          return true;
+        }
 
-    const startDate = new Date(event.startDate);
-    if (Number.isNaN(startDate.getTime())) {
-      return true;
-    }
+        return startAt.getTime() >= now;
+      }) || []
+    },
+    [availableEvents],
+  );
 
-    return startDate >= now;
-  }) || [];
+  useEffect(() => {
+    if (!highlightedEventId) return;
+
+    const element = document.getElementById(`event-card-${highlightedEventId}`);
+    if (!element) return;
+
+    element.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlightedEventId, upcomingEvents]);
 
   const handleOpenRegistration = (event: EventWithTickets) => {
     setSelectedEvent(event);
@@ -123,11 +141,17 @@ export default function AvailableEventsTab({ availableEvents }: AvailableEventsT
 
   return (
     <TabsContent value="available" className="space-y-6">
+      {targetEventNotice && (
+        <Alert>
+          <AlertDescription>{targetEventNotice}</AlertDescription>
+        </Alert>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {upcomingEvents.map((event) => (
           <EventCard
             key={event.id}
             event={event}
+            isHighlighted={highlightedEventId === String(event.id)}
             selectedEventId={selectedEvent?.id}
             selectedTicket={selectedTicket}
             setSelectedTicket={setSelectedTicket}

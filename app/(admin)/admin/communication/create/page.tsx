@@ -122,14 +122,32 @@ export default function CreateCampaignPage() {
         }
       }
 
+      const audienceTarget =
+        data.targetAudience === 'all'
+          ? 'all_users'
+          : data.targetAudience === 'custom'
+          ? 'specific_users'
+          : 'user_role'
+      const targetRoles =
+        data.targetAudience === 'creators'
+          ? ['creator']
+          : data.targetAudience === 'members'
+          ? ['user']
+          : undefined
+
       const campaignData: CreateEmailCampaignDto = {
-        name: data.name,
+        title: data.name,
         subject: data.subject,
         content: data.content,
-        targetAudience: data.targetAudience,
-        customAudienceIds,
+        type: 'custom',
+        audienceTarget,
+        specificUserIds: customAudienceIds,
+        targetRoles,
         scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined,
-        templateId: data.templateId
+        templateId: data.templateId,
+        isHtml: true,
+        trackOpens: true,
+        trackClicks: true,
       }
 
       const response = await adminApi.communication.createEmailCampaign(campaignData)

@@ -1,4 +1,5 @@
 import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } from './client';
+import type { ApiGetOptions } from './client';
 import type { Event, EventTicket } from './types';
 
 export interface CreateEventSessionData {
@@ -15,7 +16,7 @@ export interface CreateEventTicketData {
   type: string;
   name: string;
   price: number;
-  quantity: number;
+  quantity?: number;
   description?: string;
 }
 
@@ -65,7 +66,7 @@ export interface UpdateEventData extends Partial<CreateEventData> {
 export interface CreateTicketData {
   name: string;
   price: number;
-  quantity: number;
+  quantity?: number;
   description?: string;
 }
 
@@ -81,8 +82,11 @@ export interface EventListParams extends PaginationParams {
 // Events API
 export const eventsApi = {
   // Get all events
-  getAll: async (params?: EventListParams): Promise<PaginatedResponse<Event>> => {
-    return apiClient.get<PaginatedResponse<Event>>('/events', params);
+  getAll: async (
+    params?: EventListParams,
+    options?: ApiGetOptions,
+  ): Promise<PaginatedResponse<Event>> => {
+    return apiClient.get<PaginatedResponse<Event>>('/events', params, options);
   },
 
   // Create event

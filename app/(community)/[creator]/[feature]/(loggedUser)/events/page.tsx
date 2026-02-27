@@ -3,11 +3,14 @@ import EventsPageContent from "@/app/(community)/[creator]/[feature]/(loggedUser
 import { eventsCommunityApi } from "@/lib/api/events-community.api"
 
 export default async function EventsPage({ 
-  params 
+  params,
+  searchParams,
 }: { 
-  params: Promise<{ feature: string }> 
+  params: Promise<{ feature: string }>
+  searchParams: Promise<{ eventId?: string }>
 }) {
   const { feature } = await params
+  const { eventId } = await searchParams
   
   try {
     const data = await eventsCommunityApi.getEventsPageData(feature)
@@ -21,6 +24,7 @@ export default async function EventsPage({
         availableEvents={data.events}
         myTickets={data.userRegistrations}
         communitySlug={feature}
+        initialEventId={typeof eventId === "string" ? eventId : undefined}
     />
     )
   } catch (error) {

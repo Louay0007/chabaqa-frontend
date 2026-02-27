@@ -1,7 +1,11 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Codesandbox, FileText, Coins, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { ProductWithDetails, ProductPurchase } from "@/lib/api/products-community.api"
+import {
+  ProductWithDetails,
+  ProductPurchase,
+  isProductOwnedByUser,
+} from "@/lib/api/products-community.api"
 import { getFileTypeIcon } from "@/lib/utilsmedia"
 import Link from "next/link"
 
@@ -37,7 +41,7 @@ export default function ProductDetailsSidebar({
   const product = allProducts.find((p) => p.id === selectedProduct)
   if (!product) return null
 
-  const isPurchased = userPurchases.some((p) => p.productId === selectedProduct)
+  const isPurchased = isProductOwnedByUser(product, userPurchases || [])
 
   return (
     <div className="space-y-6 sticky top-6">
@@ -131,7 +135,7 @@ export default function ProductDetailsSidebar({
               )}
               <Button className="w-full" size="lg" asChild>
                 <Link href={`/${creatorSlug}/${slug}/products/${product.id}`}>
-                  {product.price === 0 ? 'Get Free' : 'Buy / Submit payment proof'}
+                  {product.price === 0 ? 'Get Free' : 'Buy'}
                 </Link>
               </Button>
               {product.price > 0 && (

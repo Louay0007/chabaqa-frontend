@@ -6,6 +6,7 @@ import { CheckCircle, ListTodo, Lock } from "lucide-react"
 
 interface TimelineTabProps {
   challengeTasks: any[]
+  isUpcoming?: boolean
   setSelectedTaskDay: (day: number | null) => void
   sequentialProgressionEnabled?: boolean
   unlockMessage?: string
@@ -14,6 +15,7 @@ interface TimelineTabProps {
 
 export default function TimelineTab({
   challengeTasks,
+  isUpcoming = false,
   setSelectedTaskDay,
   sequentialProgressionEnabled = false,
   unlockMessage,
@@ -41,13 +43,17 @@ export default function TimelineTab({
     <Card className="border-0 shadow-sm">
       <CardHeader>
         <CardTitle>Challenge Timeline</CardTitle>
-        <CardDescription>Track your progress through all {challengeTasks.length} tasks</CardDescription>
+        <CardDescription>
+          {isUpcoming
+            ? `Challenge preview: ${challengeTasks.length} upcoming tasks`
+            : `Track your progress through all ${challengeTasks.length} tasks`}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {challengeTasks.map((task) => (
             (() => {
-              const isLocked = sequentialProgressionEnabled && task.isUnlocked === false
+              const isLocked = isUpcoming || (sequentialProgressionEnabled && task.isUnlocked === false)
               const hasSubmission = Boolean(submissionByTaskId[String(task.id)])
               const isPendingSubmission = hasSubmission && !task.isCompleted
               return (
@@ -65,7 +71,7 @@ export default function TimelineTab({
                     : "border-gray-200 bg-gray-50 hover:bg-gray-100 cursor-pointer"
               }`}
               onClick={() => {
-                if (!isLocked) setSelectedTaskDay(task.day)
+                if (!isLocked && !isUpcoming) setSelectedTaskDay(task.day)
               }}
             >
               <div
@@ -92,31 +98,35 @@ export default function TimelineTab({
                     {task.isCompleted && <Badge className="bg-green-500">Completed</Badge>}
                     {isLocked && <Badge className="bg-amber-500">Locked</Badge>}
                     {!task.isCompleted && !isLocked && task.isActive && <Badge className="bg-challenges-500">Active</Badge>}
-                    {isPendingSubmission && <Badge className="bg-blue-500">Submitted (Pending Review)</Badge>}
-                    <span className="text-sm text-muted-foreground">{task.points || 0} pts</span>
+                    {!isUpcoming && isPendingSubmission && <Badge className="bg-blue-500">Submitted (Pending Review)</Badge>}
+                    {!isUpcoming && <span className="text-sm text-muted-foreground">{task.points || 0} pts</span>}
                   </div>
                 </div>
-                <p className="text-muted-foreground text-sm mt-1 line-clamp-2">{task.description}</p>
+                {!isUpcoming && <p className="text-muted-foreground text-sm mt-1 line-clamp-2">{task.description}</p>}
                 {isLocked && (
                   <p className="text-xs text-amber-700 mt-2">
-                    {task.lockReason || unlockMessage || "Complete the previous task to unlock this one."}
+                    {isUpcoming
+                      ? "Unlocks when the challenge starts."
+                      : task.lockReason || unlockMessage || "Complete the previous task to unlock this one."}
                   </p>
                 )}
-                {task.deliverable && (
+                {!isUpcoming && task.deliverable && (
                   <p className="text-sm font-medium mt-2">📋 {task.deliverable}</p>
                 )}
-                <div className="flex items-center space-x-2 mt-2">
-                  {task.resources && task.resources.length > 0 && (
-                    <Badge variant="outline" className="text-xs">
-                      {task.resources.length} resources
-                    </Badge>
-                  )}
-                  {task.notes && (
-                    <Badge variant="outline" className="text-xs">
-                      Has notes
-                    </Badge>
-                  )}
-                </div>
+                {!isUpcoming && (
+                  <div className="flex items-center space-x-2 mt-2">
+                    {task.resources && task.resources.length > 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        {task.resources.length} resources
+                      </Badge>
+                    )}
+                    {task.notes && (
+                      <Badge variant="outline" className="text-xs">
+                        Has notes
+                      </Badge>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
               )

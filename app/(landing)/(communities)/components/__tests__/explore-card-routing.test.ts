@@ -92,23 +92,39 @@ describe("resolveExploreCardRouting", () => {
     expect(challenge.href).toBe("/creator-alpha/alpha/challenges/challenge-1")
     expect(challenge.ctaLabel).toBe("Join")
     expect(product.href).toBe("/creator-alpha/alpha/products/product-1")
-    expect(product.ctaLabel).toBe("Buy")
+    expect(product.ctaLabel).toBe("Download")
   })
 
-  test("routes community members to content even when hasContentAccess is false", () => {
+  test("routes member with locked product access to products listing", () => {
     const item = makeExploreItem({
-      type: "course",
-      id: "course-locked",
+      type: "product",
+      id: "product-locked",
       creatorSlug: "creator-alpha",
       communitySlug: "alpha",
       isMember: true,
       hasContentAccess: false,
     })
 
-    const result = resolveExploreCardRouting(item, "Start")
+    const result = resolveExploreCardRouting(item, "Buy")
 
-    expect(result.href).toBe("/creator-alpha/alpha/courses/course-locked")
-    expect(result.ctaLabel).toBe("Start")
+    expect(result.href).toBe("/creator-alpha/alpha/products")
+    expect(result.ctaLabel).toBe("Buy")
+  })
+
+  test("routes non-member product cards to community overview with Buy label", () => {
+    const item = makeExploreItem({
+      type: "product",
+      id: "product-locked",
+      creatorSlug: "creator-alpha",
+      communitySlug: "alpha",
+      isMember: false,
+      hasContentAccess: false,
+    })
+
+    const result = resolveExploreCardRouting(item, "Buy")
+
+    expect(result.href).toBe("/community/alpha")
+    expect(result.ctaLabel).toBe("Buy")
   })
 
   test("routes non-member content cards to community overview", () => {
@@ -155,6 +171,23 @@ describe("resolveExploreCardRouting", () => {
     expect(session.ctaLabel).toBe("Book")
     expect(event.href).toBe("/creator-alpha/alpha/events?eventId=event-1")
     expect(event.ctaLabel).toBe("Register")
+  })
+
+  test("prefers custom event id over mongoId for event tab routes", () => {
+    const result = resolveExploreCardRouting(
+      makeExploreItem({
+        type: "event",
+        id: "custom-event-id",
+        mongoId: "mongo-event-id",
+        creatorSlug: "creator-alpha",
+        communitySlug: "alpha",
+        isMember: true,
+        hasContentAccess: true,
+      }),
+      "Register",
+    )
+
+    expect(result.href).toBe("/creator-alpha/alpha/events?eventId=custom-event-id")
   })
 
   test("falls back to /explore when critical routing data is missing", () => {

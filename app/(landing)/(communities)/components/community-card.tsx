@@ -1,3 +1,4 @@
+import React from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Users, Star, CheckCircle, Heart, Eye, Tag, TrendingUp, Award } from "lucide-react"
@@ -16,6 +17,15 @@ interface CommunityCardProps {
 }
 
 export function CommunityCard({ community, viewMode = "grid", accessAware = false }: CommunityCardProps) {
+  const formatProductRating = () => {
+    if (community.type !== "product") {
+      return community.rating.toFixed(1)
+    }
+    const count = Number(community.ratingCount || 0)
+    if (count <= 0) return "New"
+    return `${community.rating.toFixed(1)} (${count})`
+  }
+
   const formatMembers = (count: number) => {
     if (count >= 1000) {
       return `${(count / 1000).toFixed(1)}k`
@@ -213,7 +223,7 @@ export function CommunityCard({ community, viewMode = "grid", accessAware = fals
                 </div>
                 <div className="flex items-center text-[11px] bg-chabaqa-primary/10 px-2 py-0.5 rounded-full font-medium text-chabaqa-primary">
                   <Award className="w-3 h-3 mr-1 text-yellow-500" />
-                  {community.rating.toFixed(1)}
+                  {formatProductRating()}
                 </div>
                 {/* Type badge with custom styling */}
                 <Badge
@@ -320,7 +330,7 @@ export function CommunityCard({ community, viewMode = "grid", accessAware = fals
           </div>
           <div className="flex items-center text-[11px] bg-chabaqa-primary/10 px-2 py-0.5 rounded-full font-medium text-chabaqa-primary">
             <Award className="w-3 h-3 mr-1 text-yellow-500" />
-            {community.rating.toFixed(1)}
+            {formatProductRating()}
           </div>
           {/* Type badge with custom styling */}
           <Badge

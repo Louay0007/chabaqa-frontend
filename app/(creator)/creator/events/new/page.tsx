@@ -6,11 +6,11 @@ import { DateLocationStep } from "./components/date-location-step"
 import { SpeakersTicketsStep } from "./components/speakers-tickets-step"
 import { ReviewPublishStep } from "./components/review-publish-step"
 import { CreateEventNavigation } from "./components/create-event-navigation"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { eventsApi, type CreateEventData } from "@/lib/api/events.api"
+import { subscriptionApi } from "@/lib/api/subscription.api"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 import { formatErrorForToast } from "@/lib/utils/error-messages"
 
@@ -284,17 +284,23 @@ export default function CreateEventPage() {
         
         if (!ticket.name || ticket.name.trim().length === 0) {
           ticketErr.name = 'Ticket name is required'
+        } else if (ticket.name.trim().length > 100) {
+          ticketErr.name = 'Ticket name must be 100 characters or less'
         }
         
         const price = Number(ticket.price)
         if (isNaN(price) || price < 0) {
           ticketErr.price = 'Price must be a non-negative number'
         }
+
+        if (ticket.description && ticket.description.trim().length > 500) {
+          ticketErr.description = 'Description must be 500 characters or less'
+        }
         
         if (ticket.quantity && ticket.quantity.trim().length > 0) {
           const quantity = Number(ticket.quantity)
           if (isNaN(quantity) || quantity < 0 || !Number.isInteger(quantity)) {
-            ticketErr.quantity = 'Quantity must be a positive integer'
+            ticketErr.quantity = 'Quantity must be a non-negative integer'
           }
         }
         
@@ -407,6 +413,11 @@ export default function CreateEventPage() {
       }
       // Map UI form to CreateEventDto / CreateEventData
       const eventType = formData.type as 'In-person' | 'Online' | 'Hybrid'
+      const wantsPublishNow = Boolean(formData.isPublished)
+      const hasActiveSubscription = wantsPublishNow
+        ? await subscriptionApi.hasActiveSubscription()
+        : false
+      const shouldPublishNow = wantsPublishNow && hasActiveSubscription
       
       const payload: CreateEventData = {
         communityId,
@@ -430,28 +441,52 @@ export default function CreateEventPage() {
         notes: undefined,
         image: formData.image?.trim() || undefined,
         tags: formData.tags || [],
-        // Always create as draft; creators need an active subscription to publish
-        isActive: false,
-        isPublished: false,
+        isActive: shouldPublishNow,
+        isPublished: shouldPublishNow,
         speakers: (formData.speakers || []).map((s: any) => ({
           name: s.name,
           title: s.title,
           bio: s.bio,
           photo: s.photo || undefined,
         })),
-        tickets: (formData.tickets || []).map((t: any) => ({
-          type: t.type,
-          name: t.name,
-          price: Number(t.price || 0),
-          description: t.description,
-          quantity: t.quantity ? Number(t.quantity) : 0,
-        })),
+        tickets: (formData.tickets || []).map((t: any) => {
+          const normalizedName = String(t.name || "").trim()
+          const normalizedDescription = String(t.description || "").trim()
+          const rawQuantity = typeof t.quantity === "string" ? t.quantity.trim() : t.quantity
+          const parsedQuantity =
+            rawQuantity === "" || rawQuantity === undefined || rawQuantity === null
+              ? undefined
+              : Number(rawQuantity)
+
+          return {
+            type: t.type,
+            name: normalizedName,
+            price: Number(t.price || 0),
+            description: normalizedDescription || `${normalizedName || "Event"} ticket`,
+            quantity: Number.isFinite(parsedQuantity) ? parsedQuantity : undefined,
+          }
+        }),
         sessions: [],
       }
 
       const res = await eventsApi.create(payload)
       const created = (res as any)?.data || res
-      toast({ title: 'Event created as draft', description: `${payload.title} - Publish it from the event page once you have an active subscription.` })
+      if (shouldPublishNow) {
+        toast({
+          title: 'Event created and published',
+          description: `${payload.title} is now live for your community.`,
+        })
+      } else if (wantsPublishNow && !hasActiveSubscription) {
+        toast({
+          title: 'Event created as draft',
+          description: `${payload.title} was saved as draft. Active subscription required to publish.`,
+        })
+      } else {
+        toast({
+          title: 'Event created as draft',
+          description: `${payload.title} - publish it from the event page when ready.`,
+        })
+      }
       const id = created?.id || created?._id || created?.event?.id || created?.event?._id
       if (id) router.push(`/creator/events`)
       else router.push('/creator/events')

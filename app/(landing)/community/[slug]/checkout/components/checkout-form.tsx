@@ -589,7 +589,15 @@ export function CheckoutForm({
             </div>
 
             <p className="mt-4 text-xs text-gray-500 text-center">
-              By completing this purchase, you agree to the community rules and platform terms of service.
+              By completing this purchase, you agree to the community rules,{" "}
+              <Link href="/terms-of-service" className="underline hover:text-gray-700">
+                Terms of Service
+              </Link>
+              {" "}and{" "}
+              <Link href="/privacy-policy" className="underline hover:text-gray-700">
+                Privacy Policy
+              </Link>
+              .
             </p>
           </div>
         </div>

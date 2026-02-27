@@ -1,4 +1,5 @@
 import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } from './client';
+import type { ApiGetOptions } from './client';
 import type { Challenge, ChallengeParticipant, ChallengeUnlockedTasksResponse } from './types';
 import { getDeviceInfo } from '@/lib/utils/device';
 
@@ -154,8 +155,11 @@ export const challengesApi = {
   // -------------------------------------------------------------------------
 
   // Get all challenges
-  getAll: async (params?: ChallengeListParams): Promise<PaginatedResponse<Challenge>> => {
-    return apiClient.get<PaginatedResponse<Challenge>>('/challenges', params);
+  getAll: async (
+    params?: ChallengeListParams,
+    options?: ApiGetOptions,
+  ): Promise<PaginatedResponse<Challenge>> => {
+    return apiClient.get<PaginatedResponse<Challenge>>('/challenges', params, options);
   },
 
   // Create challenge

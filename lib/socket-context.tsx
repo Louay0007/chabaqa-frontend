@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { io, Socket } from 'socket.io-client'
 import { useAuthContext } from '@/app/providers/auth-provider'
+import { resolveSocketBaseUrl } from '@/lib/socket-url'
 
 interface SocketContextType {
   socket: Socket | null
@@ -38,7 +39,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Initialize socket
-    const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3000'
+    const socketUrl = resolveSocketBaseUrl(process.env.NEXT_PUBLIC_API_URL)
     
     // Connect to /dm namespace
     const newSocket = io(`${socketUrl}/dm`, {

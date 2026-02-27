@@ -76,7 +76,7 @@ export function FAQ() {
 
   return (
     <>
-      <div id="faq" className="py-16 md:py-24 bg-gradient-to-b from-white to-gray-50">
+      <div id="faq" className="bg-white py-16 md:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
           <div className="text-center mb-12 md:mb-16">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">

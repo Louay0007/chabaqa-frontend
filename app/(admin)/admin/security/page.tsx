@@ -64,13 +64,18 @@ export default function AuditLogsPage() {
       type: 'select',
       options: [
         { label: 'All Actions', value: 'all' },
-        { label: 'User Management', value: 'USER_MANAGEMENT' },
-        { label: 'Community Management', value: 'COMMUNITY_MANAGEMENT' },
-        { label: 'Content Moderation', value: 'CONTENT_MODERATION' },
-        { label: 'Financial Management', value: 'FINANCIAL_MANAGEMENT' },
-        { label: 'System Configuration', value: 'SYSTEM_CONFIGURATION' },
-        { label: 'Audit Log View', value: 'AUDIT_LOG_VIEW' },
-        { label: 'Audit Log Export', value: 'AUDIT_LOG_EXPORT' },
+        { label: 'User Create', value: 'user_create' },
+        { label: 'User Update', value: 'user_update' },
+        { label: 'User Suspend', value: 'user_suspend' },
+        { label: 'User Activate', value: 'user_activate' },
+        { label: 'User Delete', value: 'user_delete' },
+        { label: 'Community Approve', value: 'community_approve' },
+        { label: 'Community Reject', value: 'community_reject' },
+        { label: 'Content Moderate', value: 'content_moderate' },
+        { label: 'Payout Process', value: 'payout_process' },
+        { label: 'System Config', value: 'system_configuration' },
+        { label: 'Audit View', value: 'audit_log_view' },
+        { label: 'Audit Export', value: 'audit_log_export' },
       ],
       placeholder: 'Select action...'
     },
@@ -234,7 +239,7 @@ export default function AuditLogsPage() {
 
   // Handle filter change
   const handleFilterChange = (key: string, value: any) => {
-    setFilterValues(prev => ({ ...prev, [key]: value }))
+    setFilterValues(prev => ({ ...prev, [key]: value === 'all' ? '' : value }))
   }
 
   // Handle filter reset

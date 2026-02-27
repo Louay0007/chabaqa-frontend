@@ -29,6 +29,7 @@ export * from './achievements.api';
 export * from './community-page-content';
 export * from './feedback.api';
 export * from './dm.api';
+export * from './live-support.api';
 
 // Re-export to avoid ambiguity
 export type { PaginationParams } from './client';
@@ -53,6 +54,7 @@ import { emailCampaignsApi } from './email-campaigns.api';
 import { feedbackApi } from './feedback.api';
 import { aiApi } from './ai.api';
 import { dmApi } from './dm.api';
+import { liveSupportApi } from './live-support.api';
 
 export const api = {
   auth: authApi,
@@ -74,4 +76,5 @@ export const api = {
   feedback: feedbackApi,
   ai: aiApi,
   dm: dmApi,
+  liveSupport: liveSupportApi,
 };

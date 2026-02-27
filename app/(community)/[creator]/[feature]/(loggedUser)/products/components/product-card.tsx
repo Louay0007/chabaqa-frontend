@@ -1,13 +1,17 @@
+"use client"
+
+import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useToast } from "@/components/ui/use-toast"
 import { Star, Users, Download, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { ProductWithDetails, ProductPurchase } from "@/lib/api/products-community.api"
-import { getFileTypeIcon } from "@/lib/utilsmedia"
+import { ProductWithDetails } from "@/lib/api/products-community.api"
 import { resolveImageUrl } from "@/lib/resolve-image-url"
+import { useProductPurchaseFlow } from "@/lib/hooks/use-product-purchase-flow"
 
 interface ProductCardProps {
   creatorSlug: string
@@ -26,7 +30,18 @@ export default function ProductCard({
   onSelect,
   slug
 }: ProductCardProps) {
+  const { toast } = useToast()
+  const {
+    isStripeLoading,
+    initStripePayment,
+  } = useProductPurchaseFlow()
+
   const productDetails = product;
+  const isFreeProduct = Number(productDetails.price || 0) === 0
+  const globalDownloads = (productDetails.files || []).reduce(
+    (sum, file) => sum + Number(file?.downloadCount || 0),
+    0,
+  )
   const rawThumbnail =
     (Array.isArray(productDetails.images) && productDetails.images.length > 0 ? productDetails.images[0] : "") ||
     (productDetails as any).thumbnail ||
@@ -36,10 +51,26 @@ export default function ProductCard({
     rawThumbnail ||
     "/placeholder.svg?height=1080&width=1920&query=digital-product"
   const fileTypes = [...new Set((productDetails.files || []).map((f: any) => f.type))]
+  const openProductHref = `/${creatorSlug}/${slug}/products/${productDetails.id}${isPurchased ? "?tab=files" : ""}`
+  const ratingCount = Number(productDetails.ratingCount || 0)
+
+  const handleStripePayment = async () => {
+    try {
+      await initStripePayment(
+        String(productDetails.id || productDetails._id || ""),
+      )
+    } catch (error: any) {
+      toast({
+        title: "Payment initialization failed",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
 
   return (
     <Card
-      className={`border-0 shadow-sm hover:shadow-md transition-all cursor-pointer ${
+      className={`border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all cursor-pointer ${
         isSelected ? "ring-2 ring-primary-500" : ""
       }`}
       onClick={onSelect}
@@ -60,7 +91,7 @@ export default function ProductCard({
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Owned
               </Badge>
-            ) : (productDetails.price || 0) === 0 ? (
+            ) : isFreeProduct ? (
               <Badge className="bg-blue-500 text-white">Free</Badge>
             ) : (
               <Badge variant="secondary" className="bg-white/90">
@@ -78,7 +109,9 @@ export default function ProductCard({
             </div>
             <div className="flex items-center text-sm text-muted-foreground ml-4">
               <Star className="h-4 w-4 text-yellow-500 mr-1" />
-              <span>{productDetails.rating || "4.8"} ({productDetails.sales || 0})</span>
+              <span>
+                {Number(productDetails.rating || 0).toFixed(1)} ({ratingCount})
+              </span>
             </div>
           </div>
 
@@ -93,7 +126,7 @@ export default function ProductCard({
             ))}
             <div className="flex items-center ml-auto">
               <Users className="h-4 w-4 mr-1" />
-              {productDetails.sales || 0} downloads
+              {productDetails.sales || 0} sales • {globalDownloads} downloads
             </div>
           </div>
 
@@ -112,35 +145,23 @@ export default function ProductCard({
             </div>
 
             <div className="flex items-center space-x-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                asChild
-                className="text-primary-600 hover:text-primary-800"
-              >
-                <Link href={`/${creatorSlug}/${slug}/products/${productDetails.id}`}>
-                  View Details
-                </Link>
-              </Button>
-              
-              {isPurchased ? (
+              {(isPurchased || isFreeProduct) ? (
                 <Button size="sm" asChild>
-                  <Link href={`/${creatorSlug}/${slug}/products/${productDetails.id}/download`}>
+                  <Link href={openProductHref} onClick={(event) => event.stopPropagation()}>
                     <Download className="h-4 w-4 mr-1" />
-                    Download
-                  </Link>
-                </Button>
-              ) : (productDetails.price || 0) === 0 ? (
-                <Button size="sm" variant="outline" asChild>
-                  <Link href={`/${creatorSlug}/${slug}/products/${productDetails.id}`}>
-                    Get Free
+                    {isPurchased ? "Open Files" : "Open Product"}
                   </Link>
                 </Button>
               ) : (
-                <Button size="sm" asChild>
-                  <Link href={`/${creatorSlug}/${slug}/products/${productDetails.id}`}>
-                    Buy - {productDetails.price || 0} TND
-                  </Link>
+                <Button
+                  size="sm"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    void handleStripePayment()
+                  }}
+                  disabled={isStripeLoading}
+                >
+                  {isStripeLoading ? "Redirecting..." : `Buy - ${productDetails.price || 0} TND`}
                 </Button>
               )}
             </div>

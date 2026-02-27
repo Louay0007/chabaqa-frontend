@@ -62,6 +62,8 @@ export interface ProductWithDetails {
 
 export interface ProductPurchase {
   productId: string;
+  productMongoId?: string;
+  contentId?: string;
   purchasedAt: string;
   downloadCount: number;
   orderId?: string;
@@ -73,6 +75,38 @@ export interface ProductsPageData {
   products: ProductWithDetails[];
   userPurchases: ProductPurchase[];
   currentUser: any;
+}
+
+function normalizeId(value: any): string {
+  if (!value) return '';
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === '[object Object]') {
+      return '';
+    }
+    const objectIdMatch = trimmed.match(/[a-fA-F0-9]{24}/);
+    return objectIdMatch ? objectIdMatch[0] : trimmed;
+  }
+
+  if (typeof value === 'object') {
+    const nestedCandidates = [value._id, value.id, value.creatorId, value.userId];
+    for (const candidate of nestedCandidates) {
+      const normalized = normalizeId(candidate);
+      if (normalized) return normalized;
+    }
+
+    try {
+      const serialized = String(value).trim();
+      if (serialized && serialized !== '[object Object]') {
+        return normalizeId(serialized);
+      }
+    } catch {
+      return '';
+    }
+  }
+
+  return '';
 }
 
 function extractProductsList(productsResponse: any): any[] {
@@ -102,9 +136,16 @@ function collectCommunityLookupKeys(community: any, slug: string): string[] {
  * Transform backend product data to frontend format
  */
 function transformProduct(backendProduct: any): ProductWithDetails {
+  const normalizedCreatorId = normalizeId(
+    backendProduct?.creator?._id ||
+      backendProduct?.creator?.id ||
+      backendProduct?.creatorId ||
+      backendProduct?.creator,
+  );
+
   // Transform creator info - preserve _id for API calls
   const creator: ProductCreator = backendProduct.creator ? {
-    id: backendProduct.creator._id || backendProduct.creator.id || backendProduct.creatorId,
+    id: normalizedCreatorId,
     name: backendProduct.creator.name || 'Unknown Creator',
     email: backendProduct.creator.email,
     avatar: backendProduct.creator.avatar || backendProduct.creator.profile_picture || backendProduct.creator.photo_profil,
@@ -114,7 +155,7 @@ function transformProduct(backendProduct: any): ProductWithDetails {
     totalSales: backendProduct.creator.totalSales || 0,
     joinDate: backendProduct.creator.joinDate || backendProduct.creator.createdAt,
   } : {
-    id: backendProduct.creatorId || '',
+    id: normalizeId(backendProduct.creatorId),
     name: 'Unknown Creator',
     rating: 0,
     totalProducts: 0,
@@ -182,13 +223,52 @@ function transformProduct(backendProduct: any): ProductWithDetails {
  * Transform backend purchase data to frontend format
  */
 function transformPurchase(backendPurchase: any): ProductPurchase {
+  const normalizedProductId =
+    backendPurchase.productId ||
+    backendPurchase.id ||
+    backendPurchase.product?.id ||
+    backendPurchase.contentId ||
+    backendPurchase.product?._id ||
+    backendPurchase._id
+
+  const normalizedContentId =
+    backendPurchase.contentId ||
+    backendPurchase.product?._id ||
+    backendPurchase.productMongoId
+
   return {
-    productId: backendPurchase.productId || backendPurchase.contentId || backendPurchase.product?.id,
+    productId: String(normalizedProductId || ""),
+    productMongoId: normalizedContentId ? String(normalizedContentId) : undefined,
+    contentId: normalizedContentId ? String(normalizedContentId) : undefined,
     purchasedAt: backendPurchase.purchasedAt || backendPurchase.createdAt || new Date().toISOString(),
     downloadCount: backendPurchase.downloadCount || 0,
     orderId: backendPurchase.orderId || backendPurchase._id,
     amountPaid: backendPurchase.amountPaid || backendPurchase.amountDT,
   };
+}
+
+export function isProductOwnedByUser(
+  product: Pick<ProductWithDetails, "id" | "_id">,
+  purchases: ProductPurchase[] = [],
+): boolean {
+  const productCustomId = String(product?.id || "").trim()
+  const productMongoId = String(product?._id || "").trim()
+
+  if (!productCustomId && !productMongoId) return false
+
+  return purchases.some((purchase) => {
+    const candidateIds = [
+      purchase.productId,
+      purchase.productMongoId,
+      purchase.contentId,
+    ]
+      .map((value) => String(value || "").trim())
+      .filter(Boolean)
+
+    if (productCustomId && candidateIds.includes(productCustomId)) return true
+    if (productMongoId && candidateIds.includes(productMongoId)) return true
+    return false
+  })
 }
 
 /**

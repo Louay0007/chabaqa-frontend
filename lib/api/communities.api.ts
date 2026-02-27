@@ -1,4 +1,5 @@
 import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } from './client';
+import type { ApiGetOptions } from './client';
 import type {
   Community,
   CommunitySettings,
@@ -129,8 +130,15 @@ export interface CreateCommunityResponse extends ApiSuccessResponse<Community> {
 
 export const communitiesApi = {
   
-  getAll: async (params?: GetCommunitiesParams): Promise<PaginatedResponse<Community>> => {
-    const response = await apiClient.get<any>('/community-aff-crea-join/all-communities', params);
+  getAll: async (
+    params?: GetCommunitiesParams,
+    options?: ApiGetOptions,
+  ): Promise<PaginatedResponse<Community>> => {
+    const response = await apiClient.get<any>(
+      '/community-aff-crea-join/all-communities',
+      params,
+      options,
+    );
 
     if (Array.isArray(response?.data)) {
       return {
@@ -156,7 +164,10 @@ export const communitiesApi = {
 
   // Create community
   create: async (data: CreateCommunityData): Promise<CreateCommunityResponse> => {
-    return apiClient.post<CreateCommunityResponse>('/community-aff-crea-join/create', data);
+    const payload: any = { ...(data as any) };
+    delete payload.inviteCode;
+    delete payload.inviteLink;
+    return apiClient.post<CreateCommunityResponse>('/community-aff-crea-join/create', payload);
   },
 
   // Get community by ID

@@ -1,4 +1,5 @@
 import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } from './client';
+import type { ApiGetOptions } from './client';
 import type { Course, CourseSection, CourseChapter, CourseEnrollment } from './types';
 import { getDeviceInfo } from '@/lib/utils/device';
 
@@ -50,8 +51,11 @@ export interface CreateChapterData {
 // Courses API
 export const coursesApi = {
   // Get all courses
-  getAll: async (params?: PaginationParams): Promise<PaginatedResponse<Course>> => {
-    return apiClient.get<PaginatedResponse<Course>>('/cours', params);
+  getAll: async (
+    params?: PaginationParams,
+    options?: ApiGetOptions,
+  ): Promise<PaginatedResponse<Course>> => {
+    return apiClient.get<PaginatedResponse<Course>>('/cours', params, options);
   },
 
   // Create course

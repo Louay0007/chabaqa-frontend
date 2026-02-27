@@ -111,6 +111,7 @@ export type Explore = {
   category: string
   members: number
   rating: number
+  ratingCount?: number
   tags: string[]
   verified: boolean
   price: number

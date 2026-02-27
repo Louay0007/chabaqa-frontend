@@ -187,7 +187,7 @@ function transformEvent(backendEvent: any): EventWithTickets {
   const ticketMinPrice = tickets.length > 0 ? Math.min(...tickets.map((ticket) => toNumber(ticket.price))) : toNumber(source.price);
 
   return {
-    id: String(source._id || source.id || ''),
+    id: String(source.id || source._id || ''),
     title: source.title || 'Untitled event',
     slug: source.slug || '',
     description: source.description || '',
@@ -198,6 +198,7 @@ function transformEvent(backendEvent: any): EventWithTickets {
     endDate,
     startTime,
     endTime,
+    notes: toStringOrUndefined(source.notes),
     timezone: source.timezone || 'UTC',
     location: toStringOrUndefined(source.location),
     isVirtual: Boolean(onlineUrl) || isVirtualByType,
@@ -319,7 +320,10 @@ export const eventsCommunityApi = {
       // Fetch in parallel
       const [eventsResponse, userRegistrationsResponse, currentUser] = await Promise.allSettled([
         // Get events by community ID - backend endpoint: GET /events/community/:communityId
-        apiClient.get<ApiSuccessResponse<{ events: any[] }>>(`/events/community/${communityId}`, { page: 1, limit: 100 }).catch(() => null),
+        apiClient.get<ApiSuccessResponse<{ events: any[] }>>(
+          `/events/community/${communityId}`,
+          { page: 1, limit: 100, isActive: true, isPublished: true },
+        ).catch(() => null),
         // Get user registrations - backend endpoint: GET /events/my-registrations
         apiClient.get<ApiSuccessResponse<{ events: any[] }>>('/events/my-registrations').catch(() => null),
         getMe().catch(() => null),

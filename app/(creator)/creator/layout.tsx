@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 
 import { AuthProvider } from "@/app/providers/auth-provider"
 import { CommunityProvider } from "@/app/providers/community-context"
+import { LiveSupportWidget } from "@/components/live-support/live-support-widget"
 
 export default function CreatorLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -18,6 +19,7 @@ export default function CreatorLayout({ children }: { children: React.ReactNode 
         <CreatorClientLayout>
           {children}
         </CreatorClientLayout>
+        <LiveSupportWidget />
       </CommunityProvider>
     </AuthProvider>
   )

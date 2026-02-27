@@ -93,6 +93,17 @@ const toIsoString = (value?: Date | string) => {
   return date.toISOString()
 }
 
+const toDateOnlyString = (value?: Date | string) => {
+  if (!value) return undefined
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return undefined
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
 const toDate = (value?: string | Date, fallback?: Date) => {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value
   if (typeof value === "string") {
@@ -217,8 +228,8 @@ const buildUpdatePayload = (event: Event) => {
   return {
     title: normalized.title,
     description: normalized.description,
-    startDate: normalized.startDate,
-    endDate: normalized.endDate,
+    startDate: toDateOnlyString(event.startDate),
+    endDate: toDateOnlyString(event.endDate),
     startTime: normalized.startTime,
     endTime: normalized.endTime,
     timezone: normalized.timezone,
@@ -313,12 +324,13 @@ export default function ManageEventClient({ initialEvent, serverVersion }: Manag
   const [serverSnapshot, setServerSnapshot] = useState<Event>(() => mapApiEventToDraft(initialEvent))
   const [draftEvent, setDraftEvent] = useState<Event>(() => mapApiEventToDraft(initialEvent))
   const [isSaving, setIsSaving] = useState(false)
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
 
   useEffect(() => {
     const mapped = mapApiEventToDraft(initialEvent)
     setServerSnapshot(mapped)
     setDraftEvent(mapped)
-  }, [serverVersion])
+  }, [initialEvent, serverVersion])
 
   const hasChanges = useMemo(
     () => serializeNormalizedEvent(draftEvent) !== serializeNormalizedEvent(serverSnapshot),
@@ -378,10 +390,51 @@ export default function ManageEventClient({ initialEvent, serverVersion }: Manag
     }
   }, [draftEvent, router, toast])
 
+  const setActiveStatus = useCallback(
+    async (isActive: boolean) => {
+      setIsUpdatingStatus(true)
+      try {
+        await eventsApi.update(draftEvent.id, { isActive })
+        setServerSnapshot((prev) => ({ ...prev, isActive }))
+        setDraftEvent((prev) => ({ ...prev, isActive }))
+        router.refresh()
+      } catch (error: any) {
+        throw new Error(formatApiError(error))
+      } finally {
+        setIsUpdatingStatus(false)
+      }
+    },
+    [draftEvent.id, router],
+  )
+
+  const togglePublishedStatus = useCallback(async () => {
+    setIsUpdatingStatus(true)
+    try {
+      const response = await eventsApi.togglePublished(draftEvent.id)
+      const nextIsPublished = Boolean((response as any)?.data?.isPublished ?? (response as any)?.isPublished)
+
+      setServerSnapshot((prev) => ({ ...prev, isPublished: nextIsPublished } as Event))
+      setDraftEvent((prev) => ({ ...prev, isPublished: nextIsPublished } as Event))
+      router.refresh()
+
+      return nextIsPublished
+    } catch (error: any) {
+      throw new Error(formatApiError(error))
+    } finally {
+      setIsUpdatingStatus(false)
+    }
+  }, [draftEvent.id, router])
+
   return (
     <div className="space-y-8 p-5">
       <EventHeader event={draftEvent} onSave={handleSave} isSaving={isSaving} hasChanges={hasChanges} />
-      <EventTabs event={draftEvent} onUpdateEvent={updateEvent} />
+      <EventTabs
+        event={draftEvent}
+        onUpdateEvent={updateEvent}
+        onSetActive={setActiveStatus}
+        onTogglePublished={togglePublishedStatus}
+        isUpdatingStatus={isUpdatingStatus}
+      />
     </div>
   )
 }

@@ -236,7 +236,8 @@ export default function TransactionsListPage() {
   const handleFilterReset = () => {
     setFilters({
       page: 1,
-      limit: 20
+      limit: 20,
+      reference: undefined,
     })
     setSearchQuery('')
     setPagination(prev => ({ ...prev, page: 1 }))
@@ -247,10 +248,11 @@ export default function TransactionsListPage() {
   }
 
   const handleSearch = () => {
-    // Search functionality can be implemented by adding search to filters
-    if (searchQuery) {
-      toast.info('Search functionality coming soon')
-    }
+    setFilters((prev) => ({
+      ...prev,
+      reference: searchQuery.trim() || undefined,
+    }))
+    setPagination((prev) => ({ ...prev, page: 1 }))
   }
 
   const handlePageChange = (page: number) => {

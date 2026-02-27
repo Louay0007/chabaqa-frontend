@@ -7,11 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Loader2, AlertCircle, CheckCircle, Eye, EyeOff } from "lucide-react"
+import { Loader2, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { signupAction } from "../signup/actions"
 import { signUpSchema, validatePasswordStrength, getPasswordStrengthLabel, getPasswordStrengthColor } from "@/lib/validation/auth.validation"
-import { PrivacyPolicyModal } from "./privacy-policy-modal"
-import { TermsModal } from "./terms-modal"
 
 interface SignUpFormProps {
   onSuccess?: () => void
@@ -27,18 +25,11 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
   const [agreeToTerms, setAgreeToTerms] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoaded, setIsLoaded] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] as string[] })
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false)
-  const [showTermsModal, setShowTermsModal] = useState(false)
   const router = useRouter()
-
-  useEffect(() => {
-    setIsLoaded(true)
-  }, [])
 
   useEffect(() => {
     if (password) {
@@ -361,30 +352,29 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
             disabled={isLoading}
             className="w-4 h-4 rounded border-gray-300 text-[#86e4fd] focus:ring-[#86e4fd] mt-1"
           />
-          <Label htmlFor="agreeToTerms" className="text-sm text-gray-700 cursor-pointer">
-            I agree to the{" "}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault()
-                setShowTermsModal(true)
-              }}
-              className="text-[#86e4fd] hover:text-[#74d4f0] font-medium underline"
+          <div className="text-sm text-gray-700">
+            <Label htmlFor="agreeToTerms" className="cursor-pointer">
+              I agree to the{" "}
+            </Label>
+            <Link
+              href="/terms-of-service"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[#86e4fd] underline hover:text-[#74d4f0]"
             >
-              Terms and Conditions
-            </button>
+              Terms of Service
+            </Link>
             {" "}and{" "}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault()
-                setShowPrivacyModal(true)
-              }}
-              className="text-[#86e4fd] hover:text-[#74d4f0] font-medium underline"
+            <Link
+              href="/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[#86e4fd] underline hover:text-[#74d4f0]"
             >
               Privacy Policy
-            </button>
-          </Label>
+            </Link>
+            .
+          </div>
         </div>
         {fieldErrors.agreeToTerms && (
           <div className="flex items-center text-sm text-red-600">
@@ -428,10 +418,6 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
         </div>
       </div>
 
-      {/* Privacy Policy Modal */}
-      {/* Modals */}
-      <PrivacyPolicyModal open={showPrivacyModal} onOpenChange={setShowPrivacyModal} />
-      <TermsModal open={showTermsModal} onOpenChange={setShowTermsModal} />
     </div>
   )
 }

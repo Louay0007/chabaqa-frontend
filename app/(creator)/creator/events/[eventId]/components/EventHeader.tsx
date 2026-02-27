@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Eye, Save, Share, AlertCircle } from "lucide-react"
+import { ArrowLeft, Save, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { Event } from "@/lib/models"
 
@@ -39,18 +39,6 @@ export default function EventHeader({ event, onSave, isSaving, hasChanges }: Eve
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/events/${event.id}/landing`}>
-              <Share className="h-4 w-4 mr-2" />
-              Landing Page
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/events/${event.id}`}>
-              <Eye className="h-4 w-4 mr-2" />
-              Preview
-            </Link>
-          </Button>
           <Button 
             size="sm" 
             onClick={onSave} 
@@ -67,7 +55,7 @@ export default function EventHeader({ event, onSave, isSaving, hasChanges }: Eve
         <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
           <AlertCircle className="h-4 w-4 text-yellow-600" />
           <p className="text-sm text-yellow-800">
-            You have unsaved local changes. Click "Save Changes" to persist them.
+            You have unsaved local changes. Click Save Changes to persist them.
           </p>
         </div>
       )}

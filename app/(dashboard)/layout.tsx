@@ -1,4 +1,5 @@
 import { AuthProvider } from "@/app/providers/auth-provider"
+import { LiveSupportWidget } from "@/components/live-support/live-support-widget"
 
 export const metadata = {
   title: 'Next.js',
@@ -13,6 +14,7 @@ export default function RootLayout({
   return (
     <AuthProvider>
       {children}
+      <LiveSupportWidget />
     </AuthProvider>
   )
 }

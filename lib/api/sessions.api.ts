@@ -1,4 +1,5 @@
 import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } from './client';
+import type { ApiGetOptions } from './client';
 import type { Session, SessionBooking } from './types';
 
 export interface CreateSessionResourceData {
@@ -127,8 +128,11 @@ const normalizeCreatorBookingsResponse = (raw: any): CreatorBookingsResponse => 
 // Sessions API
 export const sessionsApi = {
   // Get all sessions
-  getAll: async (params?: SessionListParams): Promise<PaginatedResponse<Session>> => {
-    return apiClient.get<PaginatedResponse<Session>>('/sessions', params);
+  getAll: async (
+    params?: SessionListParams,
+    options?: ApiGetOptions,
+  ): Promise<PaginatedResponse<Session>> => {
+    return apiClient.get<PaginatedResponse<Session>>('/sessions', params, options);
   },
 
   // Create session

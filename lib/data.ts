@@ -905,6 +905,8 @@ export const siteData = {
       ],
       company: [
         { name: "About", href: "/#about" },
+        { name: "Terms of Service", href: "/terms-of-service" },
+        { name: "Privacy Policy", href: "/privacy-policy" },
       ],
       support: [],
     },

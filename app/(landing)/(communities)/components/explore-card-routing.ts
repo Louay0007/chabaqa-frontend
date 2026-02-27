@@ -41,7 +41,10 @@ function resolveAccessibleContentHref(item: Explore, itemType: ItemType): string
   const basePath = buildCommunityBasePath(item)
   if (!basePath) return communityOverviewHref(item.communitySlug)
 
-  const contentId = encodePathSegment(item.mongoId || item.id)
+  const preferredId = itemType === "event"
+    ? (item.id || item.mongoId)
+    : (item.mongoId || item.id)
+  const contentId = encodePathSegment(preferredId)
   if (!contentId) return communityOverviewHref(item.communitySlug)
 
   switch (itemType) {
@@ -87,6 +90,36 @@ export function resolveExploreCardRouting(
     return {
       href: communityOverviewHref(item.slug),
       ctaLabel: "Join",
+    }
+  }
+
+  if (itemType === "product") {
+    const basePath = buildCommunityBasePath(item)
+
+    if (item.hasContentAccess) {
+      return {
+        href: resolveAccessibleContentHref(item, itemType),
+        ctaLabel: "Download",
+      }
+    }
+
+    if (!item.isMember) {
+      return {
+        href: communityOverviewHref(item.communitySlug),
+        ctaLabel: "Buy",
+      }
+    }
+
+    if (!basePath) {
+      return {
+        href: communityOverviewHref(item.communitySlug),
+        ctaLabel: "Buy",
+      }
+    }
+
+    return {
+      href: `${basePath}/products`,
+      ctaLabel: "Buy",
     }
   }
 

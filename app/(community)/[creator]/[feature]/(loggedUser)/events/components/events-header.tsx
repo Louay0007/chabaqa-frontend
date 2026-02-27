@@ -1,5 +1,6 @@
 import { Sparkles } from "lucide-react";
 import { EventRegistration, EventWithTickets } from "@/lib/api/events-community.api";
+import { computeEventStartAt } from "@/lib/utils/event-time";
 
 interface EventsHeaderProps {
   availableEvents: EventWithTickets[];
@@ -15,8 +16,8 @@ export default function EventsHeader({ availableEvents, myTickets }: EventsHeade
       return false;
     }
 
-    const startDate = new Date(event.startDate);
-    if (Number.isNaN(startDate.getTime())) {
+    const startDate = computeEventStartAt(event.startDate, event.startTime, event.timezone);
+    if (!startDate) {
       return false;
     }
 

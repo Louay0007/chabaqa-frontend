@@ -377,6 +377,7 @@ export interface Event {
   endDate?: string;
   startTime?: string;
   endTime?: string;
+  notes?: string;
   location?: string;
   isVirtual?: boolean;
   maxAttendees?: number;
@@ -679,7 +680,7 @@ export interface ProgressionOverview {
 }
 
 // Messaging types
-export type ConversationType = 'COMMUNITY_DM' | 'HELP_DM' | 'PEER_DM' | 'SESSION_TEMP_DM';
+export type ConversationType = 'COMMUNITY_DM' | 'HELP_DM' | 'PEER_DM' | 'SESSION_TEMP_DM' | 'LIVE_SUPPORT';
 
 export interface MessageAttachment {
   url: string;
@@ -721,6 +722,41 @@ export interface Conversation {
   expiresAt?: string;
   closedAt?: string;
   closeReason?: 'session_finished' | 'booking_cancelled' | 'booking_completed' | 'manual';
+  supportStatus?: 'BOT_ACTIVE' | 'WAITING_ADMIN' | 'ASSIGNED' | 'CLOSED';
+  assignedAdminId?: string;
+  requestedAdminAt?: string;
+  claimedAt?: string;
+  closedByAdminId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type LiveSupportStatus = 'BOT_ACTIVE' | 'WAITING_ADMIN' | 'ASSIGNED' | 'CLOSED';
+
+export interface LiveSupportTicket {
+  id: string;
+  type: 'LIVE_SUPPORT';
+  participantA: string | User;
+  supportStatus: LiveSupportStatus;
+  isOpen: boolean;
+  assignedAdminId?: string;
+  requestedAdminAt?: string;
+  claimedAt?: string;
+  closedAt?: string;
+  closeReason?: 'manual';
+  lastMessageText?: string;
+  lastMessageAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LiveSupportMessage {
+  id: string;
+  conversationId: string;
+  senderType: 'user' | 'ai' | 'admin';
+  senderUserId?: string;
+  senderAdminId?: string;
+  text: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -7,8 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { Button } from "@/components/ui/button"
 import { Upload } from "lucide-react"
 import { Event } from "@/lib/models"
 import { resolveImageUrl } from "@/lib/resolve-image-url"
@@ -28,6 +26,19 @@ export default function EventDetailsTab({ event, onUpdateEvent }: EventDetailsTa
 
   const handleInputChange = (field: string, value: any) => {
     onUpdateEvent({ [field]: value })
+  }
+
+  const formatDateInputValue = (value?: Date) => {
+    if (!(value instanceof Date) || Number.isNaN(value.getTime())) return ""
+    const year = value.getFullYear()
+    const month = String(value.getMonth() + 1).padStart(2, "0")
+    const day = String(value.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
+  const parseDateInputValue = (value: string) => {
+    if (!value) return undefined
+    return new Date(`${value}T12:00:00`)
   }
 
   const totalAttendees = event.attendees?.length || 0
@@ -115,8 +126,8 @@ export default function EventDetailsTab({ event, onUpdateEvent }: EventDetailsTa
                 <Input
                   id="startDate"
                   type="date"
-                  value={event.startDate?.toISOString().split("T")[0] || ""}
-                  onChange={(e) => handleInputChange("startDate", new Date(e.target.value))}
+                  value={formatDateInputValue(event.startDate)}
+                  onChange={(e) => handleInputChange("startDate", parseDateInputValue(e.target.value))}
                 />
               </div>
               <div className="space-y-2">
@@ -124,8 +135,8 @@ export default function EventDetailsTab({ event, onUpdateEvent }: EventDetailsTa
                 <Input
                   id="endDate"
                   type="date"
-                  value={event.endDate?.toISOString().split("T")[0] || ""}
-                  onChange={(e) => handleInputChange("endDate", e.target.value ? new Date(e.target.value) : undefined)}
+                  value={formatDateInputValue(event.endDate)}
+                  onChange={(e) => handleInputChange("endDate", parseDateInputValue(e.target.value))}
                 />
               </div>
             </div>
@@ -211,10 +222,9 @@ export default function EventDetailsTab({ event, onUpdateEvent }: EventDetailsTa
                   </div>
                 )}
               </div>
-              <Button variant="outline" className="w-full bg-transparent">
-                <Upload className="h-4 w-4 mr-2" />
-                Change Image
-              </Button>
+              <p className="text-sm text-muted-foreground">
+                Event image is read-only here. Update the image URL in your event details to change it.
+              </p>
             </div>
           </CardContent>
         </EnhancedCard>
@@ -239,50 +249,6 @@ export default function EventDetailsTab({ event, onUpdateEvent }: EventDetailsTa
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Total Revenue</span>
               <span className="font-semibold text-green-600">${totalRevenue.toFixed(2)}</span>
-            </div>
-          </CardContent>
-        </EnhancedCard>
-
-        <EnhancedCard>
-          <CardHeader>
-            <CardTitle>Event Status</CardTitle>
-            <CardDescription>Control event visibility and availability</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Active</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {event.isActive 
-                    ? "Event is active and accepting registrations"
-                    : "Event is inactive"}
-                </p>
-              </div>
-              <Switch
-                id="active"
-                checked={event.isActive}
-                onCheckedChange={(checked) => handleInputChange("isActive", checked)}
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Published</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {event.isPublished 
-                    ? "Event is visible to users"
-                    : "Event is hidden (draft mode)"}
-                </p>
-              </div>
-              <Switch
-                id="published"
-                checked={event.isPublished}
-                onCheckedChange={(checked) => handleInputChange("isPublished", checked)}
-              />
             </div>
           </CardContent>
         </EnhancedCard>

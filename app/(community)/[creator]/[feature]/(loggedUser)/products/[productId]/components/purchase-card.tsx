@@ -1,179 +1,85 @@
 "use client"
 
-import Link from "next/link"
 import { useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { tokenStorage } from "@/lib/token-storage"
 import { Download } from "lucide-react"
-import { productsApi } from "@/lib/api/products.api"
+import { useProductPurchaseFlow } from "@/lib/hooks/use-product-purchase-flow"
 
 interface PurchaseCardProps {
   product: any
   purchase: any
   isPurchased: boolean
-  onPurchased?: (purchase: any) => void
+  hasAccess: boolean
+  totalDownloads: number
+  onOpenFiles?: () => void
 }
 
-export default function PurchaseCard({ product, purchase, isPurchased, onPurchased }: PurchaseCardProps) {
+export default function PurchaseCard({
+  product,
+  purchase,
+  isPurchased,
+  hasAccess,
+  totalDownloads,
+  onOpenFiles,
+}: PurchaseCardProps) {
   const { toast } = useToast()
-  const totalDownloads = purchase?.downloadCount || 0
 
-  const [open, setOpen] = useState(false)
-  const [paymentMethodSelectionOpen, setPaymentMethodSelectionOpen] = useState(false)
-  const [promoCode, setPromoCode] = useState("")
-  const [paymentProof, setPaymentProof] = useState<File | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isStripeLoading, setIsStripeLoading] = useState(false)
-  const [isPendingVerification, setIsPendingVerification] = useState(false)
+  const {
+    isStripeLoading,
+    initStripePayment,
+  } = useProductPurchaseFlow()
 
   const isPaidProduct = useMemo(() => Number(product?.price ?? 0) > 0, [product])
 
-  const handleClaimFree = async () => {
-    if (!product) return
-    setIsSubmitting(true)
-    try {
-      await productsApi.purchase(String(product.id || product._id))
-      toast({
-        title: 'Added to your library',
-        description: 'You can now download the files.',
-      })
-      onPurchased?.({ purchasedAt: new Date().toISOString(), downloadCount: 0 })
-      if (typeof window !== 'undefined') {
-        document.getElementById('files')?.scrollIntoView({ behavior: 'smooth' })
-      }
-    } catch (error: any) {
-      toast({
-        title: 'Unable to get product',
-        description: error?.message || 'Please try again.',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   const handleStripePayment = async () => {
     if (!product) return
-    setIsStripeLoading(true)
     try {
-      const result = await productsApi.initStripePayment(
+      await initStripePayment(
         String(product.id || product._id),
-        promoCode.trim() || undefined
       )
-
-      // Handle both possible response structures
-      const checkoutUrl = result?.checkoutUrl || result?.data?.checkoutUrl
-
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl
-      } else {
-        throw new Error('No checkout URL returned')
-      }
     } catch (error: any) {
       toast({
         title: 'Payment initialization failed',
         description: error?.message || 'Please try again.',
         variant: 'destructive',
       })
-      setIsStripeLoading(false)
-    }
-  }
-
-  const handleSubmitProof = async () => {
-    if (!product) return
-    setIsSubmitting(true)
-    try {
-      const accessToken = tokenStorage.getAccessToken()
-      if (!accessToken) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to purchase this product.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      if (!paymentProof) {
-        toast({
-          title: "Payment proof required",
-          description: "Please upload a payment proof to submit your request.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      const promoQuery = promoCode.trim()
-        ? `?promoCode=${encodeURIComponent(promoCode.trim())}`
-        : ""
-
-      const formData = new FormData()
-      formData.append('productId', String(product.id || product._id))
-      formData.append('proof', paymentProof)
-
-      const initResponse = await fetch(`/api/payments/manual/init/product${promoQuery}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        credentials: 'include',
-        body: formData,
-      })
-
-      const initData = await initResponse.json().catch(() => null)
-      if (!initResponse.ok) {
-        const message = initData?.message || initData?.error || 'Failed to submit payment proof'
-        throw new Error(message)
-      }
-
-      toast({
-        title: 'Payment submitted',
-        description: initData?.message || 'Your payment proof was submitted. Please wait for creator verification.',
-      })
-
-      setIsPendingVerification(true)
-
-      setOpen(false)
-      setPromoCode("")
-      setPaymentProof(null)
-    } catch (error: any) {
-      toast({
-        title: "Payment submission failed",
-        description: error?.message || "Something went wrong. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
   return (
-    <>
-      <Card className="border-0 shadow-sm bg-gradient-to-br from-primary-50 to-blue-50 overflow-hidden">
+    <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-3 sm:pb-4">
           <CardTitle className="text-base sm:text-lg font-semibold">
-            {isPurchased ? 'Your Purchase' : 'Get This Product'}
+            {isPurchased ? 'Your Purchase' : hasAccess ? 'Product Access' : 'Get This Product'}
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0 space-y-3 sm:space-y-4">
-          {isPurchased ? (
+        <CardContent className="space-y-3 pt-0 pb-5 sm:space-y-4 sm:pb-6">
+          {hasAccess ? (
             <>
               {/* Purchase Details */}
               <div className="space-y-2 sm:space-y-3">
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-xs sm:text-sm text-muted-foreground">Purchased on:</span>
-                  <span className="text-xs sm:text-sm font-medium text-right">
-                    {new Date(purchase.purchasedAt).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}
-                  </span>
-                </div>
+                {isPurchased && purchase?.purchasedAt && (
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-xs sm:text-sm text-muted-foreground">Purchased on:</span>
+                    <span className="text-xs sm:text-sm font-medium text-right">
+                      {new Date(purchase.purchasedAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                )}
+                {!isPurchased && (
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-xs sm:text-sm text-muted-foreground">Access:</span>
+                    <span className="text-xs sm:text-sm font-medium">
+                      {isPaidProduct ? "Creator access" : "Free access"}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between py-1">
                   <span className="text-xs sm:text-sm text-muted-foreground">Downloads:</span>
                   <span className="text-xs sm:text-sm font-medium">
@@ -183,17 +89,25 @@ export default function PurchaseCard({ product, purchase, isPurchased, onPurchas
               </div>
 
               {/* Download Button */}
-              <Button className="w-full h-10 sm:h-11 text-sm sm:text-base font-medium" asChild>
-                <Link href="#files">
+              <Button
+                className="w-full h-10 sm:h-11 text-sm sm:text-base font-medium"
+                onClick={() => {
+                  onOpenFiles?.()
+                  if (typeof window !== 'undefined') {
+                    window.setTimeout(() => {
+                      document.getElementById('files')?.scrollIntoView({ behavior: 'smooth' })
+                    }, 120)
+                  }
+                }}
+              >
                   <Download className="h-4 w-4 mr-2 shrink-0" />
                   <span>Download Files</span>
-                </Link>
               </Button>
             </>
           ) : (
             <>
               {/* Price Display */}
-              <div className="flex items-center justify-between py-2 border-b border-primary-100/50">
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5">
                 <span className="text-sm sm:text-base text-muted-foreground font-medium">Price:</span>
                 <div className="text-right">
                   <span className="text-xl sm:text-2xl font-bold text-foreground">
@@ -211,22 +125,17 @@ export default function PurchaseCard({ product, purchase, isPurchased, onPurchas
               <Button
                 className="w-full h-10 sm:h-11 text-sm sm:text-base font-medium bg-primary hover:bg-primary/90"
                 onClick={() => {
-                  if (isPaidProduct) setPaymentMethodSelectionOpen(true)
-                  else void handleClaimFree()
+                  void handleStripePayment()
                 }}
-                disabled={isSubmitting || isPendingVerification || isStripeLoading}
+                disabled={isStripeLoading}
               >
-                {isPendingVerification
-                  ? 'Pending verification'
-                  : product.price === 0
-                    ? (isSubmitting ? 'Processing...' : 'Get Free & Unlock Downloads')
-                    : 'Purchase Now'}
+                {isStripeLoading ? 'Redirecting...' : 'Purchase Now'}
               </Button>
 
               {/* Money Back Guarantee */}
-              {product.price > 0 && (
+              {isPaidProduct && (
                 <div className="text-center">
-                  <div className="text-xs sm:text-sm text-muted-foreground bg-white/50 rounded-md px-3 py-2 border border-primary-100/30">
+                  <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-muted-foreground sm:text-sm">
                     <span className="font-medium">30-day</span> money back guarantee
                   </div>
                 </div>
@@ -235,107 +144,6 @@ export default function PurchaseCard({ product, purchase, isPurchased, onPurchas
           )}
         </CardContent>
       </Card>
-
-      {/* Payment Method Selection Dialog */}
-      <Dialog open={paymentMethodSelectionOpen} onOpenChange={setPaymentMethodSelectionOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Choose Payment Method</DialogTitle>
-            <DialogDescription>
-              Select how you'd like to purchase {product?.title}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3">
-            {/* Stripe Payment Option */}
-            <Button
-              className="w-full h-auto py-4 flex flex-col items-start bg-primary hover:bg-primary/90"
-              onClick={() => {
-                setPaymentMethodSelectionOpen(false)
-                void handleStripePayment()
-              }}
-              disabled={isStripeLoading}
-            >
-              <div className="flex items-center justify-between w-full">
-                <div className="text-left">
-                  <div className="font-semibold text-base">Pay with Stripe</div>
-                  <div className="text-sm text-white/80 mt-1">Instant access · Credit/Debit Card</div>
-                </div>
-                <span className="text-xl">💳</span>
-              </div>
-            </Button>
-
-            {/* Manual Payment Option */}
-            <Button
-              variant="outline"
-              className="w-full h-auto py-4 flex flex-col items-start"
-              onClick={() => {
-                setPaymentMethodSelectionOpen(false)
-                setOpen(true)
-              }}
-            >
-              <div className="flex items-center justify-between w-full">
-                <div className="text-left">
-                  <div className="font-semibold text-base">Bank Transfer</div>
-                  <div className="text-sm text-muted-foreground mt-1">Manual verification required</div>
-                </div>
-                <span className="text-xl">🏦</span>
-              </div>
-            </Button>
-          </div>
-
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setPaymentMethodSelectionOpen(false)}>
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Manual Payment Dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{product?.title || 'Purchase product'}</DialogTitle>
-            <DialogDescription>
-              Upload a payment proof to submit your manual payment request. Access will be granted after creator verification.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="promoCode">Promo code (optional)</Label>
-              <Input
-                id="promoCode"
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value)}
-                placeholder="e.g. WELCOME10"
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="paymentProof">Payment proof</Label>
-              <Input
-                id="paymentProof"
-                type="file"
-                accept="image/*"
-                onChange={(e) => setPaymentProof(e.target.files?.[0] || null)}
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={handleSubmitProof} disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : 'Submit payment proof'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+ 
   )
 }

@@ -1,4 +1,5 @@
 import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } from './client';
+import type { ApiGetOptions } from './client';
 import type { Product, ProductVariant, ProductFile } from './types';
 
 export interface CreateProductVariantData {
@@ -58,8 +59,11 @@ export interface ProductListParams extends PaginationParams {
 // Products API
 export const productsApi = {
   // Get all products
-  getAll: async (params?: ProductListParams): Promise<PaginatedResponse<Product>> => {
-    return apiClient.get<PaginatedResponse<Product>>('/products', params);
+  getAll: async (
+    params?: ProductListParams,
+    options?: ApiGetOptions,
+  ): Promise<PaginatedResponse<Product>> => {
+    return apiClient.get<PaginatedResponse<Product>>('/products', params, options);
   },
 
   // Create product
@@ -102,9 +106,11 @@ export const productsApi = {
     return apiClient.post<ApiSuccessResponse<any>>(`/products/${id}/purchase`, { variantId });
   },
 
-  // Download product
-  download: async (id: string): Promise<ApiSuccessResponse<{ url: string }>> => {
-    return apiClient.get<ApiSuccessResponse<{ url: string }>>(`/products/${id}/download`);
+  // Download product file (legacy alias kept for compatibility)
+  download: async (id: string, fileId: string): Promise<{ success: boolean; downloadUrl: string; message: string }> => {
+    return apiClient.post<{ success: boolean; downloadUrl: string; message: string }>(
+      `/products/${id}/files/${fileId}/download`,
+    );
   },
 
   // Get products by creator
@@ -123,8 +129,13 @@ export const productsApi = {
   },
 
   // Download specific file from product
-  downloadFile: async (productId: string, fileId: string): Promise<ApiSuccessResponse<{ url: string }>> => {
-    return apiClient.get<ApiSuccessResponse<{ url: string }>>(`/products/${productId}/files/${fileId}/download`);
+  downloadFile: async (
+    productId: string,
+    fileId: string,
+  ): Promise<{ success: boolean; downloadUrl: string; message: string }> => {
+    return apiClient.post<{ success: boolean; downloadUrl: string; message: string }>(
+      `/products/${productId}/files/${fileId}/download`,
+    );
   },
 
   // Get product reviews

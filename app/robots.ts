@@ -18,25 +18,25 @@ export default function robots(): MetadataRoute.Robots {
       // AI crawlers - allow access to public content
       {
         userAgent: 'GPTBot',
-        allow: ['/blogs/', '/faq', '/'],
+        allow: ['/blogs/', '/faq', '/terms-of-service', '/privacy-policy', '/'],
         disallow: ['/api/', '/admin/', '/dashboard/', '/creator/'],
       },
       {
         userAgent: 'ChatGPT-User',
-        allow: ['/blogs/', '/faq', '/'],
+        allow: ['/blogs/', '/faq', '/terms-of-service', '/privacy-policy', '/'],
         disallow: ['/api/', '/admin/', '/dashboard/', '/creator/'],
       },
       {
         userAgent: 'Google-Extended',
-        allow: ['/blogs/', '/faq', '/'],
+        allow: ['/blogs/', '/faq', '/terms-of-service', '/privacy-policy', '/'],
       },
       {
         userAgent: 'anthropic-ai',
-        allow: ['/blogs/', '/faq', '/'],
+        allow: ['/blogs/', '/faq', '/terms-of-service', '/privacy-policy', '/'],
       },
       {
         userAgent: 'Claude-Web',
-        allow: ['/blogs/', '/faq', '/'],
+        allow: ['/blogs/', '/faq', '/terms-of-service', '/privacy-policy', '/'],
       },
     ],
     sitemap: 'https://chabaqa.io/sitemap.xml',

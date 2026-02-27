@@ -10,14 +10,14 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
   const fileTypes = [...new Set(product.files?.map((f: any) => f.type) || [])] as string[]
   
   return (
-    <Card className="border-0 shadow-sm">
-      <CardHeader className="pb-3 sm:pb-6">
+    <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <CardHeader className="pb-3 sm:pb-5">
         <div className="flex items-center gap-2">
           <Info className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           <CardTitle className="text-base sm:text-lg">Product Details</CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="pt-0 space-y-3 sm:space-y-4">
+      <CardContent className="space-y-3 pt-0 pb-5 sm:space-y-4 sm:pb-6">
         {/* Category */}
         <div className="flex flex-col xs:flex-row xs:justify-between gap-1 xs:gap-2 py-2">
           <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
@@ -41,7 +41,7 @@ export default function ProductDetails({ product }: ProductDetailsProps) {
                 <Badge 
                   key={i} 
                   variant="outline" 
-                  className="text-xs h-5 px-2 py-0.5"
+                  className="h-5 border-slate-300 bg-slate-50 px-2 py-0.5 text-xs"
                 >
                   {type.toUpperCase()}
                 </Badge>

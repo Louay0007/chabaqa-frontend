@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import BackButton from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/[challengeId]/components/BackButton"
 import ChallengeHeader from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/[challengeId]/components/ChallengeHeader"
 import ChallengeTabs from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/[challengeId]/components/ChallengeTabs"
@@ -32,6 +32,10 @@ export default function ChallengeDetailPageContent({
   const [submissionByTaskId, setSubmissionByTaskId] = useState<Record<string, any>>({})
   const [sequentialProgressionEnabled, setSequentialProgressionEnabled] = useState<boolean>(Boolean(challenge?.sequentialProgression))
   const [unlockMessage, setUnlockMessage] = useState<string | undefined>(challenge?.unlockMessage)
+  const isUpcoming = useMemo(() => {
+    const startAt = new Date(challenge?.startDate || "").getTime()
+    return Number.isFinite(startAt) && startAt > Date.now()
+  }, [challenge?.startDate])
 
   useEffect(() => {
     if (!challenge) return
@@ -41,8 +45,14 @@ export default function ChallengeDetailPageContent({
   }, [challenge])
 
   useEffect(() => {
+    if (isUpcoming) {
+      setActiveTab("timeline")
+    }
+  }, [isUpcoming])
+
+  useEffect(() => {
     const run = async () => {
-      if (!challenge) return
+      if (!challenge || isUpcoming) return
       const id = String(challenge.id || challenge._id || "")
       if (!id) return
 
@@ -65,7 +75,7 @@ export default function ChallengeDetailPageContent({
     }
 
     void run()
-  }, [challenge])
+  }, [challenge, isUpcoming])
 
   const handleSubmissionCreated = (submission: any) => {
     if (!submission?.taskId) return
@@ -78,7 +88,7 @@ export default function ChallengeDetailPageContent({
 
   useEffect(() => {
     const run = async () => {
-      if (!challenge) return
+      if (!challenge || isUpcoming) return
       const id = String(challenge.id || challenge._id || "")
       if (!id) return
 
@@ -108,7 +118,7 @@ export default function ChallengeDetailPageContent({
       }
     }
     void run()
-  }, [challenge])
+  }, [challenge, isUpcoming])
 
   useEffect(() => {
     const tasks = [...(challengeTasks || [])].sort(
@@ -116,6 +126,18 @@ export default function ChallengeDetailPageContent({
     )
 
     const mergedTasks = tasks.map((task: any) => {
+      if (isUpcoming) {
+        return {
+          ...task,
+          isUnlocked: false,
+          isCompleted: false,
+          hasSubmission: false,
+          isPendingSubmission: false,
+          submissionStatus: undefined,
+          isActive: false,
+          lockReason: "This challenge has not started yet.",
+        }
+      }
       const taskId = String(task?.id || "")
       const unlocked = unlockedByTaskId[taskId]
       const submission = submissionByTaskId[taskId]
@@ -147,7 +169,7 @@ export default function ChallengeDetailPageContent({
         isActive: activeIndex === -1 ? false : index === activeIndex,
       })),
     )
-  }, [challengeTasks, unlockedByTaskId, submissionByTaskId, unlockMessage, challenge?.unlockMessage])
+  }, [challengeTasks, unlockedByTaskId, submissionByTaskId, unlockMessage, challenge?.unlockMessage, isUpcoming])
 
   if (!community || !challenge) {
     return <div>Challenge not found</div>
@@ -163,6 +185,8 @@ export default function ChallengeDetailPageContent({
           setActiveTab={setActiveTab}
           slug={slug}
           challenge={challenge}
+          isUpcoming={isUpcoming}
+          startDate={challenge.startDate}
           challengeTasks={resolvedTasks}
           selectedTaskDay={selectedTaskDay}
           setSelectedTaskDay={setSelectedTaskDay}

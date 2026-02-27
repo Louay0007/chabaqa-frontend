@@ -2,22 +2,44 @@
 
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Event } from "@/lib/models"
+import { EventStatusToggle } from "@/app/(creator)/creator/events/components/event-status-toggle"
+import { useToast } from "@/hooks/use-toast"
 
 interface EventSettingsTabProps {
   event: Event
-  onUpdateEvent: (updates: Partial<Event>) => void
+  onSetActive: (isActive: boolean) => Promise<void>
+  onTogglePublished: () => Promise<boolean>
+  isUpdatingStatus?: boolean
 }
 
-export default function EventSettingsTab({ event, onUpdateEvent }: EventSettingsTabProps) {
+export default function EventSettingsTab({
+  event,
+  onSetActive,
+  onTogglePublished,
+  isUpdatingStatus = false,
+}: EventSettingsTabProps) {
+  const { toast } = useToast()
   const eventAny = event as any
   const isPublished = Boolean(eventAny.isPublished)
   const isVisibleToCommunity = event.isActive && isPublished
 
-  const setLiveForCommunity = () => {
-    onUpdateEvent({ isActive: true, isPublished: true } as Partial<Event>)
+  const setLiveForCommunity = async () => {
+    try {
+      if (!event.isActive) {
+        await onSetActive(true)
+      }
+      if (!isPublished) {
+        await onTogglePublished()
+      }
+    } catch (error: any) {
+      toast({
+        title: "Failed to make event live",
+        description: error?.message || "Please try again.",
+        variant: "destructive" as any,
+      })
+    }
   }
 
   return (
@@ -30,36 +52,13 @@ export default function EventSettingsTab({ event, onUpdateEvent }: EventSettings
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-3 border rounded-lg">
-            <div>
-              <h4 className="font-medium">Active</h4>
-              <p className="text-sm text-muted-foreground">
-                {event.isActive
-                  ? "Event accepts registrations."
-                  : "Event is disabled for registrations."}
-              </p>
-            </div>
-            <Switch
-              checked={event.isActive}
-              onCheckedChange={(checked) => onUpdateEvent({ isActive: checked })}
-            />
-          </div>
-
-          <div className="flex items-center justify-between p-3 border rounded-lg">
-            <div>
-              <h4 className="font-medium">Published</h4>
-              <p className="text-sm text-muted-foreground">
-                {isPublished
-                  ? "Event is visible in community views."
-                  : "Event stays in draft and hidden from community users."}
-              </p>
-            </div>
-            <Switch
-              checked={isPublished}
-              onCheckedChange={(checked) => onUpdateEvent({ isPublished: checked } as Partial<Event>)}
-            />
-          </div>
-
+          <EventStatusToggle
+            isActive={event.isActive}
+            isPublished={isPublished}
+            onSetActive={onSetActive}
+            onTogglePublished={onTogglePublished}
+            isUpdating={isUpdatingStatus}
+          />
           <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
             <div>
               <h4 className="font-medium">Community Visibility</h4>
@@ -71,8 +70,10 @@ export default function EventSettingsTab({ event, onUpdateEvent }: EventSettings
             </div>
             <Button
               size="sm"
-              onClick={setLiveForCommunity}
-              disabled={isVisibleToCommunity}
+              onClick={() => {
+                void setLiveForCommunity()
+              }}
+              disabled={isVisibleToCommunity || isUpdatingStatus}
               className="bg-green-600 hover:bg-green-700"
             >
               {isVisibleToCommunity ? "Live" : "Make Live"}
@@ -83,76 +84,30 @@ export default function EventSettingsTab({ event, onUpdateEvent }: EventSettings
 
       <EnhancedCard>
         <CardHeader>
-          <CardTitle>Event Settings</CardTitle>
-          <CardDescription>Advanced event configuration options</CardDescription>
+          <CardTitle>Other Settings</CardTitle>
+          <CardDescription>
+            Additional settings will appear here once backend actions are available.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-medium">Allow Waitlist</h4>
-              <p className="text-sm text-muted-foreground">Enable waitlist when tickets are sold out</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-medium">Public Attendee List</h4>
-              <p className="text-sm text-muted-foreground">Show attendee names publicly</p>
-            </div>
-            <Switch />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-medium">Recording Available</h4>
-              <p className="text-sm text-muted-foreground">Provide recordings after the event</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-medium">Email Reminders</h4>
-              <p className="text-sm text-muted-foreground">Send email reminders to attendees</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="font-medium">Community Networking</h4>
-              <p className="text-sm text-muted-foreground">Enable attendee networking features</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Only visibility controls are active for now.
+          </p>
         </CardContent>
       </EnhancedCard>
 
       <EnhancedCard>
         <CardHeader>
           <CardTitle>Danger Zone</CardTitle>
-          <CardDescription>Irreversible actions for this event</CardDescription>
+          <CardDescription>
+            Destructive event actions are currently disabled in this interface.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg">
-            <div>
-              <h4 className="font-medium text-red-600">Cancel Event</h4>
-              <p className="text-sm text-muted-foreground">Cancel this event and issue refunds</p>
-            </div>
-            <Button variant="destructive" size="sm">
-              Cancel Event
-            </Button>
-          </div>
-
-          <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg">
-            <div>
-              <h4 className="font-medium text-red-600">Delete Event</h4>
-              <p className="text-sm text-muted-foreground">Permanently delete this event and all its data</p>
-            </div>
-            <Button variant="destructive" size="sm">
-              Delete Event
-            </Button>
+        <CardContent>
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+            <p className="text-sm text-red-700">
+              Cancel/Delete actions are hidden until those APIs are implemented.
+            </p>
           </div>
         </CardContent>
       </EnhancedCard>

@@ -52,7 +52,9 @@ class ApiClient {
     const { params, headers, ...restConfig } = config
     
     // Determine if this is an admin request
-    const isAdminRequest = endpoint.startsWith('/admin')
+    const isAdminRequest =
+      endpoint.startsWith('/admin') ||
+      endpoint.startsWith('/live-support/admin')
     // Logout needs the token to blacklist it, so we don't treat it as an auth endpoint (which are public)
     const isAuthEndpoint = endpoint.startsWith('/admin/login') || endpoint.startsWith('/admin/verify-2fa') || endpoint.startsWith('/admin/refresh') || endpoint.startsWith('/admin/forgot-password') || endpoint.startsWith('/admin/reset-password')
     

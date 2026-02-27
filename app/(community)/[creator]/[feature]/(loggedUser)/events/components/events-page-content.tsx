@@ -5,17 +5,20 @@ import { EventRegistration, EventWithTickets, normalizeEventRegistrations } from
 import { eventsApi } from "@/lib/api/events.api";
 import EventsHeader from "@/app/(community)/[creator]/[feature]/(loggedUser)/events/components/events-header";
 import EventsTabs from "@/app/(community)/[creator]/[feature]/(loggedUser)/events/components/events-tabs";
+import { computeEventStartAt } from "@/lib/utils/event-time";
 
 interface EventsPageContentProps {
   availableEvents: EventWithTickets[];
   myTickets: EventRegistration[];
   communitySlug: string;
+  initialEventId?: string;
 }
 
 export default function EventsPageContent({
   availableEvents,
   myTickets,
   communitySlug,
+  initialEventId,
 }: EventsPageContentProps) {
   const [activeTab, setActiveTab] = useState("available");
   const [tickets, setTickets] = useState<EventRegistration[]>(myTickets || []);
@@ -65,7 +68,7 @@ export default function EventsPageContent({
     return () => {
       isMounted = false;
     };
-  }, [communitySlug]);
+  }, [communitySlug, myTickets?.length]);
 
   const communityEventIds = useMemo(
     () => new Set((availableEvents || []).map((event) => String(event.id)).filter(Boolean)),
@@ -92,6 +95,36 @@ export default function EventsPageContent({
     }));
   }, [availableEvents, scopedTickets]);
 
+  const normalizedTargetEventId = useMemo(() => {
+    const value = (initialEventId || "").trim()
+    return value.length > 0 ? value : undefined
+  }, [initialEventId])
+
+  const targetEvent = useMemo(() => {
+    if (!normalizedTargetEventId) return null
+    return (
+      availableEventsWithRegistration.find((event) => String(event.id) === normalizedTargetEventId) ||
+      null
+    )
+  }, [availableEventsWithRegistration, normalizedTargetEventId])
+
+  const targetEventIsVisible = useMemo(() => {
+    if (!targetEvent) return false
+    if (!targetEvent.isActive || targetEvent.isPublished === false) return false
+    const startAt = computeEventStartAt(targetEvent.startDate, targetEvent.startTime, targetEvent.timezone)
+    if (!startAt) return false
+    return startAt >= new Date()
+  }, [targetEvent])
+
+  const targetEventNotice = useMemo(() => {
+    if (!normalizedTargetEventId) return null
+    if (!targetEvent) return "The selected event was not found in this community."
+    if (!targetEventIsVisible) {
+      return "This event is not currently visible here (draft, inactive, or already started)."
+    }
+    return null
+  }, [normalizedTargetEventId, targetEvent, targetEventIsVisible])
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
@@ -103,6 +136,8 @@ export default function EventsPageContent({
           myTickets={scopedTickets}
           ticketsLoading={ticketsLoading}
           ticketsError={ticketsError}
+          highlightedEventId={targetEventIsVisible ? normalizedTargetEventId : undefined}
+          targetEventNotice={targetEventNotice}
         />
       </div>
     </div>

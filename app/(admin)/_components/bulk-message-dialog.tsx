@@ -76,10 +76,12 @@ export function BulkMessageDialog({ open, onOpenChange, onSuccess }: BulkMessage
       }
 
       const messageData: BulkMessageDto = {
-        subject: data.subject,
-        message: data.message,
-        recipientIds,
-        priority: data.priority || 'normal'
+        title: data.subject,
+        content: data.message,
+        channel: 'both',
+        audienceTarget: 'specific_users',
+        specificUserIds: recipientIds,
+        metadata: data.priority ? { priority: data.priority } : undefined
       }
 
       await adminApi.communication.sendBulkMessage(messageData)

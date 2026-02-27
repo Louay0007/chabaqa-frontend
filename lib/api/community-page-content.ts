@@ -1,4 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const PUBLIC_PAGE_CONTENT_REVALIDATE_SECONDS = 60;
 
 /**
  * Get published page content for a community (public - no auth required)
@@ -6,7 +7,10 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/a
 export async function getCommunityPageContent(slug: string) {
   try {
     const response = await fetch(`${API_BASE_URL}/communities/${slug}/page-content`, {
-      cache: 'no-store',
+      cache: 'force-cache',
+      next: {
+        revalidate: PUBLIC_PAGE_CONTENT_REVALIDATE_SECONDS,
+      },
     });
 
     if (!response.ok) {

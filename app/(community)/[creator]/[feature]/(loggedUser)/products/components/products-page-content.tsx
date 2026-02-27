@@ -1,11 +1,17 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { Community } from "@/lib/models"
-import { ProductWithDetails, ProductPurchase } from "@/lib/api/products-community.api"
+import {
+  ProductWithDetails,
+  ProductPurchase,
+  isProductOwnedByUser,
+  productsCommunityApi,
+} from "@/lib/api/products-community.api"
 import HeaderSection from "./header-section"
 import ProductsTabs from "./products-tabs"
+import { useToast } from "@/components/ui/use-toast"
 
 interface ProductsPageContentProps {
   creatorSlug: string
@@ -22,17 +28,53 @@ export default function ProductsPageContent({
   allProducts,
   userPurchases
 }: ProductsPageContentProps) {
-  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { toast } = useToast()
+  const accessToastShownRef = useRef(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("all")
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null)
+  const [resolvedPurchases, setResolvedPurchases] = useState<ProductPurchase[]>(userPurchases || [])
+
+  useEffect(() => {
+    let active = true
+    setResolvedPurchases(userPurchases || [])
+
+    const syncPurchases = async () => {
+      try {
+        const latestPurchases = await productsCommunityApi.getUserPurchases()
+        if (!active) return
+        if (Array.isArray(latestPurchases)) {
+          setResolvedPurchases(latestPurchases)
+        }
+      } catch {
+        if (!active) return
+      }
+    }
+
+    void syncPurchases()
+
+    return () => {
+      active = false
+    }
+  }, [userPurchases])
+
+  useEffect(() => {
+    if (searchParams.get("access") === "required" && !accessToastShownRef.current) {
+      accessToastShownRef.current = true
+      toast({
+        title: "Grant access required",
+        description: "Buy the product first to open details and downloads.",
+      })
+    }
+  }, [searchParams, toast])
 
   const filteredProducts = (allProducts || []).filter((product) => {
     const matchesSearch =
       product.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description?.toLowerCase().includes(searchQuery.toLowerCase())
 
-    const isPurchased = (userPurchases || []).some((p) => p.productId === product.id)
+    const isPurchased = isProductOwnedByUser(product, resolvedPurchases || [])
 
     // Filter by published status
     if (!product.isPublished) {
@@ -66,7 +108,7 @@ export default function ProductsPageContent({
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        <HeaderSection allProducts={allProducts} userPurchases={userPurchases} />
+        <HeaderSection allProducts={allProducts} userPurchases={resolvedPurchases} />
         
         <ProductsTabs
           creatorSlug={creatorSlug}
@@ -76,7 +118,7 @@ export default function ProductsPageContent({
           setSearchQuery={setSearchQuery}
           allProducts={allProducts}
           filteredProducts={filteredProducts}
-          userPurchases={userPurchases}
+          userPurchases={resolvedPurchases}
           selectedProduct={selectedProduct}
           setSelectedProduct={setSelectedProduct}
           slug={slug}

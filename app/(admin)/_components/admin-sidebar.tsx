@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { adminApi } from "@/lib/api/admin-api"
 import { useAdminLayout } from "../providers/admin-layout-provider"
 import { useAdminAuth } from "../providers/admin-auth-provider"
 import {
@@ -50,17 +51,62 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
     users: 0,
     communities: 0,
     moderation: 0,
+    support: 0,
   })
   const [expandedItems, setExpandedItems] = useState<string[]>([])
 
-  // Fetch pending counts (placeholder - will be implemented with API)
   useEffect(() => {
-    // TODO: Fetch actual pending counts from API
-    setPendingCounts({
-      users: 0,
-      communities: 5,
-      moderation: 12,
-    })
+    let mounted = true
+
+    const fetchPendingCounts = async () => {
+      try {
+        const [pendingCommunitiesRes, moderationStatsRes, supportCountsRes] = await Promise.allSettled([
+          adminApi.communities.getPendingApprovals({ page: 1, limit: 1 } as any),
+          adminApi.contentModeration.getQueueStats(),
+          adminApi.support.getQueueCounts(),
+        ])
+
+        const pendingCommunities =
+          pendingCommunitiesRes.status === "fulfilled"
+            ? Number((pendingCommunitiesRes.value as any)?.data?.total || 0)
+            : 0
+
+        const moderationStats =
+          moderationStatsRes.status === "fulfilled"
+            ? (moderationStatsRes.value as any)?.data || {}
+            : {}
+        const moderationPending =
+          Number(moderationStats?.byStatus?.pending || 0) +
+          Number(moderationStats?.byStatus?.under_review || 0)
+
+        const supportAvailable =
+          supportCountsRes.status === "fulfilled"
+            ? Number((supportCountsRes.value as any)?.data?.available || 0)
+            : 0
+
+        if (!mounted) return
+        setPendingCounts({
+          users: 0,
+          communities: pendingCommunities,
+          moderation: moderationPending,
+          support: supportAvailable,
+        })
+      } catch (error) {
+        if (!mounted) return
+        setPendingCounts({
+          users: 0,
+          communities: 0,
+          moderation: 0,
+          support: 0,
+        })
+      }
+    }
+
+    fetchPendingCounts()
+
+    return () => {
+      mounted = false
+    }
   }, [])
 
   const navigationItems: NavigationItem[] = [
@@ -115,9 +161,11 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       title: "Communication",
       href: "/admin/communication",
       icon: Mail,
+      badge: pendingCounts.support,
       children: [
         { title: "Campaigns", href: "/admin/communication" },
         { title: "Templates", href: "/admin/communication/templates" },
+        { title: "Live Support", href: "/admin/communication/support" },
       ],
     },
     {

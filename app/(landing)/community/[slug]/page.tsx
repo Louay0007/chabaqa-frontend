@@ -16,6 +16,9 @@ import { normalizeCommunitySettings } from "@/lib/community-settings"
 import { buildCommunityTheme, getContentWidthClass } from "@/lib/community-theme"
 import { cn } from "@/lib/utils"
 
+const PUBLIC_COMMUNITY_DATA_REVALIDATE_SECONDS = 60
+const OPTIONAL_COMMUNITY_FETCH_TIMEOUT_MS = 4500
+
 // Resolve image URLs from API or absolute paths
 function resolveImageUrl(raw?: string, apiBase?: string): string {
   const v = (raw || "").trim()
@@ -161,6 +164,24 @@ function normalizePageContent(
   }
 }
 
+function withTimeoutFallback<T>(promise: Promise<T>, timeoutMs: number, fallbackValue: T): Promise<T> {
+  return new Promise<T>((resolve) => {
+    const timeoutId = setTimeout(() => {
+      resolve(fallbackValue)
+    }, timeoutMs)
+
+    promise
+      .then((value) => {
+        clearTimeout(timeoutId)
+        resolve(value)
+      })
+      .catch(() => {
+        clearTimeout(timeoutId)
+        resolve(fallbackValue)
+      })
+  })
+}
+
 type LatestCommunityPost = {
   id: string
   title: string
@@ -173,13 +194,14 @@ type LatestCommunityPost = {
 async function fetchLatestCommunityPosts(
   apiBase: string,
   communityId: string,
-  requestHeaders: Record<string, string>,
 ): Promise<LatestCommunityPost[]> {
   try {
     const res = await fetch(`${apiBase}/posts/community/${communityId}?page=1&limit=6`, {
       method: "GET",
-      headers: requestHeaders,
-      cache: "no-store",
+      cache: "force-cache",
+      next: {
+        revalidate: PUBLIC_COMMUNITY_DATA_REVALIDATE_SECONDS,
+      },
     })
 
     if (!res.ok) {
@@ -211,7 +233,6 @@ type CommunityRatingsSnapshot = {
 async function fetchCommunityRatings(
   apiBase: string,
   communityId: string,
-  requestHeaders: Record<string, string>,
 ): Promise<CommunityRatingsSnapshot | null> {
   if (!communityId) {
     return null
@@ -225,8 +246,10 @@ async function fetchCommunityRatings(
     for (const endpoint of endpoints) {
       const res = await fetch(endpoint, {
         method: "GET",
-        headers: requestHeaders,
-        cache: "no-store",
+        cache: "force-cache",
+        next: {
+          revalidate: PUBLIC_COMMUNITY_DATA_REVALIDATE_SECONDS,
+        },
       })
 
       if (!res.ok) {
@@ -328,17 +351,31 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
   const rawRating = asNumber((community as any)?.averageRating ?? (community as any)?.rating, 0)
   const rawRatingCount = asNumber((community as any)?.ratingCount, 0)
   const communityId = String((community as any)?._id || community?.id || "")
-  const ratingsSnapshot = await fetchCommunityRatings(
-    apiBase,
-    communityId,
-    requestHeaders,
-  )
-  const rating = ratingsSnapshot ? ratingsSnapshot.averageRating : rawRating
-  const ratingCount = ratingsSnapshot ? ratingsSnapshot.ratingCount : rawRatingCount
   const normalizedSettings = normalizeCommunitySettings(
     (community as any)?.settings,
     String((community as any)?.name || "Community"),
   )
+  const [ratingsSnapshot, rawPageContent, latestPosts] = await Promise.all([
+    withTimeoutFallback(
+      fetchCommunityRatings(apiBase, communityId),
+      OPTIONAL_COMMUNITY_FETCH_TIMEOUT_MS,
+      null,
+    ),
+    withTimeoutFallback(
+      getCommunityPageContent(slug),
+      OPTIONAL_COMMUNITY_FETCH_TIMEOUT_MS,
+      null,
+    ),
+    normalizedSettings.showPosts
+      ? withTimeoutFallback(
+          fetchLatestCommunityPosts(apiBase, communityId),
+          OPTIONAL_COMMUNITY_FETCH_TIMEOUT_MS,
+          [] as LatestCommunityPost[],
+        )
+      : Promise.resolve([] as LatestCommunityPost[]),
+  ])
+  const rating = ratingsSnapshot ? ratingsSnapshot.averageRating : rawRating
+  const ratingCount = ratingsSnapshot ? ratingsSnapshot.ratingCount : rawRatingCount
   const themeTokens = buildCommunityTheme(normalizedSettings)
   const contentWidthClass = getContentWidthClass(normalizedSettings.contentWidth)
 
@@ -439,11 +476,7 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
 
   const formatMembers = (count: number) => (count >= 1000 ? `${(count / 1000).toFixed(1)}k` : String(count))
 
-  const rawPageContent = await getCommunityPageContent(slug)
   const pageContent = normalizePageContent(rawPageContent, apiBaseForImages)
-  const latestPosts = normalizedSettings.showPosts
-    ? await fetchLatestCommunityPosts(apiBase, communityData.id, requestHeaders)
-    : []
 
   const overviewContent =
     pageContent?.overview && pageContent.overview.visible !== false ? pageContent.overview : null

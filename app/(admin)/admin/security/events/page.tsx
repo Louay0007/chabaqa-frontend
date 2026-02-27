@@ -91,11 +91,16 @@ export default function SecurityEventsPage() {
       type: 'select',
       options: [
         { label: 'All Types', value: 'all' },
-        { label: 'Failed Login', value: 'FAILED_LOGIN' },
-        { label: 'Suspicious Activity', value: 'SUSPICIOUS_ACTIVITY' },
-        { label: 'Unauthorized Access', value: 'UNAUTHORIZED_ACCESS' },
-        { label: 'Data Breach', value: 'DATA_BREACH' },
-        { label: 'System Anomaly', value: 'SYSTEM_ANOMALY' },
+        { label: 'Suspicious Login', value: 'suspicious_login' },
+        { label: 'Failed Attempts', value: 'multiple_failed_attempts' },
+        { label: 'Unusual Pattern', value: 'unusual_activity_pattern' },
+        { label: 'Bulk Abuse', value: 'bulk_operation_abuse' },
+        { label: 'Privilege Escalation', value: 'privilege_escalation' },
+        { label: 'Data Export Abuse', value: 'data_export_abuse' },
+        { label: 'After Hours Access', value: 'after_hours_access' },
+        { label: 'Geographic Anomaly', value: 'geographic_anomaly' },
+        { label: 'High Volume Actions', value: 'high_volume_actions' },
+        { label: 'Sensitive Data Access', value: 'sensitive_data_access' },
       ],
       placeholder: 'Select event type...'
     },
@@ -283,7 +288,7 @@ export default function SecurityEventsPage() {
 
   // Handle filter change
   const handleFilterChange = (key: string, value: any) => {
-    setFilterValues(prev => ({ ...prev, [key]: value }))
+    setFilterValues(prev => ({ ...prev, [key]: value === 'all' ? '' : value }))
   }
 
   // Handle filter reset

@@ -6,11 +6,11 @@ interface ProductOverviewProps {
 
 export default function ProductOverview({ product }: ProductOverviewProps) {
   return (
-    <Card className="border-0 shadow-sm">
-      <CardHeader className="pb-3 sm:pb-6">
+    <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <CardHeader className="pb-3 sm:pb-5">
         <CardTitle className="text-lg sm:text-xl">About This Product</CardTitle>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="pt-0 pb-5 sm:pb-6">
         <div className="space-y-4 sm:space-y-6">
           {/* Product Description */}
           <div className="text-sm sm:text-base text-muted-foreground leading-relaxed">

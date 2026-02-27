@@ -1,15 +1,36 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { MessageSquare, Star, User, Award, Calendar, Loader2 } from "lucide-react"
+import { User, Calendar, Loader2 } from "lucide-react"
 import { usersApi, CreatorProfile, CreatorStats } from "@/lib/api/users.api"
 
 interface CreatorInfoProps {
   product: any
+}
+
+function normalizeCreatorId(value: any): string {
+  if (!value) return ""
+
+  if (typeof value === "string") {
+    const trimmed = value.trim()
+    if (!trimmed || trimmed === "[object Object]") {
+      return ""
+    }
+    const objectIdMatch = trimmed.match(/[a-fA-F0-9]{24}/)
+    return objectIdMatch ? objectIdMatch[0] : trimmed
+  }
+
+  if (typeof value === "object") {
+    const nestedCandidates = [value._id, value.id, value.creatorId, value.userId]
+    for (const candidate of nestedCandidates) {
+      const normalized = normalizeCreatorId(candidate)
+      if (normalized) return normalized
+    }
+  }
+
+  return ""
 }
 
 export default function CreatorInfo({ product }: CreatorInfoProps) {
@@ -17,8 +38,14 @@ export default function CreatorInfo({ product }: CreatorInfoProps) {
   const [creatorStats, setCreatorStats] = useState<CreatorStats | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Get creator ID from product - check multiple possible locations
-  const creatorId = product?.creator?.id || product?.creator?._id || product?.creatorId
+  const creatorId = useMemo(() => {
+    return normalizeCreatorId(
+      product?.creator?.id ??
+      product?.creator?._id ??
+      product?.creatorId ??
+      product?.creator,
+    )
+  }, [product])
 
   useEffect(() => {
     if (!creatorId) {
@@ -52,9 +79,10 @@ export default function CreatorInfo({ product }: CreatorInfoProps) {
   const displayJoinDate = creatorProfile?.createdAt || product?.creator?.joinDate || product?.creator?.createdAt
   
   // Stats - use fetched stats, fallback to product.creator stats
-  const totalProducts = creatorStats?.totalProducts ?? product?.creator?.totalProducts ?? 0
-  const totalSales = creatorStats?.totalSales ?? product?.creator?.totalSales ?? 0
-  const rating = creatorStats?.rating ?? product?.creator?.rating ?? product?.rating ?? 0
+  const totalProducts = Number(creatorStats?.totalProducts ?? product?.creator?.totalProducts ?? 0)
+  const totalSales = Number(
+    creatorStats?.totalSales ?? product?.creator?.totalSales ?? product?.sales ?? 0
+  )
   const joinYear = displayJoinDate ? new Date(displayJoinDate).getFullYear() : new Date().getFullYear()
 
   const getInitials = (name: string) => {
@@ -68,7 +96,7 @@ export default function CreatorInfo({ product }: CreatorInfoProps) {
 
   if (loading) {
     return (
-      <Card className="border-0 shadow-sm">
+      <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <CardContent className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
@@ -77,14 +105,14 @@ export default function CreatorInfo({ product }: CreatorInfoProps) {
   }
 
   return (
-    <Card className="border-0 shadow-sm">
-      <CardHeader className="pb-3 sm:pb-6">
+    <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <CardHeader className="pb-3 sm:pb-5">
         <div className="flex items-center gap-2">
           <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           <CardTitle className="text-base sm:text-lg">Creator</CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="pt-0 space-y-4 sm:space-y-6">
+      <CardContent className="space-y-4 pt-0 pb-5 sm:space-y-6 sm:pb-6">
         {/* Creator Profile */}
         <div className="flex items-start gap-3 sm:gap-4">
           <Avatar className="h-12 w-12 sm:h-16 sm:w-16 shrink-0">
@@ -105,38 +133,11 @@ export default function CreatorInfo({ product }: CreatorInfoProps) {
                 {product?.category || "Digital"} Specialist
               </p>
             </div>
-            
-            {/* Creator Badge */}
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs h-5 px-2">
-                <Award className="h-2.5 w-2.5 mr-1" />
-                Pro Creator
-              </Badge>
-            </div>
-            
-            {/* Rating */}
-            <div className="flex items-center gap-1">
-              <div className="flex items-center">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={`h-3 w-3 ${
-                      star <= Math.floor(rating)
-                        ? "text-yellow-500 fill-current"
-                        : "text-gray-300"
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="text-xs text-muted-foreground ml-1">
-                {rating > 0 ? `${rating.toFixed(1)} rating` : "No ratings yet"}
-              </span>
-            </div>
           </div>
         </div>
 
         {/* Creator Stats */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50/50 rounded-lg">
+        <div className="grid grid-cols-3 gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:gap-4 sm:p-4">
           <div className="text-center">
             <div className="text-base sm:text-lg font-semibold text-primary">
               {totalProducts}
@@ -165,24 +166,6 @@ export default function CreatorInfo({ product }: CreatorInfoProps) {
             </p>
           </div>
         )}
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-          <Button 
-            variant="outline" 
-            className="flex-1 h-9 sm:h-10 text-xs sm:text-sm font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
-          >
-            <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-            Message Creator
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="flex-1 sm:flex-none h-9 sm:h-10 text-xs sm:text-sm"
-          >
-            View Profile
-          </Button>
-        </div>
 
         {/* Trust Indicators */}
         <div className="flex items-center justify-center gap-4 pt-2 text-center">

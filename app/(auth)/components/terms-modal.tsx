@@ -33,7 +33,7 @@ export function TermsModal({ open, onOpenChange }: TermsModalProps) {
           <div className="space-y-4 text-sm">
             <div>
               <p className="font-semibold">App Name: Chabaqa</p>
-              <p className="font-semibold">Support Email: support@chabaqa.com</p>
+              <p className="font-semibold">Support Email: contactchabaqa@gmail.com</p>
             </div>
 
             <p className="font-medium">
@@ -128,7 +128,7 @@ export function TermsModal({ open, onOpenChange }: TermsModalProps) {
                 <div>
                   <h4 className="font-semibold">B. Refunds</h4>
                   <p>
-                    Refund policies vary by service type. Please contact support@chabaqa.com for refund requests.
+                    Refund policies vary by service type. Please contact contactchabaqa@gmail.com for refund requests.
                   </p>
                 </div>
 
@@ -222,7 +222,7 @@ export function TermsModal({ open, onOpenChange }: TermsModalProps) {
               <p>
                 If you have any questions about these Terms and Conditions, please contact us:
               </p>
-              <p className="mt-2 font-semibold">Email: support@chabaqa.com</p>
+              <p className="mt-2 font-semibold">Email: contactchabaqa@gmail.com</p>
             </div>
 
             <div className="border-t pt-4 mt-6">

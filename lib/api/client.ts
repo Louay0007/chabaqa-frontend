@@ -30,6 +30,10 @@ export interface PaginationParams {
   limit?: number;
 }
 
+export interface ApiGetOptions {
+  cache?: RequestCache;
+}
+
 // API Client Configuration
 // IMPORTANT:
 // - `NEXT_PUBLIC_*` env vars are inlined at build-time by Next.js.
@@ -155,15 +159,20 @@ class ApiClient {
   }
 
   // Generic HTTP methods
-  async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
+  async get<T>(
+    endpoint: string,
+    params?: Record<string, any>,
+    options?: ApiGetOptions,
+  ): Promise<T> {
     const url = this.buildUrl(endpoint, params);
     const doRequest = async () => fetch(url, {
       method: 'GET',
       headers: this.getHeaders(),
       credentials: 'include',
-      // Disable Next.js server-side fetch caching to prevent stale data
-      // (e.g. challenge tasks not appearing after creator adds them)
-      ...(typeof window === 'undefined' ? { cache: 'no-store' as RequestCache } : {}),
+      // Server requests default to no-store for correctness unless the caller opts in.
+      ...(typeof window === 'undefined'
+        ? { cache: (options?.cache || 'no-store') as RequestCache }
+        : {}),
     });
     let response = await doRequest();
     if (response.status === 401) {

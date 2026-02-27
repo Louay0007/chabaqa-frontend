@@ -15,8 +15,8 @@ interface ProductFilesProps {
 
 export default function ProductFiles({ product, isPurchased, downloadProgress, onDownload }: ProductFilesProps) {
   return (
-    <Card className="border-0 shadow-sm" id="files">
-      <CardHeader className="pb-3 sm:pb-6">
+    <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm" id="files">
+      <CardHeader className="pb-3 sm:pb-5">
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           <CardTitle className="text-lg sm:text-xl">Download Files</CardTitle>
@@ -27,12 +27,12 @@ export default function ProductFiles({ product, isPurchased, downloadProgress, o
             : "Purchase to unlock all files"}
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-0 space-y-3 sm:space-y-4">
+      <CardContent className="space-y-3 pt-0 pb-5 sm:space-y-4 sm:pb-6">
         {product.files?.length > 0 ? (
           product.files.map((file: any) => (
             <div
               key={file.id}
-              className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg hover:bg-gray-50/50 transition-colors"
+              className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3 transition-colors hover:bg-slate-50/80 sm:flex-row sm:items-center sm:gap-4 sm:p-4"
             >
               {/* File Info Section */}
               <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
@@ -45,11 +45,11 @@ export default function ProductFiles({ product, isPurchased, downloadProgress, o
                   <p className="font-medium text-sm sm:text-base truncate pr-2">
                     {file.name}
                   </p>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    <span className="uppercase">{file.type}</span>
+                  <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
+                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-700 sm:text-xs">{file.type}</span>
                     {file.size && (
                       <>
-                        <span className="mx-1">•</span>
+                        <span className="mx-1.5">•</span>
                         <span>{file.size}</span>
                       </>
                     )}

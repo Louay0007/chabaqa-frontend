@@ -7,8 +7,8 @@ interface ProductLicenseProps {
 
 export default function ProductLicense({ product }: ProductLicenseProps) {
   return (
-    <Card className="border-0 shadow-sm">
-      <CardHeader className="pb-3 sm:pb-6">
+    <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <CardHeader className="pb-3 sm:pb-5">
         <div className="flex items-center gap-2">
           <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           <CardTitle className="text-lg sm:text-xl">License Terms</CardTitle>
@@ -17,7 +17,7 @@ export default function ProductLicense({ product }: ProductLicenseProps) {
           Usage rights and restrictions
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="pt-0 pb-5 sm:pb-6">
         <div className="space-y-4 sm:space-y-6">
           {product.licenseTerms ? (
             <div className="text-sm sm:text-base text-muted-foreground leading-relaxed">

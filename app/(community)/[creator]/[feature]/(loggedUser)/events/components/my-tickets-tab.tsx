@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarIcon, Video, Plus, Ticket, MapPin, Clock, Users, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { TabsContent } from "@/components/ui/tabs";
+import { buildGoogleCalendarTemplateUrl } from "@/lib/utils/google-calendar";
 
 interface MyTicketsTabProps {
   myTickets: any[];
@@ -17,6 +18,100 @@ function parseDate(value: unknown): Date | null {
   if (!value) return null;
   const date = new Date(String(value));
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatTicketPrice(value: unknown): string {
+  const price = Number(value);
+  if (!Number.isFinite(price) || price <= 0) return "Free";
+  return `${price} TND`;
+}
+
+function buildCalendarLocation(registration: any): string | undefined {
+  const location = String(registration?.event?.location || "").trim();
+  const onlineUrl = String(registration?.event?.onlineUrl || "").trim();
+
+  if (location && onlineUrl) {
+    return `${location} | ${onlineUrl}`;
+  }
+  if (location) return location;
+  if (onlineUrl) return onlineUrl;
+  return undefined;
+}
+
+function buildCalendarDetails(registration: any): string {
+  const event = registration?.event || {};
+  const ticket = registration?.ticket || {};
+  const lines: string[] = [];
+
+  const eventDescription = String(event.description || "").trim();
+  if (eventDescription) {
+    lines.push(eventDescription);
+  }
+
+  const eventNotes = String(event.notes || "").trim();
+  if (eventNotes) {
+    if (lines.length > 0) lines.push("");
+    lines.push(`Notes: ${eventNotes}`);
+  }
+
+  const infoLines: string[] = [];
+  if (event.category) infoLines.push(`Category: ${event.category}`);
+  if (event.type) infoLines.push(`Event Type: ${event.type}`);
+  if (event.timezone) infoLines.push(`Timezone: ${event.timezone}`);
+  if (event.onlineUrl) infoLines.push(`Online Link: ${event.onlineUrl}`);
+  if (event.organizerName) infoLines.push(`Organizer: ${event.organizerName}`);
+  if (event.communityName) infoLines.push(`Community: ${event.communityName}`);
+  if (infoLines.length > 0) {
+    if (lines.length > 0) lines.push("");
+    lines.push(...infoLines);
+  }
+
+  const ticketLines: string[] = [];
+  if (ticket.name) ticketLines.push(`Ticket: ${ticket.name}`);
+  if (ticket.type) ticketLines.push(`Ticket Type: ${ticket.type}`);
+  ticketLines.push(`Ticket Price: ${formatTicketPrice(ticket.price)}`);
+  if (registration?.status) ticketLines.push(`Registration Status: ${registration.status}`);
+  if (registration?.registeredAt) {
+    const registeredAtDate = parseDate(registration.registeredAt);
+    if (registeredAtDate) {
+      ticketLines.push(`Registered On: ${format(registeredAtDate, "MMM dd, yyyy HH:mm")}`);
+    }
+  }
+  if (ticketLines.length > 0) {
+    if (lines.length > 0) lines.push("");
+    lines.push(...ticketLines);
+  }
+
+  if (Array.isArray(event.speakers) && event.speakers.length > 0) {
+    if (lines.length > 0) lines.push("");
+    lines.push("Speakers:");
+    event.speakers.slice(0, 8).forEach((speaker: any) => {
+      const speakerName = String(speaker?.name || "").trim();
+      if (!speakerName) return;
+      const speakerTitle = String(speaker?.title || "").trim();
+      lines.push(`- ${speakerName}${speakerTitle ? ` (${speakerTitle})` : ""}`);
+    });
+  }
+
+  if (Array.isArray(event.sessions) && event.sessions.length > 0) {
+    if (lines.length > 0) lines.push("");
+    lines.push("Agenda:");
+    event.sessions.slice(0, 12).forEach((session: any) => {
+      const sessionTitle = String(session?.title || "").trim();
+      if (!sessionTitle) return;
+      const sessionStart = String(session?.startTime || "").trim();
+      const sessionEnd = String(session?.endTime || "").trim();
+      const sessionSpeaker = String(session?.speaker || "").trim();
+      const sessionTime =
+        sessionStart && sessionEnd
+          ? `${sessionStart}-${sessionEnd}`
+          : sessionStart || sessionEnd;
+      const sessionSuffix = [sessionTime, sessionSpeaker].filter(Boolean).join(" | ");
+      lines.push(`- ${sessionTitle}${sessionSuffix ? ` (${sessionSuffix})` : ""}`);
+    });
+  }
+
+  return lines.join("\n").trim();
 }
 
 export default function MyTicketsTab({
@@ -73,6 +168,16 @@ export default function MyTicketsTab({
           {tickets.map((reg: any) => {
             const eventDate = parseDate(reg.event?.startDate);
             const isInactive = reg?.event?.isActive === false || reg?.event?.isPublished === false;
+            const googleCalendarUrl = buildGoogleCalendarTemplateUrl({
+              title: reg.event?.title || "Event",
+              description: buildCalendarDetails(reg),
+              location: buildCalendarLocation(reg),
+              startDate: reg.event?.startDate,
+              endDate: reg.event?.endDate,
+              startTime: reg.event?.startTime,
+              endTime: reg.event?.endTime,
+              timezone: reg.event?.timezone,
+            });
 
             return (
               <Card key={reg.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
@@ -146,10 +251,19 @@ export default function MyTicketsTab({
                       </Button>
                     )}
 
-                    <Button variant="outline" size="sm" className="flex-1 xs:flex-none h-9 sm:h-10 text-sm">
-                      <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                      Add to Calendar
-                    </Button>
+                    {googleCalendarUrl ? (
+                      <Button asChild variant="outline" size="sm" className="flex-1 xs:flex-none h-9 sm:h-10 text-sm">
+                        <a href={googleCalendarUrl} target="_blank" rel="noopener noreferrer">
+                          <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                          Add to Google Calendar
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button variant="outline" size="sm" className="flex-1 xs:flex-none h-9 sm:h-10 text-sm" disabled>
+                        <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                        Calendar Unavailable
+                      </Button>
+                    )}
                   </div>
 
                   {reg.event?.speakers && reg.event.speakers.length > 0 && (
@@ -174,7 +288,7 @@ export default function MyTicketsTab({
               <Ticket className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-muted-foreground/50 mb-3 sm:mb-4" />
               <h3 className="text-base sm:text-lg font-semibold mb-2">No Tickets Yet</h3>
               <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 leading-relaxed">
-                You haven't registered for any events yet. Explore our upcoming events to find something interesting!
+                You have not registered for any events yet. Explore our upcoming events to find something interesting!
               </p>
               <Button onClick={() => setActiveTab("available")} className="h-9 sm:h-10 px-6">
                 <Plus className="h-4 w-4 mr-2" />

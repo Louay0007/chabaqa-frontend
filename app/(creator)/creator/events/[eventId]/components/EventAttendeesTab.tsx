@@ -1,7 +1,6 @@
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Event } from "@/lib/models"
-import { Button } from "@/components/ui/button"
 
 interface EventAttendeesTabProps {
   event: Event
@@ -34,9 +33,6 @@ export default function EventAttendeesTab({ event }: EventAttendeesTabProps) {
                   <div className="font-semibold">{attendee.ticketType}</div>
                   <div className="text-sm text-muted-foreground">Ticket</div>
                 </div>
-                <Button variant="outline" size="sm">
-                  View Details
-                </Button>
               </div>
             </div>
           ))}

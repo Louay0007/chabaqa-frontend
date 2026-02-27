@@ -1,19 +1,44 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import ProductPageContent from "@/app/(community)/[creator]/[feature]/(loggedUser)/products/[productId]/components/product-page-content"
-import { productsApi } from "@/lib/api/products.api"
 import { productsCommunityApi, ProductWithDetails, ProductPurchase } from "@/lib/api/products-community.api"
+import { getMe } from "@/lib/api/user.api"
+import { useToast } from "@/components/ui/use-toast"
+
+function normalizeId(value: any): string {
+  if (!value) return ""
+
+  if (typeof value === "string") {
+    const trimmed = value.trim()
+    if (!trimmed || trimmed === "[object Object]") return ""
+    const objectIdMatch = trimmed.match(/[a-fA-F0-9]{24}/)
+    return objectIdMatch ? objectIdMatch[0] : trimmed
+  }
+
+  if (typeof value === "object") {
+    const candidates = [value._id, value.id, value.creatorId, value.userId]
+    for (const candidate of candidates) {
+      const normalized = normalizeId(candidate)
+      if (normalized) return normalized
+    }
+  }
+
+  return ""
+}
 
 export default function ProductPage() {
   const params = useParams<{ creator: string; feature: string; productId: string }>()
+  const router = useRouter()
+  const { toast } = useToast()
   const creator = params?.creator
   const feature = params?.feature
   const productId = params?.productId
 
   const [product, setProduct] = useState<ProductWithDetails | null>(null)
   const [purchase, setPurchase] = useState<ProductPurchase | null>(null)
+  const [isCreator, setIsCreator] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -23,15 +48,33 @@ export default function ProductPage() {
     const load = async () => {
       setLoading(true)
       try {
-        // Fetch product details using enhanced API
         const productData = await productsCommunityApi.getProductDetail(String(productId))
-        if (!active) return
-        setProduct(productData)
+        if (!active || !productData) return
 
-        // Check purchase status
-        const purchaseData = await productsCommunityApi.getUserPurchaseStatus(String(productId))
+        const [purchaseData, currentUser] = await Promise.all([
+          productsCommunityApi.getUserPurchaseStatus(String(productId)),
+          getMe().catch(() => null),
+        ])
         if (!active) return
+
+        const currentUserId = normalizeId(currentUser?._id || currentUser?.id)
+        const creatorId = normalizeId(productData?.creator?.id || (productData as any)?.creator?._id || (productData as any)?.creatorId || (productData as any)?.creator)
+        const creatorView = Boolean(currentUserId && creatorId && currentUserId === creatorId)
+        const hasAccess =
+          creatorView || Boolean(purchaseData) || Number(productData?.price || 0) === 0
+
+        if (!hasAccess && creator && feature) {
+          toast({
+            title: "Grant access required",
+            description: "Purchase this product first to open its details and files.",
+          })
+          router.replace(`/${creator}/${feature}/products?access=required`)
+          return
+        }
+
+        setProduct(productData)
         setPurchase(purchaseData)
+        setIsCreator(creatorView)
       } catch (error) {
         console.error('Failed to load product:', error)
         if (!active) return
@@ -47,7 +90,7 @@ export default function ProductPage() {
     return () => {
       active = false
     }
-  }, [productId])
+  }, [creator, feature, productId, router, toast])
 
   if (loading) {
     return (
@@ -62,7 +105,7 @@ export default function ProductPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Product not found</h2>
-          <p className="text-gray-600">The product you're looking for doesn't exist or has been removed.</p>
+          <p className="text-gray-600">The product you&apos;re looking for doesn&apos;t exist or has been removed.</p>
         </div>
       </div>
     )
@@ -74,6 +117,7 @@ export default function ProductPage() {
       slug={String(feature || '')}
       product={product}
       purchase={purchase}
+      isCreator={isCreator}
     />
   )
 }

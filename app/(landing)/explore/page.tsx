@@ -4,10 +4,12 @@ import { ExplorePageClient } from "./explore-page-client"
 import { communitiesApi, coursesApi, challengesApi, productsApi, sessionsApi, eventsApi } from "@/lib/api"
 import type { Community, Course, Challenge, Product, Session, Event } from "@/lib/api/types"
 import type { Explore } from "@/lib/data-communities"
+import { computeEventStartAt } from "@/lib/utils/event-time"
 
-// Keep Explore fresh so deleted communities/content disappear immediately.
-export const revalidate = 0
-export const dynamic = 'force-dynamic'
+const EXPLORE_FETCH_TIMEOUT_MS = 7000
+const EXPLORE_LIST_FETCH_OPTIONS = { cache: "force-cache" as const }
+
+export const revalidate = 60
 
 // Resolve image url safely (absolute or local placeholder)
 function resolveImageUrl(value?: string): string {
@@ -273,7 +275,8 @@ async function transformProductToExplore(product: Product): Promise<Explore> {
     description: product.description,
     category: (product as any).category || 'Product',
     members: (product as any).sales || product.salesCount || 0,
-    rating: (product as any).averageRating || product.rating || 0,
+    rating: normalizePrice((product as any).averageRating ?? product.rating),
+    ratingCount: normalizeCount((product as any).ratingCount, 0),
     tags: (product as any).tags || [product.type],
     verified: (product as any).verified || false,
     price: normalizePrice((product as any).price || product.price),
@@ -369,6 +372,37 @@ async function transformEventToExplore(event: Event): Promise<Explore> {
   }
 }
 
+function shouldIncludeExploreEvent(event: any, now: Date): boolean {
+  if (!event || event.isActive === false || event.isPublished === false) {
+    return false
+  }
+
+  const startAt = computeEventStartAt(event.startDate, event.startTime, event.timezone)
+  if (!startAt) {
+    return false
+  }
+
+  return startAt >= now
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(`${label} request timed out after ${timeoutMs}ms`))
+    }, timeoutMs)
+
+    promise
+      .then((value) => {
+        clearTimeout(timeoutId)
+        resolve(value)
+      })
+      .catch((error) => {
+        clearTimeout(timeoutId)
+        reject(error)
+      })
+  })
+}
+
 export default async function CommunitiesPage() {
   const allExploreItems: Explore[] = []
 
@@ -382,12 +416,39 @@ export default async function CommunitiesPage() {
       sessionsRes,
       eventsRes
     ] = await Promise.allSettled([
-      communitiesApi.getAll({ limit: 50 }),
-      coursesApi.getAll({ limit: 50 }),
-      challengesApi.getAll({ limit: 50 }),
-      productsApi.getAll({ limit: 50 }),
-      sessionsApi.getAll({ limit: 50 }),
-      eventsApi.getAll({ limit: 50 })
+      withTimeout(
+        communitiesApi.getAll({ limit: 50 }, EXPLORE_LIST_FETCH_OPTIONS),
+        EXPLORE_FETCH_TIMEOUT_MS,
+        "communities",
+      ),
+      withTimeout(
+        coursesApi.getAll({ limit: 50 }, EXPLORE_LIST_FETCH_OPTIONS),
+        EXPLORE_FETCH_TIMEOUT_MS,
+        "courses",
+      ),
+      withTimeout(
+        challengesApi.getAll({ limit: 50 }, EXPLORE_LIST_FETCH_OPTIONS),
+        EXPLORE_FETCH_TIMEOUT_MS,
+        "challenges",
+      ),
+      withTimeout(
+        productsApi.getAll({ limit: 50 }, EXPLORE_LIST_FETCH_OPTIONS),
+        EXPLORE_FETCH_TIMEOUT_MS,
+        "products",
+      ),
+      withTimeout(
+        sessionsApi.getAll({ limit: 50 }, EXPLORE_LIST_FETCH_OPTIONS),
+        EXPLORE_FETCH_TIMEOUT_MS,
+        "sessions",
+      ),
+      withTimeout(
+        eventsApi.getAll(
+          { limit: 50, isActive: true, isPublished: true },
+          EXPLORE_LIST_FETCH_OPTIONS,
+        ),
+        EXPLORE_FETCH_TIMEOUT_MS,
+        "events",
+      ),
     ])
 
     // Helper to extract array from various response formats
@@ -487,7 +548,12 @@ export default async function CommunitiesPage() {
     // Transform events
     if (eventsRes.status === 'fulfilled') {
       const data = extractArray(eventsRes.value)
-      const events = await Promise.all(data.map(transformEventToExplore))
+      const now = new Date()
+      const events = await Promise.all(
+        data
+          .filter((event: any) => shouldIncludeExploreEvent(event, now))
+          .map(transformEventToExplore),
+      )
       allExploreItems.push(...events)
     }
   } catch {

@@ -16,6 +16,7 @@ import { resolveImageUrl } from "@/lib/resolve-image-url";
 
 interface EventCardProps {
   event: EventWithTickets;
+  isHighlighted?: boolean;
   selectedEventId?: string;
   selectedTicket: string;
   setSelectedTicket: (ticket: string) => void;
@@ -42,6 +43,7 @@ function formatTimeRange(startTime?: string, endTime?: string): string {
 
 export default function EventCard({
   event,
+  isHighlighted = false,
   selectedEventId,
   selectedTicket,
   setSelectedTicket,
@@ -80,7 +82,12 @@ export default function EventCard({
   const isVirtual = Boolean(event.onlineUrl) || event.isVirtual === true || (event.type || "").toLowerCase().includes("online");
 
   return (
-    <Card className="border border-slate-100 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
+    <Card
+      id={`event-card-${String(event.id)}`}
+      className={`border shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg ${
+        isHighlighted ? "border-purple-500 ring-2 ring-purple-200" : "border-slate-100"
+      }`}
+    >
       <CardHeader className="pb-4">
         <div className="relative w-full aspect-video overflow-hidden rounded-xl">
           {resolvedImage ? (

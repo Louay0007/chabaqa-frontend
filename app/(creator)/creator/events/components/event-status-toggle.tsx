@@ -1,40 +1,47 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Power, AlertCircle, CheckCircle } from "lucide-react"
-import { eventsApi } from "@/lib/api/events.api"
 import { useToast } from "@/hooks/use-toast"
 
 interface EventStatusToggleProps {
-  eventId: string
   isActive: boolean
   isPublished: boolean
-  onStatusChange?: (isActive: boolean, isPublished: boolean) => void
+  onSetActive: (isActive: boolean) => Promise<void>
+  onTogglePublished: () => Promise<boolean>
+  isUpdating?: boolean
 }
 
 export function EventStatusToggle({
-  eventId,
   isActive: initialIsActive,
   isPublished: initialIsPublished,
-  onStatusChange
+  onSetActive,
+  onTogglePublished,
+  isUpdating = false,
 }: EventStatusToggleProps) {
   const { toast } = useToast()
   const [isActive, setIsActive] = useState(initialIsActive)
   const [isPublished, setIsPublished] = useState(initialIsPublished)
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    setIsActive(initialIsActive)
+  }, [initialIsActive])
+
+  useEffect(() => {
+    setIsPublished(initialIsPublished)
+  }, [initialIsPublished])
+
   const handleToggleActive = async () => {
+    const newIsActive = !isActive
+    setIsActive(newIsActive)
     setLoading(true)
     try {
-      const newIsActive = !isActive
-      await eventsApi.update(eventId, { isActive: newIsActive })
-      setIsActive(newIsActive)
-      onStatusChange?.(newIsActive, isPublished)
+      await onSetActive(newIsActive)
       toast({
         title: newIsActive ? "Event Activated" : "Event Deactivated",
         description: newIsActive 
@@ -42,6 +49,7 @@ export function EventStatusToggle({
           : "Event is now inactive and not accepting registrations",
       })
     } catch (error: any) {
+      setIsActive(!newIsActive)
       toast({
         title: "Failed to update status",
         description: error?.message || "Please try again",
@@ -55,13 +63,11 @@ export function EventStatusToggle({
   const handleTogglePublished = async () => {
     setLoading(true)
     try {
-      const response = await eventsApi.togglePublished(eventId)
-      const newIsPublished = response.data.isPublished
+      const newIsPublished = await onTogglePublished()
       setIsPublished(newIsPublished)
-      onStatusChange?.(isActive, newIsPublished)
       toast({
         title: newIsPublished ? "Event Published" : "Event Unpublished",
-        description: response.data.message || (newIsPublished 
+        description: (newIsPublished 
           ? "Event is now visible to users"
           : "Event is now hidden from users"),
       })
@@ -130,7 +136,7 @@ export function EventStatusToggle({
           <Switch
             checked={isActive}
             onCheckedChange={handleToggleActive}
-            disabled={loading}
+            disabled={loading || isUpdating}
           />
         </div>
 
@@ -157,7 +163,7 @@ export function EventStatusToggle({
           <Switch
             checked={isPublished}
             onCheckedChange={handleTogglePublished}
-            disabled={loading}
+            disabled={loading || isUpdating}
           />
         </div>
 
