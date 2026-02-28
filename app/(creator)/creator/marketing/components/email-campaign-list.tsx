@@ -12,25 +12,41 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { EmailCampaign, EmailCampaignStatus } from "@/lib/api/email-campaigns.api"
-import { Loader2, ChevronLeft, ChevronRight } from "lucide-react"
+import { Copy, Loader2, Mail, Pencil, Play, Trash2, Users, XCircle, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface EmailCampaignListProps {
-  campaigns: EmailCampaign[];
-  loading: boolean;
+  campaigns: EmailCampaign[]
+  loading: boolean
+  actionLoadingId?: string | null
   pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  onPageChange?: (page: number) => void;
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+  onPageChange?: (page: number) => void
+  onSendCampaign?: (campaign: EmailCampaign) => void
+  onCancelCampaign?: (campaign: EmailCampaign) => void
+  onDuplicateCampaign?: (campaign: EmailCampaign) => void
+  onDeleteCampaign?: (campaign: EmailCampaign) => void
+  onEditCampaign?: (campaign: EmailCampaign) => void
+  onViewRecipients?: (campaign: EmailCampaign) => void
+  onSendTestEmail?: (campaign: EmailCampaign) => void
 }
 
 export function EmailCampaignList({
   campaigns,
   loading,
+  actionLoadingId,
   pagination,
-  onPageChange
+  onPageChange,
+  onSendCampaign,
+  onCancelCampaign,
+  onDuplicateCampaign,
+  onDeleteCampaign,
+  onEditCampaign,
+  onViewRecipients,
+  onSendTestEmail,
 }: EmailCampaignListProps) {
   const getStatusColor = (status: EmailCampaignStatus) => {
     switch (status) {
@@ -44,27 +60,27 @@ export function EmailCampaignList({
         return "bg-red-100 text-red-800 hover:bg-red-100"
       case "cancelled":
         return "bg-gray-100 text-gray-800 hover:bg-gray-100"
-      default: // draft
+      default:
         return "bg-gray-100 text-gray-800 hover:bg-gray-100"
     }
   }
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     })
   }
 
   const formatType = (type: string) => {
-    return type.replace(/-|_/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+    return type.replace(/-|_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
   }
 
   if (loading) {
     return (
       <Card>
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="p-6 flex items-center justify-center min-h-[320px]">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">Loading campaigns...</p>
@@ -74,29 +90,12 @@ export function EmailCampaignList({
     )
   }
 
-  if (!campaigns || campaigns.length === 0) {
+  if (!campaigns?.length) {
     return (
       <Card>
-        <div className="p-12 text-center">
-          <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-            <svg
-              className="w-8 h-8 text-muted-foreground"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold mb-2">No campaigns yet</h3>
-          <p className="text-muted-foreground mb-4">
-            Create your first email campaign to engage with your community members
-          </p>
+        <div className="p-10 text-center">
+          <p className="text-lg font-semibold mb-1">No campaigns yet</p>
+          <p className="text-sm text-muted-foreground">Create your first campaign to start engaging your members.</p>
         </div>
       </Card>
     )
@@ -108,71 +107,147 @@ export function EmailCampaignList({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Campaign Name</TableHead>
+              <TableHead>Campaign</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Sent</TableHead>
               <TableHead className="text-right">Opened</TableHead>
               <TableHead className="text-right">Clicked</TableHead>
               <TableHead>Date</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {campaigns.map((campaign) => (
-              <TableRow key={campaign._id} className="cursor-pointer hover:bg-muted/50">
-                <TableCell className="font-medium">{campaign.title}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary" className="capitalize">
-                    {formatType(campaign.type)}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge className={getStatusColor(campaign.status)}>
-                    {campaign.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right font-mono text-sm">
-                  {campaign.sentCount.toLocaleString()}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex flex-col items-end">
-                    <span className="font-mono text-sm">
-                      {campaign.openCount.toLocaleString()}
-                    </span>
-                    {campaign.sentCount > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        {Math.round((campaign.openCount / campaign.sentCount) * 100)}%
-                      </span>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex flex-col items-end">
-                    <span className="font-mono text-sm">
-                      {campaign.clickCount.toLocaleString()}
-                    </span>
-                    {campaign.sentCount > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        {Math.round((campaign.clickCount / campaign.sentCount) * 100)}%
-                      </span>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {formatDate(campaign.sentAt || campaign.createdAt)}
-                </TableCell>
-              </TableRow>
-            ))}
+            {campaigns.map((campaign) => {
+              const isMutating = actionLoadingId === campaign._id
+              const canEdit = campaign.status === "draft" || campaign.status === "scheduled"
+              const canSend = campaign.status === "draft" || campaign.status === "scheduled"
+              const canCancel = campaign.status === "scheduled"
+              const canDelete = campaign.status === "draft" || campaign.status === "scheduled"
+
+              return (
+                <TableRow key={campaign._id}>
+                  <TableCell className="font-medium">{campaign.title}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="capitalize">
+                      {formatType(campaign.type)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={getStatusColor(campaign.status)}>{campaign.status}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-sm">{campaign.sentCount}</TableCell>
+                  <TableCell className="text-right text-sm">
+                    {campaign.openCount}
+                    {campaign.sentCount > 0 ? ` (${Math.round((campaign.openCount / campaign.sentCount) * 100)}%)` : ""}
+                  </TableCell>
+                  <TableCell className="text-right text-sm">
+                    {campaign.clickCount}
+                    {campaign.sentCount > 0 ? ` (${Math.round((campaign.clickCount / campaign.sentCount) * 100)}%)` : ""}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDate(campaign.sentAt || campaign.createdAt)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="inline-flex flex-wrap justify-end gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => onViewRecipients?.(campaign)}
+                        disabled={isMutating}
+                        title="View Recipients"
+                      >
+                        <Users className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => onSendTestEmail?.(campaign)}
+                        disabled={isMutating}
+                        title="Send Test"
+                      >
+                        <Mail className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => onDuplicateCampaign?.(campaign)}
+                        disabled={isMutating}
+                        title="Duplicate"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      {canEdit && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => onEditCampaign?.(campaign)}
+                          disabled={isMutating}
+                          title="Edit"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canSend && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => onSendCampaign?.(campaign)}
+                          disabled={isMutating}
+                          title="Send Now"
+                        >
+                          {isMutating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                        </Button>
+                      )}
+                      {canCancel && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => onCancelCampaign?.(campaign)}
+                          disabled={isMutating}
+                          title="Cancel"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-600 hover:text-red-700"
+                          onClick={() => onDeleteCampaign?.(campaign)}
+                          disabled={isMutating}
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
 
-        {/* Pagination Controls */}
         {pagination && pagination.totalPages > 1 && (
           <div className="flex items-center justify-between mt-4 pt-4 border-t">
             <div className="text-sm text-muted-foreground">
               Showing {((pagination.page - 1) * pagination.limit) + 1} to{" "}
-              {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-              {pagination.total} campaigns
+              {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} campaigns
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -184,9 +259,7 @@ export function EmailCampaignList({
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Previous
               </Button>
-              <div className="text-sm font-medium px-3">
-                Page {pagination.page} of {pagination.totalPages}
-              </div>
+              <span className="text-sm font-medium px-2">Page {pagination.page} of {pagination.totalPages}</span>
               <Button
                 variant="outline"
                 size="sm"

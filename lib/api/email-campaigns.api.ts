@@ -212,10 +212,12 @@ export interface GetCampaignsResponse {
 export interface SendCampaignResponse {
     message: string;
     campaignId: string;
+    queued?: boolean;
 }
 
 export interface CreateContentReminderResponse {
     campaignId: string;
+    queued?: boolean;
 }
 
 export interface CancelCampaignResponse {
@@ -254,6 +256,12 @@ export interface GetInactivityPeriodsResponse {
 // ============================================================================
 
 export const emailCampaignsApi = {
+    unwrapData<T>(response: any): T {
+        if (response?.data?.data !== undefined) return response.data.data as T;
+        if (response?.data !== undefined) return response.data as T;
+        return response as T;
+    },
+
     /**
      * Get all campaigns for a community with pagination and filters
      */
@@ -282,18 +290,17 @@ export const emailCampaignsApi = {
         const response = await apiClient.get<any>(
             `/email-campaigns/community/${communityId}/stats`
         );
-        // Unwrap common shapes
-        if (response?.data) return response.data as CampaignStats;
-        return response as CampaignStats;
+        return this.unwrapData<CampaignStats>(response);
     },
 
     /**
      * Get inactive user statistics for a community
      */
     async getInactiveUserStats(communityId: string): Promise<InactiveUserStats> {
-        return apiClient.get<InactiveUserStats>(
+        const response = await apiClient.get<any>(
             `/email-campaigns/community/${communityId}/inactive-stats`
         );
+        return this.unwrapData<InactiveUserStats>(response);
     },
 
     /**
@@ -303,24 +310,27 @@ export const emailCampaignsApi = {
         communityId: string,
         params?: InactiveUserQueryParams
     ): Promise<UserLoginActivity[]> {
-        return apiClient.get<UserLoginActivity[]>(
+        const response = await apiClient.get<any>(
             `/email-campaigns/community/${communityId}/inactive-users`,
             params
         );
+        return this.unwrapData<UserLoginActivity[]>(response);
     },
 
     /**
      * Get a specific campaign by ID
      */
     async getCampaign(campaignId: string): Promise<EmailCampaign> {
-        return apiClient.get<EmailCampaign>(`/email-campaigns/${campaignId}`);
+        const response = await apiClient.get<any>(`/email-campaigns/${campaignId}`);
+        return this.unwrapData<EmailCampaign>(response);
     },
 
     /**
      * Create a regular email campaign
      */
     async createCampaign(data: CreateEmailCampaignDto): Promise<EmailCampaign> {
-        return apiClient.post<EmailCampaign>('/email-campaigns', data);
+        const response = await apiClient.post<any>('/email-campaigns', data);
+        return this.unwrapData<EmailCampaign>(response);
     },
 
     /**
@@ -329,7 +339,8 @@ export const emailCampaignsApi = {
     async createInactiveUserCampaign(
         data: CreateInactiveUserCampaignDto
     ): Promise<EmailCampaign> {
-        return apiClient.post<EmailCampaign>('/email-campaigns/inactive-users', data);
+        const response = await apiClient.post<any>('/email-campaigns/inactive-users', data);
+        return this.unwrapData<EmailCampaign>(response);
     },
 
     /**
@@ -339,23 +350,25 @@ export const emailCampaignsApi = {
         campaignId: string,
         data: UpdateEmailCampaignDto
     ): Promise<EmailCampaign> {
-        return apiClient.put<EmailCampaign>(`/email-campaigns/${campaignId}`, data);
+        const response = await apiClient.put<any>(`/email-campaigns/${campaignId}`, data);
+        return this.unwrapData<EmailCampaign>(response);
     },
 
     /**
      * Delete a campaign (only works for draft campaigns)
      */
     async deleteCampaign(campaignId: string): Promise<void> {
-        return apiClient.delete<void>(`/email-campaigns/${campaignId}`);
+        await apiClient.delete<void>(`/email-campaigns/${campaignId}`);
     },
 
     /**
      * Send a campaign to all recipients
      */
     async sendCampaign(campaignId: string): Promise<SendCampaignResponse> {
-        return apiClient.post<SendCampaignResponse>(
+        const response = await apiClient.post<any>(
             `/email-campaigns/${campaignId}/send`
         );
+        return this.unwrapData<SendCampaignResponse>(response);
     },
 
     /**
@@ -364,19 +377,21 @@ export const emailCampaignsApi = {
     async createContentReminder(
         data: CreateContentReminderDto
     ): Promise<CreateContentReminderResponse> {
-        return apiClient.post<CreateContentReminderResponse>(
+        const response = await apiClient.post<any>(
             '/email-campaigns/content-reminder',
             data
         );
+        return this.unwrapData<CreateContentReminderResponse>(response);
     },
 
     /**
      * Cancel a scheduled campaign
      */
     async cancelCampaign(campaignId: string): Promise<CancelCampaignResponse> {
-        return apiClient.post<CancelCampaignResponse>(
+        const response = await apiClient.post<any>(
             `/email-campaigns/${campaignId}/cancel`
         );
+        return this.unwrapData<CancelCampaignResponse>(response);
     },
 
     /**
@@ -386,10 +401,11 @@ export const emailCampaignsApi = {
         campaignId: string,
         newTitle?: string
     ): Promise<EmailCampaign> {
-        return apiClient.post<EmailCampaign>(
+        const response = await apiClient.post<any>(
             `/email-campaigns/${campaignId}/duplicate`,
             { title: newTitle }
         );
+        return this.unwrapData<EmailCampaign>(response);
     },
 
     /**
@@ -404,10 +420,11 @@ export const emailCampaignsApi = {
             opened?: boolean;
         }
     ): Promise<GetCampaignRecipientsResponse> {
-        return apiClient.get<GetCampaignRecipientsResponse>(
+        const response = await apiClient.get<any>(
             `/email-campaigns/${campaignId}/recipients`,
             params
         );
+        return this.unwrapData<GetCampaignRecipientsResponse>(response);
     },
 
     /**
@@ -420,18 +437,20 @@ export const emailCampaignsApi = {
         communityId?: string;
         isHtml?: boolean;
     }): Promise<SendTestEmailResponse> {
-        return apiClient.post<SendTestEmailResponse>(
+        const response = await apiClient.post<any>(
             '/email-campaigns/test-email',
             data
         );
+        return this.unwrapData<SendTestEmailResponse>(response);
     },
 
     /**
      * Get available inactivity periods
      */
     async getInactivityPeriods(): Promise<GetInactivityPeriodsResponse> {
-        return apiClient.get<GetInactivityPeriodsResponse>(
+        const response = await apiClient.get<any>(
             '/email-campaigns/inactivity-periods'
         );
+        return this.unwrapData<GetInactivityPeriodsResponse>(response);
     },
 };

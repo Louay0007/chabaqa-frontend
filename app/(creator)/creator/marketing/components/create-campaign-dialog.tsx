@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -34,22 +34,60 @@ import * as z from "zod"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 import { emailCampaignsApi } from "@/lib/api/email-campaigns.api"
 import { useToast } from "@/components/ui/use-toast"
+import { buildCampaignPayload } from "./campaign-form-utils"
 
-const formSchema = z.object({
-  title: z.string().min(1, "Campaign title is required"),
-  type: z.enum(["announcement", "content-reminder", "inactive-users"]),
-  subject: z.string().min(1, "Subject line is required"),
-  content: z.string().min(1, "Email content is required"),
-  sendingTime: z.enum(["now", "scheduled"]),
-  scheduledDate: z.string().optional(),
-  scheduledTime: z.string().optional(),
-  inactivityPeriod: z.enum(["last_7_days", "last_15_days", "last_30_days", "last_60_days", "more_than_60_days"]).optional(),
-  contentType: z.enum(["event", "challenge", "cours", "product", "session", "all"]).optional(),
-  contentId: z.string().optional(),
-  isHtml: z.boolean().optional(),
-  trackOpens: z.boolean().optional(),
-  trackClicks: z.boolean().optional(),
-})
+const formSchema = z
+  .object({
+    title: z.string().min(1, "Campaign title is required"),
+    type: z.enum(["announcement", "content-reminder", "inactive-users"]),
+    subject: z.string().min(1, "Subject line is required"),
+    content: z.string().min(1, "Email content is required"),
+    sendingTime: z.enum(["now", "scheduled"]),
+    scheduledDate: z.string().optional(),
+    scheduledTime: z.string().optional(),
+    inactivityPeriod: z
+      .enum(["last_7_days", "last_15_days", "last_30_days", "last_60_days", "more_than_60_days"])
+      .optional(),
+    contentType: z.enum(["event", "challenge", "cours", "product", "session", "all"]).optional(),
+    contentId: z.string().optional(),
+    isHtml: z.boolean().optional(),
+    trackOpens: z.boolean().optional(),
+    trackClicks: z.boolean().optional(),
+  })
+  .superRefine((values, ctx) => {
+    if (values.sendingTime === "scheduled") {
+      if (!values.scheduledDate) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["scheduledDate"],
+          message: "Scheduled date is required",
+        })
+      }
+      if (!values.scheduledTime) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["scheduledTime"],
+          message: "Scheduled time is required",
+        })
+      }
+    }
+
+    if (values.type === "inactive-users" && !values.inactivityPeriod) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["inactivityPeriod"],
+        message: "Inactivity period is required",
+      })
+    }
+
+    if (values.type === "content-reminder" && !values.contentType) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["contentType"],
+        message: "Content type is required",
+      })
+    }
+  })
 
 interface CreateCampaignDialogProps {
   open: boolean
@@ -65,16 +103,14 @@ export function CreateCampaignDialog({
   const { selectedCommunityId } = useCreatorCommunity()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [previewMode, setPreviewMode] = useState(false)
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
+  const defaultValues = useMemo(
+    () => ({
       title: "",
-      type: "announcement",
+      type: "announcement" as const,
       subject: "",
       content: "",
-      sendingTime: "now",
+      sendingTime: "now" as const,
       scheduledDate: "",
       scheduledTime: "",
       inactivityPeriod: undefined,
@@ -83,7 +119,13 @@ export function CreateCampaignDialog({
       isHtml: true,
       trackOpens: true,
       trackClicks: true,
-    },
+    }),
+    [],
+  )
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues,
   })
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -98,65 +140,26 @@ export function CreateCampaignDialog({
 
     setIsSubmitting(true)
     try {
-      console.log('[CreateCampaign] submit values:', values)
-      console.log('[CreateCampaign] selectedCommunityId:', selectedCommunityId)
-
-      const baseData = {
-        title: values.title,
-        subject: values.subject,
-        content: values.content,
-        communityId: selectedCommunityId,
-        isHtml: values.isHtml,
-        trackOpens: values.trackOpens,
-        trackClicks: values.trackClicks,
-      }
-
-      let scheduledAt: string | undefined
-      if (values.sendingTime === "scheduled" && values.scheduledDate && values.scheduledTime) {
-        scheduledAt = `${values.scheduledDate}T${values.scheduledTime}:00.000Z`
-      }
-
-      if (values.type === "inactive-users") {
-        // Create inactive user campaign
-        await emailCampaignsApi.createInactiveUserCampaign({
-          ...baseData,
-          inactivityPeriod: values.inactivityPeriod!,
-          scheduledAt,
-        })
-        console.log('[CreateCampaign] inactive-users response OK')
-      } else if (values.type === "content-reminder") {
-        // Create content reminder campaign
-        await emailCampaignsApi.createContentReminder({
-          ...baseData,
-          contentType: values.contentType!,
-          contentId: values.contentId,
-          scheduledAt,
-        })
-        console.log('[CreateCampaign] content-reminder response OK')
+      const payload = buildCampaignPayload(values, selectedCommunityId)
+      if (payload.request === "createCampaign") {
+        await emailCampaignsApi.createCampaign(payload.data)
+      } else if (payload.request === "createInactiveUserCampaign") {
+        await emailCampaignsApi.createInactiveUserCampaign(payload.data)
       } else {
-        // Create regular campaign
-        await emailCampaignsApi.createCampaign({
-          ...baseData,
-          type: values.type === "announcement" ? "announcement" : "custom",
-          scheduledAt,
-        })
-        console.log('[CreateCampaign] announcement/custom response OK')
+        await emailCampaignsApi.createContentReminder(payload.data)
       }
 
       toast({
         title: "Success",
         description: "Campaign created successfully",
       })
-
+      form.reset(defaultValues)
       onOpenChange(false)
       onCampaignCreated?.()
-      form.reset()
     } catch (error: any) {
-      console.error("Error creating campaign:", error?.response || error)
-      console.log("Error payload:", error?.response?.data || error?.message)
       toast({
         title: "Error",
-        description: error.message || "Failed to create campaign",
+        description: error?.message || "Failed to create campaign",
         variant: "destructive",
       })
     } finally {
@@ -169,9 +172,7 @@ export function CreateCampaignDialog({
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Create New Campaign</DialogTitle>
-          <DialogDescription>
-            Create a new email campaign for your community members
-          </DialogDescription>
+          <DialogDescription>Create a campaign for your community members</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -196,7 +197,7 @@ export function CreateCampaignDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Campaign Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select campaign type" />
@@ -208,9 +209,6 @@ export function CreateCampaignDialog({
                       <SelectItem value="inactive-users">Inactive Users</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>
-                    Choose the type of campaign you want to send
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -226,7 +224,7 @@ export function CreateCampaignDialog({
                     <Input placeholder="Enter email subject..." {...field} />
                   </FormControl>
                   <FormDescription>
-                    Available variables: &#123;&#123;userName&#125;&#125;, &#123;&#123;communityName&#125;&#125;, &#123;&#123;currentDate&#125;&#125;
+                    Variables: {"{{userName}}"}, {"{{communityName}}"}, {"{{currentDate}}"}, {"{{currentYear}}"}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -240,11 +238,7 @@ export function CreateCampaignDialog({
                 <FormItem>
                   <FormLabel>Email Content</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Write your email content..."
-                      className="h-32"
-                      {...field}
-                    />
+                    <Textarea placeholder="Write your email content..." className="h-32" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -257,7 +251,7 @@ export function CreateCampaignDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>When to send</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select when to send" />
@@ -274,12 +268,12 @@ export function CreateCampaignDialog({
             />
 
             {form.watch("sendingTime") === "scheduled" && (
-              <div className="flex gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
                   name="scheduledDate"
                   render={({ field }) => (
-                    <FormItem className="flex-1">
+                    <FormItem>
                       <FormLabel>Date</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
@@ -292,7 +286,7 @@ export function CreateCampaignDialog({
                   control={form.control}
                   name="scheduledTime"
                   render={({ field }) => (
-                    <FormItem className="flex-1">
+                    <FormItem>
                       <FormLabel>Time</FormLabel>
                       <FormControl>
                         <Input type="time" {...field} />
@@ -310,8 +304,8 @@ export function CreateCampaignDialog({
                 name="inactivityPeriod"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Inactive for</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormLabel>Inactive Period</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select inactive period" />
@@ -322,12 +316,9 @@ export function CreateCampaignDialog({
                         <SelectItem value="last_15_days">15 days</SelectItem>
                         <SelectItem value="last_30_days">30 days</SelectItem>
                         <SelectItem value="last_60_days">60 days</SelectItem>
-                        <SelectItem value="more_than_60_days">60+ days</SelectItem>
+                        <SelectItem value="more_than_60_days">More than 60 days</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormDescription>
-                      Target users who haven't been active for the selected period
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -342,7 +333,7 @@ export function CreateCampaignDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Content Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select content type" />
@@ -357,13 +348,11 @@ export function CreateCampaignDialog({
                           <SelectItem value="all">General Content</SelectItem>
                         </SelectContent>
                       </Select>
-                      <FormDescription>
-                        Choose the type of content to remind members about
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="contentId"
@@ -371,11 +360,8 @@ export function CreateCampaignDialog({
                     <FormItem>
                       <FormLabel>Content ID (Optional)</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter specific content ID..." {...field} />
+                        <Input placeholder="Specific content ID..." {...field} />
                       </FormControl>
-                      <FormDescription>
-                        Optional: specify a particular content item to highlight
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -383,20 +369,8 @@ export function CreateCampaignDialog({
               </>
             )}
 
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setPreviewMode(!previewMode)}
-                disabled={isSubmitting}
-              >
-                Preview
-              </Button>
-              <Button
-                type="submit"
-                className="bg-chabaqa-primary hover:bg-chabaqa-primary/90"
-                disabled={isSubmitting}
-              >
+            <DialogFooter>
+              <Button type="submit" className="bg-chabaqa-primary hover:bg-chabaqa-primary/90" disabled={isSubmitting}>
                 {isSubmitting ? "Creating..." : "Create Campaign"}
               </Button>
             </DialogFooter>
