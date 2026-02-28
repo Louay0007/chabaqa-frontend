@@ -8,28 +8,7 @@ export function Features() {
   const activeFeature = siteData.features[activeFeatureIndex]
 
   const getFeatureColor = (color: string) => {
-    switch (color) {
-      case "community":
-        return "bg-chabaqa-primary hover:bg-chabaqa-primary/90 border-chabaqa-primary"
-      case "course":
-        return "bg-chabaqa-courses hover:bg-chabaqa-courses/90 border-chabaqa-courses"
-      case "challenge":
-        return "bg-chabaqa-challenges hover:bg-chabaqa-challenges/90 border-chabaqa-challenges"
-      case "product":
-        return "bg-purple-600 hover:bg-purple-700 border-purple-600"
-      case "oneToOne":
-        return "bg-chabaqa-sessions hover:bg-chabaqa-sessions/90 border-chabaqa-sessions"
-      case "event":
-        return "bg-indigo-600 hover:bg-indigo-700 border-indigo-600"
-      case "dms":
-        return "bg-green-600 hover:bg-green-400 border-green-300"
-      case "analytics":
-        return "bg-teal-600 hover:bg-teal-700 border-teal-600"
-      case "branding":
-        return "bg-amber-600 hover:bg-amber-700 border-amber-600"
-      default:
-        return "bg-blue-600 hover:bg-blue-700 border-blue-600"
-    }
+    return "bg-chabaqa-primary hover:bg-chabaqa-primary/90 border-chabaqa-primary"
   }
 
   return (
@@ -104,25 +83,7 @@ export function Features() {
               <div className="relative group w-full max-w-3xl">
                 {/* Animated border */}
                 <div
-                  className={`absolute -inset-1 rounded-2xl opacity-75 blur-sm animate-pulse ${
-                    activeFeature.color === "community"
-                      ? "bg-gradient-to-r from-chabaqa-primary via-blue-300 to-indigo-400"
-                      : activeFeature.color === "course"
-                        ? "bg-gradient-to-r from-[#47c7ea] via-cyan-300 to-blue-300"
-                        : activeFeature.color === "challenge"
-                          ? "bg-gradient-to-r from-[#ff9b28] via-orange-300 to-yellow-300"
-                          : activeFeature.color === "product"
-                            ? "bg-gradient-to-r from-purple-400 via-purple-300 to-indigo-400"
-                            : activeFeature.color === "oneToOne"
-                              ? "bg-gradient-to-r from-[#f65887] via-pink-300 to-rose-500"
-                              : activeFeature.color === "dms"
-                                ? "bg-gradient-to-r from-green-300 via-emerald-200 to-teal-200"
-                                : activeFeature.color === "analytics"
-                                  ? "bg-gradient-to-r from-teal-300 via-cyan-200 to-blue-200"
-                                  : activeFeature.color === "branding"
-                                    ? "bg-gradient-to-r from-amber-300 via-yellow-200 to-orange-200"
-                                    : "bg-gradient-to-r from-indigo-300 via-purple-200 to-pink-200"
-                  }`}
+                  className={`absolute -inset-1 rounded-2xl opacity-75 blur-sm animate-pulse bg-gradient-to-r from-chabaqa-primary via-blue-300 to-indigo-400`}
                 ></div>
                 
                 {/* Video container */}
