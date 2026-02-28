@@ -11,7 +11,7 @@ interface FAQItem {
 
 const faqData: FAQItem[] = [
   { 
-    question: "What makes Chabaqa (شبقة) different from other community platforms?", 
+    question: "What makes Chabaqa different from other community platforms?", 
     answer: "Chabaqa is an all-in-one community platform built for creators, coaches, and educators who want to grow and monetize their audience in one place. It gives you the tools to create and sell online courses, run interactive challenges, offer one-on-one coaching, host virtual events, and deliver digital products — all from a single, integrated system. Unlike fragmented solutions, Chabaqa removes the need for multiple subscriptions or complicated integrations, so you can focus on building a strong, engaged community.", 
     category: "General"
   }, 
@@ -80,10 +80,10 @@ export function FAQ() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
           <div className="text-center mb-12 md:mb-16">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Frequently Asked Questions About Chabaqa
+              Frequently Asked Questions
             </h1>
-            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
-              Everything you need to know about Chabaqa (شبقة / Shabqa / Chabka) - the all-in-one community platform for creators, coaches, and educators. Learn about features, pricing, and how to build and monetize your community.
+            <p className="text-sm sm:text-base md:text-xl text-gray-600 max-w-3xl mx-auto">
+              Everything you need to know about Chabaqa - the all-in-one community platform for creators, coaches, and educators. Learn about features, pricing, and how to build and monetize your community.
             </p>
           </div>
 

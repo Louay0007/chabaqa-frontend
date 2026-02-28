@@ -114,8 +114,8 @@ export function Pricing() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Title */}
         <div className="text-center mb-10">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">{siteData.pricing.title}</h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">{siteData.pricing.subtitle}</p>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">{siteData.pricing.title}</h2>
+          <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">{siteData.pricing.subtitle}</p>
         </div>
 
         {/* Billing switch */}
