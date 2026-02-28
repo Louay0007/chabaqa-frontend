@@ -822,7 +822,7 @@ export const siteData = {
           "Activate up to 3 Courses",
           "Digital Products: Enabled (Sell/Downloadables)",
           "2 GB Storage Included",
-          "Basic Insights — Members, Sales, Course Progress",
+          "Basic Insights - Members, Sales, Course Progress",
           "24/7 Support",
           "Transaction Fee: 7.9%"
         ],
@@ -841,7 +841,7 @@ export const siteData = {
           "Courses, Challenges, 1-to-1 Sessions, Digital Products, Events & Online Meetings",
           "Magic Reach: Email, WhatsApp & Message Automation (500/month)",
           "Members Gamification (Points, Rewards, Rankings)",
-          "Full Advanced Insights — Sales, Growth, Engagement",
+          "Full Advanced Insights - Sales, Growth, Engagement",
           "24/7 Priority Support",
           "Verified Badge for your Profile/Community",
           "50 GB Storage for Files, Videos & Resources",
@@ -866,7 +866,7 @@ export const siteData = {
           "Branding: Custom URL with your own domain name",
           "Recognition: Featured Badge + Community highlighted at top of listings",
           "Members Gamification (Points, Rewards, Rankings)",
-          "Full Advanced Insights — Sales, Growth, Engagement",
+          "Full Advanced Insights - Sales, Growth, Engagement",
           "24/7 VIP Support",
           "Occasional Promotion on our Social Media",
           "Transaction Fee: 2.9%"
