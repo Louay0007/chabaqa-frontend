@@ -8,6 +8,7 @@ import { Star, StarOff, Edit, Send } from "lucide-react"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 import { emailCampaignsApi } from "@/lib/api/email-campaigns.api"
 import { useToast } from "@/components/ui/use-toast"
+import { buildCampaignPayload } from "./campaign-form-utils"
 import {
   Dialog,
   DialogContent,
@@ -192,43 +193,31 @@ export function EmailTemplateCards() {
         communityId: selectedCommunityId,
       })
 
-      const baseData = {
-        title: campaignName,
-        subject,
-        content,
-        communityId: selectedCommunityId,
-        isHtml: true,
-        trackOpens: true,
-        trackClicks: true,
-      }
+      const payload = buildCampaignPayload(
+        {
+          title: campaignName,
+          type: campaignType as any,
+          subject,
+          content,
+          sendingTime: sendingTime as any,
+          scheduledDate,
+          scheduledTime,
+          inactivityPeriod: inactiveDays as any,
+          contentType: contentType as any,
+          contentId,
+          isHtml: true,
+          trackOpens: true,
+          trackClicks: true,
+        },
+        selectedCommunityId,
+      )
 
-      let scheduledAt: string | undefined
-      if (sendingTime === "scheduled" && scheduledDate && scheduledTime) {
-        scheduledAt = `${scheduledDate}T${scheduledTime}:00.000Z`
-      }
-
-      if (campaignType === "inactive-users") {
-        await emailCampaignsApi.createInactiveUserCampaign({
-          ...baseData,
-          inactivityPeriod: (inactiveDays as any) || 'last_7_days',
-          scheduledAt,
-        })
-        console.log('[EmailTemplate] inactive-users response OK')
-      } else if (campaignType === "content-reminder") {
-        await emailCampaignsApi.createContentReminder({
-          ...baseData,
-          contentType: (contentType as any) || 'all',
-          contentId: contentId || undefined,
-          scheduledAt,
-        })
-        console.log('[EmailTemplate] content-reminder response OK')
+      if (payload.request === "createCampaign") {
+        await emailCampaignsApi.createCampaign(payload.data)
+      } else if (payload.request === "createInactiveUserCampaign") {
+        await emailCampaignsApi.createInactiveUserCampaign(payload.data)
       } else {
-        await emailCampaignsApi.createCampaign({
-          ...baseData,
-          type: campaignType === "announcement" ? "announcement" : "custom",
-          scheduledAt,
-        })
-        console.log('[EmailTemplate] announcement/custom response OK')
+        await emailCampaignsApi.createContentReminder(payload.data)
       }
 
       toast({
