@@ -1,7 +1,8 @@
-import { NextResponse, NextRequest } from 'next/server'
+import { NextRequest } from 'next/server'
+import { authMiddleware } from './middleware/auth.middleware'
 
 export async function middleware(req: NextRequest) {
-  return NextResponse.next()
+  return authMiddleware(req)
 }
 
 export const config = {

@@ -142,6 +142,7 @@ export function About() {
               <p className="text-base sm:text-lg text-gray-700 leading-relaxed">
                 {siteData.about.description}
               </p>
+              <p className="mt-2 text-sm text-gray-500">Brand note: Chabaqa (not Chabaka).</p>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">

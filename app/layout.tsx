@@ -3,6 +3,16 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import Script from "next/script"
 import "./globals.css"
+import { Ga4ScriptGate } from "@/components/ga4-script-gate"
+import { CookieConsentProvider } from "@/components/cookie-consent-provider"
+import {
+  generateKeywords,
+  generateOGMetadata,
+  generateRobotsMetadata,
+  generateTwitterMetadata,
+  generateWebSiteSchema,
+  seoConfig,
+} from "@/lib/seo-config"
 
 const inter = Inter({ subsets: ["latin"] })
 const appBaseUrl =
@@ -13,23 +23,11 @@ const appBaseUrl =
 export const metadata: Metadata = {
   metadataBase: new URL(appBaseUrl),
   title: {
-    default: "Chabaqa - Turn your passion into business",
+    default: seoConfig.defaultTitle,
     template: "%s | Chabaqa"
   },
-  description:
-    "The ultimate platform for creators to build engaged communities, monetize their expertise, and scale their impact. Create online courses, challenges, coaching sessions, and events all in one place.",
-  keywords: [
-    "chabaqa",
-    "shabqa",
-    "chabka",
-    "shabka",
-    "شبقة",
-    "community platform",
-    "creator platform",
-    "online courses",
-    "coaching platform",
-    "creator economy"
-  ],
+  description: seoConfig.defaultDescription,
+  keywords: generateKeywords(),
   authors: [{ name: "Chabaqa", url: "https://chabaqa.io" }],
   creator: "Chabaqa",
   publisher: "Chabaqa",
@@ -51,42 +49,9 @@ export const metadata: Metadata = {
     shortcut: "/Logos/ICO/brandmark.ico",
   },
   manifest: "/manifest.json",
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    alternateLocale: ["ar_TN", "fr_FR"],
-    url: appBaseUrl,
-    siteName: "Chabaqa",
-    title: "Chabaqa - Turn your passion into business",
-    description: "The ultimate platform for creators to build engaged communities, monetize their expertise, and scale their impact.",
-    images: [
-      {
-        url: "/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Chabaqa - Community Platform for Creators"
-      }
-    ]
-  },
-  twitter: {
-    card: "summary_large_image",
-    site: "@chabaqa",
-    creator: "@chabaqa",
-    title: "Chabaqa - Turn your passion into business",
-    description: "The ultimate platform for creators to build engaged communities, monetize their expertise, and scale their impact.",
-    images: ["/og-image.jpg"]
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    }
-  },
+  openGraph: generateOGMetadata(seoConfig.defaultTitle, seoConfig.defaultDescription, appBaseUrl),
+  twitter: generateTwitterMetadata(seoConfig.defaultTitle, seoConfig.defaultDescription),
+  robots: generateRobotsMetadata(true, true),
   alternates: {
     canonical: appBaseUrl,
     languages: {
@@ -96,8 +61,8 @@ export const metadata: Metadata = {
     }
   },
   verification: {
-    google: 'your-google-verification-code',
-    yandex: 'your-yandex-verification-code'
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+    yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION,
   },
   category: 'technology',
 }
@@ -127,24 +92,14 @@ export default function RootLayout({
       </head>
       <body className={inter.className} suppressHydrationWarning>
         {children}
-        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ? (
-          <>
-            <Script
-              async
-              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`}
-            />
-            <Script id="ga4-init" strategy="afterInteractive">
-              {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}', {
-                  send_page_view: true
-                });
-              `}
-            </Script>
-          </>
-        ) : null}
+        <Ga4ScriptGate />
+        <CookieConsentProvider />
+        <Script id="structured-data-org" type="application/ld+json" strategy="afterInteractive">
+          {JSON.stringify(seoConfig.organization)}
+        </Script>
+        <Script id="structured-data-website" type="application/ld+json" strategy="afterInteractive">
+          {JSON.stringify(generateWebSiteSchema())}
+        </Script>
       </body>
     </html>
   )

@@ -911,10 +911,9 @@ export const siteData = {
       support: [],
     },
     social: [
-      { name: "Facebook", href: "#", icon: "Facebook" },
-      { name: "Instagram", href: "#", icon: "Instagram" },
-      { name: "LinkedIn", href: "#", icon: "Linkedin" },
-      { name: "Youtube", href: "#", icon: "Youtube" },
+      { name: "Facebook", href: "https://facebook.com/chabaqa", icon: "Facebook" },
+      { name: "Instagram", href: "https://instagram.com/chabaqa", icon: "Instagram" },
+      { name: "LinkedIn", href: "https://linkedin.com/company/chabaqa", icon: "Linkedin" },
     ],
   },
 }

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Save } from "lucide-react"
+import { ImageUpload } from "@/app/(dashboard)/components/image-upload"
 
 interface SessionEditFormProps {
   session: any
@@ -26,6 +27,7 @@ export function SessionEditForm({ session, sessionId }: SessionEditFormProps) {
   const [formData, setFormData] = useState({
     title: session.title || "",
     description: session.description || "",
+    thumbnail: (session as any).thumbnail || (session as any).image || "",
     duration: session.duration || 60,
     price: session.price || 0,
     currency: session.currency || "TND",
@@ -143,6 +145,22 @@ export function SessionEditForm({ session, sessionId }: SessionEditFormProps) {
             {validationErrors.description && (
               <p className="text-sm text-red-500">{validationErrors.description}</p>
             )}
+          </div>
+
+          <div className="space-y-3">
+            <Label htmlFor="thumbnail">Session Cover</Label>
+            <Input
+              id="thumbnail"
+              value={formData.thumbnail}
+              onChange={(e) => handleChange('thumbnail', e.target.value)}
+              placeholder="https://.../session-cover.jpg"
+            />
+            <ImageUpload
+              currentImage={formData.thumbnail}
+              onImageChange={(url) => handleChange('thumbnail', url)}
+              aspectRatio="wide"
+              maxSize={5}
+            />
           </div>
 
           {/* Duration & Price Row */}

@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { X, Send, Loader2, ShieldAlert, Sparkles, LifeBuoy } from "lucide-react"
+import { X, Send, Loader2, Sparkles, LifeBuoy } from "lucide-react"
 import { io, Socket } from "socket.io-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -210,12 +210,12 @@ export function LiveSupportWidget() {
     <div className="fixed bottom-4 right-4 z-[120] sm:bottom-6 sm:right-6">
       {open && (
         <div className="mb-3 w-[370px] max-w-[calc(100vw-1rem)] overflow-hidden rounded-3xl border border-chabaqa-secondary2/30 bg-white shadow-2xl shadow-chabaqa-primary/20">
-          <div className="bg-gradient-to-r from-chabaqa-primary via-chabaqa-secondary2 to-chabaqa-secondary1 px-4 py-3 text-white">
+          <div className="bg-gradient-to-r from-[#4c1d95] via-[#6d28d9] to-[#8b5cf6] px-4 py-3 text-white">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-white/90 p-1.5">
+                <div className="rounded-xl border border-white/30 bg-white/15 p-1.5">
                   <Image
-                    src="/Logos/PNG/brandmark.png"
+                    src="/Logos/PNG/pop.png"
                     alt="Chabaqa"
                     width={24}
                     height={24}
@@ -290,7 +290,7 @@ export function LiveSupportWidget() {
                         className={cn(
                           "max-w-[88%] rounded-2xl px-3 py-2 text-sm shadow-sm",
                           isUser
-                            ? "bg-gradient-to-r from-chabaqa-primary to-chabaqa-secondary1 text-white"
+                            ? "bg-gradient-to-r from-[#5b21b6] to-[#8b5cf6] text-white"
                             : isAdmin
                               ? "border border-chabaqa-secondary1/20 bg-chabaqa-secondary1/10 text-slate-900"
                               : "border border-slate-200 bg-white text-slate-900"
@@ -312,7 +312,7 @@ export function LiveSupportWidget() {
           <div className="border-t bg-white p-3">
             {status === "BOT_ACTIVE" && ticket?.id && (
               <Button
-                className="mb-2 w-full bg-gradient-to-r from-chabaqa-primary to-chabaqa-secondary1 text-white hover:from-chabaqa-primary/90 hover:to-chabaqa-secondary1/90"
+                className="mb-2 w-full bg-gradient-to-r from-[#5b21b6] to-[#8b5cf6] text-white hover:from-[#4c1d95] hover:to-[#7c3aed]"
                 onClick={onRequestAdmin}
                 disabled={requestingAdmin}
               >
@@ -354,20 +354,20 @@ export function LiveSupportWidget() {
       )}
 
       <Button
-        className="group relative h-16 w-16 overflow-hidden rounded-full border border-slate-200 bg-white shadow-lg shadow-slate-900/15 hover:bg-slate-50"
+        className="group relative h-16 w-16 overflow-hidden rounded-full border border-white/20 bg-gradient-to-br from-[#4c1d95] via-[#6d28d9] to-[#a855f7] shadow-[0_14px_30px_rgba(124,58,237,0.55)] transition hover:scale-[1.03] hover:shadow-[0_18px_36px_rgba(124,58,237,0.65)]"
         onClick={() => setOpen((v) => !v)}
         aria-label="Open live support"
       >
-        <span className="absolute inset-0 bg-transparent transition group-hover:bg-slate-100/60" />
+        <span className="absolute inset-0 bg-transparent transition group-hover:bg-white/10" />
         {open ? (
-          <ShieldAlert className="relative h-7 w-7 text-chabaqa-primary" />
+          <X className="relative h-7 w-7 text-white" />
         ) : (
           <Image
-            src="/Logos/PNG/brandmark.png"
+            src="/Logos/PNG/pop.png"
             alt="Chabaqa"
-            width={28}
-            height={28}
-            className="relative h-7 w-7"
+            width={30}
+            height={30}
+            className="relative h-8 w-8"
           />
         )}
       </Button>

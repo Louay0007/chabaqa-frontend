@@ -29,6 +29,37 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
+const ACCESS_TOKEN_COOKIE_NAME = 'accessToken'
+const ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+
+function syncAccessTokenCookie(accessToken: string | null) {
+  if (typeof document === 'undefined') return
+  const isSecure =
+    (typeof window !== 'undefined' && window.location.protocol === 'https:') ||
+    process.env.NODE_ENV === 'production'
+  const securePart = isSecure ? '; Secure' : ''
+
+  if (!accessToken) {
+    document.cookie = `${ACCESS_TOKEN_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax${securePart}`
+    return
+  }
+
+  document.cookie = `${ACCESS_TOKEN_COOKIE_NAME}=${encodeURIComponent(accessToken)}; Path=/; Max-Age=${ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${securePart}`
+}
+
+function extractErrorMessage(data: any): string {
+  if (typeof data?.error?.message === 'string' && data.error.message.trim()) {
+    return data.error.message.trim()
+  }
+  if (typeof data?.message === 'string' && data.message.trim()) {
+    return data.message.trim()
+  }
+  if (Array.isArray(data?.message) && data.message.length > 0) {
+    return String(data.message[0])
+  }
+  return 'Login failed'
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
@@ -43,10 +74,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem('accessToken')
       setToken(token)
       if (!token) {
+        syncAccessTokenCookie(null)
         setUser(null)
         setLoading(false)
         return null
       }
+
+      // Keep middleware-accessible cookie synced with local storage token.
+      syncAccessTokenCookie(token)
 
       // We can just use the stored user if we want to be super simple, 
       // or verify token with backend. For now, let's verify.
@@ -67,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Token invalid
         localStorage.removeItem('accessToken')
         localStorage.removeItem('user')
+        syncAccessTokenCookie(null)
         setUser(null)
         return null
       }
@@ -85,6 +121,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || 
                      (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api` : "http://localhost:3000/api")
       
+      const normalizedPayload = {
+        email: String(payload.email || '').trim().toLowerCase(),
+        password: String(payload.password || ''),
+      }
+
       console.log(`Attempting login to: ${apiBase}/auth/login`);
 
       let res;
@@ -92,7 +133,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         res = await fetch(`${apiBase}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          credentials: 'include',
+          body: JSON.stringify(normalizedPayload)
         });
       } catch (fetchError: any) {
         console.error('Network error:', fetchError);
@@ -102,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.message || 'Login failed')
+        throw new Error(extractErrorMessage(data))
       }
 
       // Handle potential data wrapping (e.g. { data: { user, accessToken } })
@@ -116,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       localStorage.setItem('accessToken', accessToken)
       localStorage.setItem('user', JSON.stringify(user))
+      syncAccessTokenCookie(accessToken)
       setToken(accessToken)
       const normalizedUser = normalizeUser(user)
       setUser(normalizedUser)
@@ -160,6 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('accessToken', accessToken)
       localStorage.setItem('user', JSON.stringify(userData))
     }
+    syncAccessTokenCookie(accessToken)
     setToken(accessToken)
     const normalizedUser = normalizeUser(userData)
     setUser(normalizedUser)
@@ -194,6 +238,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.user && data.accessToken) {
         localStorage.setItem('accessToken', data.accessToken)
         localStorage.setItem('user', JSON.stringify(data.user))
+        syncAccessTokenCookie(data.accessToken)
         setToken(data.accessToken)
         const normalizedUser = normalizeUser(data.user)
         setUser(normalizedUser)
@@ -219,6 +264,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('user')
       localStorage.removeItem('auth-preferences')
       localStorage.removeItem('user-session')
+      syncAccessTokenCookie(null)
       setToken(null)
 
       // Clear anything else that might have been set

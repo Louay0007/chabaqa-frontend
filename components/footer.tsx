@@ -1,7 +1,10 @@
+"use client"
+
 import Link from "next/link"
 import Image from "next/image"
 import { Facebook, Instagram, Linkedin, Youtube } from "lucide-react"
 import { siteData } from "@/lib/data"
+import { COOKIE_OPEN_PREFERENCES_EVENT } from "@/components/cookie-consent-provider"
 
 const iconMap = {
   Facebook,
@@ -11,6 +14,11 @@ const iconMap = {
 }
 
 export function Footer() {
+  const openCookiePreferences = () => {
+    if (typeof window === "undefined") return
+    window.dispatchEvent(new CustomEvent(COOKIE_OPEN_PREFERENCES_EVENT))
+  }
+
   const legalLinks = siteData.footer.links.company.filter((link) =>
     ["/terms-of-service", "/privacy-policy"].includes(link.href)
   )
@@ -124,6 +132,13 @@ export function Footer() {
                   {link.name}
                 </Link>
               ))}
+              <button
+                type="button"
+                onClick={openCookiePreferences}
+                className="text-sm text-gray-500 underline-offset-4 hover:text-gray-800 hover:underline dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                Manage Cookies
+              </button>
             </div>
           )}
         </div>

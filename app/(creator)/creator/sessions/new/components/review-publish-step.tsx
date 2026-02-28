@@ -4,11 +4,13 @@ import { CardHeader, CardTitle, CardDescription, CardContent } from "@/component
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Video, Users, Star, Eye } from "lucide-react"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 interface ReviewPublishStepProps {
   formData: {
     title: string
     description: string
+    thumbnail: string
     duration: string
     price: string
     currency: string
@@ -28,6 +30,8 @@ interface ReviewPublishStepProps {
 }
 
 export function ReviewPublishStep({ formData, handleInputChange }: ReviewPublishStepProps) {
+  const previewImage = resolveImageUrl(formData.thumbnail) || formData.thumbnail || "/placeholder.svg"
+
   return (
     <EnhancedCard>
       <CardHeader>
@@ -96,6 +100,9 @@ export function ReviewPublishStep({ formData, handleInputChange }: ReviewPublish
             <div>
               <h3 className="font-semibold mb-3">Session Preview</h3>
               <div className="border rounded-lg p-4 bg-sessions-50">
+                <div className="mb-3 overflow-hidden rounded-md border bg-white">
+                  <img src={previewImage} alt="Session cover preview" className="h-36 w-full object-cover" />
+                </div>
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h4 className="font-semibold text-lg">{formData.title || "Session Title"}</h4>

@@ -204,6 +204,7 @@ export interface Session {
   id: string
   title: string
   description: string
+  thumbnail?: string
   duration: number
   price: number
   currency: string

@@ -55,7 +55,8 @@ const PRIVACY_SECTIONS = [
     title: "Cookies, Tracking, and Analytics",
     paragraphs: [
       "We use cookies and similar technologies to keep you signed in, remember preferences, understand product usage, and improve performance.",
-      "Analytics tools may collect pseudonymous events and usage metrics. You can manage browser cookie settings and certain tracking controls through your device and browser preferences.",
+      "Analytics tools may collect pseudonymous events and usage metrics only after you explicitly accept analytics cookies through our consent banner or preference center.",
+      "You can update your cookie choices at any time by selecting Manage Cookies in the site footer, in addition to browser and device controls.",
     ],
   },
   {
@@ -130,7 +131,7 @@ export default function PrivacyPolicyPage() {
         title="Privacy Policy"
         subtitle="We treat privacy as a product responsibility. This policy explains what data we collect, why we process it, and how we protect your information."
         effectiveDate="February 27, 2026"
-        lastUpdated="February 27, 2026"
+        lastUpdated="February 28, 2026"
         contactEmail="contactchabaqa@gmail.com"
         sections={[...PRIVACY_SECTIONS]}
         relatedLink={{

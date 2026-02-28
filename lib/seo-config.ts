@@ -7,8 +7,9 @@ export const seoConfig = {
   // Base configuration
   siteName: "Chabaqa",
   siteUrl: "https://chabaqa.io",
-  defaultTitle: "Chabaqa - All-in-One Community Platform for Creators",
-  defaultDescription: "Build and monetize your community with Chabaqa. Create online courses, challenges, coaching sessions, and events. The complete platform for creators, coaches, and educators.",
+  defaultTitle: "Chabaqa Official Site | All-in-One Community Platform for Creators",
+  defaultDescription:
+    "Official Chabaqa platform for creators to build and monetize communities with courses, challenges, coaching sessions, events, and digital products.",
   
   // Brand variations for search optimization
   brandVariations: [
@@ -83,9 +84,10 @@ export const seoConfig = {
   // Social media handles
   social: {
     twitter: "@chabaqa",
+    x: "https://twitter.com/chabaqa",
     facebook: "https://facebook.com/chabaqa",
     linkedin: "https://linkedin.com/company/chabaqa",
-    instagram: "https://instagram.com/chabaqa"
+    instagram: "https://instagram.com/chabaqa",
   },
   
   // Contact information

@@ -61,7 +61,7 @@ export function Hero({ className }: HeroProps) {
 
             <div className="space-y-4">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight">
-                <span className="block">Turn your</span>
+                <span className="block">Chabaqa helps you</span>
                 <span className="bg-gradient-to-r from-[#8e78fb] via-[#f65887] to-[#ff9b28] bg-clip-text text-transparent">
                   passion into
                 </span>

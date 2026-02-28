@@ -304,6 +304,12 @@ export default function CreatorDashboardPage() {
     return calculateGrowth(current, previous)
   }
 
+  const currentRevenueValue = (() => {
+    const raw = overview?.revenue?.total ?? overview?.totalRevenue ?? overview?.salesTotal ?? 0
+    const normalized = Number(raw)
+    return Number.isFinite(normalized) ? normalized : 0
+  })()
+
   const stats = [
     {
       title: "Total Members",
@@ -335,18 +341,10 @@ export default function CreatorDashboardPage() {
     {
       title: "Total Revenue",
       value: (() => {
-        const rev = (overview?.revenue?.total)
-          || overview?.totalRevenue
-          || overview?.salesTotal
-          || 0
-        try { return typeof rev === 'number' ? `${rev.toLocaleString()} TND` : String(rev) } catch { return `${rev} TND` }
+        try { return `${currentRevenueValue.toLocaleString()} TND` } catch { return `${currentRevenueValue} TND` }
       })(),
       change: (() => {
-        const currentRev = (overview?.revenue?.total)
-          || overview?.totalRevenue
-          || overview?.salesTotal
-          || 0
-        return getGrowthChange(typeof currentRev === 'number' ? currentRev : 0, previousMonthCounts.revenue)
+        return getGrowthChange(currentRevenueValue, previousMonthCounts.revenue)
       })(),
       icon: Coins,
       color: "success" as const,

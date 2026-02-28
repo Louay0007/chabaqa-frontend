@@ -13,6 +13,7 @@ export interface CreateSessionResourceData {
 export interface CreateSessionData {
   title: string;
   description: string;
+  thumbnail?: string;
   duration: number;
   price: number;
   currency: 'USD' | 'EUR' | 'TND';
