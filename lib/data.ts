@@ -34,7 +34,7 @@ export const siteData = {
       description:
         "Customize your spaces, prompt discussions, host live events, and launch your course. Circle is built for member engagement from the ground up.",
       buttonText: "Join Community",
-      video: "/videos/community-feature.mp4",
+      video: "/features-vds/communt.mp4",
       color: "community",
       badgeColor: "border-blue-500/50 text-blue-600 bg-blue-50",
       ctaGradient: "from-[#5d67ff] to-[#8e78fb]",
@@ -198,7 +198,7 @@ export const siteData = {
       description:
         "Create, manage, and deliver engaging online courses with interactive content, progress tracking, and comprehensive analytics to maximize learning outcomes.",
       buttonText: "Start Learning",
-      video: "/videos/courses-feature.mp4",
+      video: "/features-vds/course.mp4",
       color: "course",
       badgeColor: "border-[#47c7ea]/50 text-[#47c7ea] bg-[#47c7ea]/10",
       ctaGradient: "from-[#47c7ea] to-[#86e4fd]",
@@ -265,7 +265,7 @@ export const siteData = {
       description:
         "Engage your community with exciting challenges, competitions, and skill-building activities that drive participation and foster healthy competition.",
       buttonText: "Join Challenge",
-      video: "/videos/challenges-feature.mp4",
+      video: "/features-vds/challenge.mp4",
       color: "challenge",
       badgeColor: "border-[#ff9b28]/50 text-[#ff9b28] bg-[#ff9b28]/10",
       ctaGradient: "from-[#ff9b28] to-[#fddab0]",
@@ -314,7 +314,7 @@ export const siteData = {
       description:
         "Showcase and sell your products with integrated e-commerce features, inventory management, and seamless payment processing.",
       buttonText: "Browse Products",
-      video: "/videos/products-feature.mp4",
+      video: "/features-vds/product.mp4",
       color: "product",
       badgeColor: "border-purple-500/50 text-purple-600 bg-purple-50",
       ctaGradient: "from-[#5d67ff] to-[#86e4fd]",
@@ -363,7 +363,7 @@ export const siteData = {
       description:
         "Connect with mentors and coaches through personalized one-on-one sessions with scheduling, video calls, and progress tracking.",
       buttonText: "Book Session",
-      video: "/videos/coaching-feature.mp4",
+      video: "/features-vds/session.mp4",
       color: "oneToOne",
       badgeColor: "border-[#f65887]/50 text-[#f65887] bg-[#f65887]/10",
       ctaGradient: "from-[#f65887] to-[#fddab0]",
@@ -604,7 +604,7 @@ export const siteData = {
       description:
         "Host engaging live events, webinars, and workshops with interactive features, attendee management, and comprehensive analytics.",
       buttonText: "Attend Event",
-      video: "/videos/events-feature.mp4",
+      video: "/features-vds/event.mp4",
       color: "event",
       badgeColor: "border-indigo-500/50 text-indigo-600 bg-indigo-50",
       ctaGradient: "from-[#8e78fb] to-[#86e4fd]",
