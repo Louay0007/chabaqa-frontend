@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import Link from "next/link"
 
 export function AppInstallCTA() {
   return (
@@ -31,7 +32,12 @@ export function AppInstallCTA() {
           {/* Buttons - Centered (middle) on mobile, Bottom Center on desktop */}
           <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 sm:top-[75%] sm:bottom-8 sm:left-[30%] lg:bottom-10 z-10 w-full sm:w-auto px-4 sm:px-0">
             <div className="flex flex-col sm:flex-row gap-6 items-center">
-              <button className="bg-white hover:opacity-90 rounded-lg overflow-hidden shadow-xl hover:scale-105 transition-all duration-300">
+              <Link 
+                href="https://expo.dev/accounts/mariembenali/projects/mobile/builds/f85b1b45-f20f-47c7-bb5b-78f3f36ce556"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white hover:opacity-90 rounded-lg overflow-hidden shadow-xl hover:scale-105 transition-all duration-300"
+              >
                 <Image
                   src="/app store.png"
                   alt="Download on App Store"
@@ -39,8 +45,13 @@ export function AppInstallCTA() {
                   height={111}
                   className="w-auto h-14 sm:h-12 lg:h-14"
                 />
-              </button>
-              <button className="bg-white hover:opacity-90 rounded-lg overflow-hidden shadow-xl hover:scale-105 transition-all duration-300">
+              </Link>
+              <Link 
+                href="https://expo.dev/accounts/mariembenali/projects/mobile/builds/f85b1b45-f20f-47c7-bb5b-78f3f36ce556"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white hover:opacity-90 rounded-lg overflow-hidden shadow-xl hover:scale-105 transition-all duration-300"
+              >
                 <Image
                   src="/play store.png"
                   alt="Get it on Google Play"
@@ -48,7 +59,7 @@ export function AppInstallCTA() {
                   height={111}
                   className="w-auto h-14 sm:h-12 lg:h-14"
                 />
-              </button>
+              </Link>
             </div>
           </div>
         </div>
