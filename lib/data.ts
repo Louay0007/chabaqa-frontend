@@ -472,7 +472,7 @@ export const siteData = {
       description:
         "Track your community's growth, engagement, and revenue with comprehensive analytics. Make data-driven decisions to optimize your community.",
       buttonText: "View Analytics",
-      video: "/videos/analytics-feature.mp4",
+      video: "/features-vds/analytics.mp4",
       color: "analytics",
       badgeColor: "border-teal-500/50 text-teal-600 bg-teal-50",
       ctaGradient: "from-[#14b8a6] to-[#2dd4bf]",
@@ -538,7 +538,7 @@ export const siteData = {
       description:
         "Create a unique brand experience with custom themes, logos, colors, and domains. Make your community truly yours with white-label solutions.",
       buttonText: "Customize Brand",
-      video: "/videos/branding-feature.mp4",
+      video: "/features-vds/branding.mp4",
       color: "branding",
       badgeColor: "border-amber-500/50 text-amber-600 bg-amber-50",
       ctaGradient: "from-[#f59e0b] to-[#fbbf24]",
