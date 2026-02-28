@@ -887,17 +887,6 @@ export const siteData = {
   footer: {
     description: "Empowering communities worldwide to learn, connect, and thrive together.",
     links: {
-      features: [
-        { name: "Community", href: "/#community" },
-        { name: "Courses", href: "/#courses" },
-        { name: "Challenges", href: "/#challenges" },
-        { name: "Products", href: "/#products" },
-        { name: "Coaching", href: "/#coaching" },
-        { name: "Direct Messages", href: "/#dms" },
-        { name: "Analytics", href: "/#analytics" },
-        { name: "Branding", href: "/#branding" },
-        { name: "Events", href: "/#events" },
-      ],
       product: [
         { name: "Explore", href: "/explore" },
         { name: "All Features", href: "/#features" },
