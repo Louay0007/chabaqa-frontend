@@ -5,11 +5,13 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "lucide-react"
+import { ImageUpload } from "@/app/(dashboard)/components/image-upload"
 
 interface BasicInfoStepProps {
   formData: {
     title: string
     description: string
+    thumbnail: string
     requirements: string
   }
   handleInputChange: (field: string, value: any) => void
@@ -54,6 +56,22 @@ export function BasicInfoStep({ formData, handleInputChange, validationErrors = 
           {validationErrors.description && (
             <p className="text-sm text-red-500">{validationErrors.description}</p>
           )}
+        </div>
+
+        <div className="space-y-3">
+          <Label htmlFor="thumbnail">Session Cover (Optional)</Label>
+          <Input
+            id="thumbnail"
+            placeholder="https://.../session-cover.jpg"
+            value={formData.thumbnail}
+            onChange={(e) => handleInputChange("thumbnail", e.target.value)}
+          />
+          <ImageUpload
+            currentImage={formData.thumbnail}
+            onImageChange={(url) => handleInputChange("thumbnail", url)}
+            aspectRatio="wide"
+            maxSize={5}
+          />
         </div>
 
         <div className="space-y-2">

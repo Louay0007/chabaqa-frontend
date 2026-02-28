@@ -27,6 +27,7 @@ import { sessionsApi } from "@/lib/api/sessions.api"
 import { feedbackApi, type Feedback, type FeedbackStats } from "@/lib/api/feedback.api"
 import { ReviewsList } from "@/components/reviews/reviews-list"
 import { StarRating } from "@/components/reviews/star-rating"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 interface AvailableSlot {
   id: string
@@ -76,6 +77,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
   )
   const sessionAverageRating = Number(session?.averageRating ?? session?.mentor?.rating ?? 0)
   const sessionRatingCount = Number(session?.ratingCount ?? session?.mentor?.reviews ?? 0)
+  const sessionCoverImage = resolveImageUrl(session?.thumbnail || session?.image) || "/placeholder.svg"
   const isPendingFinalizeForThisSession =
     paymentAction === "choose-slot" &&
     Boolean(pendingOrderId) &&
@@ -373,6 +375,13 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
 
   return (
     <Card key={session.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+      <div className="h-40 w-full overflow-hidden rounded-t-lg bg-muted">
+        <img
+          src={sessionCoverImage}
+          alt={session?.title || "Session cover"}
+          className="h-full w-full object-cover"
+        />
+      </div>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">

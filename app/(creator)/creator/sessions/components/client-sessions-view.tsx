@@ -24,6 +24,7 @@ import {
 
 import Link from "next/link";
 import { sessionsApi, type CreatorBookingViewModel } from "@/lib/api/sessions.api";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 
 import UpcomingSessionsCard from "./upcoming-sessions-card";
 import PendingRequestsCard from "./pending-requests-card";
@@ -248,12 +249,20 @@ export default function ClientSessionsView({
             <TabsContent value={activeTab} className="mt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredSessions.length > 0 ? (
-                    filteredSessions.map((session) => (
+                    filteredSessions.map((session) => {
+                      const sessionCover = resolveImageUrl(session.thumbnail || session.image) || "/placeholder.svg"
+                      return (
                         <div
                         key={session.id}
                         className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow hover:shadow-md transition flex flex-col relative"
-                        style={{ height: '320px' }}
                         >
+                        <div className="-mx-4 -mt-4 mb-3 h-32 overflow-hidden rounded-t-xl bg-zinc-100 dark:bg-zinc-800">
+                            <img
+                              src={sessionCover}
+                              alt={session.title || "Session cover"}
+                              className="h-full w-full object-cover"
+                            />
+                        </div>
                         {/* Badge en position absolue */}
                         <div className="absolute top-4 right-4">
                             <Badge
@@ -265,12 +274,12 @@ export default function ClientSessionsView({
                         </div>
 
                         {/* Titre - hauteur fixe */}
-                        <div className="mb-3 pr-24" style={{ height: '32px' }}>
+                        <div className="mb-3 pr-24">
                             <h4 className="text-lg font-semibold line-clamp-1">{session.title}</h4>
                         </div>
 
                         {/* Description - hauteur fixe */}
-                        <div className="mb-3" style={{ height: '60px' }}>
+                        <div className="mb-3">
                             <p className="text-sm text-zinc-500 line-clamp-3">{session.description}</p>
                         </div>
 
@@ -317,7 +326,8 @@ export default function ClientSessionsView({
                             </Button>
                         </div>
                         </div>
-                    ))
+                      )
+                    })
                     ) : (
                     <div className="col-span-full flex flex-col items-center justify-center py-12 px-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl">
                         <Calendar className="h-16 w-16 text-zinc-300 dark:text-zinc-700 mb-4" />

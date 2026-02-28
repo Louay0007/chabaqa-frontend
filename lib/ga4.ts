@@ -1,3 +1,5 @@
+import { hasAnalyticsConsent } from "@/lib/cookie-consent"
+
 // GA4 client-side helper for the Chabaqa web app
 // Usage:
 //  - Configure NEXT_PUBLIC_GA_MEASUREMENT_ID in your env
@@ -17,7 +19,12 @@ const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 export const isGa4Enabled = typeof window !== "undefined" && !!GA_MEASUREMENT_ID;
 
 function safeGtag(...args: any[]) {
-  if (!isGa4Enabled || typeof window === "undefined" || typeof window.gtag !== "function") {
+  if (
+    !isGa4Enabled ||
+    typeof window === "undefined" ||
+    typeof window.gtag !== "function" ||
+    !hasAnalyticsConsent()
+  ) {
     return;
   }
   window.gtag(...args);
@@ -43,4 +50,3 @@ export function setUserProperties(props: GA4EventParams): void {
     }
   }
 }
-

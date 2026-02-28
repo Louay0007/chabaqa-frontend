@@ -126,6 +126,7 @@ function normalizeSessions(rawSessions: any[]): any[] {
     id: s.id || s._id,
     title: s.title,
     description: s.description,
+    thumbnail: s.thumbnail || s.image || undefined,
     duration: Number(s.duration ?? 0),
     price: Number(s.price ?? 0),
     isActive: Boolean(s.isActive ?? true),

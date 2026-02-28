@@ -325,7 +325,11 @@ export interface Session {
   id: string;
   title: string;
   description: string;
+  thumbnail?: string;
+  image?: string;
   communityId: string;
+  communitySlug?: string;
+  communityName?: string;
   creatorId: string;
   duration: number; // in minutes
   price: number;
@@ -334,6 +338,12 @@ export interface Session {
   bookedSlots: number;
   averageRating?: number;
   ratingCount?: number;
+  category?: string;
+  bookingsCount?: number;
+  bookingsThisWeek?: number;
+  canBookMore?: boolean;
+  notes?: string;
+  resources?: Array<Record<string, unknown>>;
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;

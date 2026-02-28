@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation"
+import type { Metadata } from "next"
 import { communitiesApi } from "@/lib/api"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { CheckoutForm } from "./components/checkout-form"
+import { generateAlternateLanguages, generateKeywords, generateTwitterMetadata } from "@/lib/seo-config"
 
 interface CheckoutPageProps {
   params: {
@@ -10,6 +12,32 @@ interface CheckoutPageProps {
   }
   searchParams?: {
     inviteCode?: string
+  }
+}
+
+export async function generateMetadata({ params }: CheckoutPageProps): Promise<Metadata> {
+  const slug = decodeURIComponent(params.slug || "").trim()
+  const communityName = slug
+    ? slug
+        .replace(/[-_]+/g, " ")
+        .split(" ")
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ")
+    : "Community"
+  const title = `Checkout - ${communityName}`
+  const description = `Complete your checkout to join ${communityName} on Chabaqa and access premium community content.`
+
+  return {
+    title,
+    description,
+    keywords: generateKeywords(["community checkout", "join community", `${communityName} checkout`]),
+    alternates: generateAlternateLanguages(`/community/${encodeURIComponent(slug)}/checkout`),
+    robots: {
+      index: false,
+      follow: true,
+    },
+    twitter: generateTwitterMetadata(title, description),
   }
 }
 

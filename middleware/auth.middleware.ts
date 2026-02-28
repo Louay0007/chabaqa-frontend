@@ -6,7 +6,7 @@ import { jwtVerify } from 'jose'
  * Protects routes and handles token validation at the edge
  */
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'local-dev-jwt-secret-change-me')
 const secret = new TextEncoder().encode(JWT_SECRET)
 
 // Protected routes that require authentication
@@ -24,6 +24,8 @@ const PUBLIC_ROUTES = [
   '/signup',
   '/forgot-password',
   '/reset-password',
+  '/admin/login',
+  '/admin/verify-2fa',
   '/',
   '/about',
   '/contact',
@@ -33,6 +35,7 @@ const PUBLIC_ROUTES = [
 const ADMIN_ROUTES = [
   '/admin',
 ]
+const ADMIN_AUTHORIZED_ROLES = ['admin', 'super_admin', 'moderator', 'content_moderator']
 
 // Creator routes
 const CREATOR_ROUTES = [
@@ -54,9 +57,14 @@ export async function authMiddleware(request: NextRequest) {
 
   // Check if route is protected
   const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route))
-  const isPublicRoute = PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(route))
+  const isPublicRoute = PUBLIC_ROUTES.some(route =>
+    route === '/'
+      ? pathname === '/'
+      : pathname === route || pathname.startsWith(`${route}/`)
+  )
   const isAdminRoute = ADMIN_ROUTES.some(route => pathname.startsWith(route))
   const isCreatorRoute = CREATOR_ROUTES.some(route => pathname.startsWith(route))
+  const isAdminAuthPage = pathname === '/admin/login' || pathname === '/admin/verify-2fa'
 
   // Get token from cookies
   const accessToken = request.cookies.get('accessToken')?.value
@@ -65,7 +73,7 @@ export async function authMiddleware(request: NextRequest) {
   let isValidToken = false
 
   // Verify token if present
-  if (accessToken) {
+  if (accessToken && JWT_SECRET) {
     try {
       const { payload } = await jwtVerify(accessToken, secret)
       user = payload
@@ -75,24 +83,42 @@ export async function authMiddleware(request: NextRequest) {
       console.log('Token verification failed:', error)
     }
   }
+  const userRole = typeof user?.role === 'string' ? user.role : ''
+  const isAdminAuthorizedUser = ADMIN_AUTHORIZED_ROLES.includes(userRole)
 
-  // Handle protected routes
-  if (isProtectedRoute && !isValidToken) {
-    const loginUrl = new URL('/signin', request.url)
-    loginUrl.searchParams.set('redirect', pathname)
-    return NextResponse.redirect(loginUrl)
+  // Redirect authenticated users away from auth pages
+  if (isValidToken && (pathname === '/signin' || pathname === '/signup' || isAdminAuthPage)) {
+    if (isAdminAuthPage && isAdminAuthorizedUser) {
+      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+    }
+    if (isAdminAuthPage) {
+      return NextResponse.next()
+    }
+    const redirectTo = request.nextUrl.searchParams.get('redirect') || '/dashboard'
+    return NextResponse.redirect(new URL(redirectTo, request.url))
+  }
+
+  // Explicit public routes bypass protection checks
+  if (isPublicRoute) {
+    return NextResponse.next()
   }
 
   // Handle admin routes
-  if (isAdminRoute && (!isValidToken || user?.role !== 'admin')) {
+  if (isAdminRoute && (!isValidToken || !isAdminAuthorizedUser)) {
     if (!isValidToken) {
-      const loginUrl = new URL('/signin', request.url)
+      const loginUrl = new URL('/admin/login', request.url)
       loginUrl.searchParams.set('redirect', pathname)
       return NextResponse.redirect(loginUrl)
     } else {
       // User is authenticated but not admin
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
+  }
+  // Handle protected routes
+  if (isProtectedRoute && !isValidToken) {
+    const loginUrl = new URL('/signin', request.url)
+    loginUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(loginUrl)
   }
 
   // Handle creator routes
@@ -105,12 +131,6 @@ export async function authMiddleware(request: NextRequest) {
       // User is authenticated but not creator/admin
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
-  }
-
-  // Redirect authenticated users away from auth pages
-  if (isValidToken && (pathname === '/signin' || pathname === '/signup')) {
-    const redirectTo = request.nextUrl.searchParams.get('redirect') || '/dashboard'
-    return NextResponse.redirect(new URL(redirectTo, request.url))
   }
 
   // Add user info to headers for server components

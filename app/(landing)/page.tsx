@@ -10,8 +10,9 @@ import { Footer } from "@/components/footer"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Chabaqa - All-in-One Community Platform for Creators | Build, Engage & Monetize",
-  description: "Build and monetize your community with Chabaqa (شبقة). Create online courses, challenges, coaching sessions, and events. The complete platform for creators, coaches, and educators to grow their business in Tunisia and worldwide.",
+  title: "Chabaqa Official Site | All-in-One Community Platform for Creators",
+  description:
+    "Official Chabaqa platform for creators to build and monetize communities with courses, challenges, coaching sessions, events, and digital products.",
   keywords: [
     // Primary English keywords
     "community platform",
@@ -61,8 +62,9 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Chabaqa" }],
   openGraph: {
-    title: "Chabaqa - All-in-One Community Platform for Creators",
-    description: "Build and monetize your community with courses, challenges, coaching, and events. The complete platform for creators.",
+    title: "Chabaqa Official Site | All-in-One Community Platform for Creators",
+    description:
+      "Official Chabaqa platform for creators to build and monetize communities with courses, challenges, coaching sessions, events, and digital products.",
     url: "https://chabaqa.io",
     siteName: "Chabaqa",
     type: "website",
@@ -79,8 +81,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Chabaqa - All-in-One Community Platform for Creators",
-    description: "Build and monetize your community with courses, challenges, coaching, and events.",
+    title: "Chabaqa Official Site | All-in-One Community Platform for Creators",
+    description:
+      "Official Chabaqa platform for creators to build and monetize communities with courses, challenges, coaching sessions, events, and digital products.",
     images: ["/og-image.jpg"],
     creator: "@chabaqa",
     site: "@chabaqa"
@@ -106,8 +109,8 @@ export const metadata: Metadata = {
     }
   },
   verification: {
-    google: 'your-google-verification-code',
-    yandex: 'your-yandex-verification-code'
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+    yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION
   },
   other: {
     'revisit-after': '3 days',

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { cookies, headers } from "next/headers"
+import type { Metadata } from "next"
 import { Footer } from "@/components/footer"
 import { CommunityHero } from "./components/community-hero"
 import { CommunityJoinCheckoutSection } from "./components/community-join-checkout-section"
@@ -15,6 +16,7 @@ import {
 import { normalizeCommunitySettings } from "@/lib/community-settings"
 import { buildCommunityTheme, getContentWidthClass } from "@/lib/community-theme"
 import { cn } from "@/lib/utils"
+import { generateAlternateLanguages, generateKeywords, generateTwitterMetadata } from "@/lib/seo-config"
 
 const PUBLIC_COMMUNITY_DATA_REVALIDATE_SECONDS = 60
 const OPTIONAL_COMMUNITY_FETCH_TIMEOUT_MS = 4500
@@ -48,6 +50,36 @@ function resolveImageUrl(raw?: string, apiBase?: string): string {
 interface CommunityDetailsPageProps {
   params: {
     slug: string
+  }
+}
+
+export async function generateMetadata({ params }: CommunityDetailsPageProps): Promise<Metadata> {
+  const slug = decodeURIComponent(params.slug || "").trim()
+  const readableSlug = slug.replace(/[-_]+/g, " ").trim()
+  const normalizedName = readableSlug
+    ? readableSlug
+        .split(" ")
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ")
+    : "Community"
+  const title = `${normalizedName} Community`
+  const description = `Join ${normalizedName} on Chabaqa to access premium content, sessions, events, and creator resources.`
+  const communityUrl = `https://chabaqa.io/community/${encodeURIComponent(slug)}`
+
+  return {
+    title,
+    description,
+    keywords: generateKeywords([`${normalizedName} community`, `${slug} community`, "join creator community"]),
+    alternates: generateAlternateLanguages(`/community/${encodeURIComponent(slug)}`),
+    openGraph: {
+      title,
+      description,
+      url: communityUrl,
+      type: "website",
+      siteName: "Chabaqa",
+    },
+    twitter: generateTwitterMetadata(title, description),
   }
 }
 

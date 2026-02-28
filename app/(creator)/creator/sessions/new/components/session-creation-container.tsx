@@ -27,6 +27,7 @@ export function SessionCreationContainer() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
+    thumbnail: "",
     duration: "",
     price: "",
     currency: "TND",
@@ -216,6 +217,7 @@ export function SessionCreationContainer() {
       const payload: CreateSessionData = {
         title: formData.title,
         description: formData.description,
+        thumbnail: formData.thumbnail?.trim() || undefined,
         duration: Number(formData.duration || 0),
         price: Number(formData.price || 0),
         currency: (formData.currency || 'TND') as CreateSessionData['currency'],
