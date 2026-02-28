@@ -53,86 +53,86 @@ export const blogAuthors: Record<string, BlogAuthor> = {
 }
 
 export const blogPosts: BlogPost[] = [
-  {
-    id: "1",
-    slug: "building-engaged-communities-best-practices",
-    title: "Building Engaged Communities: Best Practices for Creators",
-    excerpt: "Learn the essential strategies for creating and nurturing a thriving online community that keeps members coming back.",
-    image: "/placeholder.svg?height=720&width=1280",
-    category: "Community",
-    tags: ["community building", "engagement", "creator tips", "best practices"],
-    date: "2024-02-15",
-    lastModified: "2024-02-15",
-    readTime: "5 min read",
-    author: blogAuthors.lou,
-    featured: true,
-    seo: {
-      metaTitle: "Building Engaged Communities: Best Practices for Creators | Chabaqa",
-      metaDescription: "Discover proven strategies for creating thriving online communities. Learn how to foster engagement, build connections, and create value for your members.",
-      keywords: ["community building", "online community", "creator platform", "engagement strategies", "community management", "member retention"],
-      ogImage: "/og-community-building.jpg"
-    },
-    content: `
-      <div class="blog-content">
-        <p class="lead">Creating a thriving online community is one of the most rewarding experiences for any creator. It's not just about gathering people in one place—it's about fostering genuine connections, encouraging meaningful interactions, and building a space where members feel valued and heard.</p>
+  // {
+  //   id: "1",
+  //   slug: "building-engaged-communities-best-practices",
+  //   title: "Building Engaged Communities: Best Practices for Creators",
+  //   excerpt: "Learn the essential strategies for creating and nurturing a thriving online community that keeps members coming back.",
+  //   image: "/placeholder.svg?height=720&width=1280",
+  //   category: "Community",
+  //   tags: ["community building", "engagement", "creator tips", "best practices"],
+  //   date: "2024-02-15",
+  //   lastModified: "2024-02-15",
+  //   readTime: "5 min read",
+  //   author: blogAuthors.lou,
+  //   featured: true,
+  //   seo: {
+  //     metaTitle: "Building Engaged Communities: Best Practices for Creators | Chabaqa",
+  //     metaDescription: "Discover proven strategies for creating thriving online communities. Learn how to foster engagement, build connections, and create value for your members.",
+  //     keywords: ["community building", "online community", "creator platform", "engagement strategies", "community management", "member retention"],
+  //     ogImage: "/og-community-building.jpg"
+  //   },
+  //   content: `
+  //     <div class="blog-content">
+  //       <p class="lead">Creating a thriving online community is one of the most rewarding experiences for any creator. It's not just about gathering people in one place—it's about fostering genuine connections, encouraging meaningful interactions, and building a space where members feel valued and heard.</p>
         
-        <h2>Understanding Your Community's Needs</h2>
-        <p>The foundation of any successful community lies in understanding what your members truly need. Take time to listen, ask questions, and observe how people interact. This insight will guide every decision you make.</p>
+  //       <h2>Understanding Your Community's Needs</h2>
+  //       <p>The foundation of any successful community lies in understanding what your members truly need. Take time to listen, ask questions, and observe how people interact. This insight will guide every decision you make.</p>
         
-        <div class="tip-box">
-          <h3>Pro Tip</h3>
-          <p>Conduct regular surveys and polls to understand your community's evolving needs and preferences.</p>
-        </div>
+  //       <div class="tip-box">
+  //         <h3>Pro Tip</h3>
+  //         <p>Conduct regular surveys and polls to understand your community's evolving needs and preferences.</p>
+  //       </div>
         
-        <h2>Creating Value-Driven Content</h2>
-        <p>Your community thrives when you consistently deliver value. Whether it's educational content, entertainment, or support, make sure every piece of content serves a purpose and resonates with your audience.</p>
+  //       <h2>Creating Value-Driven Content</h2>
+  //       <p>Your community thrives when you consistently deliver value. Whether it's educational content, entertainment, or support, make sure every piece of content serves a purpose and resonates with your audience.</p>
         
-        <ul>
-          <li><strong>Educational content:</strong> Teach skills, share knowledge, provide insights</li>
-          <li><strong>Entertainment:</strong> Keep things fun and engaging</li>
-          <li><strong>Support:</strong> Create a safe space for members to help each other</li>
-          <li><strong>Inspiration:</strong> Share success stories and motivational content</li>
-        </ul>
+  //       <ul>
+  //         <li><strong>Educational content:</strong> Teach skills, share knowledge, provide insights</li>
+  //         <li><strong>Entertainment:</strong> Keep things fun and engaging</li>
+  //         <li><strong>Support:</strong> Create a safe space for members to help each other</li>
+  //         <li><strong>Inspiration:</strong> Share success stories and motivational content</li>
+  //       </ul>
         
-        <h2>Encouraging Active Participation</h2>
-        <p>A community is only as strong as its engagement. Create opportunities for members to contribute, share their experiences, and connect with one another. Use challenges, discussions, and events to keep the momentum going.</p>
+  //       <h2>Encouraging Active Participation</h2>
+  //       <p>A community is only as strong as its engagement. Create opportunities for members to contribute, share their experiences, and connect with one another. Use challenges, discussions, and events to keep the momentum going.</p>
         
-        <blockquote>
-          <p>"The best communities are built on participation, not just consumption. Give your members reasons to engage, and they'll become your biggest advocates."</p>
-        </blockquote>
+  //       <blockquote>
+  //         <p>"The best communities are built on participation, not just consumption. Give your members reasons to engage, and they'll become your biggest advocates."</p>
+  //       </blockquote>
         
-        <h2>Building Trust and Authenticity</h2>
-        <p>Be genuine in your interactions. Share your journey, including the challenges and failures. Authenticity builds trust, and trust is the cornerstone of any lasting community.</p>
+  //       <h2>Building Trust and Authenticity</h2>
+  //       <p>Be genuine in your interactions. Share your journey, including the challenges and failures. Authenticity builds trust, and trust is the cornerstone of any lasting community.</p>
         
-        <h3>Key Trust-Building Strategies:</h3>
-        <ol>
-          <li>Be transparent about your goals and intentions</li>
-          <li>Admit mistakes and learn from them publicly</li>
-          <li>Show up consistently and reliably</li>
-          <li>Protect member privacy and data</li>
-          <li>Moderate fairly and consistently</li>
-        </ol>
+  //       <h3>Key Trust-Building Strategies:</h3>
+  //       <ol>
+  //         <li>Be transparent about your goals and intentions</li>
+  //         <li>Admit mistakes and learn from them publicly</li>
+  //         <li>Show up consistently and reliably</li>
+  //         <li>Protect member privacy and data</li>
+  //         <li>Moderate fairly and consistently</li>
+  //       </ol>
         
-        <h2>Measuring Success</h2>
-        <p>Track key metrics to understand what's working:</p>
-        <ul>
-          <li>Active member count and growth rate</li>
-          <li>Engagement rate (posts, comments, reactions)</li>
-          <li>Member retention and churn</li>
-          <li>Content performance</li>
-          <li>Member satisfaction scores</li>
-        </ul>
+  //       <h2>Measuring Success</h2>
+  //       <p>Track key metrics to understand what's working:</p>
+  //       <ul>
+  //         <li>Active member count and growth rate</li>
+  //         <li>Engagement rate (posts, comments, reactions)</li>
+  //         <li>Member retention and churn</li>
+  //         <li>Content performance</li>
+  //         <li>Member satisfaction scores</li>
+  //       </ul>
         
-        <h2>Conclusion</h2>
-        <p>Building an engaged community takes time, effort, and dedication. But with the right approach and tools like Chabaqa, you can create a space where your members thrive and your impact grows exponentially. Start small, stay consistent, and always put your community first.</p>
+  //       <h2>Conclusion</h2>
+  //       <p>Building an engaged community takes time, effort, and dedication. But with the right approach and tools like Chabaqa, you can create a space where your members thrive and your impact grows exponentially. Start small, stay consistent, and always put your community first.</p>
         
-        <div class="cta-box">
-          <h3>Ready to Build Your Community?</h3>
-          <p>Join Chabaqa today and access all the tools you need to create, grow, and monetize your community.</p>
-        </div>
-      </div>
-    `
-  },
+  //       <div class="cta-box">
+  //         <h3>Ready to Build Your Community?</h3>
+  //         <p>Join Chabaqa today and access all the tools you need to create, grow, and monetize your community.</p>
+  //       </div>
+  //     </div>
+  //   `
+  // },
   {
     id: "2",
     slug: "how-to-create-perfect-course-structure-chabaqa-2026",
