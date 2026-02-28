@@ -24,7 +24,6 @@ export function Pricing() {
         'Starter': PlanTier.STARTER,
         'Growth': PlanTier.GROWTH,
         'Pro': PlanTier.PRO,
-        'Enterprise': PlanTier.ENTERPRISE,
       }
 
       const tier = tierMap[tierName]
@@ -182,14 +181,20 @@ export function Pricing() {
                   ${plan.popular ? "border-chabaqa-primary shadow-xl md:scale-[1.02]" : "border-gray-200 shadow-lg"}
                 `}
               >
-                {/* Popular badge – safer position on mobile */}
-                {plan.popular && (
+                {/* Popular badge or Trial badge – safer position on mobile */}
+                {plan.popular ? (
                   <div className="absolute top-2 left-1/2 -translate-x-1/2">
                     <span className="bg-chabaqa-primary text-white px-3 py-0.5 rounded-full text-xs sm:text-sm font-medium shadow">
                       Most Popular
                     </span>
                   </div>
-                )}
+                ) : plan.trial ? (
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2">
+                    <span className="bg-green-500 text-white px-3 py-0.5 rounded-full text-xs sm:text-sm font-medium shadow">
+                      {plan.trial}
+                    </span>
+                  </div>
+                ) : null}
 
                 <CardHeader className="text-center pb-6 sm:pb-8">
                   <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 mt-4 sm:mt-6">
@@ -212,6 +217,13 @@ export function Pricing() {
                       <span className="rounded-full bg-gray-100 px-2 py-0.5">
                         ≈ <NumberFlow value={perMonth} format={{ style: "currency", currency: "TND", maximumFractionDigits: 0 }} /> /mo
                       </span>
+                    </div>
+                  )}
+
+                  {/* Trial info below price */}
+                  {plan.trial && (
+                    <div className="mt-2 text-xs sm:text-sm text-green-600 font-medium">
+                      {plan.trial} trial included
                     </div>
                   )}
 

@@ -813,46 +813,65 @@ export const siteData = {
     plans: [
       {
         name: "Starter",
-        price: "Free",
+        tier: "Starter",
+        prices: { monthly: 29, yearly: 290 },
         description: "Perfect for getting started",
+        trial: "7 days free",
         features: [
-          "Up to 100 community members",
-          "Basic course creation",
-          "Community discussions",
-          "Email support"
+          "1 Community (up to 100 members)",
+          "Activate up to 3 Courses",
+          "Digital Products: Enabled (Sell/Downloadables)",
+          "2 GB Storage Included",
+          "Basic Insights — Members, Sales, Course Progress",
+          "24/7 Support",
+          "Transaction Fee: 7.9%"
         ],
-        cta: "Get Started Free",
+        cta: "Start 7-Day Free Trial",
         popular: false
       },
       {
-        name: "Pro",
-        // remove string "$29" + period; use structured prices for toggle + animation:
-        prices: { monthly: 29, yearly: 290 }, // e.g. ~2 months free on yearly
+        name: "Growth",
+        tier: "Growth",
+        prices: { monthly: 69, yearly: 690 },
         description: "For growing communities",
+        trial: "7 days free",
         features: [
-          "Up to 1,000 members",
-          "Advanced course tools",
-          "Live streaming",
-          "Event management",
-          "Analytics dashboard",
-          "Priority support"
+          "Up to 3 Communities (10,000 members total)",
+          "Unlimited Courses (no activation limit)",
+          "Courses, Challenges, 1-to-1 Sessions, Digital Products, Events & Online Meetings",
+          "Magic Reach: Email, WhatsApp & Message Automation (500/month)",
+          "Members Gamification (Points, Rewards, Rankings)",
+          "Full Advanced Insights — Sales, Growth, Engagement",
+          "24/7 Priority Support",
+          "Verified Badge for your Profile/Community",
+          "50 GB Storage for Files, Videos & Resources",
+          "Occasional Promotion on our Social Media",
+          "Transaction Fee: 4.9%"
         ],
-        cta: "Start Pro Trial",
+        cta: "Start 7-Day Free Trial",
         popular: true
       },
       {
-        name: "Enterprise",
-        price: "Custom",
-        description: "For large organizations",
+        name: "Pro",
+        tier: "Pro",
+        prices: { monthly: 99, yearly: 990 },
+        description: "For professional creators",
+        trial: "7 days free",
         features: [
-          "Unlimited members",
-          "White-label solution",
-          "Advanced integrations",
-          "Dedicated support",
-          "Custom features",
-          "SLA guarantee"
+          "Unlimited Communities & Unlimited Members",
+          "Unlimited Courses (no restrictions)",
+          "Courses, Challenges, 1-to-1 Sessions, Digital Products, Events & Online Meetings",
+          "Magic Reach: Unlimited Email, WhatsApp & Message Automation",
+          "Team Power: Add up to 3 Admins",
+          "Branding: Custom URL with your own domain name",
+          "Recognition: Featured Badge + Community highlighted at top of listings",
+          "Members Gamification (Points, Rewards, Rankings)",
+          "Full Advanced Insights — Sales, Growth, Engagement",
+          "24/7 VIP Support",
+          "Occasional Promotion on our Social Media",
+          "Transaction Fee: 2.9%"
         ],
-        cta: "Contact Sales",
+        cta: "Start 7-Day Free Trial",
         popular: false
       }
     ]
