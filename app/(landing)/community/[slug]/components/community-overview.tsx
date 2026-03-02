@@ -370,6 +370,14 @@ export function CommunityOverview({
           "from-[#8e78fb] to-[#f48fb1]": "border-purple-200 hover:border-pink-300",
         }
         const borderColor = borderColorMap[item.color] || "border-gray-200 hover:border-purple-200"
+        const iconGradient = themeTokens ? "" : item.color
+        const iconStyle: CSSProperties | undefined = themeTokens
+          ? {
+            background: `linear-gradient(135deg, ${themeTokens.primary} 0%, ${themeTokens.primary} 100%)`,
+            color: themeTokens.primaryText,
+            boxShadow: `0 6px 16px ${themeTokens.softPrimary}`,
+          }
+          : item.iconStyle
         
         return (
           <Card
@@ -386,7 +394,7 @@ export function CommunityOverview({
           >
             <div className="flex items-start gap-3 sm:gap-3.5">
               {IconComponent && (
-                <IconBadge Icon={IconComponent} gradient={item.color} style={item.iconStyle} />
+                <IconBadge Icon={IconComponent} gradient={iconGradient} style={iconStyle} />
               )}
               <div className="flex-1">
                 <p className="text-sm font-semibold leading-6 tracking-[-0.01em] text-gray-900 sm:text-[15px]">{item.title}</p>

@@ -18,7 +18,7 @@ export const seoConfig = {
     "Chabka",
     "Shabka",
     "Chabqa",
-    "شبقة" // Arabic
+    "شبكة" // Arabic
   ],
   
   // Core keywords - English

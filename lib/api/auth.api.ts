@@ -9,6 +9,25 @@ export interface RegisterData {
   date_naissance?: string;
 }
 
+export interface RegisterOtpResponse {
+  success: boolean;
+  message: string;
+  email: string;
+  expiresInMinutes: number;
+}
+
+export interface VerifyRegisterOtpData {
+  email: string;
+  verificationCode: string;
+}
+
+export interface VerifyRegisterOtpResponse {
+  success: boolean;
+  message: string;
+  user?: User;
+  error?: string;
+}
+
 export interface LoginData {
   email: string;
   password: string;
@@ -52,11 +71,11 @@ export class AuthApiError extends Error {
 // Authentication API
 export const authApi = {
   /**
-   * Register a new user
+   * Register a new user (OTP request)
    */
-  register: async (data: RegisterData): Promise<ApiSuccessResponse<AuthResponse>> => {
+  register: async (data: RegisterData): Promise<RegisterOtpResponse> => {
     try {
-      const response = await apiClient.post<ApiSuccessResponse<AuthResponse>>('/auth/register', data);
+      const response = await apiClient.post<RegisterOtpResponse>('/auth/register', data);
       return response;
     } catch (error: any) {
       const errorMessage = typeof error.message === 'string' ? error.message : '';
@@ -69,6 +88,46 @@ export const authApi = {
       }
       if (error.statusCode === 500) {
         throw new AuthApiError(500, 'Server error. Please try again later.', error.data);
+      }
+      throw error;
+    }
+  },
+
+  registerCreator: async (data: RegisterData): Promise<RegisterOtpResponse> => {
+    try {
+      const response = await apiClient.post<RegisterOtpResponse>('/auth/register-creator', data);
+      return response;
+    } catch (error: any) {
+      const errorMessage = typeof error.message === 'string' ? error.message : '';
+      if (error.statusCode === 409 || errorMessage.includes('already exists')) {
+        throw new AuthApiError(409, 'This email is already registered. Please use another email or sign in.', error.data);
+      }
+      if (error.statusCode === 400) {
+        throw new AuthApiError(400, 'Invalid registration data. Please check your information.', error.data);
+      }
+      throw error;
+    }
+  },
+
+  verifyRegisterOtp: async (data: VerifyRegisterOtpData): Promise<VerifyRegisterOtpResponse> => {
+    try {
+      const response = await apiClient.post<VerifyRegisterOtpResponse>('/auth/register/verify-otp', data);
+      return response;
+    } catch (error: any) {
+      if (error.statusCode === 400) {
+        throw new AuthApiError(400, 'Invalid or expired verification code', error.data);
+      }
+      throw error;
+    }
+  },
+
+  resendRegisterOtp: async (email: string): Promise<RegisterOtpResponse> => {
+    try {
+      const response = await apiClient.post<RegisterOtpResponse>('/auth/register/resend-otp', { email });
+      return response;
+    } catch (error: any) {
+      if (error.statusCode === 400) {
+        throw new AuthApiError(400, 'Unable to resend OTP. Please sign up again.', error.data);
       }
       throw error;
     }

@@ -1,5 +1,7 @@
 "use server"
 
+import { authApi } from "@/lib/api"
+
 interface ResetPasswordResult {
   success: boolean
   error?: string
@@ -12,31 +14,20 @@ export async function resetPasswordAction(data: {
   newPassword: string
 }): Promise<ResetPasswordResult> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/user/reset-password`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: data.email,
-        verificationCode: data.verificationCode,
-        newPassword: data.newPassword,
-      }),
+    const response: any = await authApi.resetPassword({
+      email: data.email,
+      verificationCode: data.verificationCode,
+      newPassword: data.newPassword,
     })
-
-    const result = await response.json()
-
-    if (response.ok && result.success) {
+    const result = response?.data ?? response
+    const success = Boolean(response?.success ?? result?.success)
+    if (success) {
       return { 
         success: true, 
-        message: result.message 
-      }
-    } else {
-      return { 
-        success: false, 
-        error: result.message || "Une erreur s'est produite" 
+        message: result?.message || response?.message || "Password reset successfully"
       }
     }
+    return { success: false, error: result?.error || result?.message || response?.message || "Une erreur s'est produite" }
   } catch (error) {
     return { success: false, error: "Erreur de connexion. Veuillez réessayer." }
   }

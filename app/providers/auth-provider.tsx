@@ -1,9 +1,10 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { normalizeUser } from "@/lib/hooks/useUser"
+import { registerBrowserPushForCurrentUser } from "@/lib/push-notifications"
 
 export interface User {
   _id: string
@@ -65,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const pushRegistrationAttemptedForUserRef = useRef<string | null>(null)
   const router = useRouter()
 
   const isAuthenticated = !!user
@@ -300,6 +302,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     fetchMe()
   }, [fetchMe])
+
+  useEffect(() => {
+    const userId = user?._id ? String(user._id) : null;
+    if (!isAuthenticated || !userId) {
+      pushRegistrationAttemptedForUserRef.current = null;
+      return;
+    }
+
+    if (pushRegistrationAttemptedForUserRef.current === userId) {
+      return;
+    }
+    pushRegistrationAttemptedForUserRef.current = userId;
+
+    registerBrowserPushForCurrentUser(userId).catch((pushError) => {
+      console.warn('Push registration skipped:', pushError);
+    });
+  }, [isAuthenticated, user?._id])
 
   const value = useMemo<AuthContextValue>(() => ({
     user,

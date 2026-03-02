@@ -121,7 +121,11 @@ export function EmailCampaignList({
             {campaigns.map((campaign) => {
               const isMutating = actionLoadingId === campaign._id
               const canEdit = campaign.status === "draft" || campaign.status === "scheduled"
-              const canSend = campaign.status === "draft" || campaign.status === "scheduled"
+              const canRetryFailedRecipients =
+                (campaign.status === "failed" || campaign.status === "sent") &&
+                campaign.failedCount > 0
+              const canSend =
+                campaign.status === "draft" || campaign.status === "scheduled" || canRetryFailedRecipients
               const canCancel = campaign.status === "scheduled"
               const canDelete = campaign.status === "draft" || campaign.status === "scheduled"
 
@@ -204,7 +208,7 @@ export function EmailCampaignList({
                           className="h-8 w-8"
                           onClick={() => onSendCampaign?.(campaign)}
                           disabled={isMutating}
-                          title="Send Now"
+                          title={canRetryFailedRecipients ? "Retry Failed Recipients" : "Send Now"}
                         >
                           {isMutating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                         </Button>

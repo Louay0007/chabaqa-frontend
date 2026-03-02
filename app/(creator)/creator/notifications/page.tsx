@@ -35,6 +35,7 @@ const getNotificationIcon = (type: string) => {
   switch (type) {
     case 'user_joined':
     case 'member_joined':
+    case 'new_community_member':
       return Users
     case 'course_created':
     case 'course_enrolled':
@@ -66,6 +67,7 @@ const getNotificationColor = (type: string) => {
   switch (type) {
     case 'user_joined':
     case 'member_joined':
+    case 'new_community_member':
       return 'bg-blue-500'
     case 'course_created':
     case 'course_enrolled':

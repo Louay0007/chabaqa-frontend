@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,7 +16,7 @@ interface ResetPasswordFormProps {
 }
 
 export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
-  const [verificationCode, setVerificationCode] = useState("")
+  const [verificationDigits, setVerificationDigits] = useState(["", "", "", "", "", ""])
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -25,6 +25,8 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
   const [isSuccess, setIsSuccess] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
+  const inputRefs = useRef<Array<HTMLInputElement | null>>([])
+  const verificationCode = verificationDigits.join("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,6 +69,32 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
     }
   }
 
+  const handleDigitChange = (index: number, value: string) => {
+    if (value && !/^\d$/.test(value)) return
+    const nextDigits = [...verificationDigits]
+    nextDigits[index] = value
+    setVerificationDigits(nextDigits)
+    if (value && index < 5) inputRefs.current[index + 1]?.focus()
+  }
+
+  const handleDigitKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Backspace" && !verificationDigits[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus()
+    }
+  }
+
+  const handleDigitPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    event.preventDefault()
+    const digits = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6).split("")
+    if (digits.length === 0) return
+    const nextDigits = ["", "", "", "", "", ""]
+    digits.forEach((digit, index) => {
+      nextDigits[index] = digit
+    })
+    setVerificationDigits(nextDigits)
+    inputRefs.current[Math.min(digits.length, 5)]?.focus()
+  }
+
   return (
     <>
       {/* Header Message */}
@@ -77,7 +105,7 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
             <p className="text-gray-700 drop-shadow-sm">
               Enter the code sent to <strong>{email}</strong> and your new password.
             </p>
-            <p className="text-sm text-gray-600 mt-2 drop-shadow-sm">The code expires in 15 minutes.</p>
+            <p className="text-sm text-gray-600 mt-2 drop-shadow-sm">The code expires in 10 minutes.</p>
           </>
         ) : (
           <>
@@ -103,23 +131,33 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
             )}
 
             {/* Verification Code Field */}
-            <div className="space-y-2 animate-fade-in-delay-800">
-              <Label htmlFor="verificationCode" className="text-sm font-medium text-gray-800 block">
+            <div className="space-y-3 animate-fade-in-delay-800">
+              <Label htmlFor="verificationCode-0" className="text-sm font-medium text-gray-800 block">
                 Verification Code
               </Label>
-              <div className="relative">
-                <Input
-                  id="verificationCode"
-                  type="text"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="123456"
-                  required
-                  disabled={isLoading}
-                  className="w-full px-4 py-4 rounded-2xl border-2 border-white/60 focus:border-[#8e78fb] focus:ring-4 focus:ring-[#8e78fb]/20 transition-all duration-300 text-gray-900 placeholder-gray-500 bg-white/80 backdrop-blur-sm disabled:opacity-50 text-center text-2xl tracking-widest shadow-sm"
-                  maxLength={6}
-                />
+              <div className="flex justify-center gap-2 sm:gap-3">
+                {verificationDigits.map((digit, index) => (
+                  <Input
+                    key={index}
+                    id={`verificationCode-${index}`}
+                    ref={(element) => {
+                      inputRefs.current[index] = element
+                    }}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={digit}
+                    onChange={(event) => handleDigitChange(index, event.target.value)}
+                    onKeyDown={(event) => handleDigitKeyDown(index, event)}
+                    onPaste={index === 0 ? handleDigitPaste : undefined}
+                    required
+                    disabled={isLoading}
+                    className="h-12 w-11 sm:h-14 sm:w-12 rounded-xl border-2 border-white/60 text-center text-xl font-semibold shadow-sm transition-all duration-300 focus:border-[#8e78fb] focus:ring-4 focus:ring-[#8e78fb]/20 bg-white/90"
+                    maxLength={1}
+                  />
+                ))}
               </div>
+              <p className="text-center text-xs text-gray-600">Paste is supported for the full code.</p>
             </div>
 
             {/* New Password Field */}

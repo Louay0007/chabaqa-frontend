@@ -15,6 +15,9 @@ export const config = {
     '/community/:slug/dashboard/:path*',
     '/signin',
     '/signup',
+    '/verify-email',
+    '/forgot-password',
+    '/reset-password',
     '/register',
   ],
 }

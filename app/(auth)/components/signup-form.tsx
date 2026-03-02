@@ -88,7 +88,8 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
         if (onSuccess) {
           onSuccess()
         } else {
-          router.push("/signin?message=Account created successfully")
+          const nextEmail = encodeURIComponent(result.email || email)
+          router.push(`/verify-email?email=${nextEmail}`)
         }
       } else {
         setError(result.error || "An error occurred")
@@ -393,7 +394,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
             {isLoading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                <span>Creating account...</span>
+                <span>Sending verification code...</span>
               </>
             ) : (
               <>

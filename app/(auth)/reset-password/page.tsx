@@ -42,8 +42,8 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4 py-24">
-        <div className="w-full max-w-md">
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-20 sm:py-24">
+        <div className="w-full max-w-lg">
           {/* Reset Password Form */}
           <ResetPasswordForm email={email} />
 

@@ -56,7 +56,7 @@ export default function ForgotPasswordForm() {
             <p className="text-gray-700 drop-shadow-sm">
               We've sent a 6-digit verification code to <strong>{email}</strong>
             </p>
-            <p className="text-sm text-gray-600 mt-2 drop-shadow-sm">The code will expire in 15 minutes.</p>
+            <p className="text-sm text-gray-600 mt-2 drop-shadow-sm">The code will expire in 10 minutes.</p>
           </>
         )}
       </div>

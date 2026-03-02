@@ -9,8 +9,13 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
+import { cn } from "@/lib/utils"
 
-export function Toaster() {
+interface ToasterProps {
+  viewportClassName?: string
+}
+
+export function Toaster({ viewportClassName }: ToasterProps) {
   const { toasts } = useToast()
 
   return (
@@ -29,7 +34,7 @@ export function Toaster() {
           </Toast>
         )
       })}
-      <ToastViewport />
+      <ToastViewport className={cn(viewportClassName)} />
     </ToastProvider>
   )
 }

@@ -71,20 +71,32 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
   // State for unread notifications count
   const [unreadCount, setUnreadCount] = useState(0)
 
-  // Fetch notifications and count unread
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const response = await api.notifications.getAll()
+      const unread = response.items.filter((n) => !n.isRead).length
+      setUnreadCount(unread)
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error)
+    }
+  }, [])
+
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const response = await api.notifications.getAll()
-        const unread = response.items.filter(n => !n.isRead).length
-        setUnreadCount(unread)
-      } catch (error) {
-        console.error('Failed to fetch notifications:', error)
-        // Keep count at 0 if fetch fails
-      }
+    fetchUnreadCount()
+  }, [fetchUnreadCount])
+
+  useEffect(() => {
+    const onNotificationReceived = (event: Event) => {
+      const customEvent = event as CustomEvent<{ notification?: { isRead?: boolean } }>
+      const incoming = customEvent.detail?.notification
+      if (incoming?.isRead) return
+      setUnreadCount((prev) => prev + 1)
     }
 
-    fetchNotifications()
+    window.addEventListener("creator:notification-received", onNotificationReceived as EventListener)
+    return () => {
+      window.removeEventListener("creator:notification-received", onNotificationReceived as EventListener)
+    }
   }, [])
 
   const handleCommunityChange = (communityId: string) => {

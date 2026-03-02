@@ -1,6 +1,20 @@
 import { apiClient, ApiSuccessResponse } from './client';
 import type { Notification } from './types';
 
+export interface PushPublicKeyResponse {
+  enabled: boolean;
+  publicKey: string | null;
+}
+
+export interface PushSubscriptionPayload {
+  endpoint: string;
+  expirationTime?: number | null;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
 // Notifications API
 export const notificationsApi = {
   // Get all notifications
@@ -28,5 +42,20 @@ export const notificationsApi = {
   // Delete notification
   delete: async (id: string): Promise<ApiSuccessResponse<void>> => {
     return apiClient.delete<ApiSuccessResponse<void>>(`/notifications/${id}`);
+  },
+
+  // Get Web Push public key
+  getPushPublicKey: async (): Promise<ApiSuccessResponse<PushPublicKeyResponse>> => {
+    return apiClient.get<ApiSuccessResponse<PushPublicKeyResponse>>('/notifications/push/public-key');
+  },
+
+  // Save browser push subscription
+  subscribePush: async (subscription: PushSubscriptionPayload): Promise<ApiSuccessResponse<void>> => {
+    return apiClient.post<ApiSuccessResponse<void>>('/notifications/push/subscribe', subscription);
+  },
+
+  // Remove browser push subscription
+  unsubscribePush: async (endpoint: string): Promise<ApiSuccessResponse<void>> => {
+    return apiClient.post<ApiSuccessResponse<void>>('/notifications/push/unsubscribe', { endpoint });
   },
 };

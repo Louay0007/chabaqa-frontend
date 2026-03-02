@@ -1,7 +1,8 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from 'react'
-import { Loader2, Users as UsersIcon, MessageSquare } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Loader2, Users as UsersIcon, MessageSquare, LogOut } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,14 +16,23 @@ interface Community {
   id: string
   _id?: string
   name: string
+  creatorId?: string
+}
+
+const resolveMemberUserId = (member: CommunityMember): string => {
+  const user = member.user as any
+  return user?.id || user?._id || member.userId || ''
 }
 
 export default function CommunityMembersPage({ params }: { params: Promise<{ creator?: string; feature: string }> }) {
   const resolvedParams = React.use(params)
   const { feature } = resolvedParams
+  const router = useRouter()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [isLeaving, setIsLeaving] = useState(false)
   const [community, setCommunity] = useState<Community | null>(null)
   const [members, setMembers] = useState<CommunityMember[]>([])
   const [search, setSearch] = useState('')
@@ -37,10 +47,17 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
 
         const communityRes = await communitiesApi.getBySlug(feature)
         const c = communityRes.data as any
+        const creatorData = c?.createur || c?.creator || c?.creatorId
+        const creatorId =
+          typeof creatorData === 'string'
+            ? creatorData
+            : creatorData?._id || creatorData?.id || ''
+
         setCommunity({
           id: c.id || c._id,
           _id: c._id,
           name: c.name,
+          creatorId,
         })
 
         const communityId = c._id || c.id
@@ -66,16 +83,60 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
 
   const filteredMembers = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return members
+    const source = !q
+      ? members
+      : members.filter((m) => {
+        const name = `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim().toLowerCase()
+        const username = (m.user?.username || '').toLowerCase()
+        const email = (m.user?.email || '').toLowerCase()
+        const role = (m.role || '').toLowerCase()
+        return name.includes(q) || username.includes(q) || email.includes(q) || role.includes(q)
+      })
 
-    return members.filter((m) => {
-      const name = `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim().toLowerCase()
-      const username = (m.user?.username || '').toLowerCase()
-      const email = (m.user?.email || '').toLowerCase()
-      const role = (m.role || '').toLowerCase()
-      return name.includes(q) || username.includes(q) || email.includes(q) || role.includes(q)
+    return [...source].sort((a, b) => {
+      const aIsSelf = resolveMemberUserId(a) === myId
+      const bIsSelf = resolveMemberUserId(b) === myId
+      if (aIsSelf === bIsSelf) return 0
+      return aIsSelf ? -1 : 1
     })
-  }, [members, search])
+  }, [members, search, myId])
+
+  const myMembership = useMemo(
+    () => members.find((member) => resolveMemberUserId(member) === myId) || null,
+    [members, myId],
+  )
+
+  const isCommunityCreator = useMemo(() => {
+    if (!community?.creatorId || !myId) return false
+    return String(community.creatorId) === String(myId)
+  }, [community?.creatorId, myId])
+
+  const handleLeaveCommunity = async () => {
+    if (!community?.id || isLeaving) return
+
+    if (isCommunityCreator) {
+      setActionError('Community owner cannot quit their own community.')
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to quit "${community.name}"? You will lose access to this community content.`,
+    )
+    if (!confirmed) return
+
+    try {
+      setActionError(null)
+      setIsLeaving(true)
+      await communitiesApi.leaveCommunity(community.id || community._id || '')
+      router.push('/explore')
+      router.refresh()
+    } catch (err: any) {
+      console.error('Error leaving community:', err)
+      setActionError(err?.message || err?.error || 'Failed to leave community')
+    } finally {
+      setIsLeaving(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -123,6 +184,12 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
           </div>
         </div>
 
+        {actionError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {actionError}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredMembers.map((member) => {
             const user = member.user as any
@@ -135,7 +202,7 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
               .join('')
               .toUpperCase()
 
-            const memberId = user?.id || user?._id || member.userId
+            const memberId = resolveMemberUserId(member)
             const isSelf = memberId === myId
 
             return (
@@ -144,7 +211,7 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={user?.avatar || (user as any)?.profile_picture || (user as any)?.photo_profil || (user as any)?.photo || "/placeholder.svg"} />
+                        <AvatarImage src={user?.avatar || (user as any)?.profile_picture || (user as any)?.photo_profil || (user as any)?.photo || '/placeholder.svg'} />
                         <AvatarFallback>{initials || 'U'}</AvatarFallback>
                       </Avatar>
 
@@ -159,34 +226,56 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
                       </div>
                     </div>
 
-                    <Badge variant={member.role === 'admin' ? 'default' : member.role === 'moderator' ? 'secondary' : 'outline'}>
-                      {member.role}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {isSelf && (
+                        <Badge variant="secondary">You</Badge>
+                      )}
+                      <Badge variant={member.role === 'admin' ? 'default' : member.role === 'moderator' ? 'secondary' : 'outline'}>
+                        {member.role}
+                      </Badge>
+                    </div>
                   </div>
 
                   <div className="mt-4 flex items-center justify-end">
-                    {!isSelf && (
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm" 
+                    {isSelf ? (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="gap-2"
+                        disabled={isLeaving || isCommunityCreator || !myMembership}
+                        onClick={handleLeaveCommunity}
+                        title={isCommunityCreator ? 'Community owner cannot quit the community' : 'Quit community'}
+                      >
+                        {isLeaving ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <LogOut className="h-4 w-4" />
+                        )}
+                        {isCommunityCreator ? 'Owner' : isLeaving ? 'Leaving...' : 'Quit'}
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
                         className="gap-2"
                         onClick={() => {
-                          const targetUserId = user?.id || user?._id || member.userId
-                          console.log('[Members] DM button clicked:', { 
-                            targetUserId, 
+                          const targetUserId = resolveMemberUserId(member)
+                          console.log('[Members] DM button clicked:', {
+                            targetUserId,
                             memberId: member.id,
                             userId: member.userId,
                             user_id: user?.id,
                             user__id: user?._id,
                             communityId: community?.id || community?._id,
-                            myId 
+                            myId
                           })
-                          window.dispatchEvent(new CustomEvent('open-dm', { 
-                            detail: { 
-                              communityId: community?.id || community?._id, 
-                              targetUserId 
-                            } 
+                          window.dispatchEvent(new CustomEvent('open-dm', {
+                            detail: {
+                              communityId: community?.id || community?._id,
+                              targetUserId
+                            }
                           }))
                         }}
                       >

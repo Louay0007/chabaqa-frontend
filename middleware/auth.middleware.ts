@@ -22,6 +22,7 @@ const PROTECTED_ROUTES = [
 const PUBLIC_ROUTES = [
   '/signin',
   '/signup',
+  '/verify-email',
   '/forgot-password',
   '/reset-password',
   '/admin/login',
@@ -87,7 +88,7 @@ export async function authMiddleware(request: NextRequest) {
   const isAdminAuthorizedUser = ADMIN_AUTHORIZED_ROLES.includes(userRole)
 
   // Redirect authenticated users away from auth pages
-  if (isValidToken && (pathname === '/signin' || pathname === '/signup' || isAdminAuthPage)) {
+  if (isValidToken && (pathname === '/signin' || pathname === '/signup' || pathname === '/verify-email' || isAdminAuthPage)) {
     if (isAdminAuthPage && isAdminAuthorizedUser) {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url))
     }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -40,6 +40,7 @@ import { toLocalDateTimeFields, toUtcIsoFromLocalDateTime } from "../components/
 
 const PAGE_LIMIT = 10
 const RECIPIENTS_LIMIT = 20
+const SENDING_POLL_INTERVAL_MS = 10_000
 
 type FilterState = {
   status: "all" | EmailCampaignStatus
@@ -101,44 +102,64 @@ export default function EmailCampaignsPage() {
     [recipientsTotal],
   )
 
-  const fetchCampaigns = async (page: number = 1, filters: FilterState = activeFilters) => {
-    if (!selectedCommunityId) return
-    try {
-      setCampaignsLoading(true)
-      setCampaignsError(null)
-      const response = await emailCampaignsApi.getCommunityCampaigns(selectedCommunityId, {
-        page,
-        limit: PAGE_LIMIT,
-        status: filters.status === "all" ? undefined : filters.status,
-        type: filters.type === "all" ? undefined : filters.type,
-        search: filters.search.trim() || undefined,
-      })
-      setCampaigns(response.campaigns || [])
-      setCurrentPage(response.page || page)
-      setTotalCampaigns(response.total || 0)
-      setTotalPages(Math.max(1, Math.ceil((response.total || 0) / (response.limit || PAGE_LIMIT))))
-    } catch (error: any) {
-      setCampaignsError(error?.message || "Failed to load campaigns")
-      setCampaigns([])
-    } finally {
-      setCampaignsLoading(false)
-    }
-  }
+  const fetchCampaigns = useCallback(
+    async (
+      page: number = 1,
+      filters: FilterState = activeFilters,
+      options?: { silent?: boolean },
+    ) => {
+      if (!selectedCommunityId) return
+      const isSilent = options?.silent === true
+      try {
+        if (!isSilent) {
+          setCampaignsLoading(true)
+        }
+        setCampaignsError(null)
+        const response = await emailCampaignsApi.getCommunityCampaigns(selectedCommunityId, {
+          page,
+          limit: PAGE_LIMIT,
+          status: filters.status === "all" ? undefined : filters.status,
+          type: filters.type === "all" ? undefined : filters.type,
+          search: filters.search.trim() || undefined,
+        })
+        setCampaigns(response.campaigns || [])
+        setCurrentPage(response.page || page)
+        setTotalCampaigns(response.total || 0)
+        setTotalPages(Math.max(1, Math.ceil((response.total || 0) / (response.limit || PAGE_LIMIT))))
+      } catch (error: any) {
+        setCampaignsError(error?.message || "Failed to load campaigns")
+        setCampaigns([])
+      } finally {
+        if (!isSilent) {
+          setCampaignsLoading(false)
+        }
+      }
+    },
+    [activeFilters, selectedCommunityId],
+  )
 
-  const fetchStats = async () => {
-    if (!selectedCommunityId) return
-    try {
-      setStatsLoading(true)
-      setStatsError(null)
-      const response = await emailCampaignsApi.getCampaignStats(selectedCommunityId)
-      setStats(response)
-    } catch (error: any) {
-      setStatsError(error?.message || "Failed to load statistics")
-      setStats(null)
-    } finally {
-      setStatsLoading(false)
-    }
-  }
+  const fetchStats = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!selectedCommunityId) return
+      const isSilent = options?.silent === true
+      try {
+        if (!isSilent) {
+          setStatsLoading(true)
+        }
+        setStatsError(null)
+        const response = await emailCampaignsApi.getCampaignStats(selectedCommunityId)
+        setStats(response)
+      } catch (error: any) {
+        setStatsError(error?.message || "Failed to load statistics")
+        setStats(null)
+      } finally {
+        if (!isSilent) {
+          setStatsLoading(false)
+        }
+      }
+    },
+    [selectedCommunityId],
+  )
 
   useEffect(() => {
     if (!selectedCommunityId) return
@@ -146,7 +167,22 @@ export default function EmailCampaignsPage() {
     setPendingFilters({ status: "all", type: "all", search: "" })
     fetchCampaigns(1, { status: "all", type: "all", search: "" })
     fetchStats()
-  }, [selectedCommunityId])
+  }, [fetchCampaigns, fetchStats, selectedCommunityId])
+
+  useEffect(() => {
+    if (!selectedCommunityId) return
+    const hasSendingCampaign = campaigns.some((campaign) => campaign.status === "sending")
+    if (!hasSendingCampaign) return
+
+    const interval = window.setInterval(() => {
+      Promise.all([
+        fetchCampaigns(currentPage, activeFilters, { silent: true }),
+        fetchStats({ silent: true }),
+      ]).catch(() => undefined)
+    }, SENDING_POLL_INTERVAL_MS)
+
+    return () => window.clearInterval(interval)
+  }, [selectedCommunityId, campaigns, currentPage, activeFilters, fetchCampaigns, fetchStats])
 
   const refreshCurrentPage = async () => {
     await Promise.all([fetchCampaigns(currentPage, activeFilters), fetchStats()])

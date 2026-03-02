@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/app/(creator)/creator/components/dashboard-layout"
 import { CreatorCommunityProvider } from "@/app/(creator)/creator/context/creator-community-context"
+import { Toaster } from "@/components/ui/toaster"
+import { CreatorNotificationListener } from "@/app/(creator)/creator/components/creator-notification-listener"
 
 export default function CreatorClientLayout({ children }: { children: React.ReactNode }) {
   const [isMobile, setIsMobile] = useState(false)
@@ -32,7 +34,11 @@ export default function CreatorClientLayout({ children }: { children: React.Reac
 
   return (
     <CreatorCommunityProvider>
+      <CreatorNotificationListener />
       <DashboardLayout>{children}</DashboardLayout>
+      <Toaster
+        viewportClassName="top-4 right-4 left-auto bottom-auto w-[calc(100vw-2rem)] max-w-[420px] flex-col sm:top-4 sm:right-4 sm:left-auto sm:bottom-auto sm:w-full sm:max-w-[420px] sm:flex-col"
+      />
     </CreatorCommunityProvider>
   )
 }

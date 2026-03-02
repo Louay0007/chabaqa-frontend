@@ -120,7 +120,7 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
           title: n.title || 'Notification',
           message: n.message || n.body || '',
           time: n.createdAt ? formatTimeAgo(new Date(n.createdAt)) : 'Just now',
-          unread: !n.read,
+          unread: !(n.isRead ?? n.read ?? false),
           createdAt: n.createdAt,
         }))
 

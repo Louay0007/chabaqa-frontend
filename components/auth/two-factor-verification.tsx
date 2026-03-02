@@ -112,18 +112,18 @@ export function TwoFactorVerification({ userId, onVerify, onResend, error, succe
   };
 
   return (
-    <div className="backdrop-blur-xl bg-white/25 border border-white/40 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl shadow-2xl animate-fade-in-delay-600 w-full max-w-md mx-auto">
-      <div className="text-center mb-6 sm:mb-8">
+    <div className="backdrop-blur-xl bg-white/30 border border-white/50 p-5 sm:p-7 md:p-9 rounded-2xl sm:rounded-3xl shadow-2xl animate-fade-in-delay-600 w-full max-w-lg mx-auto">
+      <div className="text-center mb-7 sm:mb-9">
         <div className="flex justify-center mb-3 sm:mb-4">
           <ShieldCheck className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" strokeWidth={1.5} />
         </div>
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Two-Factor Authentication</h2>
-        <p className="text-xs sm:text-sm text-gray-600 px-2">A verification code has been sent to your email.</p>
+        <p className="text-sm sm:text-base text-gray-600 px-2">Enter the 6-digit verification code sent to your email.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-7">
         {/* 6 Individual Digit Inputs */}
-        <div className="flex justify-center gap-2 sm:gap-3 mb-2 px-2">
+        <div className="flex justify-center gap-2.5 sm:gap-3 mb-1 px-1 sm:px-2">
           {code.map((digit, index) => (
             <input
               key={index}
@@ -136,11 +136,12 @@ export function TwoFactorVerification({ userId, onVerify, onResend, error, succe
               onPaste={index === 0 ? handlePaste : undefined}
               maxLength={1}
               disabled={isVerifying}
-              className="w-10 h-12 sm:w-12 sm:h-14 md:w-14 md:h-16 text-center text-xl sm:text-2xl font-bold text-gray-900 bg-white/90 backdrop-blur-sm border-2 rounded-lg sm:rounded-xl transition-all duration-300 focus:border-[#8e78fb] focus:ring-2 sm:focus:ring-4 focus:ring-[#8e78fb]/20 focus:scale-105 sm:focus:scale-110 focus:bg-white disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex-shrink-0"
+              className="w-11 h-12 sm:w-12 sm:h-14 md:w-14 md:h-16 text-center text-xl sm:text-2xl font-bold text-gray-900 bg-white/90 backdrop-blur-sm border-2 rounded-lg sm:rounded-xl transition-all duration-300 focus:border-[#8e78fb] focus:ring-2 sm:focus:ring-4 focus:ring-[#8e78fb]/20 focus:scale-105 sm:focus:scale-110 focus:bg-white disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex-shrink-0"
               autoComplete="off"
             />
           ))}
         </div>
+        <p className="text-center text-xs text-gray-600">Tip: you can paste the full code.</p>
 
         {/* Error Message */}
         {error && (
@@ -177,7 +178,7 @@ export function TwoFactorVerification({ userId, onVerify, onResend, error, succe
       </form>
 
       {/* Resend Code Link */}
-      <div className="mt-4 sm:mt-6 text-center">
+      <div className="mt-6 sm:mt-8 text-center">
         <button
           type="button"
           onClick={handleResend}

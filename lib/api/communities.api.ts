@@ -222,6 +222,14 @@ export const communitiesApi = {
     });
   },
 
+  leaveCommunity: async (
+    communityId: string,
+  ): Promise<{ success: boolean; message?: string }> => {
+    return apiClient.post<{ success: boolean; message?: string }>(
+      `/community-aff-crea-join/leave/${encodeURIComponent(communityId)}`,
+    );
+  },
+
   // Update community with method/route fallback for backward-compatible backend deployments
   update: async (
     idOrSlug: string,
