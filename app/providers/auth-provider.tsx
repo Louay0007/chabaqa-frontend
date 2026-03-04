@@ -5,6 +5,8 @@ import type { ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { normalizeUser } from "@/lib/hooks/useUser"
 import { registerBrowserPushForCurrentUser } from "@/lib/push-notifications"
+import { io, Socket } from "socket.io-client"
+import { resolveSocketBaseUrl } from "@/lib/socket-url"
 
 export interface User {
   _id: string
@@ -67,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const pushRegistrationAttemptedForUserRef = useRef<string | null>(null)
+  const presenceSocketRef = useRef<Socket | null>(null)
   const router = useRouter()
 
   const isAuthenticated = !!user
@@ -210,6 +213,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const normalizedUser = normalizeUser(userData)
     setUser(normalizedUser)
   }, [])
+
+  // Keep a lightweight DM socket connected for all authenticated web users.
+  // This makes cross-platform presence (mobile online dots) accurate everywhere on web.
+  useEffect(() => {
+    const userId = user?._id ? String(user._id) : ""
+    const accessToken = token ? String(token).trim() : ""
+
+    if (!isAuthenticated || !userId || !accessToken) {
+      if (presenceSocketRef.current) {
+        presenceSocketRef.current.disconnect()
+        presenceSocketRef.current = null
+      }
+      return
+    }
+
+    const socketUrl = resolveSocketBaseUrl(process.env.NEXT_PUBLIC_API_URL)
+    const socket = io(`${socketUrl}/dm`, {
+      auth: {
+        token: `Bearer ${accessToken}`,
+      },
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+    })
+    presenceSocketRef.current = socket
+
+    return () => {
+      socket.disconnect()
+      if (presenceSocketRef.current === socket) {
+        presenceSocketRef.current = null
+      }
+    }
+  }, [isAuthenticated, user?._id, token])
 
   const register = useCallback(async (payload: any) => {
     try {

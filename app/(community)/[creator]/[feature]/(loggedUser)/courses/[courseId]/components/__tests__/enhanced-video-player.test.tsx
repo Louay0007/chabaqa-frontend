@@ -67,6 +67,10 @@ function renderYoutubePlayer(
   options?: { enrollment?: any; onWatchTimeUpdate?: jest.Mock; onProgressSaved?: jest.Mock },
 ) {
   const onWatchTimeUpdate = options?.onWatchTimeUpdate ?? jest.fn()
+  const enrollmentProp =
+    options && Object.prototype.hasOwnProperty.call(options, "enrollment")
+      ? options.enrollment
+      : { progress: [] }
   return render(
     <EnhancedVideoPlayer
       creatorSlug="creator"
@@ -80,7 +84,7 @@ function renderYoutubePlayer(
         isPreview: true,
       }}
       isChapterAccessible={() => true}
-      enrollment={options?.enrollment ?? { progress: [] }}
+      enrollment={enrollmentProp}
       onWatchTimeUpdate={onWatchTimeUpdate}
       onProgressSaved={options?.onProgressSaved}
     />,
@@ -136,7 +140,7 @@ describe("EnhancedVideoPlayer YouTube tracking", () => {
     await waitFor(() => expect(playerInstance.getCurrentTime).toHaveBeenCalled())
     await waitFor(() => expect(coursesApi.updateChapterWatchTime).toHaveBeenCalled())
 
-    const payload = localStorage.getItem("course_progress_course-1_chapter-1")
+    const payload = localStorage.getItem("course_progress_guest_course-1_chapter-1")
     expect(payload).toBeTruthy()
     expect(JSON.parse(String(payload)).time).toBe(12)
     expect(coursesApi.updateChapterWatchTime).toHaveBeenCalledWith("course-1", "chapter-1", 12, 100)
@@ -192,7 +196,7 @@ describe("EnhancedVideoPlayer YouTube tracking", () => {
     await waitFor(() => expect(coursesApi.updateChapterWatchTime).toHaveBeenCalledTimes(1))
   })
 
-  it("triggers one progress refresh callback after first successful watch sync", async () => {
+  it("does not persist watch-time to backend for preview playback without enrollment", async () => {
     jest.useFakeTimers()
     const { playerCtor, playerInstance } = mockYoutubePlayer({
       currentTime: [12, 13, 14],
@@ -217,8 +221,13 @@ describe("EnhancedVideoPlayer YouTube tracking", () => {
       await Promise.resolve()
     })
 
-    await waitFor(() => expect(coursesApi.updateChapterWatchTime).toHaveBeenCalled())
-    expect(onProgressSaved).toHaveBeenCalledTimes(1)
+    await act(async () => {
+      jest.advanceTimersByTime(1200)
+      await Promise.resolve()
+    })
+
+    expect(coursesApi.updateChapterWatchTime).not.toHaveBeenCalled()
+    expect(onProgressSaved).not.toHaveBeenCalled()
   })
 
   it("does not call tracking loop until YouTube onReady provides a target", async () => {

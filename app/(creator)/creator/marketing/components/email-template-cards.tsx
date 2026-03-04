@@ -51,9 +51,34 @@ const emailTemplates: EmailTemplate[] = [
     useCount: 1250,
     isStarred: true,
     type: "announcement",
-    preview: "Welcome to {{communityName}}! We're excited to have you join our community...",
-    subject: "Welcome to {{communityName}}!",
-    fullContent: "Welcome to {{communityName}}!\n\nWe're excited to have you join our community. Here's what you can expect:\n\n- Access to exclusive content\n- Connect with like-minded members\n- Participate in events and discussions\n\nLet's get started!\n\nBest regards,\nThe {{communityName}} Team"
+    preview: "A premium onboarding welcome with clear value, next steps, and CTA.",
+    subject: "Welcome to {{communityName}}, {{userName}}!",
+    fullContent: `
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+        <div style="padding:20px 22px;background:linear-gradient(120deg,#f7f2ff 0%,#eef7ff 100%);border-bottom:1px solid #e5e7eb;">
+          <p style="margin:0;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:#7c3aed;font-weight:700;">New Member Journey</p>
+          <h2 style="margin:8px 0 0 0;font-size:24px;line-height:1.25;color:#111827;">Welcome, {{userName}}.</h2>
+        </div>
+        <div style="padding:22px;color:#374151;font-size:15px;line-height:1.7;">
+          <p style="margin:0 0 14px 0;">You just joined <strong>{{communityName}}</strong>, and we are excited to build with you.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 16px 0;">
+            <tr>
+              <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;">1. Discover fresh content created for your goals</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;">2. Join conversations and get direct feedback</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 0;">3. Stay consistent with weekly community activities</td>
+            </tr>
+          </table>
+          <div style="margin:20px 0 8px 0;">
+            <a href="https://chabaqa.io/explore" style="display:inline-block;background:#6d28d9;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Start Exploring</a>
+          </div>
+          <p style="margin:12px 0 0 0;color:#6b7280;font-size:13px;">Sent on {{currentDate}} • {{currentYear}}</p>
+        </div>
+      </div>
+    `
   },
   {
     id: "2",
@@ -64,9 +89,27 @@ const emailTemplates: EmailTemplate[] = [
     isStarred: true,
     type: "content-reminder",
     contentType: "cours",
-    preview: "Don't forget about your upcoming course session in {{courseName}}...",
-    subject: "Reminder: Your upcoming course session",
-    fullContent: "Hi {{userName}},\n\nDon't forget about your upcoming course session in {{courseName}}.\n\nDate: {{courseDate}}\nTime: {{courseTime}}\n\nMake sure you're prepared and ready to participate!\n\nSee you there,\nThe Team"
+    preview: "Structured reminder email with prep checklist and action button.",
+    subject: "Your {{contentTypeLabel}} update from {{communityName}}",
+    fullContent: `
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+        <div style="padding:18px 22px;background:#ecfeff;border-bottom:1px solid #bae6fd;">
+          <p style="margin:0;font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:#0369a1;font-weight:700;">Session Reminder</p>
+          <h2 style="margin:8px 0 0 0;font-size:22px;line-height:1.3;color:#0f172a;">Hello {{userName}}, your next {{contentTypeLabel}} is waiting.</h2>
+        </div>
+        <div style="padding:22px;color:#334155;font-size:15px;line-height:1.7;">
+          <p style="margin:0 0 14px 0;">Quick reminder from <strong>{{communityName}}</strong> so you stay on track and ready.</p>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:14px;">
+            <p style="margin:0 0 8px 0;font-weight:700;color:#0f172a;">Before you join:</p>
+            <p style="margin:0;">Review your notes, prepare one question, and block focused time for your learning session.</p>
+          </div>
+          <div style="margin:20px 0 10px 0;">
+            <a href="https://chabaqa.io/explore" style="display:inline-block;background:#0ea5e9;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Open Chabaqa</a>
+          </div>
+          <p style="margin:0;color:#64748b;font-size:13px;">Reminder generated on {{currentDate}}</p>
+        </div>
+      </div>
+    `
   },
   {
     id: "3",
@@ -77,9 +120,26 @@ const emailTemplates: EmailTemplate[] = [
     isStarred: false,
     type: "inactive-users",
     inactivityPeriod: "last_30_days",
-    preview: "We miss you in {{communityName}}! Here's what you've been missing...",
-    subject: "We miss you at {{communityName}}",
-    fullContent: "Hi {{userName}},\n\nWe miss you in {{communityName}}! Here's what you've been missing:\n\n- New courses and content\n- Exciting community discussions\n- Upcoming events\n\nCome back and see what's new!\n\nWe'd love to have you back,\nThe {{communityName}} Team"
+    preview: "A recovery campaign focused on momentum, value recap, and return CTA.",
+    subject: "We saved your spot in {{communityName}}, {{userName}}",
+    fullContent: `
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+        <div style="padding:18px 22px;background:linear-gradient(120deg,#fff1f2 0%,#fef9c3 100%);border-bottom:1px solid #fde68a;">
+          <p style="margin:0;font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:#b45309;font-weight:700;">Reactivation Campaign</p>
+          <h2 style="margin:8px 0 0 0;font-size:22px;line-height:1.3;color:#7c2d12;">{{userName}}, your community has been moving fast.</h2>
+        </div>
+        <div style="padding:22px;color:#374151;font-size:15px;line-height:1.75;">
+          <p style="margin:0 0 14px 0;">It has been around <strong>{{daysThreshold}}</strong> since your last visit to <strong>{{communityName}}</strong>. We would love to have you back.</p>
+          <ul style="margin:0 0 16px 18px;padding:0;">
+            <li style="margin:0 0 8px 0;">Fresh content drops and practical resources</li>
+            <li style="margin:0 0 8px 0;">New conversations from members you follow</li>
+            <li style="margin:0;">Upcoming activities you can join immediately</li>
+          </ul>
+          <a href="https://chabaqa.io/explore" style="display:inline-block;background:#ea580c;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Come Back Today</a>
+          <p style="margin:14px 0 0 0;color:#6b7280;font-size:13px;">Campaign period: {{inactivityPeriod}}</p>
+        </div>
+      </div>
+    `
   },
   {
     id: "4",
@@ -90,9 +150,24 @@ const emailTemplates: EmailTemplate[] = [
     isStarred: true,
     type: "content-reminder",
     contentType: "event",
-    preview: "Join us for an exciting upcoming event in {{communityName}}...",
-    subject: "New Event at {{communityName}}",
-    fullContent: "Hi {{userName}},\n\nJoin us for an exciting upcoming event in {{communityName}}!\n\nEvent: {{eventName}}\nDate: {{eventDate}}\nTime: {{eventTime}}\nLocation: {{eventLocation}}\n\nDon't miss out on this amazing opportunity!\n\nRegister now,\nThe {{communityName}} Team"
+    preview: "Event launch template with spotlight card and direct CTA.",
+    subject: "New {{contentTypeLabel}} announced in {{communityName}}",
+    fullContent: `
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+        <div style="padding:18px 22px;background:linear-gradient(120deg,#eff6ff 0%,#f5f3ff 100%);border-bottom:1px solid #dbeafe;">
+          <p style="margin:0;font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:#1d4ed8;font-weight:700;">Community Spotlight</p>
+          <h2 style="margin:8px 0 0 0;font-size:22px;line-height:1.3;color:#1e3a8a;">{{communityName}} has a new {{contentTypeLabel}} for you.</h2>
+        </div>
+        <div style="padding:22px;color:#334155;font-size:15px;line-height:1.7;">
+          <p style="margin:0 0 12px 0;">Hi {{userName}}, we just published an update designed to help you learn, connect, and take action faster.</p>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+            <p style="margin:0 0 6px 0;font-weight:700;color:#0f172a;">Why this matters</p>
+            <p style="margin:0;">Get tactical insights, concrete examples, and a clear next step you can apply right away.</p>
+          </div>
+          <a href="https://chabaqa.io/explore" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">View Update</a>
+        </div>
+      </div>
+    `
   },
   {
     id: "5",
@@ -102,9 +177,31 @@ const emailTemplates: EmailTemplate[] = [
     useCount: 980,
     isStarred: false,
     type: "announcement",
-    preview: "Your monthly update from {{communityName}} is here...",
-    subject: "{{communityName}} - Monthly Newsletter",
-    fullContent: "Hi {{userName}},\n\nYour monthly update from {{communityName}} is here!\n\nThis month's highlights:\n- Community achievements\n- New features\n- Upcoming events\n\nStay connected and engaged!\n\nBest regards,\nThe Team"
+    preview: "Magazine-style monthly digest with highlights and action-oriented CTA.",
+    subject: "{{communityName}} Monthly Digest | {{currentDate}}",
+    fullContent: `
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+        <div style="padding:18px 22px;background:linear-gradient(120deg,#ecfeff 0%,#eef2ff 100%);border-bottom:1px solid #c7d2fe;">
+          <p style="margin:0;font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:#4338ca;font-weight:700;">Monthly Newsletter</p>
+          <h2 style="margin:8px 0 0 0;font-size:22px;line-height:1.3;color:#1f2937;">Hello {{userName}}, here is your {{communityName}} digest.</h2>
+        </div>
+        <div style="padding:22px;color:#334155;font-size:15px;line-height:1.7;">
+          <p style="margin:0 0 14px 0;">A focused summary of what matters most this month so you can stay aligned and move faster.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:16px;">
+            <tr>
+              <td style="padding:10px 0;border-bottom:1px solid #e5e7eb;"><strong style="color:#111827;">Wins:</strong> Member milestones and top contributions</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 0;border-bottom:1px solid #e5e7eb;"><strong style="color:#111827;">Builds:</strong> New releases, updates, and improvements</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 0;"><strong style="color:#111827;">Next:</strong> Events and opportunities to participate</td>
+            </tr>
+          </table>
+          <a href="https://chabaqa.io/explore" style="display:inline-block;background:#4338ca;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Read Full Update</a>
+        </div>
+      </div>
+    `
   },
   {
     id: "6",
@@ -115,9 +212,23 @@ const emailTemplates: EmailTemplate[] = [
     isStarred: false,
     type: "content-reminder",
     contentType: "all",
-    preview: "New content just dropped in {{communityName}}...",
-    subject: "New Content Available: {{contentTitle}}",
-    fullContent: "Hi {{userName}},\n\nNew content just dropped in {{communityName}}!\n\n{{contentTitle}}\n\nCheck it out now and let us know what you think.\n\nHappy learning,\nThe Content Team"
+    preview: "High-converting content release email with clear value proposition.",
+    subject: "Fresh {{contentTypeLabel}} now live in {{communityName}}",
+    fullContent: `
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+        <div style="padding:18px 22px;background:linear-gradient(120deg,#eef2ff 0%,#fdf2f8 100%);border-bottom:1px solid #e9d5ff;">
+          <p style="margin:0;font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:#7e22ce;font-weight:700;">New Release</p>
+          <h2 style="margin:8px 0 0 0;font-size:22px;line-height:1.3;color:#1f2937;">New {{contentTypeLabel}} is available.</h2>
+        </div>
+        <div style="padding:22px;color:#334155;font-size:15px;line-height:1.7;">
+          <p style="margin:0 0 12px 0;">Hi {{userName}}, we just published fresh content in <strong>{{communityName}}</strong> to keep your progress consistent.</p>
+          <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:12px;padding:14px 16px;margin:0 0 16px 0;">
+            <p style="margin:0;font-weight:600;color:#581c87;">Expect practical lessons, useful examples, and immediate takeaways.</p>
+          </div>
+          <a href="https://chabaqa.io/explore" style="display:inline-block;background:#7e22ce;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Access New Content</a>
+        </div>
+      </div>
+    `
   }
 ]
 
@@ -353,7 +464,7 @@ export function EmailTemplateCards() {
                 onChange={(e) => setSubject(e.target.value)}
               />
               <p className="text-xs text-gray-500">
-                Available variables: &#123;&#123;userName&#125;&#125;, &#123;&#123;communityName&#125;&#125;, &#123;&#123;currentDate&#125;&#125;
+                Available variables: &#123;&#123;userName&#125;&#125;, &#123;&#123;communityName&#125;&#125;, &#123;&#123;currentDate&#125;&#125;, &#123;&#123;currentYear&#125;&#125;, &#123;&#123;daysThreshold&#125;&#125;, &#123;&#123;inactivityPeriod&#125;&#125;, &#123;&#123;contentTypeLabel&#125;&#125;
               </p>
             </div>
 
@@ -417,7 +528,7 @@ export function EmailTemplateCards() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500">
-                  Target users who haven't been active for the selected period
+                  Target users who have not been active for the selected period
                 </p>
               </div>
             )}

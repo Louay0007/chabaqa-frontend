@@ -133,6 +133,8 @@ export function transformCourse(backendCourse: any): any {
     rating: Number(courseData.rating || courseData.averageRating || 0),
     averageRating: Number(courseData.averageRating || courseData.rating || 0),
     ratingCount: Number(courseData.ratingCount || courseData.totalRatings || courseData.reviews_count || 0),
+    sequentialProgression: Boolean(courseData.sequentialProgression),
+    unlockMessage: typeof courseData.unlockMessage === "string" ? courseData.unlockMessage : undefined,
     sections, // Include sections with chapters
     createdAt: courseData.createdAt || new Date().toISOString(),
     updatedAt: courseData.updatedAt || new Date().toISOString(),

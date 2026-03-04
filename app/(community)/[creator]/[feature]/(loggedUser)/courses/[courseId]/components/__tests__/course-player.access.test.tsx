@@ -102,7 +102,7 @@ describe("CoursePlayer paid chapter access cache", () => {
         slug="community"
         courseId={String(course.mongoId)}
         course={course}
-        enrollment={{ progress: [], progressPercentage: 0 }}
+        enrollment={{ progress: [{ chapterId: "chapter-1", isCompleted: true }], progressPercentage: 50 }}
         unlockedChapters={[{ id: "chapter-2", isUnlocked: true }]}
         sequentialProgressionEnabled
       />,

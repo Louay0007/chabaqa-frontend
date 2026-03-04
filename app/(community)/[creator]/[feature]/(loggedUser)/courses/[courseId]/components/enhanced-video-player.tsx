@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Lock, PlayCircle } from "lucide-react"
 import { coursesApi } from "@/lib/api/courses.api"
 import { detectVideoPlatform, parseVimeoVideoId, parseYouTubeVideoId } from "@/lib/utils/video-source"
+import { tokenStorage } from "@/lib/token-storage"
 
 interface EnhancedVideoPlayerProps {
   creatorSlug: string
@@ -196,9 +197,12 @@ export default function EnhancedVideoPlayer({
   }, [videoUrl, currentChapter?.id])
 
   const storageKey = useMemo(() => {
+    const userIdFromEnrollment = enrollment?.userId ? String(enrollment.userId) : ""
+    const userIdFromToken = typeof window !== "undefined" ? tokenStorage.getUserInfo()?.id : undefined
+    const userScopeId = userIdFromEnrollment || userIdFromToken || "guest"
     if (!courseId || !currentChapter?.id) return null;
-    return `course_progress_${courseId}_${currentChapter.id}`;
-  }, [courseId, currentChapter?.id]);
+    return `course_progress_${userScopeId}_${courseId}_${currentChapter.id}`;
+  }, [courseId, currentChapter?.id, enrollment?.userId]);
 
   // Saved watch position (seconds) from enrollment/progression (used to resume)
   const savedWatchPosition = useMemo(() => {
@@ -366,6 +370,11 @@ export default function EnhancedVideoPlayer({
 
   const sendWatchTime = useCallback(async (time: number, duration?: number) => {
     if (!currentChapter?.id) return
+    if (!enrollmentRef.current) {
+      // Preview playback stays local; no enrollment mutations.
+      persistHighWaterMark(time)
+      return
+    }
     if (isSendingRef.current) return
     isSendingRef.current = true
 
@@ -432,25 +441,20 @@ export default function EnhancedVideoPlayer({
   const markChapterCompletedOnce = useCallback(
     async (reason: string, context?: { currentTime?: number; duration?: number }) => {
       if (!courseId || !currentChapter?.id) return
+      if (!enrollmentRef.current) return
       if (hasSentCompleteRef.current || completeInFlightRef.current) return
 
       completeInFlightRef.current = true
       hasSentCompleteRef.current = true
       try {
-        const watchSeconds = Math.floor(
-          Number(context?.currentTime ?? watchTimeRef.current ?? 0),
-        )
-        const durationSeconds =
-          typeof context?.duration === "number" && context.duration > 0
-            ? Math.floor(context.duration)
-            : videoDurationRef.current > 0
-              ? Math.floor(videoDurationRef.current)
-              : undefined
-
-        if (!enrollmentRef.current && watchSeconds > 0) {
-          await sendWatchTimeRef.current(watchSeconds, durationSeconds)
+        const contextWatchTime = Number(context?.currentTime ?? watchTimeRef.current ?? 0)
+        const contextDuration = Number(context?.duration ?? videoDurationRef.current ?? 0)
+        if (contextWatchTime > 0) {
+          await sendWatchTimeRef.current(
+            contextWatchTime,
+            contextDuration > 0 ? contextDuration : undefined,
+          )
         }
-
         await coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
         if (typeof (window as any).__onChapterComplete === "function") {
           ;(window as any).__onChapterComplete()
@@ -994,7 +998,7 @@ export default function EnhancedVideoPlayer({
 
   // Final sync on tab close / navigation
   useEffect(() => {
-    if (!courseId || !currentChapter?.id || !watchTime) return;
+    if (!courseId || !currentChapter?.id || !watchTime || !enrollment) return;
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
@@ -1050,7 +1054,7 @@ export default function EnhancedVideoPlayer({
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [courseId, currentChapter?.id, watchTime, videoDuration, getKeepAliveHeaders, getStoredHighWaterMark, persistHighWaterMark]);
+  }, [courseId, currentChapter?.id, watchTime, videoDuration, getKeepAliveHeaders, getStoredHighWaterMark, persistHighWaterMark, enrollment]);
 
   // Reset completion flag when chapter changes
   useEffect(() => {

@@ -31,6 +31,7 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
   const [sequentialProgressionEnabled, setSequentialProgressionEnabled] = useState(false)
   const [unlockMessage, setUnlockMessage] = useState<string | undefined>(undefined)
   const [isEnrolled, setIsEnrolled] = useState<boolean | null>(null)
+  const [requestedChapterId, setRequestedChapterId] = useState<string | null>(null)
   const [pendingPaidChapterId, setPendingPaidChapterId] = useState<string | null>(null)
   const [chapterUnlockState, setChapterUnlockState] = useState<"idle" | "syncing" | "unlocked" | "timeout">("idle")
 
@@ -39,12 +40,18 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
     [],
   )
 
+  const unwrapApiPayload = (response: any) => {
+    if (!response || typeof response !== "object") return response
+    return response.data ?? response
+  }
+
   const refreshEnrollmentProgress = async (
     resolvedCourseId: string,
     courseForFallback?: { mongoId?: string; id?: string } | null,
   ) => {
     let enrollmentProgress = await coursesApi.getCourseEnrollmentProgress(resolvedCourseId).catch(() => null)
-    let rawEnrollment = (enrollmentProgress as any)?.enrollment || null
+    let payload = unwrapApiPayload(enrollmentProgress)
+    let rawEnrollment = (payload as any)?.enrollment || null
 
     // If no enrollment and we have both ids, retry with the other id (handles backend id mismatch)
     if (!rawEnrollment && courseForFallback?.mongoId && courseForFallback?.id) {
@@ -53,14 +60,16 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
           ? String(courseForFallback.id)
           : String(courseForFallback.mongoId)
       const retryProgress = await coursesApi.getCourseEnrollmentProgress(otherId).catch(() => null)
-      const retryEnrollment = (retryProgress as any)?.enrollment || null
+      const retryPayload = unwrapApiPayload(retryProgress)
+      const retryEnrollment = (retryPayload as any)?.enrollment || null
       if (retryEnrollment) {
         enrollmentProgress = retryProgress
+        payload = retryPayload
         rawEnrollment = retryEnrollment
       }
     }
 
-    const progressPercentage = (enrollmentProgress as any)?.progress || 0
+    const progressPercentage = (payload as any)?.progress || 0
     const normalizedEnrollment = rawEnrollment
       ? {
           ...rawEnrollment,
@@ -71,10 +80,12 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
 
     setEnrollment(normalizedEnrollment)
     setIsEnrolled(Boolean(normalizedEnrollment))
+    return normalizedEnrollment
   }
 
   const refreshUnlockedChapters = async (resolvedCourseId: string) => {
-    const unlocked = await coursesApi.getUnlockedChapters(resolvedCourseId).catch(() => null)
+    const unlockedResponse = await coursesApi.getUnlockedChapters(resolvedCourseId).catch(() => null)
+    const unlocked = unwrapApiPayload(unlockedResponse)
     const unlockedList = (unlocked as any)?.unlockedChapters || null
     const sequentialEnabled = Boolean((unlocked as any)?.sequentialProgressionEnabled)
     const unlockMsg = (unlocked as any)?.unlockMessage
@@ -88,8 +99,9 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
     resolvedCourseId: string,
     courseForFallback?: { mongoId?: string; id?: string } | null,
   ) => {
-    await refreshEnrollmentProgress(resolvedCourseId, courseForFallback)
+    const normalizedEnrollment = await refreshEnrollmentProgress(resolvedCourseId, courseForFallback)
     await refreshUnlockedChapters(resolvedCourseId)
+    return normalizedEnrollment
   }
 
   const clearCheckoutParams = () => {
@@ -174,25 +186,141 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
     }
   }
 
-  const handleEnrollmentRequest = async (options?: { openPaymentModal?: boolean }) => {
+  const handleEnrollmentRequest = async (options?: {
+    openPaymentModal?: boolean
+    targetChapterId?: string
+    targetChapterPaid?: boolean
+    source?: "sidebar-next" | "player-lock" | "manual"
+  }) => {
     if (!course) return
 
-    const isPaid = Number(course.price ?? 0) > 0
     const resolvedCourseId = String(course.mongoId || courseId)
+    const targetChapterId = options?.targetChapterId ? String(options.targetChapterId) : undefined
+    const targetChapterPaid = Boolean(options?.targetChapterPaid)
+    const allCourseChapters = Array.isArray(course?.sections)
+      ? course.sections.flatMap((section: any) => (Array.isArray(section?.chapters) ? section.chapters : []))
+      : []
+    const targetChapter = targetChapterId
+      ? allCourseChapters.find((chapter: any) => String(chapter?.id) === String(targetChapterId))
+      : null
+    const chapterRequiresPayment = targetChapter
+      ? Boolean(targetChapter?.isPaidChapter) && !Boolean(targetChapter?.isPreview)
+      : targetChapterPaid
+    console.info("[CourseNextFlow] handleEnrollmentRequest", {
+      source: options?.source,
+      targetChapterId,
+      targetChapterPaid: chapterRequiresPayment,
+      openPaymentModal: options?.openPaymentModal,
+      resolvedCourseId,
+    })
+    let hasExistingEnrollment = false
 
     // Before any paid flow: re-fetch enrollment so we never redirect to Stripe if user is already enrolled
     try {
       const progressRes = await coursesApi.getCourseEnrollmentProgress(resolvedCourseId).catch(() => null)
-      const existingEnrollment = (progressRes as any)?.enrollment ?? null
+      const progressPayload = unwrapApiPayload(progressRes)
+      const existingEnrollment = (progressPayload as any)?.enrollment ?? null
       if (existingEnrollment) {
+        hasExistingEnrollment = true
+        console.info("[CourseNextFlow] Existing enrollment found")
         await refreshProgress(resolvedCourseId, course)
-        return
       }
     } catch (_) {
       // Continue to paid or free flow if re-fetch fails
     }
 
-    // Paid course: from chapter "Enroll" we redirect to Stripe directly (no modal). From elsewhere we can show modal for promo code.
+    // Chapter-driven flow (independent from course-level price).
+    if (targetChapterId) {
+      if (chapterRequiresPayment) {
+        try {
+          setIsEnrolling(true)
+          console.info("[CourseNextFlow] Redirecting to chapter payment", { targetChapterId })
+          toast({ title: "Redirecting to chapter payment...", description: "Taking you to secure checkout." })
+          const result = await coursesApi.initChapterStripePayment(resolvedCourseId, targetChapterId)
+          const checkoutUrl = result?.data?.checkoutUrl ?? result?.checkoutUrl
+          if (checkoutUrl) {
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem(
+                "pending_chapter_checkout",
+                JSON.stringify({
+                  courseId: resolvedCourseId,
+                  chapterId: targetChapterId,
+                  createdAt: Date.now(),
+                }),
+              )
+            }
+            window.location.href = checkoutUrl
+            return
+          }
+          throw new Error("Unable to start chapter checkout. Please try again.")
+        } catch (error) {
+          toast({
+            title: "Checkout failed",
+            description: typeof error === "object" && error && "message" in error ? String((error as any).message) : "Please try again.",
+            variant: "destructive",
+          })
+        } finally {
+          setIsEnrolling(false)
+        }
+        return
+      }
+
+      // Free next chapter: enroll directly and navigate to requested chapter.
+      try {
+        setIsEnrolling(true)
+        console.info("[CourseNextFlow] Free chapter path; enrolling directly", {
+          targetChapterId,
+          hasExistingEnrollment,
+        })
+        if (!hasExistingEnrollment) {
+          toast({
+            title: "Enrolling...",
+            description: "Please wait while we enroll you in this course.",
+          })
+          const enrollResponse = await coursesApi.enroll(resolvedCourseId)
+          const response = unwrapApiPayload(enrollResponse)
+          const enrolledFromResponse = (response as any)?.enrollment || null
+          if (enrolledFromResponse) {
+            // Optimistic state so requested chapter selection can proceed immediately.
+            setEnrollment((current: any | null) =>
+              current || {
+                ...enrolledFromResponse,
+                progress: Array.isArray(enrolledFromResponse?.progression)
+                  ? enrolledFromResponse.progression
+                  : [],
+                progressPercentage: 0,
+              },
+            )
+            setIsEnrolled(true)
+          }
+          toast({
+            title: "Enrolled successfully",
+            description: (response as any)?.message || "You now have access to this course.",
+          })
+        }
+        const refreshedEnrollment = await refreshProgress(resolvedCourseId, course)
+        console.info("[CourseNextFlow] Enrollment/progress refresh complete; requesting chapter selection", {
+          targetChapterId,
+          hasEnrollment: Boolean(refreshedEnrollment),
+        })
+        setRequestedChapterId(targetChapterId)
+      } catch (error) {
+        console.error("[CourseNextFlow] Free chapter enrollment failed", error)
+        toast({
+          title: "Enrollment failed",
+          description: typeof error === "object" && error && "message" in error
+            ? String((error as any).message)
+            : "Failed to enroll. Please try again.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsEnrolling(false)
+      }
+      return
+    }
+
+    // Generic full-course purchase flow kept for explicit purchase UI.
+    const isPaid = Number(course.price ?? 0) > 0
     if (isPaid) {
       const openModal = options?.openPaymentModal === true
       if (openModal) {
@@ -230,10 +358,11 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
       })
 
       const response = await coursesApi.enroll(resolvedCourseId)
+      const enrollPayload = unwrapApiPayload(response)
 
       toast({
         title: "Enrolled successfully",
-        description: response.message || "You now have access to this course.",
+        description: (enrollPayload as any)?.message || "You now have access to this course.",
       })
 
       await refreshProgress(resolvedCourseId, course)
@@ -352,6 +481,10 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
           await refreshUnlockedChapters(resolvedCourseId)
         }}
         onOpenEnrollment={handleEnrollmentRequest}
+        requestedChapterId={requestedChapterId}
+        onRequestedChapterConsumed={(chapterId) => {
+          setRequestedChapterId((current) => (current === chapterId ? null : current))
+        }}
         pendingPaidChapterId={pendingPaidChapterId}
         chapterUnlockState={chapterUnlockState}
         onRetryUnlock={

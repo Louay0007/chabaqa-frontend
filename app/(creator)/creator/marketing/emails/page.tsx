@@ -48,6 +48,12 @@ type FilterState = {
   search: string
 }
 
+const DEFAULT_FILTERS: FilterState = {
+  status: "all",
+  type: "all",
+  search: "",
+}
+
 export default function EmailCampaignsPage() {
   const { selectedCommunity, selectedCommunityId } = useCreatorCommunity()
   const { toast } = useToast()
@@ -66,16 +72,8 @@ export default function EmailCampaignsPage() {
   const [statsLoading, setStatsLoading] = useState(true)
   const [statsError, setStatsError] = useState<string | null>(null)
 
-  const [pendingFilters, setPendingFilters] = useState<FilterState>({
-    status: "all",
-    type: "all",
-    search: "",
-  })
-  const [activeFilters, setActiveFilters] = useState<FilterState>({
-    status: "all",
-    type: "all",
-    search: "",
-  })
+  const [pendingFilters, setPendingFilters] = useState<FilterState>(DEFAULT_FILTERS)
+  const [activeFilters, setActiveFilters] = useState<FilterState>(DEFAULT_FILTERS)
 
   const [editCampaign, setEditCampaign] = useState<EmailCampaign | null>(null)
   const [editTitle, setEditTitle] = useState("")
@@ -103,11 +101,7 @@ export default function EmailCampaignsPage() {
   )
 
   const fetchCampaigns = useCallback(
-    async (
-      page: number = 1,
-      filters: FilterState = activeFilters,
-      options?: { silent?: boolean },
-    ) => {
+    async (page: number = 1, filters: FilterState, options?: { silent?: boolean }) => {
       if (!selectedCommunityId) return
       const isSilent = options?.silent === true
       try {
@@ -135,7 +129,7 @@ export default function EmailCampaignsPage() {
         }
       }
     },
-    [activeFilters, selectedCommunityId],
+    [selectedCommunityId],
   )
 
   const fetchStats = useCallback(
@@ -163,9 +157,9 @@ export default function EmailCampaignsPage() {
 
   useEffect(() => {
     if (!selectedCommunityId) return
-    setActiveFilters({ status: "all", type: "all", search: "" })
-    setPendingFilters({ status: "all", type: "all", search: "" })
-    fetchCampaigns(1, { status: "all", type: "all", search: "" })
+    setActiveFilters(DEFAULT_FILTERS)
+    setPendingFilters(DEFAULT_FILTERS)
+    fetchCampaigns(1, DEFAULT_FILTERS)
     fetchStats()
   }, [fetchCampaigns, fetchStats, selectedCommunityId])
 
@@ -388,9 +382,9 @@ export default function EmailCampaignsPage() {
             variant="outline"
             className="w-full"
             onClick={() => {
-              setPendingFilters({ status: "all", type: "all", search: "" })
-              setActiveFilters({ status: "all", type: "all", search: "" })
-              fetchCampaigns(1, { status: "all", type: "all", search: "" })
+              setPendingFilters(DEFAULT_FILTERS)
+              setActiveFilters(DEFAULT_FILTERS)
+              fetchCampaigns(1, DEFAULT_FILTERS)
             }}
           >
             Reset

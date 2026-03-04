@@ -61,6 +61,37 @@ export default function ChapterTabs({
   const chapterNotes = currentChapter?.notes || ''
   const chapterContent = currentChapter?.content || ''
 
+  const handleGoToNextChapterClick = async () => {
+    const currentChapterId = currentChapter?.id ? String(currentChapter.id) : null
+    console.info("[CourseNextFlow] ChapterTabs Next Chapter clicked", {
+      currentChapterId,
+      nextChapterId: nextChapterId ? String(nextChapterId) : null,
+      hasHandler: Boolean(onGoToNextChapter),
+    })
+
+    if (!nextChapterId || !onGoToNextChapter) {
+      console.warn("[CourseNextFlow] ChapterTabs next navigation blocked", {
+        reason: !nextChapterId ? "No next chapter available" : "Missing next chapter handler",
+        currentChapterId,
+      })
+      return
+    }
+
+    try {
+      await Promise.resolve(onGoToNextChapter())
+      console.info("[CourseNextFlow] ChapterTabs next navigation requested", {
+        currentChapterId,
+        nextChapterId: String(nextChapterId),
+      })
+    } catch (error) {
+      console.error("[CourseNextFlow] ChapterTabs next navigation failed", {
+        currentChapterId,
+        nextChapterId: String(nextChapterId),
+        error,
+      })
+    }
+  }
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
       <TabsList className="grid w-full grid-cols-5 md:grid-cols-5 lg:grid-cols-5 h-auto p-1.5 bg-muted/50">
@@ -96,7 +127,7 @@ export default function ChapterTabs({
               ) : null}
 
               {isCurrentChapterCompleted && nextChapterId && onGoToNextChapter ? (
-                <Button type="button" onClick={() => void onGoToNextChapter()} className="text-sm md:text-base">
+                <Button type="button" onClick={() => void handleGoToNextChapterClick()} className="text-sm md:text-base">
                   Next Chapter
                 </Button>
               ) : null}

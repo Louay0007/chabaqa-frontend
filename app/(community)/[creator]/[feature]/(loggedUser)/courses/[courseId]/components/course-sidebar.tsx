@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/lib/api"
 import { coursesApi } from "@/lib/api/courses.api"
+import { tokenStorage } from "@/lib/token-storage"
 import { useToast } from "@/components/ui/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { format } from "date-fns"
@@ -30,6 +31,11 @@ interface CourseSidebarProps {
   pendingPaidChapterId?: string | null
   chapterUnlockState?: "idle" | "syncing" | "unlocked" | "timeout"
   onRetryUnlock?: () => Promise<void> | void
+  onOpenEnrollment?: (options?: {
+    targetChapterId?: string
+    targetChapterPaid?: boolean
+    source?: "sidebar-next" | "player-lock" | "manual"
+  }) => void | Promise<void>
 }
 
 export default function CourseSidebar({ 
@@ -47,6 +53,7 @@ export default function CourseSidebar({
   pendingPaidChapterId,
   chapterUnlockState = "idle",
   onRetryUnlock,
+  onOpenEnrollment,
 }: CourseSidebarProps) {
   const [activeTab, setActiveTab] = useState("content")
   const [noteContent, setNoteContent] = useState("")
@@ -55,6 +62,8 @@ export default function CourseSidebar({
   const [purchasing, setPurchasing] = useState(false)
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null)
   const { toast } = useToast()
+  const isUserEnrolled = Boolean(enrollment)
+  const firstChapterId = allChapters?.[0]?.id ? String(allChapters[0].id) : null
 
   const loadNotes = async () => {
     setLoadingNotes(true)
@@ -122,11 +131,67 @@ export default function CourseSidebar({
     }
   }
 
+  const requestChapterSelection = async (
+    chapterId: string,
+    source: "chapter-list" | "sidebar-next",
+  ) => {
+    const targetChapterId = String(chapterId)
+    console.info("[CourseNextFlow] Chapter selection requested", {
+      source,
+      targetChapterId,
+      selectedChapter,
+      isUserEnrolled,
+    })
+    try {
+      await Promise.resolve(setSelectedChapter(targetChapterId))
+      console.info("[CourseNextFlow] Chapter selection resolved", {
+        source,
+        targetChapterId,
+      })
+    } catch (error) {
+      console.error("[CourseNextFlow] Chapter selection failed", {
+        source,
+        targetChapterId,
+        error,
+      })
+      toast({
+        title: "Navigation failed",
+        description: "Could not open the chapter. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleNextChapter = async (nextChapter: any) => {
     if (!nextChapter) return;
+    const nextChapterId = String(nextChapter.id)
+    const nextChapterRequiresPayment = Boolean(nextChapter.isPaidChapter) && !Boolean(nextChapter.isPreview)
+    console.info("[CourseNextFlow] Sidebar Next clicked", {
+      nextChapterId,
+      nextChapterRequiresPayment,
+      isUserEnrolled,
+      currentlyAccessible: isChapterAccessible(nextChapterId),
+      selectedChapter,
+    })
 
-    if (nextChapter.isPaidChapter && !isChapterAccessible(nextChapter.id) && !nextChapter.isPreview) {
+    if (!isUserEnrolled && !isChapterAccessible(nextChapterId) && onOpenEnrollment) {
+      console.info("[CourseNextFlow] Trigger chapter-aware enrollment from sidebar", {
+        nextChapterId,
+        nextChapterRequiresPayment,
+      })
+      await onOpenEnrollment({
+        targetChapterId: nextChapterId,
+        targetChapterPaid: nextChapterRequiresPayment,
+        source: "sidebar-next",
+      })
+      return
+    }
+
+    if (nextChapterRequiresPayment && !isChapterAccessible(nextChapterId)) {
       // Initiate payment for the next chapter
+      console.info("[CourseNextFlow] Next chapter requires payment; initializing checkout", {
+        nextChapterId,
+      })
       setPurchasing(true);
       try {
         const resolvedCourseId = String(course?.mongoId || course?.id || courseId || "");
@@ -135,7 +200,7 @@ export default function CourseSidebar({
         }
         const data = await coursesApi.initChapterStripePayment(
           resolvedCourseId,
-          String(nextChapter.id),
+          nextChapterId,
         );
         const checkoutUrl = data?.checkoutUrl || data?.data?.checkoutUrl
         if (checkoutUrl) {
@@ -144,7 +209,7 @@ export default function CourseSidebar({
               "pending_chapter_checkout",
               JSON.stringify({
                 courseId: resolvedCourseId,
-                chapterId: String(nextChapter.id),
+                chapterId: nextChapterId,
                 createdAt: Date.now(),
               }),
             )
@@ -168,9 +233,48 @@ export default function CourseSidebar({
       }
     } else {
       // Free or already unlocked
-      void setSelectedChapter(nextChapter.id);
+      console.info("[CourseNextFlow] Navigating directly to next chapter", { nextChapterId })
+      await requestChapterSelection(nextChapterId, "sidebar-next")
     }
   };
+
+  const handleNextChapterClick = async (nextChapter: any, isCurrentChapterCompleted: boolean) => {
+    if (!nextChapter) {
+      console.warn("[CourseNextFlow] Next chapter click ignored: missing target chapter")
+      return
+    }
+
+    const nextChapterId = String(nextChapter.id)
+    console.info("[CourseNextFlow] Next chapter button clicked", {
+      nextChapterId,
+      isCurrentChapterCompleted,
+      purchasing,
+      selectedChapter,
+    })
+
+    if (purchasing) {
+      console.info("[CourseNextFlow] Next chapter click ignored: purchase already in progress", {
+        nextChapterId,
+      })
+      return
+    }
+
+    if (!isCurrentChapterCompleted) {
+      const reason = "Complete at least 90% of the current chapter to unlock the next one."
+      console.warn("[CourseNextFlow] Next chapter click blocked", {
+        nextChapterId,
+        reason,
+      })
+      toast({
+        title: "Next chapter locked",
+        description: reason,
+        variant: "destructive",
+      })
+      return
+    }
+
+    await handleNextChapter(nextChapter)
+  }
 
   return (
     <div className="space-y-6">
@@ -249,6 +353,9 @@ export default function CourseSidebar({
                           const isCompleted = chapterProgress?.isCompleted
                           const isActive = String(selectedChapter) === String(chapter.id)
                           const accessible = isChapterAccessible(String(chapter.id))
+                          const isFirstPreviewChapter =
+                            !isUserEnrolled &&
+                            Boolean(firstChapterId && String(chapter.id) === firstChapterId)
                           
                           // Calculate chapter progress percentage
                           const watchTime = Number(chapterProgress?.watchTime ?? 0)
@@ -259,7 +366,29 @@ export default function CourseSidebar({
                             <button
                               key={chapter.id}
                               onClick={() => {
-                                void setSelectedChapter(String(chapter.id))
+                                const chapterId = String(chapter.id)
+                                console.info("[CourseNextFlow] Sidebar chapter item clicked", {
+                                  chapterId,
+                                  accessible,
+                                  selectedChapter,
+                                  isUserEnrolled,
+                                })
+                                if (!accessible) {
+                                  const reason = isUserEnrolled
+                                    ? "This chapter is still locked. Complete the previous chapter first."
+                                    : "You need to enroll to open this chapter."
+                                  console.warn("[CourseNextFlow] Sidebar chapter click blocked", {
+                                    chapterId,
+                                    reason,
+                                  })
+                                  toast({
+                                    title: "Chapter locked",
+                                    description: reason,
+                                    variant: "destructive",
+                                  })
+                                  return
+                                }
+                                void requestChapterSelection(chapterId, "chapter-list")
                               }}
                               className={`w-full flex flex-col p-2.5 md:p-3 rounded-lg text-left transition-all ${
                                 isActive
@@ -303,9 +432,14 @@ export default function CourseSidebar({
                                   
                                   {/* Chapter badges */}
                                   <div className="flex items-center gap-1.5 mt-1.5">
-                                    {chapter.isPreview && (
+                                    {(chapter.isPreview || isFirstPreviewChapter) && accessible && (
                                       <span className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
                                         Preview
+                                      </span>
+                                    )}
+                                    {!accessible && (
+                                      <span className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 bg-slate-100 text-slate-700 rounded font-medium">
+                                        Locked
                                       </span>
                                     )}
                                     {chapter.isPaidChapter && !accessible && (
@@ -350,7 +484,13 @@ export default function CourseSidebar({
                 let maxStoredTime = backendWatchTime
                 // Use the passed courseId if available (matches player), otherwise fallback to course.id
                 const resolvedCourseId = courseId || course.id
-                const storageKey = resolvedCourseId && currentId ? `course_progress_${resolvedCourseId}_${currentId}` : null
+                const userIdFromEnrollment = enrollment?.userId ? String(enrollment.userId) : ""
+                const userIdFromToken = typeof window !== "undefined" ? tokenStorage.getUserInfo()?.id : undefined
+                const userScopeId = userIdFromEnrollment || userIdFromToken || "guest"
+                const storageKey =
+                  resolvedCourseId && currentId
+                    ? `course_progress_${userScopeId}_${resolvedCourseId}_${currentId}`
+                    : null
                 
                 if (typeof window !== 'undefined' && storageKey) {
                   const localData = localStorage.getItem(storageKey)
@@ -391,8 +531,6 @@ export default function CourseSidebar({
                 // NEXT CHAPTER LOGIC
                 const currentIndex = allChapters.findIndex(c => String(c.id) === String(currentId));
                 const nextChapter = currentIndex !== -1 && currentIndex < allChapters.length - 1 ? allChapters[currentIndex + 1] : null;
-                const canGoNext = effectiveIsCompleted && nextChapter;
-
                 return (
                   <>
                     <div>
@@ -421,11 +559,12 @@ export default function CourseSidebar({
                     {/* NEXT CHAPTER BUTTON */}
                     {nextChapter && (
                       <Button 
-                        className="w-full gap-2 mt-1.5 h-8" 
+                        className={`w-full gap-2 mt-1.5 h-8 ${!effectiveIsCompleted ? "opacity-90" : ""}`} 
                         size="sm"
-                        disabled={!effectiveIsCompleted || purchasing}
+                        disabled={purchasing}
+                        aria-disabled={!effectiveIsCompleted || purchasing}
                         variant={effectiveIsCompleted ? "default" : "secondary"}
-                        onClick={() => handleNextChapter(nextChapter)}
+                        onClick={() => void handleNextChapterClick(nextChapter, effectiveIsCompleted)}
                       >
                         {purchasing ? (
                           "Processing..."
@@ -438,6 +577,11 @@ export default function CourseSidebar({
                           <>
                             <ShoppingCart className="h-3 w-3" />
                             Buy Next
+                          </>
+                        ) : !isUserEnrolled && !isChapterAccessible(nextChapter.id) ? (
+                          <>
+                            Enroll to Continue
+                            <ArrowRight className="h-3 w-3" />
                           </>
                         ) : (
                           <>
