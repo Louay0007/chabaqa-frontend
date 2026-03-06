@@ -37,14 +37,71 @@ const ADMIN_ROUTES = [
   '/admin',
 ]
 const ADMIN_AUTHORIZED_ROLES = ['admin', 'super_admin', 'moderator', 'content_moderator']
+const USER_ACCESS_COOKIE = 'accessToken'
+const ADMIN_ACCESS_COOKIE = 'adminAccessToken'
+const LOCALE_COOKIE = 'NEXT_LOCALE'
+const LOCALE_REWRITE_HEADER = 'x-locale-rewrite'
+const DEFAULT_LOCALE = 'en'
+const SUPPORTED_LOCALES = ['en', 'ar'] as const
 
 // Creator routes
 const CREATOR_ROUTES = [
   '/creator',
 ]
 
+function extractLocale(pathname: string): {
+  locale: string
+  normalizedPath: string
+  hasLocalePrefix: boolean
+} {
+  const segments = pathname.split('/')
+  const maybeLocale = segments[1]
+  const hasLocalePrefix = SUPPORTED_LOCALES.includes(maybeLocale as (typeof SUPPORTED_LOCALES)[number])
+
+  if (!hasLocalePrefix) {
+    return {
+      locale: DEFAULT_LOCALE,
+      normalizedPath: pathname,
+      hasLocalePrefix: false,
+    }
+  }
+
+  const stripped = `/${segments.slice(2).join('/')}`.replace(/\/+/g, '/')
+  return {
+    locale: maybeLocale,
+    normalizedPath: stripped === '/' ? '/' : stripped.replace(/\/$/, '') || '/',
+    hasLocalePrefix: true,
+  }
+}
+
+function withLocale(locale: string, path: string): string {
+  const normalized = path.startsWith('/') ? path : `/${path}`
+  if (normalized === '/') return `/${locale}`
+  return `/${locale}${normalized}`
+}
+
+function getExternalUrl(request: NextRequest): URL {
+  const url = request.nextUrl.clone()
+  const forwardedProto = request.headers.get('x-forwarded-proto')
+  const forwardedHost = request.headers.get('x-forwarded-host') || request.headers.get('host')
+
+  if (forwardedProto) {
+    url.protocol = `${forwardedProto}:`
+  }
+
+  if (forwardedHost) {
+    const [hostname, port] = forwardedHost.split(':', 2)
+    url.hostname = hostname
+    url.port = port || ''
+  }
+
+  return url
+}
+
 export async function authMiddleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const { locale, normalizedPath, hasLocalePrefix } = extractLocale(pathname)
+  const isInternalLocaleRewrite = request.headers.get(LOCALE_REWRITE_HEADER) === '1'
   
   // Skip middleware for API routes, static files, and Next.js internals
   if (
@@ -56,68 +113,116 @@ export async function authMiddleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  if (!hasLocalePrefix && !isInternalLocaleRewrite) {
+    const localizedUrl = getExternalUrl(request)
+    localizedUrl.pathname = withLocale(DEFAULT_LOCALE, pathname)
+    return NextResponse.redirect(localizedUrl)
+  }
+
+  if (!hasLocalePrefix && isInternalLocaleRewrite) {
+    const response = NextResponse.next()
+    const rewrittenLocale = request.headers.get('x-app-locale') || DEFAULT_LOCALE
+    response.cookies.set(LOCALE_COOKIE, rewrittenLocale, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: 'lax',
+    })
+    return response
+  }
+
+  const continueWithHeaders = (headers?: Headers) => {
+    const rewrittenUrl = getExternalUrl(request)
+    rewrittenUrl.pathname = normalizedPath
+
+    const requestHeaders = headers ? new Headers(headers) : new Headers(request.headers)
+    requestHeaders.set('x-app-locale', locale)
+    requestHeaders.set(LOCALE_REWRITE_HEADER, '1')
+
+    const response = NextResponse.rewrite(rewrittenUrl, { request: { headers: requestHeaders } })
+    response.cookies.set(LOCALE_COOKIE, locale, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: 'lax',
+    })
+    return response
+  }
+
   // Check if route is protected
-  const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route))
+  const isProtectedRoute = PROTECTED_ROUTES.some(route => normalizedPath.startsWith(route))
   const isPublicRoute = PUBLIC_ROUTES.some(route =>
     route === '/'
-      ? pathname === '/'
-      : pathname === route || pathname.startsWith(`${route}/`)
+      ? normalizedPath === '/'
+      : normalizedPath === route || normalizedPath.startsWith(`${route}/`)
   )
-  const isAdminRoute = ADMIN_ROUTES.some(route => pathname.startsWith(route))
-  const isCreatorRoute = CREATOR_ROUTES.some(route => pathname.startsWith(route))
-  const isAdminAuthPage = pathname === '/admin/login' || pathname === '/admin/verify-2fa'
+  const isAdminRoute = ADMIN_ROUTES.some(route => normalizedPath.startsWith(route))
+  const isCreatorRoute = CREATOR_ROUTES.some(route => normalizedPath.startsWith(route))
+  const isAdminAuthPage = normalizedPath === '/admin/login' || normalizedPath === '/admin/verify-2fa'
 
-  // Get token from cookies
-  const accessToken = request.cookies.get('accessToken')?.value
-  
-  let user = null
-  let isValidToken = false
+  const verifyToken = async (token?: string) => {
+    if (!token || !JWT_SECRET) {
+      return { user: null, isValidToken: false }
+    }
 
-  // Verify token if present
-  if (accessToken && JWT_SECRET) {
     try {
-      const { payload } = await jwtVerify(accessToken, secret)
-      user = payload
-      isValidToken = true
+      const { payload } = await jwtVerify(token, secret)
+      return { user: payload, isValidToken: true }
     } catch (error) {
-      // Token is invalid or expired
       console.log('Token verification failed:', error)
+      return { user: null, isValidToken: false }
     }
   }
-  const userRole = typeof user?.role === 'string' ? user.role : ''
-  const isAdminAuthorizedUser = ADMIN_AUTHORIZED_ROLES.includes(userRole)
 
-  // Redirect authenticated users away from auth pages
-  if (isValidToken && (pathname === '/signin' || pathname === '/signup' || pathname === '/verify-email' || isAdminAuthPage)) {
-    if (isAdminAuthPage && isAdminAuthorizedUser) {
-      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+  const userToken = request.cookies.get(USER_ACCESS_COOKIE)?.value
+  const adminToken = request.cookies.get(ADMIN_ACCESS_COOKIE)?.value
+  const { user, isValidToken } = await verifyToken(userToken)
+  const { user: adminUser, isValidToken: isValidAdminToken } = await verifyToken(adminToken)
+
+  const userRole = typeof user?.role === 'string' ? user.role : ''
+  const adminRole = typeof adminUser?.role === 'string' ? adminUser.role : ''
+  const isAdminAuthorizedUser = ADMIN_AUTHORIZED_ROLES.includes(adminRole)
+  const hasValidAdminSession = isValidAdminToken && isAdminAuthorizedUser
+
+  // Handle admin auth pages first to avoid cross-routing with regular auth flows.
+  if (isAdminAuthPage) {
+    if (hasValidAdminSession) {
+      return NextResponse.redirect(new URL(withLocale(locale, '/admin/dashboard'), getExternalUrl(request)))
     }
-    if (isAdminAuthPage) {
-      return NextResponse.next()
-    }
+    return continueWithHeaders()
+  }
+
+  // Redirect authenticated users away from regular auth pages
+  if (isValidToken && (normalizedPath === '/signin' || normalizedPath === '/signup' || normalizedPath === '/verify-email')) {
     const redirectTo = request.nextUrl.searchParams.get('redirect') || '/dashboard'
-    return NextResponse.redirect(new URL(redirectTo, request.url))
+    const normalizedRedirect = redirectTo.startsWith('/en/') || redirectTo.startsWith('/ar/')
+      ? redirectTo
+      : withLocale(locale, redirectTo)
+    return NextResponse.redirect(new URL(normalizedRedirect, getExternalUrl(request)))
   }
 
   // Explicit public routes bypass protection checks
   if (isPublicRoute) {
-    return NextResponse.next()
+    return continueWithHeaders()
   }
 
   // Handle admin routes
-  if (isAdminRoute && (!isValidToken || !isAdminAuthorizedUser)) {
-    if (!isValidToken) {
-      const loginUrl = new URL('/admin/login', request.url)
-      loginUrl.searchParams.set('redirect', pathname)
-      return NextResponse.redirect(loginUrl)
-    } else {
-      // User is authenticated but not admin
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
+  if (isAdminRoute && !hasValidAdminSession) {
+    const loginUrl = new URL(withLocale(locale, '/admin/login'), getExternalUrl(request))
+    loginUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(loginUrl)
   }
+
+  if (isAdminRoute && hasValidAdminSession && adminUser) {
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('x-user-id', adminUser.sub as string)
+    requestHeaders.set('x-user-email', adminUser.email as string)
+    requestHeaders.set('x-user-role', adminUser.role as string)
+
+    return continueWithHeaders(requestHeaders)
+  }
+
   // Handle protected routes
-  if (isProtectedRoute && !isValidToken) {
-    const loginUrl = new URL('/signin', request.url)
+  if (isProtectedRoute && !isAdminRoute && !isValidToken) {
+    const loginUrl = new URL(withLocale(locale, '/signin'), getExternalUrl(request))
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
   }
@@ -125,30 +230,26 @@ export async function authMiddleware(request: NextRequest) {
   // Handle creator routes
   if (isCreatorRoute && (!isValidToken || (user?.role !== 'creator' && user?.role !== 'admin'))) {
     if (!isValidToken) {
-      const loginUrl = new URL('/signin', request.url)
+      const loginUrl = new URL('/signin', getExternalUrl(request))
+      loginUrl.pathname = withLocale(locale, '/signin')
       loginUrl.searchParams.set('redirect', pathname)
       return NextResponse.redirect(loginUrl)
     } else {
       // User is authenticated but not creator/admin
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      return NextResponse.redirect(new URL(withLocale(locale, '/dashboard'), getExternalUrl(request)))
     }
   }
 
-  // Add user info to headers for server components
   if (isValidToken && user) {
     const requestHeaders = new Headers(request.headers)
     requestHeaders.set('x-user-id', user.sub as string)
     requestHeaders.set('x-user-email', user.email as string)
     requestHeaders.set('x-user-role', user.role as string)
     
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    })
+    return continueWithHeaders(requestHeaders)
   }
 
-  return NextResponse.next()
+  return continueWithHeaders()
 }
 
 /**

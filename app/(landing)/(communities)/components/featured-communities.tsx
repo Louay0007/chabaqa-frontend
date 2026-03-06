@@ -2,16 +2,17 @@
 
 import { useState, useRef } from "react"
 import { FeaturedCommunityCard } from "@/app/(landing)/(communities)/components/featured-community-card"
-import { Crown, Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
+import { Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Community } from "@/lib/models"
 import { Explore } from "@/lib/data-communities"
+import { useTranslations } from "next-intl"
 
 interface FeaturedCommunitiesProps {
   communities: Explore[]
 }
 
 export function FeaturedCommunities({ communities }: FeaturedCommunitiesProps) {
+  const t = useTranslations("landing.explore")
   const featuredCommunities = communities.filter((c) => c.featured)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
@@ -49,17 +50,17 @@ export function FeaturedCommunities({ communities }: FeaturedCommunitiesProps) {
 
           <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-3">
             <span className="bg-gradient-to-r from-chabaqa-primary to-chabaqa-secondary1 bg-clip-text text-transparent">
-              Dive Into What Moves You
+              {t("featured.title")}
             </span>
           </h2>
 
           <p className="text-base text-gray-600 max-w-2xl mx-auto mb-3">
-            Communities, challenges, events, and 1:1 sessions - All waiting for you!
+            {t("featured.subtitle")}
           </p>
           <div className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-full border border-amber-200/50 mb-3">
             <Sparkles className="w-3.5 h-3.5 text-amber-500 mr-1.5" />
             <span className="text-xs font-medium text-amber-700">
-              Featured Communities
+              {t("featured.badge")}
             </span>
           </div>
 

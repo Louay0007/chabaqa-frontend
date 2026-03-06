@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useAdminAuth } from "@/app/(admin)/providers/admin-auth-provider"
 import { adminApi } from "@/lib/api/admin-api"
 import { MetricCard } from "@/app/(admin)/_components/metric-card"
@@ -54,6 +54,9 @@ import {
   CheckCircle2
 } from "lucide-react"
 import { toast } from "sonner"
+import { localizeHref } from "@/lib/i18n/client"
+import { useLocale } from "next-intl"
+import { formatCurrency as formatLocalizedCurrency, formatDate } from "@/lib/i18n/format"
 
 // Types
 interface PlatformStatistics {
@@ -75,6 +78,10 @@ interface EngagementMetrics {
   contentInteractions: number
   communityParticipation: number
   engagementRate: number
+  breakdown?: Array<{
+    metric: string
+    value: number
+  }>
 }
 
 interface RetentionAnalysis {
@@ -99,6 +106,12 @@ interface DashboardData {
   retentionAnalysis: RetentionAnalysis
   revenueMetrics: any
   healthMetrics: any
+  userGrowth?: {
+    dailyBreakdown?: Array<{
+      date: string | Date
+      value: number
+    }>
+  }
   generatedAt: Date
 }
 
@@ -112,6 +125,8 @@ interface AlertConfig {
 
 export default function AnalyticsDashboardPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const locale = useLocale()
   const { isAuthenticated, loading: authLoading } = useAdminAuth()
 
   const [loading, setLoading] = useState(true)
@@ -126,9 +141,9 @@ export default function AnalyticsDashboardPage() {
   // Auth guard
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/admin/login')
+      router.push(localizeHref(pathname, '/admin/login'))
     }
-  }, [authLoading, isAuthenticated, router])
+  }, [authLoading, isAuthenticated, pathname, router])
 
   // Fetch analytics data
   useEffect(() => {
@@ -224,12 +239,10 @@ export default function AnalyticsDashboardPage() {
   }
 
   const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('fr-TN', {
-      style: 'currency',
-      currency: 'TND',
+    return formatLocalizedCurrency(amount, "TND", locale, {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount)
+      maximumFractionDigits: 0,
+    })
   }
 
   const formatDuration = (seconds: number): string => {
@@ -271,6 +284,13 @@ export default function AnalyticsDashboardPage() {
   const stats = dashboardData?.platformStatistics
   const engagement = dashboardData?.engagementMetrics
   const retention = dashboardData?.retentionAnalysis
+  const userGrowthData = dashboardData?.userGrowth?.dailyBreakdown?.map((point) => ({
+    period: formatDate(point.date, locale, {
+      month: 'short',
+      day: 'numeric',
+    }),
+    users: point.value,
+  })) || []
 
   return (
     <div className="p-8 space-y-8">
@@ -398,12 +418,7 @@ export default function AnalyticsDashboardPage() {
             loading={loading}
           >
             <LineChart
-              data={[
-                { period: 'Week 1', users: (stats?.newUsers ?? 0) * 0.2 },
-                { period: 'Week 2', users: (stats?.newUsers ?? 0) * 0.3 },
-                { period: 'Week 3', users: (stats?.newUsers ?? 0) * 0.25 },
-                { period: 'Week 4', users: (stats?.newUsers ?? 0) * 0.25 }
-              ]}
+              data={userGrowthData}
               xKey="period"
               yKeys={[
                 { key: 'users', color: 'hsl(var(--chart-1))', name: 'New Users' }
@@ -463,16 +478,11 @@ export default function AnalyticsDashboardPage() {
           {/* Engagement Chart */}
           <ChartCard
             title="Engagement Metrics"
-            description="User engagement over time"
+            description="Current engagement distribution across key metrics"
             loading={loading}
           >
             <BarChart
-              data={[
-                { metric: 'Sessions', value: engagement?.totalSessions || 0 },
-                { metric: 'Page Views', value: engagement?.pageViews || 0 },
-                { metric: 'Interactions', value: engagement?.contentInteractions || 0 },
-                { metric: 'Participation', value: engagement?.communityParticipation || 0 }
-              ]}
+              data={engagement?.breakdown || []}
               xKey="metric"
               yKeys={[
                 { key: 'value', color: 'hsl(var(--chart-1))', name: 'Count' }
@@ -545,7 +555,7 @@ export default function AnalyticsDashboardPage() {
           {/* Cohort Analysis Chart */}
           <ChartCard
             title="Cohort Analysis"
-            description="User retention by cohort"
+            description="7-day retention by monthly signup cohort"
             loading={loading}
           >
             <BarChart
@@ -612,7 +622,7 @@ export default function AnalyticsDashboardPage() {
           <CardContent>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Alert configuration coming soon. You'll be able to set thresholds for metrics like user growth, engagement rate, and churn rate.
+                Alert configuration coming soon. You&apos;ll be able to set thresholds for metrics like user growth, engagement rate, and churn rate.
               </p>
             </div>
           </CardContent>

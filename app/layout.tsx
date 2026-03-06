@@ -1,10 +1,15 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Inter, Tajawal } from "next/font/google"
 import Script from "next/script"
+import { cookies, headers } from "next/headers"
+import { NextIntlClientProvider } from "next-intl"
 import "./globals.css"
 import { Ga4ScriptGate } from "@/components/ga4-script-gate"
 import { CookieConsentProvider } from "@/components/cookie-consent-provider"
+import { ArabicAutoTranslate } from "@/components/arabic-auto-translate"
+import { DEFAULT_LOCALE, getLocaleDirection, isAppLocale, LOCALE_COOKIE } from "@/lib/i18n/config"
+import { getMessagesForLocale } from "@/lib/i18n/messages"
 import {
   generateKeywords,
   generateOGMetadata,
@@ -14,7 +19,12 @@ import {
   seoConfig,
 } from "@/lib/seo-config"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"], variable: "--font-latin" })
+const tajawal = Tajawal({
+  subsets: ["arabic"],
+  variable: "--font-arabic",
+  weight: ["400", "500", "700", "800"],
+})
 const appBaseUrl =
   process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.startsWith("http")
     ? process.env.NEXT_PUBLIC_APP_URL
@@ -38,15 +48,15 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/Logos/ICO/brandmark.ico" },
-      { url: "/Logos/ICO/brandmark.ico", sizes: "16x16", type: "image/x-icon" },
-      { url: "/Logos/ICO/brandmark.ico", sizes: "32x32", type: "image/x-icon" },
+      { url: "/favicon.ico" },
+      { url: "/favicon.ico", sizes: "16x16", type: "image/x-icon" },
+      { url: "/favicon.ico", sizes: "32x32", type: "image/x-icon" },
     ],
     apple: [
-      { url: "/Logos/ICO/brandmark.ico" },
-      { url: "/Logos/ICO/brandmark.ico", sizes: "180x180", type: "image/x-icon" },
+      { url: "/favicon.ico" },
+      { url: "/favicon.ico", sizes: "180x180", type: "image/x-icon" },
     ],
-    shortcut: "/Logos/ICO/brandmark.ico",
+    shortcut: "/favicon.ico",
   },
   manifest: "/manifest.json",
   openGraph: generateOGMetadata(seoConfig.defaultTitle, seoConfig.defaultDescription, appBaseUrl),
@@ -56,8 +66,7 @@ export const metadata: Metadata = {
     canonical: appBaseUrl,
     languages: {
       'en': appBaseUrl,
-      'ar': `${appBaseUrl}/ar`,
-      'fr': `${appBaseUrl}/fr`
+      'ar': `${appBaseUrl}/ar`
     }
   },
   verification: {
@@ -72,8 +81,18 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const localeHeader = headers().get("x-app-locale")
+  const localeCookie = cookies().get(LOCALE_COOKIE)?.value
+  const locale = isAppLocale(localeHeader)
+    ? localeHeader
+    : isAppLocale(localeCookie)
+      ? localeCookie
+      : DEFAULT_LOCALE
+  const dir = getLocaleDirection(locale)
+  const messages = getMessagesForLocale(locale)
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} dir={dir} suppressHydrationWarning>
       <head>
         {/* Preconnect to external domains for performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -90,16 +109,22 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="application-name" content="Chabaqa" />
       </head>
-      <body className={inter.className} suppressHydrationWarning>
-        {children}
-        <Ga4ScriptGate />
-        <CookieConsentProvider />
-        <Script id="structured-data-org" type="application/ld+json" strategy="afterInteractive">
-          {JSON.stringify(seoConfig.organization)}
-        </Script>
-        <Script id="structured-data-website" type="application/ld+json" strategy="afterInteractive">
-          {JSON.stringify(generateWebSiteSchema())}
-        </Script>
+      <body
+        className={`${inter.variable} ${tajawal.variable} ${locale === "ar" ? "font-arabic" : "font-latin"}`}
+        suppressHydrationWarning
+      >
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {children}
+          <ArabicAutoTranslate />
+          <Ga4ScriptGate />
+          <CookieConsentProvider />
+          <Script id="structured-data-org" type="application/ld+json" strategy="afterInteractive">
+            {JSON.stringify(seoConfig.organization)}
+          </Script>
+          <Script id="structured-data-website" type="application/ld+json" strategy="afterInteractive">
+            {JSON.stringify(generateWebSiteSchema())}
+          </Script>
+        </NextIntlClientProvider>
       </body>
     </html>
   )

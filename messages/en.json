@@ -1,0 +1,559 @@
+{
+  "common": {
+    "brand": "Chabaqa",
+    "language": "Language",
+    "loading": "Loading...",
+    "english": "English",
+    "arabic": "Arabic"
+  },
+  "auth": {
+    "signinPage": {
+      "headline": "Sign in to your Chabaqa space",
+      "subheadline": "Create, educate and manage your digital communities",
+      "footer": "© 2026 Chabaqa. Build the future of communities."
+    },
+    "signupPage": {
+      "headline": "Create your Chabaqa space",
+      "subheadline": "Create, educate and manage your digital communities",
+      "footer": "© 2026 Chabaqa. Build the future of communities."
+    },
+    "signinForm": {
+      "email": "Email address",
+      "emailPlaceholder": "your@email.com",
+      "password": "Password",
+      "passwordPlaceholder": "••••••••••",
+      "rememberMe": "Remember me for 30 days",
+      "signIn": "Sign In",
+      "signingIn": "Signing In...",
+      "orContinueWith": "Or continue with",
+      "continueWithGoogle": "Continue with Google",
+      "forgotPassword": "Forgot your password?",
+      "googleLoginError": "Google Login Error",
+      "googleLoginFailed": "Google sign-in failed. Please try again.",
+      "loginFailed": "Login failed. Please try again.",
+      "connectionError": "Connection Error",
+      "newToChabaqa": "New to Chabaqa?",
+      "createAccount": "Create your account"
+    },
+    "signupForm": {
+      "fullName": "Full Name",
+      "fullNamePlaceholder": "John Doe",
+      "email": "Email Address",
+      "emailPlaceholder": "your@email.com",
+      "phoneOptional": "Phone Number (Optional)",
+      "phonePlaceholder": "+216 XX XXX XXX",
+      "birthDateOptional": "Date of Birth (Optional)",
+      "password": "Password",
+      "passwordPlaceholder": "••••••••••",
+      "confirmPassword": "Confirm Password",
+      "confirmPasswordPlaceholder": "••••••••••",
+      "passwordStrength": "Password strength:",
+      "agreePrefix": "I agree to the",
+      "terms": "Terms of Service",
+      "and": "and",
+      "privacy": "Privacy Policy",
+      "createAccount": "Create Account",
+      "creatingAccount": "Creating Account...",
+      "alreadyHaveAccount": "Already have an account?",
+      "signIn": "Sign In",
+      "connectionError": "Connection error. Please try again.",
+      "unknownError": "An error occurred"
+    }
+  },
+  "landing": {
+    "header": {
+      "explore": "Explore",
+      "pricing": "Pricing",
+      "about": "About",
+      "blog": "Blog",
+      "features": "Features",
+      "globalNavAria": "Global navigation",
+      "brandAriaLabel": "Chabaqa",
+      "brandLogoAlt": "Chabaqa Logo",
+      "signIn": "Sign in",
+      "getStarted": "Get Started",
+      "createCommunity": "Create Community",
+      "creatorDashboard": "Creator Dashboard",
+      "logout": "Logout",
+      "loggingOut": "Logging out...",
+      "openMenu": "Open menu",
+      "closeMenu": "Close menu",
+      "menu": "Menu",
+      "navigation": "Navigation",
+      "logoutError": "Connection error"
+    },
+    "hero": {
+      "badge": "For Creators, By Creators",
+      "headlineLine1": "Chabaqa helps you",
+      "headlineLine2": "passion into",
+      "headlineLine3": "business",
+      "descriptionPrefix": "Create, engage, and monetize your audience with the platform built for",
+      "descriptionHighlight": "ambitious creators",
+      "startFree": "Start Free",
+      "explore": "Explore",
+      "stats": {
+        "features": "Features",
+        "freeValue": "Free",
+        "toStart": "To Start",
+        "support": "Support"
+      },
+      "timeline": {
+        "community": {
+          "title": "Community",
+          "date": "Always Available",
+          "content": "Create, customize, and grow your own community space with powerful engagement tools and real-time interactions.",
+          "category": "Engagement"
+        },
+        "courses": {
+          "title": "Courses",
+          "date": "Anytime Learning",
+          "content": "Build and sell structured learning paths with interactive chapters, quizzes, and comprehensive progress tracking.",
+          "category": "Learning"
+        },
+        "challenges": {
+          "title": "Challenges",
+          "date": "Weekly Events",
+          "content": "Host interactive challenges and competitions to boost member engagement, retention, and community growth.",
+          "category": "Engagement"
+        },
+        "products": {
+          "title": "Products",
+          "date": "Anytime Sales",
+          "content": "Offer digital or physical products directly in your community with integrated payments and inventory management.",
+          "category": "Monetization"
+        },
+        "sessions": {
+          "title": "1:1 Sessions",
+          "date": "On Demand",
+          "content": "Provide personalized coaching and mentoring sessions with built-in scheduling, payments, and video integration.",
+          "category": "Coaching"
+        },
+        "events": {
+          "title": "Events",
+          "date": "Monthly Gatherings",
+          "content": "Organize live events, meetups, or webinars for your members with RSVP management and automated reminders.",
+          "category": "Events"
+        }
+      }
+    },
+    "about": {
+      "title": "What is Chabaqa?",
+      "description": "Chabaqa enables individuals to leverage their expertise, regardless of background or access to traditional employment, to build sustainable careers by monetizing their knowledge. We empower creators to connect with global audiences, gain professional recognition, and generate meaningful income from untapped potential.",
+      "brandNote": "Brand note: Chabaqa (not Chabaka).",
+      "aboutVideoAriaLabel": "About video",
+      "closeVideo": "Close video",
+      "aboutVideoExpandedTitle": "About Us Video - Expanded",
+      "playDemoVideo": "Play demo video",
+      "aboutVideoAlt": "About Us Video",
+      "getStartedToday": "Get Started Today",
+      "watchDemo": "Watch Demo"
+    },
+    "features": {
+      "title": "Powerful Features",
+      "subtitle": "Explore our comprehensive suite of tools designed to enhance your experience",
+      "videoNotSupported": "Your browser does not support the video tag.",
+      "items": {
+        "community": "Community",
+        "course": "Online Courses",
+        "challenge": "Challenges & Competitions",
+        "product": "Product Marketplace",
+        "event": "Events",
+        "session": "1:1 Sessions"
+      }
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "subtitle": "Get started with Chabaqa in just four simple steps and watch your community flourish."
+    },
+    "pricing": {
+      "title": "Choose Your Plan",
+      "subtitle": "Start free and scale as you grow",
+      "plansAriaLabel": "Pricing plans",
+      "planAriaLabel": "Plan {name}",
+      "goToSlide": "Go to slide {index}",
+      "trialIncluded": "{trial} trial included",
+      "billing": {
+        "monthly": "Monthly",
+        "yearly": "Yearly",
+        "periodMonthly": "/mo",
+        "periodYearly": "/yr",
+        "perMonthShort": "/mo"
+      },
+      "badges": {
+        "mostPopular": "Most Popular"
+      },
+      "saveBadge": {
+        "yearly": "You're saving up to {percent}%",
+        "monthly": "Save up to {percent}% with yearly",
+        "mobileYearly": "Saving up to {percent}%",
+        "mobileMonthly": "Save up to {percent}% yearly"
+      },
+      "errors": {
+        "invalidPlanTitle": "Invalid plan",
+        "invalidPlanDescription": "Please select a valid subscription plan.",
+        "paymentInitFailedTitle": "Payment initialization failed",
+        "noCheckoutUrl": "No checkout URL returned",
+        "tryAgain": "Please try again."
+      },
+      "plans": {
+        "starter": {
+          "name": "Starter",
+          "description": "Perfect for getting started",
+          "trial": "7 days free",
+          "cta": "Start 7-Day Free Trial",
+          "features": [
+            "1 Community (up to 100 members)",
+            "Activate up to 3 Courses",
+            "Digital Products: Enabled (Sell/Downloadables)",
+            "2 GB Storage Included",
+            "Basic Insights - Members, Sales, Course Progress",
+            "24/7 Support",
+            "Transaction Fee: 7.9%"
+          ]
+        },
+        "growth": {
+          "name": "Growth",
+          "description": "For growing communities",
+          "trial": "7 days free",
+          "cta": "Start 7-Day Free Trial",
+          "features": [
+            "Up to 3 Communities (10,000 members total)",
+            "Unlimited Courses (no activation limit)",
+            "Courses, Challenges, 1-to-1 Sessions, Digital Products, Events & Online Meetings",
+            "Magic Reach: Email, WhatsApp & Message Automation (500/month)",
+            "Members Gamification (Points, Rewards, Rankings)",
+            "Full Advanced Insights - Sales, Growth, Engagement",
+            "24/7 Priority Support",
+            "Verified Badge for your Profile/Community",
+            "50 GB Storage for Files, Videos & Resources",
+            "Occasional Promotion on our Social Media",
+            "Transaction Fee: 4.9%"
+          ]
+        },
+        "pro": {
+          "name": "Pro",
+          "description": "For professional creators",
+          "trial": "7 days free",
+          "cta": "Start 7-Day Free Trial",
+          "features": [
+            "Unlimited Communities & Unlimited Members",
+            "Unlimited Courses (no restrictions)",
+            "Courses, Challenges, 1-to-1 Sessions, Digital Products, Events & Online Meetings",
+            "Magic Reach: Unlimited Email, WhatsApp & Message Automation",
+            "Team Power: Add up to 3 Admins",
+            "Branding: Custom URL with your own domain name",
+            "Recognition: Featured Badge + Community highlighted at top of listings",
+            "Members Gamification (Points, Rewards, Rankings)",
+            "Full Advanced Insights - Sales, Growth, Engagement",
+            "24/7 VIP Support",
+            "Occasional Promotion on our Social Media",
+            "Transaction Fee: 2.9%"
+          ]
+        }
+      }
+    },
+    "videos": {
+      "sectionAriaLabel": "Video tutorials",
+      "title": "Learn from Videos",
+      "subtitle": "Watch tutorials and discover features to help you build your community",
+      "scrollLeft": "Scroll left",
+      "scrollRight": "Scroll right",
+      "thumbnailAlt": "Video thumbnail",
+      "closeVideo": "Close video",
+      "playerTitle": "YouTube video player"
+    },
+    "appInstall": {
+      "bannerAlt": "Get Chabaqa App",
+      "downloadAppStore": "Download on App Store",
+      "downloadGooglePlay": "Get it on Google Play"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "subtitle": "Everything you need to know about Chabaqa - the all-in-one community platform for creators, coaches, and educators. Learn about features, pricing, and how to build and monetize your community.",
+      "stillHaveQuestions": "Still have questions about Chabaqa?",
+      "contactSupport": "Contact Our Support Team",
+      "items": [
+        {
+          "question": "What makes Chabaqa different from other community platforms?",
+          "answer": "Chabaqa is an all-in-one community platform built for creators, coaches, and educators who want to grow and monetize their audience in one place. You can create and sell online courses, run interactive challenges, offer one-on-one coaching, host virtual events, and deliver digital products from a single system."
+        },
+        {
+          "question": "How do I create a community on Chabaqa?",
+          "answer": "After signing up at chabaqa.io, click Create New Community, add your community name and description, customize colors, banners, and logo, then publish your invite link. Anyone with the link can join instantly."
+        },
+        {
+          "question": "Is Chabaqa only for creating online courses?",
+          "answer": "No. Beyond courses, Chabaqa supports paid challenges, digital products, 1:1 coaching sessions, events, and online meetings, all in one dashboard."
+        },
+        {
+          "question": "How will Chabaqa help me engage with my community?",
+          "answer": "Chabaqa includes engagement tools like announcements, feeds, direct messages, and communication automations so you can keep members active and connected."
+        },
+        {
+          "question": "How can users book a 1:1 coaching session on Chabaqa?",
+          "answer": "Users open the 1:1 sessions section, choose a time slot from your availability calendar, complete booking, and receive confirmation with a meeting link."
+        },
+        {
+          "question": "What is the difference between Courses and Challenges on Chabaqa?",
+          "answer": "Courses are flexible learning resources available over time, while challenges are time-based and highly structured programs designed to maximize engagement and outcomes."
+        },
+        {
+          "question": "How can I create and manage events on Chabaqa?",
+          "answer": "You can create online or offline events, sell tickets, manage attendees, and track event performance directly from your community dashboard."
+        },
+        {
+          "question": "How much does Chabaqa cost? What are the pricing plans?",
+          "answer": "Chabaqa offers flexible plans for different creator stages, including free trial periods and paid tiers with advanced capabilities."
+        },
+        {
+          "question": "Can I use Chabaqa if I'm based in Tunisia or the MENA region?",
+          "answer": "Yes. Chabaqa is designed for creators in Tunisia and across the MENA region, with multilingual support and creator-friendly workflows."
+        },
+        {
+          "question": "How do I monetize my community on Chabaqa?",
+          "answer": "You can monetize through paid courses, challenges, coaching sessions, events, and digital products with secure checkout and payout support."
+        },
+        {
+          "question": "Is Chabaqa suitable for coaches, educators, and fitness trainers?",
+          "answer": "Yes. Chabaqa is built for coaches, educators, trainers, and creators who need an all-in-one platform to teach, engage, and monetize."
+        }
+      ]
+    },
+    "footer": {
+      "description": "Empowering communities worldwide to learn, connect, and thrive together.",
+      "copyrightReserved": "All rights reserved.",
+      "sections": {
+        "product": "Product",
+        "company": "Company",
+        "followUs": "Follow Us"
+      },
+      "links": {
+        "product": {
+          "explore": "Explore",
+          "features": "All Features",
+          "pricing": "Pricing"
+        },
+        "company": {
+          "about": "About",
+          "terms": "Terms of Service",
+          "privacy": "Privacy Policy"
+        }
+      },
+      "manageCookies": "Manage Cookies",
+      "copyright": "© {year} {brand}. All rights reserved."
+    },
+    "explore": {
+      "hero": {
+        "exploreCommunities": "Explore Communities",
+        "createCommunity": "Create Community"
+      },
+      "featured": {
+        "title": "Dive Into What Moves You",
+        "subtitle": "Communities, challenges, events, and 1:1 sessions - All waiting for you!",
+        "badge": "Featured Communities"
+      },
+      "searchSectionTitle": "Start Your Perfect Discovery!",
+      "searchSectionSubtitle": "Browse, filter, and connect with what excites you the most",
+      "searchPlaceholder": "Search...",
+      "filters": {
+        "label": "Filters",
+        "freeOnly": "Free Only",
+        "paidOnly": "Paid Only",
+        "verifiedOnly": "Verified Only",
+        "members1000": "1000+ Members",
+        "topRated": "Top Rated (4.5+)"
+      },
+      "sort": {
+        "popular": "Popular",
+        "newest": "Newest",
+        "members": "Members",
+        "rating": "Rating",
+        "priceLow": "Price Low",
+        "priceHigh": "Price High"
+      },
+      "resultsFor": "Results for",
+      "showing": "Showing {start}-{end} of {total}",
+      "activeCount": "{count} Active",
+      "view": {
+        "grid": "Grid",
+        "list": "List"
+      },
+      "clear": "Clear",
+      "price": "Price",
+      "all": "All",
+      "minMembers": "Min Members",
+      "anySize": "Any Size",
+      "activeFilters": "Active filters",
+      "pageOf": "Page {current} of {total}",
+      "noResultsTitle": "No communities found",
+      "noResultsDescription": "Try adjusting your search criteria or browse all communities.",
+      "clearAll": "Clear All Filters",
+      "verified": "Verified",
+      "createdBy": "Created by",
+      "by": "by",
+      "communityLabel": "Community",
+      "priceLabels": {
+        "free": "Free"
+      },
+      "types": {
+        "community": "Community",
+        "course": "Course",
+        "challenge": "Challenge",
+        "product": "Product",
+        "oneToOne": "1-to-1 Sessions",
+        "event": "Event"
+      },
+      "cta": {
+        "explore": "Explore",
+        "start": "Start",
+        "join": "Join",
+        "buy": "Buy",
+        "book": "Book",
+        "register": "Register",
+        "download": "Download",
+        "viewCommunity": "View Community"
+      },
+      "ctaCard": {
+        "title": "Ready to Start Your Own Community?",
+        "subtitle": "Join thousands of creators building thriving communities and generating meaningful income with Chabaqa.",
+        "createCommunity": "Create Your Community",
+        "learnMore": "Learn More",
+        "pillars": {
+          "build": {
+            "title": "Build",
+            "subtitle": "Invite members"
+          },
+          "engage": {
+            "title": "Engage",
+            "subtitle": "Share & host"
+          },
+          "monetize": {
+            "title": "Monetize",
+            "subtitle": "Earn revenue"
+          }
+        }
+      }
+    },
+    "legal": {
+      "badge": "Legal",
+      "effective": "Effective",
+      "updated": "Updated",
+      "onThisPage": "On This Page",
+      "relatedDocument": "Related Document"
+    },
+    "privacyPolicy": {
+      "title": "Privacy Policy",
+      "subtitle": "We treat privacy as a product responsibility. This policy explains what data we collect, why we process it, and how we protect your information.",
+      "effectiveDate": "February 27, 2026",
+      "lastUpdated": "February 28, 2026",
+      "relatedLabel": "Read Terms of Service",
+      "relatedDescription": "For platform usage rules, account obligations, and legal terms."
+    },
+    "termsOfService": {
+      "title": "Terms of Service",
+      "subtitle": "These terms define how Chabaqa services can be used, including account obligations, creator responsibilities, payments, and legal protections.",
+      "effectiveDate": "February 27, 2026",
+      "lastUpdated": "February 27, 2026",
+      "relatedLabel": "Read Privacy Policy",
+      "relatedDescription": "For data handling, security, retention, and privacy rights."
+    }
+  },
+  "community": {
+    "labels": {
+      "members": "Members",
+      "joined": "Joined"
+    }
+  },
+  "creator": {
+    "labels": {
+      "revenue": "Revenue",
+      "sessions": "Sessions"
+    }
+  },
+  "forms": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Connection error. Please try again."
+  },
+  "validation": {
+    "required": "This field is required."
+  },
+  "seo": {
+    "siteName": "Chabaqa",
+    "defaultTitle": "Chabaqa Official Site | All-in-One Community Platform for Creators"
+  },
+  "admin": {
+    "brandName": "Chabaqa Admin",
+    "menu": {
+      "dashboard": "Dashboard",
+      "users": "Users",
+      "communities": "Communities",
+      "contentModeration": "Content Moderation",
+      "financial": "Financial",
+      "analytics": "Analytics",
+      "security": "Security",
+      "communication": "Communication",
+      "settings": "Settings",
+      "subscriptions": "Subscriptions",
+      "transactions": "Transactions",
+      "payouts": "Payouts",
+      "auditLogs": "Audit Logs",
+      "securityEvents": "Security Events",
+      "campaigns": "Campaigns",
+      "templates": "Templates",
+      "liveSupport": "Live Support"
+    },
+    "header": {
+      "profile": "Profile",
+      "settings": "Settings",
+      "logout": "Logout",
+      "notifications": "Notifications",
+      "openAdminMenu": "Open admin menu",
+      "toggleNavigation": "Toggle navigation menu"
+    },
+    "dashboard": {
+      "totalUsers": "Total Users",
+      "pendingCommunities": "Pending Communities",
+      "pendingContent": "Pending Content",
+      "liveSupportQueue": "Live Support Queue",
+      "revenue": "Revenue",
+      "userBase": "User base",
+      "awaitingApproval": "Awaiting approval",
+      "needsReview": "Needs review",
+      "availableTickets": "Available tickets",
+      "thisPeriod": "This period",
+      "refresh": "Refresh",
+      "loadingDashboard": "Loading admin dashboard",
+      "loadingDashboardData": "Loading dashboard data...",
+      "failedToLoad": "Failed to load dashboard data"
+    },
+    "login": {
+      "title": "Admin Portal",
+      "subtitle": "Sign in to access the admin dashboard",
+      "email": "Email Address",
+      "emailPlaceholder": "admin@chabaqa.com",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "signIn": "Sign In",
+      "signingIn": "Signing in...",
+      "loginSuccess": "Login Successful",
+      "loginFailed": "Login Failed",
+      "invalidCredentials": "Invalid credentials. Please try again.",
+      "twoFactorTitle": "Two-Factor Authentication",
+      "twoFactorSubtitle": "Enter the 6-digit verification code",
+      "verificationCode": "Verification Code",
+      "verificationCodePlaceholder": "123456",
+      "verifyAndLogin": "Verify & Login",
+      "verifying": "Verifying...",
+      "verificationSuccessful": "Verification Successful",
+      "verificationFailed": "Verification Failed",
+      "backToLogin": "Back to Login",
+      "developmentMode": "Development Mode:",
+      "developmentHint": "2FA code will be displayed after login"
+    }
+  }
+}

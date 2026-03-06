@@ -1,9 +1,11 @@
 "use client"
 import { siteData } from "@/lib/data"
 import { useState } from "react"
+import { useTranslations } from "next-intl"
 
 export function Features() {
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0)
+  const t = useTranslations("landing.features")
 
   const activeFeature = siteData.features[activeFeatureIndex]
 
@@ -11,15 +13,18 @@ export function Features() {
     return "bg-chabaqa-primary hover:bg-chabaqa-primary/90 border-chabaqa-primary"
   }
 
+  const getFeatureTitle = (featureId: string, fallback: string) =>
+    t.has(`items.${featureId}`) ? t(`items.${featureId}`) : fallback
+
   return (
     <div id="features" className="py-8 md:py-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         <div className="mb-8 md:mb-12 text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Powerful Features
+            {t("title")}
           </h2>
           <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-            Explore our comprehensive suite of tools designed to enhance your experience
+            {t("subtitle")}
           </p>
         </div>
 
@@ -38,7 +43,9 @@ export function Features() {
                         : "bg-white border border-gray-200 text-gray-700 active:scale-95"
                     }`}
                   >
-                    <div className="font-semibold text-xs whitespace-nowrap">{feature.title}</div>
+                    <div className="font-semibold text-xs whitespace-nowrap">
+                      {getFeatureTitle(feature.id, feature.title)}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -69,7 +76,7 @@ export function Features() {
                           : "bg-gray-50 hover:bg-gray-100 text-gray-700"
                       }`}
                     >
-                      <div className="font-semibold text-sm">{feature.title}</div>
+                      <div className="font-semibold text-sm">{getFeatureTitle(feature.id, feature.title)}</div>
                     </button>
                   ))}
                 </div>
@@ -98,7 +105,7 @@ export function Features() {
                     className="w-full h-auto object-cover"
                   >
                     <source src={activeFeature.video || "/placeholder.mp4"} type="video/mp4" />
-                    Your browser does not support the video tag.
+                    {t("videoNotSupported")}
                   </video>
                 </div>
               </div>

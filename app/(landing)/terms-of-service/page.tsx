@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { LegalDocumentLayout } from "@/app/(landing)/components/legal-document-layout"
+import { getTranslations } from "next-intl/server"
 
 const TERMS_SECTIONS = [
   {
@@ -121,20 +122,32 @@ export const metadata: Metadata = {
 }
 
 export default function TermsOfServicePage() {
+  return <TermsOfServiceContent />
+}
+
+async function TermsOfServiceContent() {
+  const t = await getTranslations("landing")
   return (
     <main className="min-h-screen">
       <Header />
       <LegalDocumentLayout
-        title="Terms of Service"
-        subtitle="These terms define how Chabaqa services can be used, including account obligations, creator responsibilities, payments, and legal protections."
-        effectiveDate="February 27, 2026"
-        lastUpdated="February 27, 2026"
+        title={t("termsOfService.title")}
+        subtitle={t("termsOfService.subtitle")}
+        effectiveDate={t("termsOfService.effectiveDate")}
+        lastUpdated={t("termsOfService.lastUpdated")}
         contactEmail="contactchabaqa@gmail.com"
+        labels={{
+          badge: t("legal.badge"),
+          effective: t("legal.effective"),
+          updated: t("legal.updated"),
+          onThisPage: t("legal.onThisPage"),
+          relatedDocument: t("legal.relatedDocument"),
+        }}
         sections={[...TERMS_SECTIONS]}
         relatedLink={{
           href: "/privacy-policy",
-          label: "Read Privacy Policy",
-          description: "For data handling, security, retention, and privacy rights.",
+          label: t("termsOfService.relatedLabel"),
+          description: t("termsOfService.relatedDescription"),
         }}
       />
       <Footer />

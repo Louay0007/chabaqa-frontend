@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, memo } from "react"
 import { Play, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 interface Video {
   id: string
@@ -39,7 +40,7 @@ const videos: Video[] = [
   },
 ]
 
-const VideoCard = memo(({ video, onClick }: { video: Video; onClick: () => void }) => (
+const VideoCard = memo(({ video, onClick, thumbnailAlt }: { video: Video; onClick: () => void; thumbnailAlt: string }) => (
   <div
     className="flex-shrink-0 w-[280px] sm:w-[340px] lg:w-[380px] group cursor-pointer"
     onClick={onClick}
@@ -52,7 +53,7 @@ const VideoCard = memo(({ video, onClick }: { video: Video; onClick: () => void 
       <div className="relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-white shadow-lg group-hover:shadow-2xl transition-all duration-300">
         <img
           src={video.thumbnail}
-          alt="Video thumbnail"
+          alt={thumbnailAlt}
           className="w-full h-full object-cover"
           loading="lazy"
         />
@@ -84,11 +85,13 @@ VideoCard.displayName = "VideoCard"
 const NavButton = memo(({ 
   direction, 
   show, 
-  onClick 
+  onClick,
+  ariaLabel
 }: { 
   direction: "left" | "right"
   show: boolean
   onClick: () => void 
+  ariaLabel: string
 }) => {
   if (!show) return null
   
@@ -101,7 +104,7 @@ const NavButton = memo(({
         direction === "left" ? "-left-5" : "-right-5"
       )}
       onClick={onClick}
-      aria-label={`Scroll ${direction}`}
+      aria-label={ariaLabel}
     >
       {direction === "left" ? <ChevronLeft className="h-6 w-6" /> : <ChevronRight className="h-6 w-6" />}
     </Button>
@@ -111,6 +114,7 @@ const NavButton = memo(({
 NavButton.displayName = "NavButton"
 
 export function YouTubeVideos() {
+  const t = useTranslations("landing.videos")
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null)
   const [showLeftArrow, setShowLeftArrow] = useState(false)
   const [showRightArrow, setShowRightArrow] = useState(true)
@@ -157,7 +161,7 @@ export function YouTubeVideos() {
   }, [])
 
   return (
-    <section className="relative bg-white overflow-hidden py-12 sm:py-16 lg:py-20" aria-label="Video tutorials">
+    <section className="relative bg-white overflow-hidden py-12 sm:py-16 lg:py-20" aria-label={t("sectionAriaLabel")}>
       {/* Background blobs - matching other sections */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-8 left-3 sm:top-12 sm:left-8 w-24 h-24 sm:w-40 sm:h-40 bg-gradient-to-br from-[#8e78fb]/20 to-[#f65887]/20 rounded-full blur-2xl animate-pulse" />
@@ -171,10 +175,10 @@ export function YouTubeVideos() {
         {/* Header - matching Features section style */}
         <div className="mb-8 md:mb-12 text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Learn from Videos
+            {t("title")}
           </h2>
           <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-            Watch tutorials and discover features to help you build your community
+            {t("subtitle")}
           </p>
         </div>
 
@@ -183,12 +187,14 @@ export function YouTubeVideos() {
           <NavButton 
             direction="left" 
             show={showLeftArrow} 
-            onClick={() => scrollContainer("left")} 
+            onClick={() => scrollContainer("left")}
+            ariaLabel={t("scrollLeft")}
           />
           <NavButton 
             direction="right" 
             show={showRightArrow} 
-            onClick={() => scrollContainer("right")} 
+            onClick={() => scrollContainer("right")}
+            ariaLabel={t("scrollRight")}
           />
 
           <div
@@ -201,6 +207,7 @@ export function YouTubeVideos() {
                 key={`${video.id}-${index}`}
                 video={video}
                 onClick={() => handleVideoClick(video.id)}
+                thumbnailAlt={t("thumbnailAlt")}
               />
             ))}
           </div>
@@ -222,7 +229,7 @@ export function YouTubeVideos() {
             <button
               onClick={handleCloseModal}
               className="absolute -top-12 right-0 sm:top-4 sm:right-4 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white flex items-center justify-center transition-all hover:scale-110"
-              aria-label="Close video"
+              aria-label={t("closeVideo")}
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -230,7 +237,7 @@ export function YouTubeVideos() {
             </button>
             <iframe
               src={`https://www.youtube.com/embed/${selectedVideo}?autoplay=1&rel=0`}
-              title="YouTube video player"
+              title={t("playerTitle")}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
               className="w-full h-full"
@@ -251,5 +258,4 @@ export function YouTubeVideos() {
     </section>
   )
 }
-
 

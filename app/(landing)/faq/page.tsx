@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     siteName: "Chabaqa",
     type: "website",
     locale: "en_US",
-    alternateLocale: ["ar_TN", "fr_FR"],
+    alternateLocale: ["ar_TN"],
     images: [
       {
         url: "/og-faq.jpg",
@@ -66,8 +66,7 @@ export const metadata: Metadata = {
     canonical: "https://chabaqa.io/faq",
     languages: {
       'en': 'https://chabaqa.io/faq',
-      'ar': 'https://chabaqa.io/ar/faq',
-      'fr': 'https://chabaqa.io/fr/faq'
+      'ar': 'https://chabaqa.io/ar/faq'
     }
   },
   robots: {

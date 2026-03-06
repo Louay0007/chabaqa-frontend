@@ -4,6 +4,10 @@
 
 This folder contains comprehensive SEO documentation for the Chabaqa platform.
 
+## I18N Documentation
+
+- [I18N-FREE-SETUP.md](./I18N-FREE-SETUP.md) - Free Arabic localization setup (`next-intl` + runtime fallback translator).
+
 ### Files
 
 #### 1. [SEO-GUIDE.md](./SEO-GUIDE.md)

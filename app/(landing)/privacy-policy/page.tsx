@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { LegalDocumentLayout } from "@/app/(landing)/components/legal-document-layout"
+import { getTranslations } from "next-intl/server"
 
 const PRIVACY_SECTIONS = [
   {
@@ -124,20 +125,32 @@ export const metadata: Metadata = {
 }
 
 export default function PrivacyPolicyPage() {
+  return <PrivacyPolicyContent />
+}
+
+async function PrivacyPolicyContent() {
+  const t = await getTranslations("landing")
   return (
     <main className="min-h-screen">
       <Header />
       <LegalDocumentLayout
-        title="Privacy Policy"
-        subtitle="We treat privacy as a product responsibility. This policy explains what data we collect, why we process it, and how we protect your information."
-        effectiveDate="February 27, 2026"
-        lastUpdated="February 28, 2026"
+        title={t("privacyPolicy.title")}
+        subtitle={t("privacyPolicy.subtitle")}
+        effectiveDate={t("privacyPolicy.effectiveDate")}
+        lastUpdated={t("privacyPolicy.lastUpdated")}
         contactEmail="contactchabaqa@gmail.com"
+        labels={{
+          badge: t("legal.badge"),
+          effective: t("legal.effective"),
+          updated: t("legal.updated"),
+          onThisPage: t("legal.onThisPage"),
+          relatedDocument: t("legal.relatedDocument"),
+        }}
         sections={[...PRIVACY_SECTIONS]}
         relatedLink={{
           href: "/terms-of-service",
-          label: "Read Terms of Service",
-          description: "For platform usage rules, account obligations, and legal terms.",
+          label: t("privacyPolicy.relatedLabel"),
+          description: t("privacyPolicy.relatedDescription"),
         }}
       />
       <Footer />

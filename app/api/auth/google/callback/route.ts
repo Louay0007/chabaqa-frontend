@@ -26,7 +26,15 @@ export async function GET(request: NextRequest) {
   let error = searchParams.get('error');
   let state = searchParams.get('state'); // User ID for security
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080';
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  const forwardedHost = request.headers.get('x-forwarded-host') || request.headers.get('host');
+  const [forwardedHostname, forwardedPort] = (forwardedHost || '').split(':', 2);
+  const forwardedOrigin = forwardedHostname
+    ? `${forwardedProto || 'https'}://${forwardedHostname}${forwardedPort ? `:${forwardedPort}` : ''}`
+    : '';
+  const appUrl = forwardedOrigin
+    ? forwardedOrigin
+    : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080';
   const apiUrl = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
   // For client-side calls, use the public API URL
   const clientApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';

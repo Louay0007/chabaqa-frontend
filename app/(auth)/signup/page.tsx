@@ -2,10 +2,12 @@ import { redirect } from "next/navigation"
 import { getProfileServer } from "@/lib/auth.server"
 import Image from "next/image"
 import SignUpForm from "../components/signup-form"
+import { getTranslations } from "next-intl/server"
 
 export const dynamic = 'force-dynamic'
 
 export default async function SignUpPage() {
+  const t = await getTranslations("auth.signupPage")
   const user = await getProfileServer()
 
   if (user) {
@@ -39,8 +41,8 @@ export default async function SignUpPage() {
 
           {/* Welcome Message */}
           <div className="text-center mb-8 animate-fade-in-delay-200">
-            <p className="text-xl text-gray-700 font-light drop-shadow-sm">Create your Chabaqa space</p>
-            <p className="text-sm text-gray-600 mt-2 drop-shadow-sm">Create, educate and manage your digital communities</p>
+            <p className="text-xl text-gray-700 font-light drop-shadow-sm">{t("headline")}</p>
+            <p className="text-sm text-gray-600 mt-2 drop-shadow-sm">{t("subheadline")}</p>
           </div>
 
           {/* Signup Form */}
@@ -48,7 +50,7 @@ export default async function SignUpPage() {
 
           {/* Footer */}
           <div className="text-center mt-8 animate-fade-in-delay-1100">
-            <p className="text-xs text-gray-600 drop-shadow-sm">© 2026 Chabaqa. Build the future of communities.</p>
+            <p className="text-xs text-gray-600 drop-shadow-sm">{t("footer")}</p>
           </div>
         </div>
       </div>

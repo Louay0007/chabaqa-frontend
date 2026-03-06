@@ -17,6 +17,10 @@ interface ApiResponse<T = any> {
   success?: boolean
 }
 
+interface ApiClientError extends Error {
+  status?: number
+}
+
 class ApiClient {
   private baseURL: string
 
@@ -36,9 +40,22 @@ class ApiClient {
     
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          url.searchParams.append(key, String(value))
+        if (value === undefined || value === null) return
+
+        if (typeof value === 'string' && value.trim() === '') return
+
+        if (typeof value === 'number' && Number.isNaN(value)) return
+
+        if (Array.isArray(value)) {
+          const sanitized = value.filter((item) => item !== undefined && item !== null && String(item).trim() !== '')
+          if (sanitized.length === 0) return
+          sanitized.forEach((item) => {
+            url.searchParams.append(key, String(item))
+          })
+          return
         }
+
+        url.searchParams.append(key, String(value))
       })
     }
     
@@ -83,7 +100,9 @@ class ApiClient {
       const contentType = response.headers.get('content-type')
       if (!contentType?.includes('application/json')) {
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+          const error = new Error(`HTTP ${response.status}: ${response.statusText}`) as ApiClientError
+          error.status = response.status
+          throw error
         }
         return { data: null as T }
       }
@@ -91,12 +110,21 @@ class ApiClient {
       const data = await response.json()
       
       if (!response.ok) {
-        throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`)
+        const error = new Error(data.message || `HTTP ${response.status}: ${response.statusText}`) as ApiClientError
+        error.status = response.status
+        throw error
       }
       
       return data
     } catch (error) {
-      console.error(`[API Client] Error:`, error)
+      const status = (error as ApiClientError)?.status
+      const isExpectedAdminAuthFailure =
+        status === 401 &&
+        (endpoint.startsWith('/admin/me') || endpoint.startsWith('/admin/refresh'))
+
+      if (!isExpectedAdminAuthFailure) {
+        console.error(`[API Client] Error:`, error)
+      }
       throw error
     }
   }

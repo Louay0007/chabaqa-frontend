@@ -2,8 +2,11 @@
 
 import Image from "next/image"
 import Link from "next/link"
+import { useTranslations } from "next-intl"
 
 export function AppInstallCTA() {
+  const t = useTranslations("landing.appInstall")
+
   return (
     <section className="py-12 sm:py-16 lg:py-20">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -12,7 +15,7 @@ export function AppInstallCTA() {
           {/* Desktop Image */}
           <Image
             src="/app-install-banner.png"
-            alt="Get Chabaqa App"
+            alt={t("bannerAlt")}
             width={1920}
             height={600}
             className="hidden sm:block w-full h-auto"
@@ -22,7 +25,7 @@ export function AppInstallCTA() {
           {/* Mobile Image */}
           <Image
             src="/banner-mobile.webp"
-            alt="Get Chabaqa App"
+            alt={t("bannerAlt")}
             width={800}
             height={1000}
             className="block sm:hidden w-full h-auto"
@@ -40,7 +43,7 @@ export function AppInstallCTA() {
               >
                 <Image
                   src="/app store.png"
-                  alt="Download on App Store"
+                  alt={t("downloadAppStore")}
                   width={370}
                   height={111}
                   className="w-auto h-14 sm:h-12 lg:h-14"
@@ -54,7 +57,7 @@ export function AppInstallCTA() {
               >
                 <Image
                   src="/play store.png"
-                  alt="Get it on Google Play"
+                  alt={t("downloadGooglePlay")}
                   width={370}
                   height={111}
                   className="w-auto h-14 sm:h-12 lg:h-14"

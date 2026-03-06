@@ -1,101 +1,310 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useAdminAuth } from "../../providers/admin-auth-provider"
 import { adminApi } from "@/lib/api/admin-api"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { 
-  Users, 
-  Building2, 
-  FileText, 
+import {
+  AlertCircle,
+  Building2,
   Coins,
-  UserPlus,
-  Building,
-  Shield,
+  FileText,
+  LifeBuoy,
+  RefreshCcw,
+  TrendingDown,
   TrendingUp,
-  TrendingDown
+  UserPlus,
+  Users,
 } from "lucide-react"
+import { useTranslations } from "next-intl"
+import { localizeHref } from "@/lib/i18n/client"
+
+type WidgetState = {
+  label: string
+  value: number
+  description: string
+  available: boolean
+  loading: boolean
+  error: string | null
+}
+
+type DashboardWidgets = {
+  totalUsers: WidgetState
+  pendingCommunities: WidgetState
+  pendingContent: WidgetState
+  liveSupport: WidgetState
+  revenue: WidgetState
+}
+
+const INITIAL_WIDGETS: DashboardWidgets = {
+  totalUsers: {
+    label: "Total Users",
+    value: 0,
+    description: "User base",
+    available: true,
+    loading: true,
+    error: null,
+  },
+  pendingCommunities: {
+    label: "Pending Communities",
+    value: 0,
+    description: "Awaiting approval",
+    available: true,
+    loading: true,
+    error: null,
+  },
+  pendingContent: {
+    label: "Pending Content",
+    value: 0,
+    description: "Needs review",
+    available: true,
+    loading: true,
+    error: null,
+  },
+  liveSupport: {
+    label: "Live Support Queue",
+    value: 0,
+    description: "Available tickets",
+    available: true,
+    loading: true,
+    error: null,
+  },
+  revenue: {
+    label: "Revenue",
+    value: 0,
+    description: "This period",
+    available: true,
+    loading: true,
+    error: null,
+  },
+}
+
+function getResponsePayload<T>(response: { data?: T } | T): T {
+  if (response && typeof response === "object" && "data" in response && response.data) {
+    return response.data
+  }
+  return response as T
+}
+
+function getErrorMessage(error: any): string {
+  const message = error?.message || "Request failed"
+  if (typeof message !== "string") return "Request failed"
+  return message
+}
 
 export default function AdminDashboardPage() {
-  const { admin, isAuthenticated, loading: authLoading, logout } = useAdminAuth()
+  const { admin, isAuthenticated, loading: authLoading, logout, capabilities } = useAdminAuth()
   const router = useRouter()
+  const pathname = usePathname()
+  const t = useTranslations("admin.dashboard")
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalCommunities: 0,
-    pendingContent: 0,
-    totalRevenue: 0,
-    growthRate: 0,
-    revenueChange: 0,
-  })
+  const [growthRate, setGrowthRate] = useState(0)
+  const [revenueChange, setRevenueChange] = useState(0)
+  const [widgets, setWidgets] = useState<DashboardWidgets>(INITIAL_WIDGETS)
 
-  // Auth guard
+  const widgetText = {
+    totalUsers: { label: t("totalUsers"), description: t("userBase") },
+    pendingCommunities: { label: t("pendingCommunities"), description: t("awaitingApproval") },
+    pendingContent: { label: t("pendingContent"), description: t("needsReview") },
+    liveSupport: { label: t("liveSupportQueue"), description: t("availableTickets") },
+    revenue: { label: t("revenue"), description: t("thisPeriod") },
+  } as const
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/admin/login')
+      router.replace(localizeHref(pathname, "/admin/login"))
     }
-  }, [authLoading, isAuthenticated, router])
+  }, [authLoading, isAuthenticated, router, pathname])
 
-  // Fetch dashboard data
   useEffect(() => {
     if (!isAuthenticated || authLoading) return
 
+    let cancelled = false
+
     const fetchDashboard = async () => {
       setLoading(true)
-      try {
-        const period = {
-          endDate: new Date().toISOString(),
-          startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString(),
-          granularity: 'month' as const,
-        }
 
-        const [dashboardRes, pendingRes] = await Promise.all([
-          adminApi.analytics.getDashboard(period),
-          adminApi.contentModeration.getQueueStats().catch(() => ({ data: null })),
-        ])
+      const period = {
+        endDate: new Date().toISOString(),
+        startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString(),
+        granularity: "month" as const,
+      }
 
-        const dashboard = dashboardRes?.data || dashboardRes
-        const platformStats = dashboard?.platformStatistics
-        const revenueMetrics = dashboard?.revenueMetrics
-        const pendingStats = pendingRes?.data || pendingRes
+      const tasks = [
+        capabilities.analytics ? adminApi.analytics.getDashboard(period) : Promise.resolve(null),
+        capabilities.communities ? adminApi.communities.getPendingApprovals({ page: 1, limit: 1 }) : Promise.resolve(null),
+        capabilities.contentModeration ? adminApi.contentModeration.getQueueStats() : Promise.resolve(null),
+        capabilities.liveSupport ? adminApi.support.getQueueCounts() : Promise.resolve(null),
+        !capabilities.analytics && capabilities.financial
+          ? adminApi.financial.getRevenueDashboard({ period: "month" })
+          : Promise.resolve(null),
+      ] as const
 
-        setStats({
-          // Fix: Ensure we use totalCommunities from API if available, or 0.
-          // The API response structure puts userGrowth at the top level in 'dashboard', 
-          // and platformStatistics inside it. We need to be careful with mapping.
-          // Based on the backend service, totalCommunities is returned inside 'userGrowth'.
-          
-          totalUsers: dashboard?.userGrowth?.totalUsers || platformStats?.totalUsers || 0,
-          totalCommunities: dashboard?.userGrowth?.totalCommunities || platformStats?.totalCommunities || 0,
-          pendingContent: pendingStats?.pending || pendingStats?.pendingCount || 0,
-          totalRevenue: dashboard?.revenue?.totalRevenue || platformStats?.totalRevenue || 0,
-          growthRate: dashboard?.userGrowth?.growthRate || platformStats?.growthRate || 0,
-          revenueChange: revenueMetrics?.revenueChange || 0,
-        })
-      } catch (error: any) {
-        console.error('[AdminDashboard] Error:', error)
-        if (error?.message?.includes('401')) {
+      const [analyticsResult, communitiesResult, moderationResult, liveSupportResult, financialResult] = await Promise.allSettled(tasks)
+
+      if (cancelled) return
+
+      const nextWidgets: DashboardWidgets = {
+        totalUsers: {
+          ...INITIAL_WIDGETS.totalUsers,
+          available: capabilities.analytics,
+          loading: false,
+        },
+        pendingCommunities: {
+          ...INITIAL_WIDGETS.pendingCommunities,
+          available: capabilities.communities,
+          loading: false,
+        },
+        pendingContent: {
+          ...INITIAL_WIDGETS.pendingContent,
+          available: capabilities.contentModeration,
+          loading: false,
+        },
+        liveSupport: {
+          ...INITIAL_WIDGETS.liveSupport,
+          available: capabilities.liveSupport,
+          loading: false,
+        },
+        revenue: {
+          ...INITIAL_WIDGETS.revenue,
+          available: capabilities.analytics || capabilities.financial,
+          loading: false,
+        },
+      }
+
+      if (analyticsResult.status === "fulfilled" && analyticsResult.value) {
+        const dashboard = getResponsePayload<any>(analyticsResult.value)
+        const platformStats = dashboard?.platformStatistics || {}
+        const revenueMetrics = dashboard?.revenueMetrics || {}
+
+        nextWidgets.totalUsers.value = Number(dashboard?.userGrowth?.totalUsers || platformStats?.totalUsers || 0)
+        nextWidgets.revenue.value = Number(dashboard?.revenue?.totalRevenue || platformStats?.totalRevenue || 0)
+        setGrowthRate(Number(dashboard?.userGrowth?.growthRate || platformStats?.growthRate || 0))
+        setRevenueChange(Number(revenueMetrics?.revenueChange || 0))
+      } else if (capabilities.analytics) {
+        const error = analyticsResult.status === "rejected" ? getErrorMessage(analyticsResult.reason) : "Failed to load analytics"
+        nextWidgets.totalUsers.error = error
+        nextWidgets.revenue.error = error
+        if (error.includes("401")) {
           await logout()
           return
         }
-        toast.error('Failed to load dashboard data')
-      } finally {
-        setLoading(false)
+      } else if (financialResult.status === "fulfilled" && financialResult.value) {
+        const financialMetrics = getResponsePayload<any>(financialResult.value) || {}
+        nextWidgets.revenue.value = Number(financialMetrics?.monthlyRevenue || financialMetrics?.totalRevenue || 0)
+      } else if (capabilities.financial) {
+        nextWidgets.revenue.error =
+          financialResult.status === "rejected" ? getErrorMessage(financialResult.reason) : "Failed to load revenue"
       }
+
+      if (communitiesResult.status === "fulfilled" && communitiesResult.value) {
+        const pendingCommunities = getResponsePayload<any>(communitiesResult.value)
+        nextWidgets.pendingCommunities.value = Number(pendingCommunities?.total || pendingCommunities?.data?.total || 0)
+      } else if (capabilities.communities) {
+        nextWidgets.pendingCommunities.error =
+          communitiesResult.status === "rejected" ? getErrorMessage(communitiesResult.reason) : "Failed to load communities"
+      }
+
+      if (moderationResult.status === "fulfilled" && moderationResult.value) {
+        const moderationStats = getResponsePayload<any>(moderationResult.value) || {}
+        nextWidgets.pendingContent.value = Number(
+          moderationStats?.pending ||
+          moderationStats?.pendingCount ||
+          moderationStats?.byStatus?.pending ||
+          0,
+        )
+      } else if (capabilities.contentModeration) {
+        nextWidgets.pendingContent.error =
+          moderationResult.status === "rejected" ? getErrorMessage(moderationResult.reason) : "Failed to load moderation"
+      }
+
+      if (liveSupportResult.status === "fulfilled" && liveSupportResult.value) {
+        const supportCounts = getResponsePayload<any>(liveSupportResult.value)
+        nextWidgets.liveSupport.value = Number(supportCounts?.available || 0)
+      } else if (capabilities.liveSupport) {
+        nextWidgets.liveSupport.error =
+          liveSupportResult.status === "rejected" ? getErrorMessage(liveSupportResult.reason) : "Failed to load live support"
+      }
+
+      setWidgets(nextWidgets)
+      setLoading(false)
     }
 
-    fetchDashboard()
-  }, [isAuthenticated, authLoading])
+    fetchDashboard().catch(async (error) => {
+      if (cancelled) return
+
+      const message = getErrorMessage(error)
+      if (message.includes("401")) {
+        await logout()
+        return
+      }
+
+      setLoading(false)
+      toast.error(t("failedToLoad"))
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [authLoading, capabilities, isAuthenticated, logout, t])
+
+  const visibleWidgets = [
+    {
+      key: "totalUsers",
+      icon: Users,
+      onClick: localizeHref(pathname, "/admin/users"),
+      formatter: (value: number) => value.toLocaleString(),
+      trend: growthRate,
+      widget: widgets.totalUsers,
+    },
+    {
+      key: "pendingCommunities",
+      icon: Building2,
+      onClick: localizeHref(pathname, "/admin/communities"),
+      formatter: (value: number) => value.toLocaleString(),
+      trend: null,
+      widget: widgets.pendingCommunities,
+    },
+    {
+      key: "pendingContent",
+      icon: FileText,
+      onClick: localizeHref(pathname, "/admin/content-moderation"),
+      formatter: (value: number) => value.toLocaleString(),
+      trend: null,
+      widget: widgets.pendingContent,
+    },
+    {
+      key: "liveSupport",
+      icon: LifeBuoy,
+      onClick: localizeHref(pathname, "/admin/communication/support"),
+      formatter: (value: number) => value.toLocaleString(),
+      trend: null,
+      widget: widgets.liveSupport,
+    },
+    {
+      key: "revenue",
+      icon: Coins,
+      onClick: localizeHref(pathname, "/admin/financial"),
+      formatter: (value: number) =>
+        new Intl.NumberFormat("fr-TN", {
+          style: "currency",
+          currency: "TND",
+          maximumFractionDigits: 0,
+        }).format(value || 0),
+      trend: revenueChange,
+      widget: widgets.revenue,
+    },
+  ].filter(({ widget }) => widget.available)
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+          <p className="text-sm text-muted-foreground">{t("loadingDashboardData")}</p>
         </div>
       </div>
     )
@@ -103,192 +312,113 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
         <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Admin Dashboard
         </h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Welcome back, <span className="font-semibold">{admin?.name || 'Admin'}</span>
+          Welcome back, <span className="font-semibold">{admin?.name || "Admin"}</span>
         </p>
       </div>
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push('/admin/users')}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-5 w-5 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.totalUsers.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground flex items-center mt-1">
-              {stats.growthRate >= 0 ? (
-                <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {visibleWidgets.map(({ key, icon: Icon, onClick, formatter, trend, widget }) => (
+          <Card
+            key={key}
+            className="hover:shadow-lg transition-shadow cursor-pointer"
+            onClick={() => router.push(onClick)}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{widgetText[key as keyof typeof widgetText]?.label || widget.label}</CardTitle>
+              <Icon className="h-5 w-5 text-blue-600" />
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-3xl font-bold">{formatter(widget.value)}</div>
+              {widget.error ? (
+                <p className="text-xs text-amber-600 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  <span>{widget.error}</span>
+                </p>
+              ) : trend !== null ? (
+                <p className="text-xs text-muted-foreground flex items-center mt-1">
+                  {trend >= 0 ? (
+                    <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
+                  )}
+                  <span className={trend >= 0 ? "text-green-600" : "text-red-600"}>
+                    {trend >= 0 ? "+" : ""}
+                    {trend.toFixed(1)}%
+                  </span>
+                  <span className="ml-1">{widgetText[key as keyof typeof widgetText]?.description || widget.description}</span>
+                </p>
               ) : (
-                <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
+                <p className="text-xs text-muted-foreground">{widgetText[key as keyof typeof widgetText]?.description || widget.description}</p>
               )}
-              <span className={stats.growthRate >= 0 ? "text-green-600" : "text-red-600"}>
-                {stats.growthRate >= 0 ? '+' : ''}{stats.growthRate.toFixed(1)}%
-              </span> from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push('/admin/communities')}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Communities</CardTitle>
-            <Building2 className="h-5 w-5 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.totalCommunities.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground flex items-center mt-1">
-              <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-              <span className="text-green-600">Updated</span>
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push('/admin/content-moderation')}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Content</CardTitle>
-            <FileText className="h-5 w-5 text-amber-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.pendingContent.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground flex items-center mt-1">
-              <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
-              <span className="text-red-600">Needs review</span>
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push('/admin/financial')}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-            <Coins className="h-5 w-5 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {new Intl.NumberFormat('fr-TN', {
-                style: 'currency',
-                currency: 'TND',
-                maximumFractionDigits: 0,
-              }).format(stats.totalRevenue || 0)}
-            </div>
-            <p className="text-xs text-muted-foreground flex items-center mt-1">
-              {stats.revenueChange >= 0 ? (
-                <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-              ) : (
-                <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
-              )}
-              <span className={stats.revenueChange >= 0 ? "text-green-600" : "text-red-600"}>
-                {stats.revenueChange >= 0 ? '+' : ''}{stats.revenueChange.toFixed(1)}%
-              </span> from last month
-            </p>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Quick Actions */}
       <div>
         <h2 className="text-2xl font-semibold mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Button
-            variant="outline"
-            className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors"
-            onClick={() => router.push('/admin/users')}
-          >
-            <UserPlus className="h-8 w-8 text-blue-600" />
-            <span className="font-medium">Manage Users</span>
-          </Button>
+          {capabilities.users && (
+            <Button
+              variant="outline"
+              className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+              onClick={() => router.push(localizeHref(pathname, "/admin/users"))}
+            >
+              <UserPlus className="h-8 w-8 text-blue-600" />
+              <span className="font-medium">Manage Users</span>
+            </Button>
+          )}
 
-          <Button
-            variant="outline"
-            className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-green-50 hover:border-green-300 transition-colors"
-            onClick={() => router.push('/admin/communities')}
-          >
-            <Building className="h-8 w-8 text-green-600" />
-            <span className="font-medium">View Communities</span>
-          </Button>
+          {capabilities.communities && (
+            <Button
+              variant="outline"
+              className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-green-50 hover:border-green-300 transition-colors"
+              onClick={() => router.push(localizeHref(pathname, "/admin/communities"))}
+            >
+              <Building2 className="h-8 w-8 text-green-600" />
+              <span className="font-medium">Review Communities</span>
+            </Button>
+          )}
 
-          <Button
-            variant="outline"
-            className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-amber-50 hover:border-amber-300 transition-colors"
-            onClick={() => router.push('/admin/content-moderation')}
-          >
-            <Shield className="h-8 w-8 text-amber-600" />
-            <span className="font-medium">Moderate Content</span>
-          </Button>
+          {capabilities.contentModeration && (
+            <Button
+              variant="outline"
+              className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-amber-50 hover:border-amber-300 transition-colors"
+              onClick={() => router.push(localizeHref(pathname, "/admin/content-moderation"))}
+            >
+              <FileText className="h-8 w-8 text-amber-600" />
+              <span className="font-medium">Moderate Content</span>
+            </Button>
+          )}
 
-          <Button
-            variant="outline"
-            className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-purple-50 hover:border-purple-300 transition-colors"
-            onClick={() => router.push('/admin/financial')}
-          >
-            <Coins className="h-8 w-8 text-purple-600" />
-            <span className="font-medium">Financial Overview</span>
-          </Button>
+          {(capabilities.analytics || capabilities.financial) && (
+            <Button
+              variant="outline"
+              className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+              onClick={() => router.push(localizeHref(pathname, capabilities.financial ? "/admin/financial" : "/admin/analytics"))}
+            >
+              <RefreshCcw className="h-8 w-8 text-purple-600" />
+              <span className="font-medium">View Reports</span>
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {visibleWidgets.length === 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest actions across the platform</CardDescription>
+            <CardTitle>No Dashboard Modules Available</CardTitle>
+            <CardDescription>
+              This admin account does not currently have dashboard capabilities assigned.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">New community approved</p>
-                  <p className="text-xs text-muted-foreground">2 minutes ago</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">User registered</p>
-                  <p className="text-xs text-muted-foreground">15 minutes ago</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="h-2 w-2 rounded-full bg-amber-500"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Content flagged for review</p>
-                  <p className="text-xs text-muted-foreground">1 hour ago</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>System Status</CardTitle>
-            <CardDescription>Platform health and performance</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">API Status</span>
-                <span className="text-sm text-green-600 font-medium">Operational</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Database</span>
-                <span className="text-sm text-green-600 font-medium">Healthy</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Storage</span>
-                <span className="text-sm text-green-600 font-medium">75% Available</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      )}
     </div>
   )
 }

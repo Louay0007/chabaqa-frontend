@@ -7,6 +7,7 @@ import { resolveExploreCardRouting } from "@/app/(landing)/(communities)/compone
 
 import Link from "next/link"
 import Image from "next/image"
+import { useTranslations } from "next-intl"
 
 type ItemType = "community" | "course" | "challenge" | "product" | "oneToOne" | "event"
 
@@ -17,6 +18,8 @@ interface CommunityCardProps {
 }
 
 export function CommunityCard({ community, viewMode = "grid", accessAware = false }: CommunityCardProps) {
+  const t = useTranslations("landing.explore")
+
   const formatProductRating = () => {
     if (community.type !== "product") {
       return community.rating.toFixed(1)
@@ -35,7 +38,7 @@ export function CommunityCard({ community, viewMode = "grid", accessAware = fals
 
   const formatPrice = (price: number | undefined, type: string) => {
     const p = typeof price === "number" && Number.isFinite(price) ? price : 0
-    if (type === "free" || p === 0) return "Free"
+    if (type === "free" || p === 0) return t("priceLabels.free")
     if (type === "paid") return `$${p}`
     if (type === "monthly") return `$${p}/mo`
     if (type === "yearly") return `$${p}/yr`
@@ -50,32 +53,32 @@ export function CommunityCard({ community, viewMode = "grid", accessAware = fals
     const typeConfigs = {
       community: {
         badgeColor: "border-blue-500/50 text-blue-600 bg-blue-50",
-        ctaText: "Explore",
+        ctaText: t("cta.explore"),
         ctaGradient: "from-[#5d67ff] to-[#8e78fb]",
       },
       course: {
         badgeColor: "border-[#47c7ea]/50 text-[#47c7ea] bg-[#47c7ea]/10",
-        ctaText: "Start",
+        ctaText: t("cta.start"),
         ctaGradient: "from-[#47c7ea] to-[#86e4fd]",
       },
       challenge: {
         badgeColor: "border-[#ff9b28]/50 text-[#ff9b28] bg-[#ff9b28]/10",
-        ctaText: "Join",
+        ctaText: t("cta.join"),
         ctaGradient: "from-[#ff9b28] to-[#fddab0]",
       },
       product: {
         badgeColor: "border-purple-500/50 text-purple-600 bg-purple-50",
-        ctaText: "Buy",
+        ctaText: t("cta.buy"),
         ctaGradient: "from-[#5d67ff] to-[#86e4fd]",
       },
       oneToOne: {
         badgeColor: "border-[#f65887]/50 text-[#f65887] bg-[#f65887]/10",
-        ctaText: "Book",
+        ctaText: t("cta.book"),
         ctaGradient: "from-[#f65887] to-[#fddab0]",
       },
       event: {
         badgeColor: "border-chabaqa-primary/50 text-chabaqa-primary bg-chabaqa-primary/10",
-        ctaText: "Register",
+        ctaText: t("cta.register"),
         ctaGradient: "from-[#8e78fb] to-[#86e4fd]",
       },
     }
@@ -98,11 +101,16 @@ export function CommunityCard({ community, viewMode = "grid", accessAware = fals
         : `/community/${community.slug}#join-section`)
       : (community.link || `/community/${slug}#join-section`),
     label: itemType === "community"
-      ? (community.isMember ? typeConfig.ctaText : "Join")
+      ? (community.isMember ? typeConfig.ctaText : t("cta.join"))
       : typeConfig.ctaText,
   }
 
-  const accessAwareRouting = resolveExploreCardRouting(community, typeConfig.ctaText)
+  const accessAwareRouting = resolveExploreCardRouting(community, typeConfig.ctaText, {
+    join: t("cta.join"),
+    download: t("cta.download"),
+    buy: t("cta.buy"),
+    viewCommunity: t("cta.viewCommunity"),
+  })
   const ctaHref = accessAware ? accessAwareRouting.href : defaultRouting.href
   const ctaLabel = accessAware ? accessAwareRouting.ctaLabel : defaultRouting.label
 
@@ -165,7 +173,7 @@ export function CommunityCard({ community, viewMode = "grid", accessAware = fals
                 {community.verified && (
                   <Badge className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-0 text-[10px] px-2 py-0.5 flex items-center">
                     <CheckCircle className="w-3 h-3 mr-1" />
-                    Verified
+                    {t("verified")}
                   </Badge>
                 )}
               </div>
@@ -184,11 +192,11 @@ export function CommunityCard({ community, viewMode = "grid", accessAware = fals
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs text-gray-600 truncate">
-                    Created by <span className="font-semibold text-gray-800">{community.creator}</span>
+                    {t("createdBy")} <span className="font-semibold text-gray-800">{community.creator}</span>
                   </p>
                   {community.communityName && community.type !== 'community' && (
                     <p className="text-[11px] text-gray-500 truncate">
-                      Community: <span className="font-medium text-chabaqa-primary">{community.communityName}</span>
+                      {t("communityLabel")}: <span className="font-medium text-chabaqa-primary">{community.communityName}</span>
                     </p>
                   )}
                 </div>
@@ -230,7 +238,7 @@ export function CommunityCard({ community, viewMode = "grid", accessAware = fals
                   variant="outline"
                   className={`text-[11px] px-2 py-0.5 font-medium capitalize border ${typeConfig.badgeColor}`}
                 >
-                  {community.type || 'community'}
+                  {t(`types.${(community.type || "community") as "community" | "course" | "challenge" | "product" | "oneToOne" | "event"}`)}
                 </Badge>
               </div>
 
@@ -312,11 +320,11 @@ export function CommunityCard({ community, viewMode = "grid", accessAware = fals
           </div>
           <div className="min-w-0">
             <p className="text-xs text-gray-600 truncate">
-              Created by <span className="font-semibold text-gray-800">{community.creator}</span>
+              {t("createdBy")} <span className="font-semibold text-gray-800">{community.creator}</span>
             </p>
             {community.communityName && community.type !== "community" && (
               <p className="text-[11px] text-gray-500 truncate">
-                Community: <span className="font-medium text-chabaqa-primary">{community.communityName}</span>
+                {t("communityLabel")}: <span className="font-medium text-chabaqa-primary">{community.communityName}</span>
               </p>
             )}
           </div>
@@ -337,7 +345,7 @@ export function CommunityCard({ community, viewMode = "grid", accessAware = fals
             variant="outline"
             className={`text-[11px] px-2 py-0.5 font-medium capitalize border ${typeConfig.badgeColor}`}
           >
-            {community.type || 'community'}
+            {t(`types.${(community.type || "community") as "community" | "course" | "challenge" | "product" | "oneToOne" | "event"}`)}
           </Badge>
         </div>
 

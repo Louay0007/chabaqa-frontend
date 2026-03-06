@@ -7,6 +7,8 @@ import { AdminSidebar } from "../_components/admin-sidebar"
 import { AdminHeader } from "../_components/admin-header"
 import { SkipNav } from "../_components/skip-nav"
 import { Toaster } from "sonner"
+import { stripLocaleFromPath } from "@/lib/i18n/client"
+import { useTranslations } from "next-intl"
 
 export default function AdminLayout({
   children,
@@ -15,10 +17,12 @@ export default function AdminLayout({
 }) {
   const { loading } = useAdminAuth()
   const pathname = usePathname()
+  const t = useTranslations("admin.dashboard")
+  const internalPath = stripLocaleFromPath(pathname)
   const isAuthPage =
-    pathname === "/admin/login" ||
-    pathname === "/admin/verify-2fa" ||
-    pathname === "/login"
+    internalPath === "/admin/login" ||
+    internalPath === "/admin/verify-2fa" ||
+    internalPath === "/login"
 
   // Show loading state while checking authentication
   if (loading) {
@@ -27,10 +31,10 @@ export default function AdminLayout({
         className="flex items-center justify-center min-h-screen"
         role="status"
         aria-live="polite"
-        aria-label="Loading admin dashboard"
+        aria-label={t("loadingDashboard")}
       >
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <span className="sr-only">Loading...</span>
+        <span className="sr-only">{t("loadingDashboardData")}</span>
       </div>
     )
   }

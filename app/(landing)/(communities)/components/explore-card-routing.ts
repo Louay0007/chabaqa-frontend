@@ -7,6 +7,20 @@ export interface ExploreCardRoutingResult {
   ctaLabel: string
 }
 
+export interface ExploreCardRoutingLabels {
+  join: string
+  download: string
+  buy: string
+  viewCommunity: string
+}
+
+const DEFAULT_LABELS: ExploreCardRoutingLabels = {
+  join: "Join",
+  download: "Download",
+  buy: "Buy",
+  viewCommunity: "View Community",
+}
+
 function normalizeValue(value: unknown): string | null {
   if (typeof value === "number" && Number.isFinite(value)) {
     return String(value)
@@ -66,6 +80,7 @@ function resolveAccessibleContentHref(item: Explore, itemType: ItemType): string
 export function resolveExploreCardRouting(
   item: Explore,
   defaultCtaLabel: string,
+  labels: ExploreCardRoutingLabels = DEFAULT_LABELS,
 ): ExploreCardRoutingResult {
   const itemType: ItemType = item.type || "community"
 
@@ -89,7 +104,7 @@ export function resolveExploreCardRouting(
 
     return {
       href: communityOverviewHref(item.slug),
-      ctaLabel: "Join",
+      ctaLabel: labels.join,
     }
   }
 
@@ -99,34 +114,34 @@ export function resolveExploreCardRouting(
     if (item.hasContentAccess) {
       return {
         href: resolveAccessibleContentHref(item, itemType),
-        ctaLabel: "Download",
+        ctaLabel: labels.download,
       }
     }
 
     if (!item.isMember) {
       return {
         href: communityOverviewHref(item.communitySlug),
-        ctaLabel: "Buy",
+        ctaLabel: labels.buy,
       }
     }
 
     if (!basePath) {
       return {
         href: communityOverviewHref(item.communitySlug),
-        ctaLabel: "Buy",
+        ctaLabel: labels.buy,
       }
     }
 
     return {
       href: `${basePath}/products`,
-      ctaLabel: "Buy",
+      ctaLabel: labels.buy,
     }
   }
 
   if (!item.isMember) {
     return {
       href: communityOverviewHref(item.communitySlug),
-      ctaLabel: "View Community",
+      ctaLabel: labels.viewCommunity,
     }
   }
 

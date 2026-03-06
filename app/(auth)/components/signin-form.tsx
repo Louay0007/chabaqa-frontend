@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Loader2, Shield, AlertCircle } from "lucide-react"
 import { signInSchema } from "@/lib/validation/auth.validation"
 import { useToast } from "@/hooks/use-toast"
 import { useAuthContext } from "@/app/providers/auth-provider"
+import { useTranslations } from "next-intl"
+import { localizeHref } from "@/lib/i18n/client"
 
 interface SignInFormProps {
   onSuccess?: () => void
@@ -37,9 +39,11 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
   const [showPassword, setShowPassword] = useState(false)
 
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const { login, updateAuth } = useAuthContext()
+  const t = useTranslations("auth.signinForm")
 
   useEffect(() => {
     const message = searchParams.get("message")
@@ -68,30 +72,30 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
       const cleanedUrl = `${window.location.pathname}${window.location.search}`
       window.history.replaceState({}, document.title, cleanedUrl)
 
-      if (isSafeRedirect(redirectFromHash) && redirectFromHash !== "/signin") {
-        router.push(redirectFromHash)
+      if (isSafeRedirect(redirectFromHash) && redirectFromHash !== localizeHref(pathname, "/signin")) {
+        router.push(localizeHref(pathname, redirectFromHash))
         return
       }
 
       const role = user?.role?.toLowerCase()
       if (role === "creator") {
-        router.push("/creator/dashboard")
+        router.push(localizeHref(pathname, "/creator/dashboard"))
       } else if (role === "admin") {
-        router.push("/admin")
+        router.push(localizeHref(pathname, "/admin"))
       } else {
-        router.push("/explore")
+        router.push(localizeHref(pathname, "/explore"))
       }
     } catch (err: any) {
-      const errorMessage = "Google sign-in failed. Please try again."
+      const errorMessage = t("googleLoginFailed")
       setError(errorMessage)
       toast({
         variant: "destructive",
-        title: "Google Login Error",
+        title: t("googleLoginError"),
         description: err?.message || errorMessage,
         duration: 5000,
       })
     }
-  }, [router, toast, updateAuth])
+  }, [router, toast, updateAuth, pathname, t])
 
   const validateForm = (): boolean => {
     setFieldErrors({})
@@ -126,12 +130,12 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
       if (onSuccess) onSuccess()
       // Redirect is handled in AuthProvider
     } catch (err: any) {
-      const errorMessage = err.message || "Login failed. Please try again."
+      const errorMessage = err.message || t("loginFailed")
       setError(errorMessage)
 
       toast({
         variant: "destructive",
-        title: "Connection Error",
+        title: t("connectionError"),
         description: errorMessage,
         duration: 5000,
       })
@@ -143,7 +147,9 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
   const handleGoogleLogin = () => {
     const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
     const requestedRedirect = searchParams.get("redirect")
-    const safeRedirect = isSafeRedirect(requestedRedirect) ? requestedRedirect : "/explore"
+    const safeRedirect = isSafeRedirect(requestedRedirect)
+      ? localizeHref(pathname, requestedRedirect)
+      : localizeHref(pathname, "/explore")
     const url = `${apiBase}/auth/google?redirect=${encodeURIComponent(safeRedirect)}`
     window.location.href = url
   }
@@ -170,7 +176,7 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
           {/* Email Field */}
           <div className="space-y-2 animate-fade-in-delay-800">
             <Label htmlFor="email" className="text-sm font-medium text-gray-800 block">
-              Email address
+              {t("email")}
             </Label>
             <div className="relative">
               <Input
@@ -181,7 +187,7 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
                   setEmail(e.target.value)
                   if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: '' })
                 }}
-                placeholder="your@email.com"
+                placeholder={t("emailPlaceholder")}
                 required
                 disabled={isLoading}
                 className={`w-full px-4 py-4 rounded-2xl border-2 transition-all duration-300 text-gray-900 placeholder-gray-500 bg-white/70 backdrop-blur-sm disabled:opacity-50 ${fieldErrors.email
@@ -201,7 +207,7 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
           {/* Password Field */}
           <div className="space-y-2 animate-fade-in-delay-900">
             <Label htmlFor="password" className="text-sm font-medium text-gray-800 block">
-              Password
+              {t("password")}
             </Label>
             <div className="relative">
               <Input
@@ -212,7 +218,7 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
                   setPassword(e.target.value)
                   if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: '' })
                 }}
-                placeholder="••••••••••"
+                placeholder={t("passwordPlaceholder")}
                 required
                 disabled={isLoading}
                 className={`w-full px-4 py-4 pr-12 rounded-2xl border-2 transition-all duration-300 text-gray-900 placeholder-gray-500 bg-white/70 backdrop-blur-sm disabled:opacity-50 ${fieldErrors.password
@@ -251,14 +257,14 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
             <input
               type="checkbox"
               id="rememberMe"
-              aria-label="Remember me for 30 days"
+              aria-label={t("rememberMe")}
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
               disabled={isLoading}
               className="w-4 h-4 rounded border-gray-300 text-[#86e4fd] focus:ring-[#86e4fd]"
             />
             <Label htmlFor="rememberMe" className="text-sm text-gray-700 cursor-pointer">
-              Remember me for 30 days
+              {t("rememberMe")}
             </Label>
           </div>
 
@@ -272,12 +278,12 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  <span>Signing In...</span>
+                  <span>{t("signingIn")}</span>
                 </>
               ) : (
                 <>
                   <Shield className="w-5 h-5 mr-2" />
-                  <span className="relative z-10">Sign In</span>
+                  <span className="relative z-10">{t("signIn")}</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-[#7c66e9] to-[#3bb5d6] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </>
               )}
@@ -291,7 +297,7 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-gray-600">
-                Or continue with
+                {t("orContinueWith")}
               </span>
             </div>
           </div>
@@ -323,7 +329,7 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                <span>Continue with Google</span>
+                <span>{t("continueWithGoogle")}</span>
               </div>
             </Button>
           </div>
@@ -332,18 +338,18 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
         {/* Additional Links */}
         <div className="mt-8 text-center space-y-4 animate-fade-in-delay-1200">
           <Link
-            href="/forgot-password"
+            href={localizeHref(pathname, "/forgot-password")}
             className="text-sm text-[#86e4fd] hover:text-[#74d4f0] font-medium transition-all duration-200 hover:underline block drop-shadow-sm"
           >
-            Forgot your password?
+            {t("forgotPassword")}
           </Link>
           <div className="text-sm text-gray-700 drop-shadow-sm">
-            New to Chabaqa?{" "}
+            {t("newToChabaqa")}{" "}
             <Link
-              href="/signup"
+              href={localizeHref(pathname, "/signup")}
               className="text-[#86e4fd] hover:text-[#74d4f0] font-medium transition-all duration-200 hover:underline"
             >
-              Create an account
+              {t("createAccount")}
             </Link>
           </div>
         </div>

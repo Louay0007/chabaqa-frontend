@@ -30,8 +30,42 @@ export interface AdminLoginResponse {
     email: string;
     role: string;
     createdAt: Date;
+    twoFactorEnabled?: boolean;
   };
+  roles?: string[];
+  permissions?: string[];
+  capabilities?: AdminCapabilities;
   rememberMe?: boolean;
+}
+
+export interface AdminCapabilities {
+  dashboard: boolean;
+  users: boolean;
+  communities: boolean;
+  contentModeration: boolean;
+  financial: boolean;
+  analytics: boolean;
+  security: boolean;
+  communication: boolean;
+  liveSupport: boolean;
+  settings: boolean;
+}
+
+export interface AdminSessionResponse {
+  admin: {
+    _id: string;
+    name: string;
+    email: string;
+    role: string;
+    createdAt: string | Date;
+    twoFactorEnabled?: boolean;
+  };
+  roles: string[];
+  permissions: string[];
+  capabilities: AdminCapabilities;
+  access_token?: string;
+  refresh_token?: string;
+  expires_in?: number;
 }
 
 // User Management Types
@@ -149,13 +183,16 @@ export interface RevenueDashboardQuery {
 export interface SubscriptionFilters {
   page?: number;
   limit?: number;
-  status?: 'active' | 'cancelled' | 'expired';
+  status?: string | string[];
+  plan?: string | string[];
   planTier?: string;
   creatorId?: string;
+  subscriberId?: string;
   startDate?: string;
   endDate?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  cancelAtPeriodEnd?: boolean;
 }
 
 export interface TransactionFilters {
@@ -191,8 +228,8 @@ export interface InitiatePayoutDto {
 export interface PayoutFilters {
   page?: number;
   limit?: number;
-  status?: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
-  method?: 'bank_transfer' | 'paypal' | 'stripe';
+  status?: string | string[];
+  method?: string | string[];
   creatorId?: string;
   communityId?: string;
   startDate?: string;
@@ -594,8 +631,11 @@ export const adminApi = {
     verify2FA: (data: AdminVerify2FADto) =>
       apiClient.post<AdminLoginResponse>('/admin/verify-2fa', data),
 
-    refreshToken: (refreshToken: string) =>
-      apiClient.post('/admin/refresh', { refresh_token: refreshToken }),
+    me: () =>
+      apiClient.get<AdminSessionResponse>('/admin/me'),
+
+    refreshToken: (refreshToken?: string) =>
+      apiClient.post<AdminSessionResponse>('/admin/refresh', refreshToken ? { refresh_token: refreshToken } : {}),
 
     logout: () =>
       apiClient.post('/admin/logout'),
@@ -732,10 +772,37 @@ export const adminApi = {
     getSubscriptions: async (filters: SubscriptionFilters) => {
       const response = await apiClient.get('/admin/financial/subscriptions', filters);
       const payload = getResponseData(response) || {};
+      const subscriptions = toArray(payload?.data || payload?.subscriptions).map((subscription: any) => {
+        const creator = subscription?.creator || subscription?.creatorId || null;
+        const subscriber = subscription?.user || subscription?.subscriber || subscription?.subscriberId || null;
+
+        return {
+          ...subscription,
+          user: subscriber
+            ? {
+                _id: subscriber?._id || '',
+                username: subscriber?.username || subscriber?.name || subscriber?.email || 'Unknown user',
+                email: subscriber?.email || '',
+              }
+            : null,
+          creator: creator
+            ? {
+                _id: creator?._id || '',
+                username: creator?.username || creator?.name || creator?.email || 'Unknown creator',
+              }
+            : null,
+          community: subscription?.community || null,
+          planTier: subscription?.planTier || subscription?.plan || '',
+          nextBillingDate: subscription?.nextBillingDate || subscription?.nextBillingAt || null,
+          startDate: subscription?.startDate || subscription?.currentPeriodStart || subscription?.createdAt,
+          endDate: subscription?.endDate || subscription?.currentPeriodEnd || null,
+        };
+      });
+
       return {
         ...response,
         data: {
-          subscriptions: toArray(payload?.data || payload?.subscriptions),
+          subscriptions,
           total: payload?.total || 0,
           page: payload?.page || filters?.page || 1,
           limit: payload?.limit || filters?.limit || 20,
@@ -775,8 +842,13 @@ export const adminApi = {
       const payload = getResponseData(response) || {};
       const payouts = toArray(payload?.data || payload?.payouts).map((payout: any) => ({
         ...payout,
-        creator: payout.creator || payout.creatorId || null,
+        creator: payout.creator || (payout.creatorId ? {
+          _id: payout.creatorId?._id || '',
+          username: payout.creatorId?.username || payout.creatorId?.name || payout.creatorId?.email || 'Unknown creator',
+          email: payout.creatorId?.email || '',
+        } : null),
         community: payout.community || payout.communityId || null,
+        initiatedAt: payout.initiatedAt || payout.requestedAt || payout.createdAt,
       }));
       return {
         ...response,

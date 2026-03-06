@@ -7,12 +7,14 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { adminApi } from "@/lib/api/admin-api"
 import { useAdminLayout } from "../providers/admin-layout-provider"
 import { useAdminAuth } from "../providers/admin-auth-provider"
+import { useTranslations } from "next-intl"
+import { localizeHref } from "@/lib/i18n/client"
 import {
   LayoutDashboard,
   Users,
@@ -33,6 +35,7 @@ interface NavigationItem {
   href: string
   icon: React.ComponentType<{ className?: string }>
   badge?: number
+  hidden?: boolean
   children?: Array<{
     title: string
     href: string
@@ -45,8 +48,9 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ className }: AdminSidebarProps) {
   const pathname = usePathname()
+  const t = useTranslations("admin")
   const { sidebarOpen, closeSidebar } = useAdminLayout()
-  const { admin, logout } = useAdminAuth()
+  const { admin, logout, capabilities } = useAdminAuth()
   const [pendingCounts, setPendingCounts] = useState({
     users: 0,
     communities: 0,
@@ -61,9 +65,9 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
     const fetchPendingCounts = async () => {
       try {
         const [pendingCommunitiesRes, moderationStatsRes, supportCountsRes] = await Promise.allSettled([
-          adminApi.communities.getPendingApprovals({ page: 1, limit: 1 } as any),
-          adminApi.contentModeration.getQueueStats(),
-          adminApi.support.getQueueCounts(),
+          capabilities.communities ? adminApi.communities.getPendingApprovals({ page: 1, limit: 1 } as any) : Promise.resolve(null),
+          capabilities.contentModeration ? adminApi.contentModeration.getQueueStats() : Promise.resolve(null),
+          capabilities.liveSupport ? adminApi.support.getQueueCounts() : Promise.resolve(null),
         ])
 
         const pendingCommunities =
@@ -87,9 +91,9 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
         if (!mounted) return
         setPendingCounts({
           users: 0,
-          communities: pendingCommunities,
-          moderation: moderationPending,
-          support: supportAvailable,
+          communities: capabilities.communities ? pendingCommunities : 0,
+          moderation: capabilities.contentModeration ? moderationPending : 0,
+          support: capabilities.liveSupport ? supportAvailable : 0,
         })
       } catch (error) {
         if (!mounted) return
@@ -107,35 +111,41 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
     return () => {
       mounted = false
     }
-  }, [])
+  }, [capabilities.communities, capabilities.contentModeration, capabilities.liveSupport])
 
   const navigationItems: NavigationItem[] = [
     {
       title: "Dashboard",
       href: "/admin/dashboard",
       icon: LayoutDashboard,
+      hidden: !capabilities.dashboard,
     },
     {
       title: "Users",
       href: "/admin/users",
       icon: Users,
       badge: pendingCounts.users,
+      hidden: !capabilities.users,
     },
     {
       title: "Communities",
       href: "/admin/communities",
       icon: Building2,
+      badge: pendingCounts.communities,
+      hidden: !capabilities.communities,
     },
     {
       title: "Content Moderation",
       href: "/admin/content-moderation",
       icon: Shield,
       badge: pendingCounts.moderation,
+      hidden: !capabilities.contentModeration,
     },
     {
       title: "Financial",
       href: "/admin/financial",
       icon: Coins,
+      hidden: !capabilities.financial,
       children: [
         { title: "Dashboard", href: "/admin/financial" },
         { title: "Subscriptions", href: "/admin/financial/subscriptions" },
@@ -147,11 +157,13 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       title: "Analytics",
       href: "/admin/analytics",
       icon: BarChart3,
+      hidden: !capabilities.analytics,
     },
     {
       title: "Security",
       href: "/admin/security",
       icon: Lock,
+      hidden: !capabilities.security,
       children: [
         { title: "Audit Logs", href: "/admin/security" },
         { title: "Security Events", href: "/admin/security/events" },
@@ -162,18 +174,54 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       href: "/admin/communication",
       icon: Mail,
       badge: pendingCounts.support,
+      hidden: !capabilities.communication && !capabilities.liveSupport,
       children: [
-        { title: "Campaigns", href: "/admin/communication" },
-        { title: "Templates", href: "/admin/communication/templates" },
-        { title: "Live Support", href: "/admin/communication/support" },
+        ...(capabilities.communication ? [{ title: "Campaigns", href: "/admin/communication" }] : []),
+        ...(capabilities.communication ? [{ title: "Templates", href: "/admin/communication/templates" }] : []),
+        ...(capabilities.liveSupport ? [{ title: "Live Support", href: "/admin/communication/support" }] : []),
       ],
     },
     {
       title: "Settings",
       href: "/admin/settings",
       icon: Settings,
+      hidden: !capabilities.settings,
     },
-  ]
+  ].filter((item) => !item.hidden)
+
+  const localizedNavigationItems: NavigationItem[] = navigationItems.map((item) => ({
+    ...item,
+    title: translateMenuLabel(item.title),
+    href: localizeHref(pathname, item.href),
+    children: item.children?.map((child) => ({
+      ...child,
+      title: translateMenuLabel(child.title),
+      href: localizeHref(pathname, child.href),
+    })),
+  }))
+
+  function translateMenuLabel(label: string): string {
+    const mapping: Record<string, string> = {
+      Dashboard: t("menu.dashboard"),
+      Users: t("menu.users"),
+      Communities: t("menu.communities"),
+      "Content Moderation": t("menu.contentModeration"),
+      Financial: t("menu.financial"),
+      Analytics: t("menu.analytics"),
+      Security: t("menu.security"),
+      Communication: t("menu.communication"),
+      Settings: t("menu.settings"),
+      Subscriptions: t("menu.subscriptions"),
+      Transactions: t("menu.transactions"),
+      Payouts: t("menu.payouts"),
+      "Audit Logs": t("menu.auditLogs"),
+      "Security Events": t("menu.securityEvents"),
+      Campaigns: t("menu.campaigns"),
+      Templates: t("menu.templates"),
+      "Live Support": t("menu.liveSupport"),
+    }
+    return mapping[label] || label
+  }
 
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) =>
@@ -204,21 +252,21 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       {/* Logo */}
       <div className="flex h-16 items-center border-b px-6">
         <Link 
-          href="/admin/dashboard" 
+          href={localizeHref(pathname, "/admin/dashboard")}
           className="flex items-center space-x-2"
           aria-label="Chabaqa Admin Dashboard Home"
         >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <span className="text-lg font-bold" aria-hidden="true">C</span>
           </div>
-          <span className="text-xl font-bold">Chabaqa Admin</span>
+          <span className="text-xl font-bold">{t("brandName")}</span>
         </Link>
       </div>
 
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-1" aria-label="Main navigation">
-          {navigationItems.map((item) => {
+          {localizedNavigationItems.map((item) => {
             const Icon = item.icon
             const hasChildren = item.children && item.children.length > 0
             const isExpanded = expandedItems.includes(item.title)
@@ -341,7 +389,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
             variant="ghost"
             size="icon"
             onClick={handleLogout}
-            aria-label="Logout from admin dashboard"
+            aria-label={t("header.logout")}
           >
             <LogOut className="h-4 w-4" aria-hidden="true" />
           </Button>
@@ -358,7 +406,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
         !sidebarOpen && "-translate-x-full",
         className
       )}
-      aria-label="Admin navigation sidebar"
+      aria-label={t("header.toggleNavigation")}
       role="navigation"
     >
       {sidebarContent}
@@ -371,8 +419,14 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       <SheetContent 
         side="left" 
         className="w-64 p-0"
-        aria-label="Mobile navigation menu"
+        aria-label={t("header.toggleNavigation")}
       >
+        <SheetHeader className="sr-only">
+          <SheetTitle>{t("header.toggleNavigation")}</SheetTitle>
+          <SheetDescription>
+            {t("brandName")}
+          </SheetDescription>
+        </SheetHeader>
         {sidebarContent}
       </SheetContent>
     </Sheet>

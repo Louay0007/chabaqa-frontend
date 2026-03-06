@@ -2,15 +2,20 @@
 
 import { Button } from "@/components/ui/button"
 import { Play, X } from "lucide-react"
-import { siteData } from "@/lib/data"
 import { cn } from "@/lib/utils"
 import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useTranslations } from "next-intl"
+import { usePathname } from "next/navigation"
+import { localizeHref } from "@/lib/i18n/client"
 
 export function About() {
   const [isVideoExpanded, setIsVideoExpanded] = useState(false)
   const overlayRef = useRef<HTMLDivElement | null>(null)
+  const t = useTranslations("landing.about")
+  const pathname = usePathname()
+  const withLocale = (href: string) => localizeHref(pathname, href)
 
   // Close modal on ESC
   useEffect(() => {
@@ -45,7 +50,7 @@ export function About() {
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 animate-in fade-in duration-300"
           role="dialog"
           aria-modal="true"
-          aria-label="About video"
+          aria-label={t("aboutVideoAriaLabel")}
           onClick={(e) => {
             if (e.target === overlayRef.current) setIsVideoExpanded(false)
           }}
@@ -63,7 +68,7 @@ export function About() {
             <button
               type="button"
               onClick={() => setIsVideoExpanded(false)}
-              aria-label="Close video"
+              aria-label={t("closeVideo")}
               className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[60] text-white"
               style={{ background: "transparent", border: "none", padding: 0, lineHeight: 0 }}
             >
@@ -74,7 +79,7 @@ export function About() {
             <div className="w-full max-w-full aspect-video h-auto rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
                <iframe
                 src="https://youtu.be/xf5Gvfpo330"
-                title="About Us Video - Expanded"
+                title={t("aboutVideoExpandedTitle")}
                 className="w-full h-full max-h-[80vh]"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
@@ -106,7 +111,7 @@ export function About() {
               role="button"
               tabIndex={0}
               onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setIsVideoExpanded(true)}
-              aria-label="Play demo video"
+              aria-label={t("playDemoVideo")}
             >
               <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
                 <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white/90 rounded-full flex items-center justify-center">
@@ -122,9 +127,9 @@ export function About() {
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
               /> */}
-                            <Image
+            <Image
               src="/coming-soon/soon-cover.png"
-              alt="About Us Video"
+              alt={t("aboutVideoAlt")}
               fill
               className="object-cover rounded-2xl"
               loading="lazy"
@@ -137,12 +142,12 @@ export function About() {
           <div className="space-y-5 sm:space-y-6">
             <div>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-3 sm:mb-4 text-balance">
-                {siteData.about.title}
+                {t("title")}
               </h1>
               <p className="text-base sm:text-lg text-gray-700 leading-relaxed">
-                {siteData.about.description}
+                {t("description")}
               </p>
-              <p className="mt-2 text-sm text-gray-500">Brand note: Chabaqa (not Chabaka).</p>
+              <p className="mt-2 text-sm text-gray-500">{t("brandNote")}</p>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -150,8 +155,8 @@ export function About() {
                 size="lg"
                 className="bg-gradient-to-r from-[#8e78fb] to-[#f65887] hover:from-[#7c6bfa] hover:to-[#f54d7a] text-white px-6 sm:px-8 py-2.5 sm:py-3 text-base"
               >
-                <Link href="/dashboard/create-community">
-                  Get Started Today
+                <Link href={withLocale("/dashboard/create-community")}>
+                  {t("getStartedToday")}
                 </Link>
               </Button>
               <Button
@@ -161,7 +166,7 @@ export function About() {
                 onClick={() => setIsVideoExpanded(true)}
               >
                 <Play className="w-4 h-4 mr-2" />
-                Watch Demo
+                {t("watchDemo")}
               </Button>
             </div>
           </div>

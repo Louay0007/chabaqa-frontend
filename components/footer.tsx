@@ -5,6 +5,9 @@ import Image from "next/image"
 import { Facebook, Instagram, Linkedin, Youtube } from "lucide-react"
 import { siteData } from "@/lib/data"
 import { COOKIE_OPEN_PREFERENCES_EVENT } from "@/components/cookie-consent-provider"
+import { useTranslations } from "next-intl"
+import { usePathname } from "next/navigation"
+import { localizeHref } from "@/lib/i18n/client"
 
 const iconMap = {
   Facebook,
@@ -14,12 +17,29 @@ const iconMap = {
 }
 
 export function Footer() {
+  const t = useTranslations("landing.footer")
+  const pathname = usePathname()
+  const withLocale = (href: string) => localizeHref(pathname, href)
+  const isArabic = pathname === "/ar" || pathname.startsWith("/ar/")
+
   const openCookiePreferences = () => {
     if (typeof window === "undefined") return
     window.dispatchEvent(new CustomEvent(COOKIE_OPEN_PREFERENCES_EVENT))
   }
 
-  const legalLinks = siteData.footer.links.company.filter((link) =>
+  const productLinks = [
+    { href: "/explore", label: t("links.product.explore") },
+    { href: "/#features", label: t("links.product.features") },
+    { href: "/#pricing", label: t("links.product.pricing") },
+  ]
+
+  const companyLinks = [
+    { href: "/#about", label: t("links.company.about") },
+    { href: "/terms-of-service", label: t("links.company.terms") },
+    { href: "/privacy-policy", label: t("links.company.privacy") },
+  ]
+
+  const legalLinks = companyLinks.filter((link) =>
     ["/terms-of-service", "/privacy-policy"].includes(link.href)
   )
 
@@ -28,7 +48,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         {/* Brand - Mobile First */}
         <div className="mb-8 text-center lg:hidden">
-          <Link href="/" className="mb-3 inline-block" aria-label={siteData.brand.name}>
+          <Link href={withLocale("/")} className="mb-3 inline-block" aria-label={siteData.brand.name}>
             <Image
               src="/Logos/PNG/frensh1.png"
               alt="Chabaqa Logo"
@@ -39,14 +59,14 @@ export function Footer() {
             />
           </Link>
           <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
-            {siteData.footer.description}
+            {t("description")}
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-6 sm:gap-8 lg:grid-cols-4">
           {/* Brand - Desktop */}
           <div className="hidden lg:block lg:col-span-1">
-            <Link href="/" className="mb-4 block" aria-label={siteData.brand.name}>
+            <Link href={withLocale("/")} className="mb-4 block" aria-label={siteData.brand.name}>
               <Image
                 src="/Logos/PNG/frensh1.png"
                 alt="Chabaqa Logo"
@@ -57,21 +77,21 @@ export function Footer() {
               />
             </Link>
             <p className="mt-1 text-gray-600 dark:text-gray-400 max-w-md">
-              {siteData.footer.description}
+              {t("description")}
             </p>
           </div>
 
           {/* Product */}
           <div>
-            <h3 className="text-sm font-semibold mb-3 sm:mb-4">Product</h3>
+            <h3 className="text-sm font-semibold mb-3 sm:mb-4">{t("sections.product")}</h3>
             <ul className="space-y-2 sm:space-y-3" role="list">
-              {siteData.footer.links.product.map((link, index) => (
+              {productLinks.map((link, index) => (
                 <li key={index}>
                   <Link
-                    href={link.href}
+                    href={withLocale(link.href)}
                     className="text-sm sm:text-base text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
                   >
-                    {link.name}
+                    {link.label}
                   </Link>
                 </li>
               ))}
@@ -80,15 +100,15 @@ export function Footer() {
 
           {/* Company */}
           <div>
-            <h3 className="text-sm font-semibold mb-3 sm:mb-4">Company</h3>
+            <h3 className="text-sm font-semibold mb-3 sm:mb-4">{t("sections.company")}</h3>
             <ul className="space-y-2 sm:space-y-3" role="list">
-              {siteData.footer.links.company.map((link, index) => (
+              {companyLinks.map((link, index) => (
                 <li key={index}>
                   <Link
-                    href={link.href}
+                    href={withLocale(link.href)}
                     className="text-sm sm:text-base text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
                   >
-                    {link.name}
+                    {link.label}
                   </Link>
                 </li>
               ))}
@@ -97,8 +117,8 @@ export function Footer() {
 
           {/* Social */}
           <div className="col-span-2 lg:col-span-1">
-            <h3 className="text-sm font-semibold mb-3 sm:mb-4 text-center lg:text-left">Follow Us</h3>
-            <div className="flex justify-center lg:justify-start space-x-4">
+            <h3 className={isArabic ? "text-sm font-semibold mb-3 sm:mb-4 text-center lg:text-right" : "text-sm font-semibold mb-3 sm:mb-4 text-center lg:text-left"}>{t("sections.followUs")}</h3>
+            <div className="flex justify-center lg:justify-start gap-4" dir="ltr">
               {siteData.footer.social.map((social, index) => {
                 const Icon = iconMap[social.icon as keyof typeof iconMap]
                 return (
@@ -118,18 +138,27 @@ export function Footer() {
 
         {/* Bottom Note */}
         <div className="mt-8 sm:mt-12 border-t border-gray-900/10 dark:border-white/10 pt-6 sm:pt-8 text-center">
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-            © {new Date().getFullYear()} {siteData.brand.name}. All rights reserved.
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400" dir={isArabic ? "rtl" : "ltr"}>
+            {isArabic ? (
+              <>
+                {t("copyrightReserved")} <span dir="ltr">{new Date().getFullYear()}</span> {siteData.brand.name}
+              </>
+            ) : (
+              t("copyright", { year: new Date().getFullYear(), brand: siteData.brand.name })
+            )}
           </p>
           {legalLinks.length > 0 && (
-            <div className="mt-2 sm:mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-x-5">
+            <div
+              className="mt-2 sm:mt-3 flex flex-wrap items-center justify-center gap-4 sm:gap-5"
+              dir={isArabic ? "rtl" : "ltr"}
+            >
               {legalLinks.map((link) => (
                 <Link
                   key={link.href}
-                  href={link.href}
+                  href={withLocale(link.href)}
                   className="text-xs sm:text-sm text-gray-500 underline-offset-4 hover:text-gray-800 hover:underline dark:text-gray-400 dark:hover:text-gray-200"
                 >
-                  {link.name}
+                  {link.label}
                 </Link>
               ))}
               <button
@@ -137,7 +166,7 @@ export function Footer() {
                 onClick={openCookiePreferences}
                 className="text-xs sm:text-sm text-gray-500 underline-offset-4 hover:text-gray-800 hover:underline dark:text-gray-400 dark:hover:text-gray-200"
               >
-                Manage Cookies
+                {t("manageCookies")}
               </button>
             </div>
           )}

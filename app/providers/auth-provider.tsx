@@ -2,11 +2,12 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { normalizeUser } from "@/lib/hooks/useUser"
 import { registerBrowserPushForCurrentUser } from "@/lib/push-notifications"
 import { io, Socket } from "socket.io-client"
 import { resolveSocketBaseUrl } from "@/lib/socket-url"
+import { localizeHref } from "@/lib/i18n/client"
 
 export interface User {
   _id: string
@@ -71,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pushRegistrationAttemptedForUserRef = useRef<string | null>(null)
   const presenceSocketRef = useRef<Socket | null>(null)
   const router = useRouter()
+  const pathname = usePathname()
 
   const isAuthenticated = !!user
 
@@ -176,19 +178,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')
           ? redirectParam
           : null
-      if (safeRedirect && safeRedirect !== '/signin') {
-        router.push(safeRedirect)
+      if (safeRedirect && safeRedirect !== localizeHref(pathname || '/', '/signin')) {
+        router.push(localizeHref(pathname || '/', safeRedirect))
         return
       }
 
       // Redirect based on role
       const role = user.role?.toLowerCase()
       if (role === 'creator') {
-        router.push('/creator/dashboard')
+        router.push(localizeHref(pathname || '/', '/creator/dashboard'))
       } else if (role === 'admin') {
-        router.push('/admin')
+        router.push(localizeHref(pathname || '/', '/admin'))
       } else {
-        router.push('/explore')
+        router.push(localizeHref(pathname || '/', '/explore'))
       }
 
     } catch (e: any) {
@@ -201,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       throw e
     }
-  }, [router])
+  }, [router, pathname])
 
   const updateAuth = useCallback((accessToken: string, userData: any) => {
     if (typeof window !== 'undefined') {
@@ -281,7 +283,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(data.accessToken)
         const normalizedUser = normalizeUser(data.user)
         setUser(normalizedUser)
-        router.push('/explore')
+        router.push(localizeHref(pathname || '/', '/explore'))
       }
 
     } catch (e: any) {
@@ -293,7 +295,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       throw e
     }
-  }, [router])
+  }, [router, pathname])
 
   const logout = useCallback(async () => {
     try {
@@ -332,9 +334,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       // 3. Perform a full page reload to signin page
       // This is crucial to break any JS-resident loops and clear all provider states
-      window.location.href = '/signin?message=Déconnexion réussie'
+      window.location.href = `${localizeHref(pathname || '/', '/signin')}?message=Logged out successfully`
     }
-  }, [])
+  }, [pathname])
 
   useEffect(() => {
     fetchMe()

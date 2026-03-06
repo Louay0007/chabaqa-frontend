@@ -69,7 +69,7 @@ export const metadata: Metadata = {
     siteName: "Chabaqa",
     type: "website",
     locale: "en_US",
-    alternateLocale: ["ar_TN", "fr_FR"],
+    alternateLocale: ["ar_TN"],
     images: [
       {
         url: "/og-image.jpg",
@@ -92,8 +92,7 @@ export const metadata: Metadata = {
     canonical: "https://chabaqa.io",
     languages: {
       'en': 'https://chabaqa.io',
-      'ar': 'https://chabaqa.io/ar',
-      'fr': 'https://chabaqa.io/fr'
+      'ar': 'https://chabaqa.io/ar'
     }
   },
   robots: {
@@ -277,7 +276,7 @@ export default function Home() {
               },
               "query-input": "required name=search_term_string"
             },
-            "inLanguage": ["en", "ar", "fr"]
+            "inLanguage": ["en", "ar"]
           })
         }}
       />

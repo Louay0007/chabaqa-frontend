@@ -7,6 +7,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Explore } from "@/lib/data-communities"
 import { resolveExploreCardRouting } from "@/app/(landing)/(communities)/components/explore-card-routing"
+import { useTranslations } from "next-intl"
 
 type ItemType = "community" | "course" | "challenge" | "product" | "oneToOne" | "event"
 
@@ -19,11 +20,12 @@ interface FeaturedCommunityCardProps {
 
 export function FeaturedCommunityCard({ community, index, slug, accessAware = false }: FeaturedCommunityCardProps) {
   const router = useRouter()
+  const t = useTranslations("landing.explore")
 
   const formatMembers = (count: number) => (count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count.toString())
   const formatPrice = (price: number | undefined, type: string) => {
     const p = typeof price === "number" && Number.isFinite(price) ? price : 0
-    if (type === "free" || p === 0) return "Free"
+    if (type === "free" || p === 0) return t("priceLabels.free")
     if (type === "paid") return `$${p}`
     if (type === "monthly") return `$${p}/mo`
     if (type === "yearly") return `$${p}/yr`
@@ -38,32 +40,32 @@ export function FeaturedCommunityCard({ community, index, slug, accessAware = fa
     const typeConfigs = {
       community: {
         badgeColor: "border-blue-500/50 text-blue-600 bg-blue-50",
-        ctaText: "Explore",
+        ctaText: t("cta.explore"),
         ctaColors: "#3b82f6, #2563eb"
       },
       course: {
         badgeColor: "border-[#47c7ea]/50 text-[#47c7ea] bg-[#47c7ea]/10",
-        ctaText: "Start",
+        ctaText: t("cta.start"),
         ctaColors: "#47c7ea, #86e4fd"
       },
       challenge: {
         badgeColor: "border-[#ff9b28]/50 text-[#ff9b28] bg-[#ff9b28]/10",
-        ctaText: "Join",
+        ctaText: t("cta.join"),
         ctaColors: "#ff9b28, #fddab0"
       },
       product: {
         badgeColor: "border-purple-500/50 text-purple-600 bg-purple-50",
-        ctaText: "Buy",
+        ctaText: t("cta.buy"),
         ctaColors: "#9333ea, #a855f7"
       },
       oneToOne: {
         badgeColor: "border-[#f65887]/50 text-[#f65887] bg-[#f65887]/10",
-        ctaText: "Book",
+        ctaText: t("cta.book"),
         ctaColors: "#f65887, #fddab0"
       },
       event: {
         badgeColor: "border-emerald-500/50 text-emerald-600 bg-emerald-50",
-        ctaText: "Register",
+        ctaText: t("cta.register"),
         ctaColors: "#10b981, #34d399"
       }
     }
@@ -84,11 +86,16 @@ export function FeaturedCommunityCard({ community, index, slug, accessAware = fa
         : `/community/${community.slug}#join-section`)
       : (community.link || `/community/${targetSlug}#join-section`),
     label: itemType === "community"
-      ? (community.isMember ? typeConfig.ctaText : "Join")
+      ? (community.isMember ? typeConfig.ctaText : t("cta.join"))
       : typeConfig.ctaText,
   }
 
-  const accessAwareRouting = resolveExploreCardRouting(community, typeConfig.ctaText)
+  const accessAwareRouting = resolveExploreCardRouting(community, typeConfig.ctaText, {
+    join: t("cta.join"),
+    download: t("cta.download"),
+    buy: t("cta.buy"),
+    viewCommunity: t("cta.viewCommunity"),
+  })
   const ctaHref = accessAware ? accessAwareRouting.href : defaultRouting.href
   const ctaLabel = accessAware ? accessAwareRouting.ctaLabel : defaultRouting.label
 
@@ -145,11 +152,11 @@ export function FeaturedCommunityCard({ community, index, slug, accessAware = fa
           </div>
           <div className="min-w-0">
             <p className="text-xs text-gray-600 truncate">
-              by <span className="font-medium text-gray-800">{community.creator}</span>
+              {t("by")} <span className="font-medium text-gray-800">{community.creator}</span>
             </p>
             {community.communityName && community.type !== "community" && (
               <p className="text-[11px] text-gray-500 truncate">
-                Community: <span className="font-medium text-chabaqa-primary">{community.communityName}</span>
+                {t("communityLabel")}: <span className="font-medium text-chabaqa-primary">{community.communityName}</span>
               </p>
             )}
           </div>
@@ -170,7 +177,7 @@ export function FeaturedCommunityCard({ community, index, slug, accessAware = fa
             variant="outline"
             className={`text-[11px] px-2 py-0.5 font-medium capitalize border ${typeConfig.badgeColor}`}
           >
-            {itemType}
+            {t(`types.${itemType}`)}
           </Badge>
         </div>
 

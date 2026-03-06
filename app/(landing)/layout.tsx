@@ -10,9 +10,9 @@ export const metadata: Metadata = {
     "Build and monetize your community with courses, sessions, events, challenges, and digital products on Chabaqa.",
   alternates: generateAlternateLanguages(""),
   icons: {
-    icon: "/Logos/ICO/brandmark.ico", // default favicon
-    apple: "/Logos/ICO/brandmark.ico", // optional
-    shortcut: "/Logos/ICO/brandmark.ico", // optional
+    icon: "/favicon.ico",
+    apple: "/favicon.ico",
+    shortcut: "/favicon.ico",
   },
 }
 

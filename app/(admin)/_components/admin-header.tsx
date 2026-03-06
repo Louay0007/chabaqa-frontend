@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -23,8 +24,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { useAdminLayout } from "../providers/admin-layout-provider"
 import { useAdminAuth } from "../providers/admin-auth-provider"
+import { LanguageSwitcher } from "@/components/language-switcher"
 import { Menu, Bell, User, Settings, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
+import { localizeHref } from "@/lib/i18n/client"
 
 interface BreadcrumbItem {
   label: string
@@ -46,7 +50,11 @@ export function AdminHeader({
 }: AdminHeaderProps) {
   const { toggleSidebar } = useAdminLayout()
   const { admin, logout } = useAdminAuth()
+  const pathname = usePathname()
+  const t = useTranslations("admin.header")
   const [notificationCount, setNotificationCount] = useState(0)
+
+  const withLocale = (href: string) => localizeHref(pathname, href)
 
   // Fetch notification count (placeholder - will be implemented with API)
   useEffect(() => {
@@ -72,7 +80,7 @@ export function AdminHeader({
         size="icon"
         className="lg:hidden"
         onClick={toggleSidebar}
-        aria-label="Toggle navigation menu"
+        aria-label={t("toggleNavigation")}
         aria-expanded={false}
       >
         <Menu className="h-5 w-5" aria-hidden="true" />
@@ -112,7 +120,7 @@ export function AdminHeader({
         variant="ghost"
         size="icon"
         className="relative"
-        aria-label={`Notifications${notificationCount > 0 ? `, ${notificationCount} unread` : ''}`}
+        aria-label={`${t("notifications")}${notificationCount > 0 ? `, ${notificationCount} unread` : ""}`}
       >
         <Bell className="h-5 w-5" aria-hidden="true" />
         {notificationCount > 0 && (
@@ -126,13 +134,15 @@ export function AdminHeader({
         )}
       </Button>
 
+      <LanguageSwitcher />
+
       {/* Admin Profile Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             className="relative h-9 w-9 rounded-full"
-            aria-label="Open admin menu"
+            aria-label={t("openAdminMenu")}
             aria-haspopup="true"
           >
             <Avatar className="h-9 w-9">
@@ -165,21 +175,21 @@ export function AdminHeader({
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link href="/admin/settings" className="cursor-pointer">
+            <Link href={withLocale("/admin/settings")} className="cursor-pointer">
               <User className="mr-2 h-4 w-4" aria-hidden="true" />
-              <span>Profile</span>
+              <span>{t("profile")}</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href="/admin/settings" className="cursor-pointer">
+            <Link href={withLocale("/admin/settings")} className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
-              <span>Settings</span>
+              <span>{t("settings")}</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
             <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
-            <span>Logout</span>
+            <span>{t("logout")}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

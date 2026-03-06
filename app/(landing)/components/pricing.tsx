@@ -9,13 +9,38 @@ import { Check, ChevronLeft, ChevronRight } from "lucide-react"
 import { siteData } from "@/lib/data"
 import { subscriptionApi, PlanTier } from "@/lib/api/subscription.api"
 import { useToast } from "@/components/ui/use-toast"
+import { useTranslations } from "next-intl"
 
 type Billing = "monthly" | "yearly"
 
 export function Pricing() {
   const { toast } = useToast()
+  const t = useTranslations("landing.pricing")
   const [billing, setBilling] = useState<Billing>("monthly")
   const plans = siteData.pricing.plans
+
+  const mapPlanKey = (plan: any) => {
+    const source = String(plan?.tier ?? plan?.name ?? "").toLowerCase()
+    if (source.includes("starter")) return "starter"
+    if (source.includes("growth")) return "growth"
+    if (source.includes("pro")) return "pro"
+    return null
+  }
+
+  const getTranslatedPlan = (plan: any) => {
+    const planKey = mapPlanKey(plan)
+    if (!planKey) return plan
+
+    const baseKey = `plans.${planKey}`
+    return {
+      ...plan,
+      name: t.has(`${baseKey}.name`) ? t(`${baseKey}.name`) : plan.name,
+      description: t.has(`${baseKey}.description`) ? t(`${baseKey}.description`) : plan.description,
+      trial: t.has(`${baseKey}.trial`) ? t(`${baseKey}.trial`) : plan.trial,
+      cta: t.has(`${baseKey}.cta`) ? t(`${baseKey}.cta`) : plan.cta,
+      features: t.has(`${baseKey}.features`) ? (t.raw(`${baseKey}.features`) as string[]) : plan.features,
+    }
+  }
 
   const handleSubscriptionPayment = async (tierName: string, interval: Billing) => {
     try {
@@ -29,8 +54,8 @@ export function Pricing() {
       const tier = tierMap[tierName]
       if (!tier) {
         toast({
-          title: "Invalid plan",
-          description: "Please select a valid subscription plan.",
+          title: t("errors.invalidPlanTitle"),
+          description: t("errors.invalidPlanDescription"),
           variant: "destructive",
         })
         return
@@ -42,12 +67,12 @@ export function Pricing() {
       if (result?.checkoutUrl) {
         window.location.href = result.checkoutUrl
       } else {
-        throw new Error('No checkout URL returned')
+        throw new Error(t("errors.noCheckoutUrl"))
       }
     } catch (error: any) {
       toast({
-        title: "Payment initialization failed",
-        description: error?.message || "Please try again.",
+        title: t("errors.paymentInitFailedTitle"),
+        description: error?.message || t("errors.tryAgain"),
         variant: "destructive",
       })
     }
@@ -114,8 +139,8 @@ export function Pricing() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Title */}
         <div className="text-center mb-10">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">{siteData.pricing.title}</h2>
-          <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">{siteData.pricing.subtitle}</p>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">{t("title")}</h2>
+          <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">{t("subtitle")}</p>
         </div>
 
         {/* Billing switch */}
@@ -127,7 +152,7 @@ export function Pricing() {
               aria-pressed={billing === "monthly"}
               type="button"
             >
-              Monthly
+              {t("billing.monthly")}
             </button>
             <button
               onClick={() => setBilling("yearly")}
@@ -135,16 +160,16 @@ export function Pricing() {
               aria-pressed={billing === "yearly"}
               type="button"
             >
-              Yearly
+              {t("billing.yearly")}
             </button>
           </div>
 
           {/* Desktop savings badge */}
-          <SaveBadge plans={plans} billing={billing} />
+          <SaveBadge plans={plans} billing={billing} t={t} />
         </div>
 
         {/* Mobile savings mini badge (better indication) */}
-        <MobileSaveBadge plans={plans} billing={billing} />
+        <MobileSaveBadge plans={plans} billing={billing} t={t} />
 
 
 
@@ -161,20 +186,21 @@ export function Pricing() {
           style={{ scrollbarWidth: "none" } as any}
           aria-live="polite"
           aria-roledescription="carousel"
-          aria-label="Pricing plans"
+          aria-label={t("plansAriaLabel")}
         >
           <style>{`#pricing ::-webkit-scrollbar{ display:none; height:0; width:0 }`}</style>
 
           {plans.map((plan: any, i: number) => {
+            const translatedPlan = getTranslatedPlan(plan)
             const hasToggle = !!plan.prices
             const currentPrice = hasToggle ? (billing === "monthly" ? plan.prices.monthly : plan.prices.yearly) : plan.price
-            const period = hasToggle ? (billing === "monthly" ? "/mo" : "/yr") : plan.period ?? ""
+            const period = hasToggle ? (billing === "monthly" ? t("billing.periodMonthly") : t("billing.periodYearly")) : plan.period ?? ""
             const perMonth = hasToggle && billing === "yearly" ? plan.prices.yearly / 12 : null
 
             return (
               <Card
                 key={i}
-                aria-label={`Plan ${plan.name}`}
+                aria-label={t("planAriaLabel", { name: translatedPlan.name })}
                 className={`
                   relative min-w-[70%] sm:min-w-[58%] snap-center border-2 bg-white/80
                   md:min-w-0 md:w-full
@@ -185,20 +211,20 @@ export function Pricing() {
                 {plan.popular ? (
                   <div className="absolute top-2 left-1/2 -translate-x-1/2">
                     <span className="bg-chabaqa-primary text-white px-3 py-0.5 rounded-full text-xs sm:text-sm font-medium shadow">
-                      Most Popular
+                      {t("badges.mostPopular")}
                     </span>
                   </div>
                 ) : plan.trial ? (
                   <div className="absolute top-2 left-1/2 -translate-x-1/2">
                     <span className="bg-green-500 text-white px-3 py-0.5 rounded-full text-xs sm:text-sm font-medium shadow">
-                      {plan.trial}
+                      {translatedPlan.trial}
                     </span>
                   </div>
                 ) : null}
 
                 <CardHeader className="text-center pb-6 sm:pb-8">
                   <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 mt-4 sm:mt-6">
-                    {plan.name}
+                    {translatedPlan.name}
                   </CardTitle>
 
                   <div className="mt-3 sm:mt-4 flex items-end justify-center gap-1">
@@ -215,7 +241,7 @@ export function Pricing() {
                   {perMonth != null && (
                     <div className="mt-1 text-xs sm:text-sm text-gray-500">
                       <span className="rounded-full bg-gray-100 px-2 py-0.5">
-                        ≈ <NumberFlow value={perMonth} format={{ style: "currency", currency: "TND", maximumFractionDigits: 0 }} /> /mo
+                        ≈ <NumberFlow value={perMonth} format={{ style: "currency", currency: "TND", maximumFractionDigits: 0 }} /> {t("billing.perMonthShort")}
                       </span>
                     </div>
                   )}
@@ -223,20 +249,20 @@ export function Pricing() {
                   {/* Trial info below price */}
                   {plan.trial && (
                     <div className="mt-2 text-xs sm:text-sm text-green-600 font-medium">
-                      {plan.trial} trial included
+                      {t("trialIncluded", { trial: translatedPlan.trial })}
                     </div>
                   )}
 
-                  {plan.description && (
+                  {translatedPlan.description && (
                     <CardDescription className="text-gray-600 mt-2 sm:mt-3 text-sm sm:text-base line-clamp-2">
-                      {plan.description}
+                      {translatedPlan.description}
                     </CardDescription>
                   )}
                 </CardHeader>
 
                 <CardContent className="space-y-4 sm:space-y-6">
                   <ul className="space-y-2 sm:space-y-3">
-                    {plan.features.map((f: string, idx: number) => (
+                    {(translatedPlan.features as string[]).map((f: string, idx: number) => (
                       <li key={idx} className="flex items-center">
                         <Check className="w-4 h-4 sm:w-5 sm:h-5 text-chabaqa-primary mr-2 sm:mr-3 flex-shrink-0" />
                         <span className="text-gray-700 text-sm sm:text-base">{f}</span>
@@ -251,7 +277,7 @@ export function Pricing() {
                       }`}
                     onClick={() => handleSubscriptionPayment(plan.tier, billing)}
                   >
-                    {plan.cta}
+                    {translatedPlan.cta}
                   </Button>
                 </CardContent>
               </Card>
@@ -265,7 +291,7 @@ export function Pricing() {
             {plans.map((_, i) => (
               <button
                 key={i}
-                aria-label={`Go to slide ${i + 1}`}
+                aria-label={t("goToSlide", { index: i + 1 })}
                 onClick={() => goTo(i)}
                 className={`h-1.5 w-4 rounded-full transition-all ${active === i ? "bg-chabaqa-primary w-6" : "bg-gray-300"
                   }`}
@@ -279,7 +305,15 @@ export function Pricing() {
   )
 }
 
-function SaveBadge({ plans, billing }: { plans: any[]; billing: Billing }) {
+function SaveBadge({
+  plans,
+  billing,
+  t,
+}: {
+  plans: any[]
+  billing: Billing
+  t: ReturnType<typeof useTranslations>
+}) {
   const best = useMemo(() => {
     const arr: number[] = []
     for (const p of plans) {
@@ -303,12 +337,20 @@ function SaveBadge({ plans, billing }: { plans: any[]; billing: Billing }) {
       className={`ml-4 hidden sm:flex items-center rounded-full px-3 py-1 text-sm font-medium ring-1 transition ${billing === "yearly" ? "bg-green-50 text-green-700 ring-green-200" : "bg-gray-50 text-gray-600 ring-gray-200"
         }`}
     >
-      {billing === "yearly" ? `You’re saving up to ${best}%` : `Save up to ${best}% with yearly`}
+      {billing === "yearly" ? t("saveBadge.yearly", { percent: best }) : t("saveBadge.monthly", { percent: best })}
     </div>
   )
 }
 
-function MobileSaveBadge({ plans, billing }: { plans: any[]; billing: Billing }) {
+function MobileSaveBadge({
+  plans,
+  billing,
+  t,
+}: {
+  plans: any[]
+  billing: Billing
+  t: ReturnType<typeof useTranslations>
+}) {
   const best = useMemo(() => {
     const arr: number[] = []
     for (const p of plans) {
@@ -333,7 +375,7 @@ function MobileSaveBadge({ plans, billing }: { plans: any[]; billing: Billing })
         : "bg-gray-50 text-gray-600 ring-gray-200"
         }`}
     >
-      {billing === "yearly" ? `Saving up to ${best}%` : `Save up to ${best}% yearly`}
+      {billing === "yearly" ? t("saveBadge.mobileYearly", { percent: best }) : t("saveBadge.mobileMonthly", { percent: best })}
     </div>
 
   )

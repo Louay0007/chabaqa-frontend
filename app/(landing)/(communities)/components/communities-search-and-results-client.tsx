@@ -17,6 +17,7 @@ import {
 import { communitiesData } from "@/lib/data-communities"
 import { CommunityCard } from "@/app/(landing)/(communities)/components/community-card"
 import { Explore } from "@/lib/data-communities"
+import { useTranslations } from "next-intl"
 
 type ItemType = "community" | "course" | "challenge" | "product" | "oneToOne" | "event"
 
@@ -37,6 +38,7 @@ interface CommunitiesSearchAndResultsClientProps {
 }
 
 export function CommunitiesSearchAndResultsClient({ communities }: CommunitiesSearchAndResultsClientProps) {
+  const t = useTranslations("landing.explore")
   const [filters, setFilters] = useState<SearchFilters>({
     query: "",
     category: "All",
@@ -54,21 +56,21 @@ export function CommunitiesSearchAndResultsClient({ communities }: CommunitiesSe
 
   // SWAPPED: Now these are the quick filter badges with gradient colors
   const typeQuickFilters: { key: ItemType; label: string; color: string }[] = [
-    { key: "community", label: "Community", color: "bg-gradient-to-r from-[#5d67ff] to-[#8e78fb]" },
-    { key: "course", label: "Course", color: "bg-gradient-to-r from-[#47c7ea] to-[#86e4fd]" },
-    { key: "challenge", label: "Challenge", color: "bg-gradient-to-r from-[#ff9b28] to-[#fddab0]" },
-    { key: "product", label: "Product", color: "bg-gradient-to-r from-[#5d67ff] to-[#86e4fd]" },
-    { key: "oneToOne", label: "1-to-1 Sessions", color: "bg-gradient-to-r from-[#f65887] to-[#fddab0]" },
-    { key: "event", label: "Event", color: "bg-gradient-to-r from-[#8e78fb] to-[#86e4fd]" },
+    { key: "community", label: t("types.community"), color: "bg-gradient-to-r from-[#5d67ff] to-[#8e78fb]" },
+    { key: "course", label: t("types.course"), color: "bg-gradient-to-r from-[#47c7ea] to-[#86e4fd]" },
+    { key: "challenge", label: t("types.challenge"), color: "bg-gradient-to-r from-[#ff9b28] to-[#fddab0]" },
+    { key: "product", label: t("types.product"), color: "bg-gradient-to-r from-[#5d67ff] to-[#86e4fd]" },
+    { key: "oneToOne", label: t("types.oneToOne"), color: "bg-gradient-to-r from-[#f65887] to-[#fddab0]" },
+    { key: "event", label: t("types.event"), color: "bg-gradient-to-r from-[#8e78fb] to-[#86e4fd]" },
 
   ]
 
   // SWAPPED: Now these are dropdown options (previously quickFilterOptions)
   const filterDropdownOptions = [
-    { value: "free", label: "Free Only" },
-    { value: "verified", label: "Verified Only" },
-    { value: "1000+", label: "1000+ Members" },
-    { value: "high-rated", label: "Top Rated (4.5+)" },
+    { value: "free", label: t("filters.freeOnly") },
+    { value: "verified", label: t("filters.verifiedOnly") },
+    { value: "1000+", label: t("filters.members1000") },
+    { value: "high-rated", label: t("filters.topRated") },
   ]
 
 const handleFilterChange = <K extends keyof Omit<SearchFilters, "quickFilters">>(
@@ -259,7 +261,7 @@ const handleFilterChange = <K extends keyof Omit<SearchFilters, "quickFilters">>
           <div className="relative flex-1">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3 sm:w-4 sm:h-4" />
             <Input
-              placeholder="Search..."
+              placeholder={t("searchPlaceholder")}
               value={filters.query}
               onChange={(e) => handleFilterChange("query", e.target.value)}
               className="pl-8 sm:pl-10 h-7 sm:h-9 border-gray-300 focus:border-chabaqa-primary text-[10px] sm:text-sm rounded-md"
@@ -275,7 +277,7 @@ const handleFilterChange = <K extends keyof Omit<SearchFilters, "quickFilters">>
             >
               {communitiesData.categories.slice(0, 6).map((category) => (
                 <option key={category} value={category}>
-                  {category === "All" ? "All" : category.split(" ")[0]}
+                  {category === "All" ? t("all") : category.split(" ")[0]}
                 </option>
               ))}
             </select>
@@ -291,7 +293,7 @@ const handleFilterChange = <K extends keyof Omit<SearchFilters, "quickFilters">>
               }}
               className="h-7 sm:h-9 px-1 sm:px-2 bg-white border border-gray-300 rounded-md text-[10px] sm:text-sm min-w-[80px] sm:min-w-[110px]"
             >
-              <option value="">Filters</option>
+              <option value="">{t("filters.label")}</option>
               {filterDropdownOptions.map((option) => (
                 <option 
                   key={option.value} 
@@ -310,7 +312,19 @@ const handleFilterChange = <K extends keyof Omit<SearchFilters, "quickFilters">>
             >
               {communitiesData.sortOptions.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label.replace("Most ", "").replace("Highest ", "")}
+                  {option.value === "popular"
+                    ? t("sort.popular")
+                    : option.value === "newest"
+                      ? t("sort.newest")
+                      : option.value === "members"
+                        ? t("sort.members")
+                        : option.value === "rating"
+                          ? t("sort.rating")
+                          : option.value === "price-low"
+                            ? t("sort.priceLow")
+                            : option.value === "price-high"
+                              ? t("sort.priceHigh")
+                              : option.label}
                 </option>
               ))}
             </select>
@@ -344,13 +358,13 @@ const handleFilterChange = <K extends keyof Omit<SearchFilters, "quickFilters">>
             <div className="text-[10px] sm:text-xs text-gray-500 hidden sm:block">
               {filters.query && (
                 <span>
-                  Results for "<span className="font-medium text-chabaqa-primary">{filters.query}</span>" •{" "}
+                  {t("resultsFor")} "<span className="font-medium text-chabaqa-primary">{filters.query}</span>" •{" "}
                 </span>
               )}
-              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems}
+              {t("showing", { start: startIndex + 1, end: Math.min(endIndex, totalItems), total: totalItems })}
               {activeFiltersCount > 0 && (
                 <Badge className="bg-chabaqa-primary/10 text-chabaqa-primary border border-chabaqa-primary/20 text-xs px-2 py-0.5 ml-1 sm:ml-2">
-                  {activeFiltersCount} Active
+                  {t("activeCount", { count: activeFiltersCount })}
                 </Badge>
               )}
             </div>
@@ -366,7 +380,7 @@ const handleFilterChange = <K extends keyof Omit<SearchFilters, "quickFilters">>
                 }`}
               >
                 <Grid className="w-3 h-3 mr-1" />
-                Grid
+                {t("view.grid")}
               </Button>
               <Button
                 variant="ghost"
@@ -377,7 +391,7 @@ const handleFilterChange = <K extends keyof Omit<SearchFilters, "quickFilters">>
                 }`}
               >
                 <List className="w-3 h-3 mr-1" />
-                List
+                {t("view.list")}
               </Button>
             </div>
 
@@ -389,7 +403,7 @@ const handleFilterChange = <K extends keyof Omit<SearchFilters, "quickFilters">>
                 className="h-5 sm:h-6 px-1 sm:px-2 text-[10px] sm:text-xs text-red-600 hover:text-red-700"
               >
                 <X className="w-2 h-2 sm:w-3 sm:h-3 mr-1" />
-                Clear ({activeFiltersCount})
+                {t("clear")} ({activeFiltersCount})
               </Button>
             )}
           </div>
@@ -399,25 +413,25 @@ const handleFilterChange = <K extends keyof Omit<SearchFilters, "quickFilters">>
         {showAdvanced && (
           <div className="mt-2 sm:mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
-              <label className="block text-[10px] sm:text-xs font-medium text-gray-700 mb-1">Price</label>
+              <label className="block text-[10px] sm:text-xs font-medium text-gray-700 mb-1">{t("price")}</label>
               <select
                 value={filters.priceType}
                 onChange={(e) => handleFilterChange("priceType", e.target.value)}
                 className="w-full h-7 sm:h-8 px-2 bg-white border border-gray-300 rounded text-[10px] sm:text-sm focus:outline-none focus:ring-1 focus:ring-chabaqa-primary"
               >
-                <option value="all">All</option>
-                <option value="free">Free Only</option>
-                <option value="paid">Paid Only</option>
+                <option value="all">{t("all")}</option>
+                <option value="free">{t("filters.freeOnly")}</option>
+                <option value="paid">{t("filters.paidOnly")}</option>
               </select>
             </div>
             <div>
-              <label className="block text-[10px] sm:text-xs font-medium text-gray-700 mb-1">Min Members</label>
+              <label className="block text-[10px] sm:text-xs font-medium text-gray-700 mb-1">{t("minMembers")}</label>
               <select
                 value={filters.minMembers}
                 onChange={(e) => handleFilterChange("minMembers", e.target.value)}
                 className="w-full h-7 sm:h-8 px-2 bg-white border border-gray-300 rounded text-[10px] sm:text-sm focus:outline-none focus:ring-1 focus:ring-chabaqa-primary"
               >
-                <option value="all">Any Size</option>
+                <option value="all">{t("anySize")}</option>
                 <option value="100">100+</option>
                 <option value="500">500+</option>
                 <option value="1000">1000+</option>
@@ -430,7 +444,7 @@ const handleFilterChange = <K extends keyof Omit<SearchFilters, "quickFilters">>
         {/* Active Quick Filters Display */}
         {filters.quickFilters.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
-            <span className="text-[10px] sm:text-xs text-gray-500 mr-1">Active filters:</span>
+            <span className="text-[10px] sm:text-xs text-gray-500 mr-1">{t("activeFilters")}:</span>
             {filters.quickFilters.map((filter) => {
               const filterOption = filterDropdownOptions.find(opt => opt.value === filter)
               return (
@@ -475,7 +489,7 @@ const handleFilterChange = <K extends keyof Omit<SearchFilters, "quickFilters">>
             {totalPages > 1 && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-white/80 rounded-xl border border-gray-200 shadow-sm mt-6">
                 <div className="text-sm text-gray-600">
-                  Page {currentPage} of {totalPages}
+                  {t("pageOf", { current: currentPage, total: totalPages })}
                 </div>
 
                 <div className="flex items-center gap-1">
@@ -548,15 +562,15 @@ const handleFilterChange = <K extends keyof Omit<SearchFilters, "quickFilters">>
         ) : (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">No communities found</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">{t("noResultsTitle")}</h3>
             <p className="text-gray-600 mb-6 max-w-md mx-auto">
-              Try adjusting your search criteria or browse all communities.
+              {t("noResultsDescription")}
             </p>
             <Button
               onClick={clearAllFilters}
               className="bg-gradient-to-r from-chabaqa-primary to-chabaqa-secondary1 hover:from-chabaqa-primary/90 hover:to-chabaqa-secondary1/90 text-white px-6 py-2 font-semibold"
             >
-              Clear All Filters
+              {t("clearAll")}
             </Button>
           </div>
         )}

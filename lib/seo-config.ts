@@ -107,11 +107,10 @@ export const seoConfig = {
   // Language support
   languages: {
     default: "en",
-    supported: ["en", "ar", "fr"],
+    supported: ["en", "ar"],
     locales: {
       en: "en_US",
-      ar: "ar_TN",
-      fr: "fr_FR"
+      ar: "ar_TN"
     }
   },
   
@@ -157,7 +156,7 @@ export const seoConfig = {
         "@type": "ContactPoint",
         contactType: "Customer Support",
         email: "contactchabaqa@gmail.com",
-        availableLanguage: ["English", "Arabic", "French"]
+        availableLanguage: ["English", "Arabic"]
       }
     ]
   }
@@ -191,7 +190,7 @@ export function generateOGMetadata(
     siteName: seoConfig.siteName,
     type: "website" as const,
     locale: seoConfig.languages.locales.en,
-    alternateLocale: [seoConfig.languages.locales.ar, seoConfig.languages.locales.fr],
+    alternateLocale: [seoConfig.languages.locales.ar],
     images: [image || seoConfig.ogImage]
   }
 }
@@ -223,8 +222,7 @@ export function generateAlternateLanguages(path: string = "") {
     canonical: `${baseUrl}${path}`,
     languages: {
       'en': `${baseUrl}${path}`,
-      'ar': `${baseUrl}/ar${path}`,
-      'fr': `${baseUrl}/fr${path}`
+      'ar': `${baseUrl}/ar${path}`
     }
   }
 }

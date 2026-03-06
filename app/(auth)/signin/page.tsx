@@ -1,15 +1,19 @@
 "use client"
 
 import { useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import SignInForm from "../components/signin-form"
 import { useAuthContext } from "@/app/providers/auth-provider"
+import { localizeHref } from "@/lib/i18n/client"
+import { useTranslations } from "next-intl"
 
 export default function SignInPage() {
   const { user, isAuthenticated } = useAuthContext()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const t = useTranslations("auth.signinPage")
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -21,21 +25,21 @@ export default function SignInPage() {
         !requestedRedirect.startsWith('//')
           ? requestedRedirect
           : null
-      if (safeRedirect && safeRedirect !== '/signin') {
+      if (safeRedirect && safeRedirect !== localizeHref(pathname, '/signin')) {
         router.push(safeRedirect)
         return
       }
 
       const role = user.role?.toLowerCase()
       if (role === 'creator') {
-        router.push('/creator/dashboard')
+        router.push(localizeHref(pathname, '/creator/dashboard'))
       } else if (role === 'admin') {
-        router.push('/admin')
+        router.push(localizeHref(pathname, '/admin'))
       } else {
-        router.push('/explore')
+        router.push(localizeHref(pathname, '/explore'))
       }
     }
-  }, [isAuthenticated, user, router, searchParams])
+  }, [isAuthenticated, user, router, searchParams, pathname])
 
 
   return (
@@ -65,8 +69,8 @@ export default function SignInPage() {
 
           {/* Welcome Message */}
           <div className="text-center mb-8 animate-fade-in-delay-200">
-            <p className="text-xl text-gray-700 font-light drop-shadow-sm">Sign in to your Chabaqa space</p>
-            <p className="text-sm text-gray-600 mt-2 drop-shadow-sm">Create, educate and manage your digital communities</p>
+            <p className="text-xl text-gray-700 font-light drop-shadow-sm">{t("headline")}</p>
+            <p className="text-sm text-gray-600 mt-2 drop-shadow-sm">{t("subheadline")}</p>
           </div>
 
           {/* Sign In Form */}
@@ -74,7 +78,7 @@ export default function SignInPage() {
 
           {/* Footer */}
           <div className="text-center mt-8 animate-fade-in-delay-1200">
-            <p className="text-xs text-gray-600 drop-shadow-sm">© 2024 Chabaqa. Build the future of communities.</p>
+            <p className="text-xs text-gray-600 drop-shadow-sm">{t("footer")}</p>
           </div>
         </div>
       </div>

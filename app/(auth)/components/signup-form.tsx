@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Loader2, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { signupAction } from "../signup/actions"
 import { signUpSchema, validatePasswordStrength, getPasswordStrengthLabel, getPasswordStrengthColor } from "@/lib/validation/auth.validation"
+import { useTranslations } from "next-intl"
+import { localizeHref } from "@/lib/i18n/client"
 
 interface SignUpFormProps {
   onSuccess?: () => void
@@ -30,6 +32,8 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] as string[] })
   const router = useRouter()
+  const pathname = usePathname()
+  const t = useTranslations("auth.signupForm")
 
   useEffect(() => {
     if (password) {
@@ -89,13 +93,13 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
           onSuccess()
         } else {
           const nextEmail = encodeURIComponent(result.email || email)
-          router.push(`/verify-email?email=${nextEmail}`)
+          router.push(`${localizeHref(pathname, "/verify-email")}?email=${nextEmail}`)
         }
       } else {
-        setError(result.error || "An error occurred")
+        setError(result.error || t("unknownError"))
       }
     } catch (error) {
-      setError("Connection error. Please try again.")
+      setError(t("connectionError"))
     } finally {
       setIsLoading(false)
     }
@@ -113,7 +117,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
         {/* Name Field */}
         <div className="space-y-2 animate-fade-in-delay-600">
           <Label htmlFor="name" className="text-sm font-medium text-gray-800 block">
-            Full Name
+            {t("fullName")}
           </Label>
           <Input
             id="name"
@@ -123,7 +127,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
               setName(e.target.value)
               if (fieldErrors.name) setFieldErrors({ ...fieldErrors, name: '' })
             }}
-            placeholder="John Doe"
+            placeholder={t("fullNamePlaceholder")}
             required
             disabled={isLoading}
             className={`w-full px-4 py-4 rounded-2xl border-2 transition-all duration-300 text-gray-900 placeholder-gray-500 bg-white/70 backdrop-blur-sm disabled:opacity-50 ${
@@ -143,7 +147,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
         {/* Email Field */}
         <div className="space-y-2 animate-fade-in-delay-700">
           <Label htmlFor="email" className="text-sm font-medium text-gray-800 block">
-            Email Address
+            {t("email")}
           </Label>
           <Input
             id="email"
@@ -153,7 +157,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
               setEmail(e.target.value)
               if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: '' })
             }}
-            placeholder="your@email.com"
+            placeholder={t("emailPlaceholder")}
             required
             disabled={isLoading}
             className={`w-full px-4 py-4 rounded-2xl border-2 transition-all duration-300 text-gray-900 placeholder-gray-500 bg-white/70 backdrop-blur-sm disabled:opacity-50 ${
@@ -173,7 +177,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
         {/* Phone Field */}
         <div className="space-y-2 animate-fade-in-delay-750">
           <Label htmlFor="numtel" className="text-sm font-medium text-gray-800 block">
-            Phone Number (Optional)
+            {t("phoneOptional")}
           </Label>
           <Input
             id="numtel"
@@ -183,7 +187,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
               setNumtel(e.target.value)
               if (fieldErrors.numtel) setFieldErrors({ ...fieldErrors, numtel: '' })
             }}
-            placeholder="+216 XX XXX XXX"
+            placeholder={t("phonePlaceholder")}
             disabled={isLoading}
             className={`w-full px-4 py-4 rounded-2xl border-2 transition-all duration-300 text-gray-900 placeholder-gray-500 bg-white/70 backdrop-blur-sm disabled:opacity-50 ${
               fieldErrors.numtel
@@ -202,7 +206,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
         {/* Date of Birth Field */}
         <div className="space-y-2 animate-fade-in-delay-775">
           <Label htmlFor="dateNaissance" className="text-sm font-medium text-gray-800 block">
-            Date of Birth (Optional)
+            {t("birthDateOptional")}
           </Label>
           <Input
             id="dateNaissance"
@@ -230,7 +234,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
         {/* Password Field */}
         <div className="space-y-2 animate-fade-in-delay-800">
           <Label htmlFor="password" className="text-sm font-medium text-gray-800 block">
-            Password
+            {t("password")}
           </Label>
           <div className="relative">
             <Input
@@ -241,7 +245,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
                 setPassword(e.target.value)
                 if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: '' })
               }}
-              placeholder="••••••••••"
+              placeholder={t("passwordPlaceholder")}
               required
               disabled={isLoading}
               className={`w-full px-4 py-4 pr-12 rounded-2xl border-2 transition-all duration-300 text-gray-900 placeholder-gray-500 bg-white/70 backdrop-blur-sm disabled:opacity-50 ${
@@ -268,7 +272,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
           {password && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-600">Password strength:</span>
+                <span className="text-xs text-gray-600">{t("passwordStrength")}</span>
                 <span className="text-xs font-semibold text-gray-700">{getPasswordStrengthLabel(passwordStrength.score)}</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
@@ -298,7 +302,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
         {/* Confirm Password Field */}
         <div className="space-y-2 animate-fade-in-delay-850">
           <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-800 block">
-            Confirm Password
+            {t("confirmPassword")}
           </Label>
           <div className="relative">
             <Input
@@ -309,7 +313,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
                 setConfirmPassword(e.target.value)
                 if (fieldErrors.confirmPassword) setFieldErrors({ ...fieldErrors, confirmPassword: '' })
               }}
-              placeholder="••••••••••"
+              placeholder={t("confirmPasswordPlaceholder")}
               required
               disabled={isLoading}
               className={`w-full px-4 py-4 pr-12 rounded-2xl border-2 transition-all duration-300 text-gray-900 placeholder-gray-500 bg-white/70 backdrop-blur-sm disabled:opacity-50 ${
@@ -344,7 +348,7 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
           <input
             type="checkbox"
             id="agreeToTerms"
-            aria-label="Agree to terms and conditions"
+            aria-label={`${t("agreePrefix")} ${t("terms")} ${t("and")} ${t("privacy")}`}
             checked={agreeToTerms}
             onChange={(e) => {
               setAgreeToTerms(e.target.checked)
@@ -355,24 +359,24 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
           />
           <div className="text-sm text-gray-700">
             <Label htmlFor="agreeToTerms" className="cursor-pointer">
-              I agree to the{" "}
+              {t("agreePrefix")}{" "}
             </Label>
             <Link
-              href="/terms-of-service"
+              href={localizeHref(pathname, "/terms-of-service")}
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-[#86e4fd] underline hover:text-[#74d4f0]"
             >
-              Terms of Service
+              {t("terms")}
             </Link>
-            {" "}and{" "}
+            {" "}{t("and")}{" "}
             <Link
-              href="/privacy-policy"
+              href={localizeHref(pathname, "/privacy-policy")}
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-[#86e4fd] underline hover:text-[#74d4f0]"
             >
-              Privacy Policy
+              {t("privacy")}
             </Link>
             .
           </div>
@@ -394,11 +398,11 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
             {isLoading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                <span>Sending verification code...</span>
+                <span>{t("creatingAccount")}</span>
               </>
             ) : (
               <>
-                <span className="relative z-10">Create my account</span>
+                <span className="relative z-10">{t("createAccount")}</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-[#7c66e9] to-[#74d4f0] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </>
             )}
@@ -409,12 +413,12 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
       {/* Sign in link */}
       <div className="mt-8 text-center animate-fade-in-delay-1000">
         <div className="text-sm text-gray-700 drop-shadow-sm">
-          Already have an account?{" "}
+          {t("alreadyHaveAccount")}{" "}
           <Link
-            href="/signin"
+            href={localizeHref(pathname, "/signin")}
             className="text-[#86e4fd] hover:text-[#74d4f0] font-medium transition-all duration-200 hover:underline"
           >
-            Sign in
+            {t("signIn")}
           </Link>
         </div>
       </div>

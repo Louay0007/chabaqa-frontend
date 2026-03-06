@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useAdminAuth } from "../../providers/admin-auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { toast } from "sonner"
 import { Eye, EyeOff, Lock, Mail, Shield, AlertCircle, CheckCircle2, Copy } from "lucide-react"
+import { useTranslations } from "next-intl"
+import { localizeHref } from "@/lib/i18n/client"
 
 // Login form validation schema
 const loginSchema = z.object({
@@ -30,6 +32,9 @@ type TwoFAFormData = z.infer<typeof twoFASchema>
 
 export default function AdminLoginPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const t = useTranslations("admin.login")
   const { loading: authLoading, login, verify2FA, isAuthenticated } = useAdminAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [requires2FA, setRequires2FA] = useState(false)
@@ -38,6 +43,10 @@ export default function AdminLoginPage() {
   const [twoFACode, setTwoFACode] = useState<string | null>(null)
   const [isDevelopment, setIsDevelopment] = useState(false)
   const show2FAForm = requires2FA || (!!twoFACode && isDevelopment)
+  const requestedRedirect = searchParams.get("redirect")
+  const safeRedirect = requestedRedirect && requestedRedirect.startsWith("/admin")
+    ? localizeHref(pathname, requestedRedirect)
+    : localizeHref(pathname, "/admin/dashboard")
 
   // Check if we're in development mode
   useEffect(() => {
@@ -51,9 +60,9 @@ export default function AdminLoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.push('/admin/dashboard')
+      router.replace(safeRedirect)
     }
-  }, [authLoading, isAuthenticated, router])
+  }, [authLoading, isAuthenticated, router, safeRedirect])
 
   // Login form
   const loginForm = useForm<LoginFormData>({
@@ -106,17 +115,17 @@ export default function AdminLoginPage() {
           })
         }
 
-        router.push("/admin/verify-2fa")
+        router.push(localizeHref(pathname, "/admin/verify-2fa"))
       } else {
-        toast.success("Login Successful", {
+        toast.success(t("loginSuccess"), {
           description: "Redirecting to dashboard...",
         })
-        router.push('/admin/dashboard')
+        router.replace(safeRedirect)
       }
     } catch (error: any) {
       console.error('[AdminLogin] Login error:', error)
-      toast.error("Login Failed", {
-        description: error.message || "Invalid credentials. Please try again.",
+      toast.error(t("loginFailed"), {
+        description: error.message || t("invalidCredentials"),
       })
     } finally {
       setIsSubmitting(false)
@@ -130,17 +139,17 @@ export default function AdminLoginPage() {
       
       await verify2FA(email, data.code)
       
-      toast.success("Verification Successful", {
+      toast.success(t("verificationSuccessful"), {
         description: "Redirecting to dashboard...",
       })
       
       // Redirect will be handled by the auth provider
       setTimeout(() => {
-        router.push('/admin/dashboard')
+        router.replace(safeRedirect)
       }, 500)
     } catch (error: any) {
       console.error('[AdminLogin] 2FA error:', error)
-      toast.error("Verification Failed", {
+      toast.error(t("verificationFailed"), {
         description: error.message || "Invalid verification code. Please try again.",
       })
     } finally {
@@ -182,7 +191,7 @@ export default function AdminLoginPage() {
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <p className="text-sm text-muted-foreground">{t("signingIn")}</p>
         </div>
       </div>
     )
@@ -198,12 +207,12 @@ export default function AdminLoginPage() {
             </div>
           </div>
           <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            {show2FAForm ? "Two-Factor Authentication" : "Admin Portal"}
+            {show2FAForm ? t("twoFactorTitle") : t("title")}
           </CardTitle>
           <CardDescription className="text-center text-base">
             {show2FAForm
-              ? "Enter the 6-digit verification code"
-              : "Sign in to access the admin dashboard"}
+              ? t("twoFactorSubtitle")
+              : t("subtitle")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -257,13 +266,13 @@ export default function AdminLoginPage() {
             className="space-y-4"
           >
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
+                <Label htmlFor="email" className="text-sm font-medium">{t("email")}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="admin@chabaqa.com"
+                    placeholder={t("emailPlaceholder")}
                     className="pl-10 h-11"
                     {...loginForm.register("email")}
                     disabled={isSubmitting}
@@ -277,13 +286,13 @@ export default function AdminLoginPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                <Label htmlFor="password" className="text-sm font-medium">{t("password")}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder={t("passwordPlaceholder")}
                     className="pl-10 pr-10 h-11"
                     {...loginForm.register("password")}
                     disabled={isSubmitting}
@@ -326,12 +335,12 @@ export default function AdminLoginPage() {
               {isSubmitting ? (
                 <>
                   <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Signing in...
+                  {t("signingIn")}
                 </>
               ) : (
                 <>
                   <Shield className="mr-2 h-4 w-4" />
-                  Sign In
+                  {t("signIn")}
                 </>
               )}
             </Button>

@@ -6,18 +6,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/creator/:path*',
-    '/dashboard/:path*',
-    '/settings/:path*',
-    '/profile/:path*',
-    '/admin/:path*',
-    '/community/:slug/dashboard/:path*',
-    '/signin',
-    '/signup',
-    '/verify-email',
-    '/forgot-password',
-    '/reset-password',
-    '/register',
-  ],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)'],
 }

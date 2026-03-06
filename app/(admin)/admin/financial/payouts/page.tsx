@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useAdminAuth } from "@/app/(admin)/providers/admin-auth-provider"
 import { adminApi, PayoutFilters, CalculatePayoutDto, InitiatePayoutDto } from "@/lib/api/admin-api"
 import { DataTable, ColumnDef } from "@/app/(admin)/_components/data-table"
@@ -16,6 +16,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Plus, Calculator, Send, Check } from "lucide-react"
 import { toast } from "sonner"
+import { localizeHref } from "@/lib/i18n/client"
+import { useLocale } from "next-intl"
+import { formatCurrency, formatDate } from "@/lib/i18n/format"
 
 interface Payout {
   _id: string
@@ -48,6 +51,8 @@ interface PayoutsResponse {
 
 export default function PayoutsListPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const locale = useLocale()
   const { isAuthenticated, loading: authLoading } = useAdminAuth()
   
   const [loading, setLoading] = useState(true)
@@ -94,9 +99,9 @@ export default function PayoutsListPage() {
   // Auth guard
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/admin/login')
+      router.push(localizeHref(pathname, '/admin/login'))
     }
-  }, [authLoading, isAuthenticated, router])
+  }, [authLoading, isAuthenticated, pathname, router])
 
   // Fetch payouts
   useEffect(() => {
@@ -203,10 +208,7 @@ export default function PayoutsListPage() {
       accessorKey: 'amount',
       sortable: true,
       cell: (row) => {
-        const amount = new Intl.NumberFormat('fr-TN', {
-          style: 'currency',
-          currency: row.currency || 'TND'
-        }).format(row.amount || 0)
+        const amount = formatCurrency(row.amount || 0, row.currency || "TND", locale)
         return <span className="font-semibold">{amount}</span>
       }
     },
@@ -230,7 +232,7 @@ export default function PayoutsListPage() {
       header: 'Initiated',
       accessorKey: 'initiatedAt',
       sortable: true,
-      cell: (row) => new Date(row.initiatedAt).toLocaleDateString()
+      cell: (row) => formatDate(row.initiatedAt, locale)
     },
     {
       id: 'processedAt',
@@ -238,7 +240,7 @@ export default function PayoutsListPage() {
       accessorKey: 'processedAt',
       cell: (row) => {
         if (!row.processedAt) return <span className="text-muted-foreground">-</span>
-        return new Date(row.processedAt).toLocaleDateString()
+        return formatDate(row.processedAt, locale)
       }
     }
   ]
@@ -377,7 +379,7 @@ export default function PayoutsListPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push('/admin/financial')}
+            onClick={() => router.push(localizeHref(pathname, '/admin/financial'))}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>

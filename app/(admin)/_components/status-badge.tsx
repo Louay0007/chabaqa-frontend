@@ -61,6 +61,7 @@ const statusVariantMap: Record<string, 'default' | 'success' | 'warning' | 'dang
   'escalated': 'danger',
   'failed': 'danger',
   'cancelled': 'danger',
+  'canceled': 'danger',
   'deleted': 'danger',
   'blocked': 'danger',
   'bounced': 'danger',

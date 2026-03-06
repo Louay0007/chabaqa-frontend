@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useAdminAuth } from "@/app/(admin)/providers/admin-auth-provider"
 import { adminApi, SubscriptionFilters } from "@/lib/api/admin-api"
 import { DataTable, ColumnDef } from "@/app/(admin)/_components/data-table"
@@ -10,6 +10,9 @@ import { StatusBadge } from "@/app/(admin)/_components/status-badge"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
+import { localizeHref } from "@/lib/i18n/client"
+import { useLocale } from "next-intl"
+import { formatCurrency, formatDate } from "@/lib/i18n/format"
 
 interface Subscription {
   _id: string
@@ -27,7 +30,7 @@ interface Subscription {
     username: string
   }
   planTier: string
-  status: 'active' | 'cancelled' | 'expired'
+  status: string
   amount: number
   currency: string
   startDate: string
@@ -46,6 +49,8 @@ interface SubscriptionsResponse {
 
 export default function SubscriptionsListPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const locale = useLocale()
   const { isAuthenticated, loading: authLoading } = useAdminAuth()
   
   const [loading, setLoading] = useState(true)
@@ -67,9 +72,9 @@ export default function SubscriptionsListPage() {
   // Auth guard
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/admin/login')
+      router.push(localizeHref(pathname, '/admin/login'))
     }
-  }, [authLoading, isAuthenticated, router])
+  }, [authLoading, isAuthenticated, pathname, router])
 
   // Fetch subscriptions
   useEffect(() => {
@@ -82,6 +87,7 @@ export default function SubscriptionsListPage() {
           ...filters,
           page: pagination.page,
           limit: pagination.pageSize,
+          plan: filters.planTier,
           sortBy: sorting.sortBy,
           sortOrder: sorting.sortOrder
         })
@@ -111,15 +117,23 @@ export default function SubscriptionsListPage() {
       options: [
         { label: 'All', value: 'all' },
         { label: 'Active', value: 'active' },
-        { label: 'Cancelled', value: 'cancelled' },
-        { label: 'Expired', value: 'expired' }
+        { label: 'Canceled', value: 'canceled' },
+        { label: 'Past Due', value: 'past_due' },
+        { label: 'Trialing', value: 'trialing' },
+        { label: 'Incomplete', value: 'incomplete' }
       ]
     },
     {
       key: 'planTier',
       label: 'Plan Tier',
-      type: 'text',
-      placeholder: 'Filter by plan tier...'
+      type: 'select',
+      options: [
+        { label: 'All', value: 'all' },
+        { label: 'Starter', value: 'starter' },
+        { label: 'Growth', value: 'growth' },
+        { label: 'Pro', value: 'pro' },
+        { label: 'Enterprise', value: 'enterprise' }
+      ]
     },
     {
       key: 'creatorId',
@@ -182,10 +196,7 @@ export default function SubscriptionsListPage() {
       accessorKey: 'amount',
       sortable: true,
       cell: (row) => {
-        const amount = new Intl.NumberFormat('fr-TN', {
-          style: 'currency',
-          currency: row.currency || 'TND'
-        }).format(row.amount || 0)
+        const amount = formatCurrency(row.amount || 0, row.currency || "TND", locale)
         return <span className="font-medium">{amount}</span>
       }
     },
@@ -195,7 +206,7 @@ export default function SubscriptionsListPage() {
       accessorKey: 'nextBillingDate',
       cell: (row) => {
         if (!row.nextBillingDate) return <span className="text-muted-foreground">-</span>
-        return new Date(row.nextBillingDate).toLocaleDateString()
+        return formatDate(row.nextBillingDate, locale)
       }
     },
     {
@@ -203,7 +214,7 @@ export default function SubscriptionsListPage() {
       header: 'Created',
       accessorKey: 'createdAt',
       sortable: true,
-      cell: (row) => new Date(row.createdAt).toLocaleDateString()
+      cell: (row) => formatDate(row.createdAt, locale)
     }
   ]
 
@@ -263,7 +274,7 @@ export default function SubscriptionsListPage() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => router.push('/admin/financial')}
+          onClick={() => router.push(localizeHref(pathname, '/admin/financial'))}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
