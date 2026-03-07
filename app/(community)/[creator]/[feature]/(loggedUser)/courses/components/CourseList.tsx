@@ -9,6 +9,7 @@ import { Star, BookOpen, Clock, Users, CheckCircle, Lock, Play } from "lucide-re
 import Image from "next/image"
 import Link from "next/link"
 import { idsMatch, resolveCourseRouteId } from "@/lib/utils/course-id"
+import { getUserProfileHref } from "@/lib/profile-handle"
 
 interface CourseListProps {
   filteredCourses: any[]
@@ -43,6 +44,10 @@ export default function CourseList({
         const isCourseCompleted = Boolean(progress?.isCompleted || Number(progress?.percentage || 0) >= 100)
         const totalChapters = course.sections?.reduce((acc: any, s: any) => acc + (s.chapters?.length || 0), 0) || 0
         const pricing = getCoursePricing(course)
+        const creatorProfileHref = getUserProfileHref({
+          username: course.creator?.username,
+          name: course.creator?.name || "Unknown",
+        })
 
 return (
   <Card
@@ -152,7 +157,11 @@ return (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           {/* Author */}
           {course.creator && (
-            <div className="flex items-center space-x-2">
+            <Link
+              href={creatorProfileHref}
+              className="flex items-center space-x-2 hover:opacity-90 transition-opacity"
+              onClick={(event) => event.stopPropagation()}
+            >
               <Avatar className="h-8 w-8">
                 <AvatarImage
                   src={course.creator.avatar || "/placeholder.svg"}
@@ -164,10 +173,10 @@ return (
                     .join("") || 'U'}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-sm text-muted-foreground truncate max-w-[150px] sm:max-w-none">
+              <span className="text-sm text-muted-foreground truncate max-w-[150px] sm:max-w-none hover:underline">
                 {course.creator.name || 'Unknown'}
               </span>
-            </div>
+            </Link>
           )}
 
           {/* Actions */}

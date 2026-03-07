@@ -8,6 +8,7 @@ import { resolveExploreCardRouting } from "@/app/(landing)/(communities)/compone
 import Link from "next/link"
 import Image from "next/image"
 import { useTranslations } from "next-intl"
+import { getUserProfileHref } from "@/lib/profile-handle"
 
 type ItemType = "community" | "course" | "challenge" | "product" | "oneToOne" | "event"
 
@@ -88,6 +89,10 @@ export function CommunityCard({ community, viewMode = "grid", accessAware = fals
   }
 
   const typeConfig = getTypeConfig(community.type)
+  const creatorProfileHref = getUserProfileHref({
+    username: community.creatorSlug,
+    name: community.creator,
+  })
 
   const itemType = ((community.type ?? "community") as ItemType)
   
@@ -179,7 +184,7 @@ export function CommunityCard({ community, viewMode = "grid", accessAware = fals
               </div>
 
               {/* Creator */}
-              <div className="flex items-center gap-2">
+              <Link href={creatorProfileHref} className="flex items-center gap-2 min-w-0 hover:opacity-90 transition-opacity">
                 <div className="relative w-8 h-8 flex-shrink-0">
                   <Image
                     src={community.creatorAvatar || "/placeholder.svg"}
@@ -200,7 +205,7 @@ export function CommunityCard({ community, viewMode = "grid", accessAware = fals
                     </p>
                   )}
                 </div>
-              </div>
+              </Link>
 
               {/* Description */}
               <p className="text-gray-600 leading-relaxed line-clamp-2 text-xs">
@@ -303,7 +308,7 @@ export function CommunityCard({ community, viewMode = "grid", accessAware = fals
         </h3>
 
         {/* Creator */}
-        <div className="flex items-center gap-2">
+        <Link href={creatorProfileHref} className="flex items-center gap-2 min-w-0 hover:opacity-90 transition-opacity">
           <div className="relative w-5 h-5 flex-shrink-0">
             <Image
               src={community.creatorAvatar || "/placeholder.svg"}
@@ -328,7 +333,7 @@ export function CommunityCard({ community, viewMode = "grid", accessAware = fals
               </p>
             )}
           </div>
-        </div>
+        </Link>
 
         {/* Stats */}
         <div className="flex gap-2">

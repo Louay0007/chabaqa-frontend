@@ -2,6 +2,7 @@
 
 import React from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,6 +29,7 @@ import { feedbackApi, type Feedback, type FeedbackStats } from "@/lib/api/feedba
 import { ReviewsList } from "@/components/reviews/reviews-list"
 import { StarRating } from "@/components/reviews/star-rating"
 import { resolveImageUrl } from "@/lib/resolve-image-url"
+import { getUserProfileHref } from "@/lib/profile-handle"
 
 interface AvailableSlot {
   id: string
@@ -78,6 +80,10 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
   const sessionAverageRating = Number(session?.averageRating ?? session?.mentor?.rating ?? 0)
   const sessionRatingCount = Number(session?.ratingCount ?? session?.mentor?.reviews ?? 0)
   const sessionCoverImage = resolveImageUrl(session?.thumbnail || session?.image) || "/placeholder.svg"
+  const mentorProfileHref = getUserProfileHref({
+    username: session?.mentor?.username,
+    name: session?.mentor?.name || session?.creatorName || "Mentor",
+  })
   const isPendingFinalizeForThisSession =
     paymentAction === "choose-slot" &&
     Boolean(pendingOrderId) &&
@@ -396,17 +402,21 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
       <CardContent className="space-y-4">
         {/* Mentor Info */}
         <div className="flex items-center space-x-3">
-          <Avatar className="h-10 w-10 shrink-0">
-            <AvatarImage src={session.mentor?.avatar || "/placeholder.svg"} />
-            <AvatarFallback>
-              {(session.mentor?.name || 'Mentor')
-                .split(" ")
-                .map((n: any) => n[0])
-                .join("")}
-            </AvatarFallback>
-          </Avatar>
+          <Link href={mentorProfileHref} className="shrink-0 hover:opacity-90 transition-opacity">
+            <Avatar className="h-10 w-10 shrink-0">
+              <AvatarImage src={session.mentor?.avatar || "/placeholder.svg"} />
+              <AvatarFallback>
+                {(session.mentor?.name || 'Mentor')
+                  .split(" ")
+                  .map((n: any) => n[0])
+                  .join("")}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
           <div className="flex-1 min-w-0">
-            <div className="font-medium text-sm truncate">{session.mentor?.name || 'Mentor'}</div>
+            <Link href={mentorProfileHref} className="font-medium text-sm truncate hover:underline block">
+              {session.mentor?.name || 'Mentor'}
+            </Link>
             <div className="text-xs text-muted-foreground truncate">{session.mentor?.role || 'Mentor'}</div>
           </div>
           <div className="text-right shrink-0">

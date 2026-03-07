@@ -9,10 +9,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
 import { Ticket, CalendarIcon, MapPin, Users, Clock, ImageIcon, UserCircle } from "lucide-react";
 import { format } from "date-fns";
 import { EventWithTickets } from "@/lib/api/events-community.api";
 import { resolveImageUrl } from "@/lib/resolve-image-url";
+import { getUserProfileHref } from "@/lib/profile-handle";
 
 interface EventCardProps {
   event: EventWithTickets;
@@ -80,6 +82,10 @@ export default function EventCard({
   const availableSpeakers = event.speakers || [];
   const attendeeCount = Number(event.attendeesCount || event.attendees?.length || 0);
   const isVirtual = Boolean(event.onlineUrl) || event.isVirtual === true || (event.type || "").toLowerCase().includes("online");
+  const organizerProfileHref = getUserProfileHref({
+    username: (event as any).organizerUsername,
+    name: event.organizerName || "Community team",
+  });
 
   return (
     <Card
@@ -162,14 +168,19 @@ export default function EventCard({
         </div>
 
         <div className="flex items-center gap-2">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={event.organizerAvatar} />
-            <AvatarFallback>
-              <UserCircle className="h-4 w-4" />
-            </AvatarFallback>
-          </Avatar>
+          <Link href={organizerProfileHref} className="shrink-0 hover:opacity-90 transition-opacity">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={event.organizerAvatar} />
+              <AvatarFallback>
+                <UserCircle className="h-4 w-4" />
+              </AvatarFallback>
+            </Avatar>
+          </Link>
           <p className="line-clamp-1 text-xs text-muted-foreground">
-            Hosted by <span className="font-medium text-foreground">{event.organizerName || "Community team"}</span>
+            Hosted by{" "}
+            <Link href={organizerProfileHref} className="font-medium text-foreground hover:underline">
+              {event.organizerName || "Community team"}
+            </Link>
           </p>
         </div>
 

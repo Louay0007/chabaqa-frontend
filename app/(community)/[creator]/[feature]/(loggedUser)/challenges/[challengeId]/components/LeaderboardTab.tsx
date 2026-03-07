@@ -4,9 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Trophy, Flame, Users } from "lucide-react"
+import Link from "next/link"
 import { tokenStorage } from "@/lib/token-storage"
 import { useEffect, useState } from "react"
 import { resolveImageUrl } from "@/lib/hooks/useUser"
+import { getUserProfileHref } from "@/lib/profile-handle"
 
 interface LeaderboardTabProps {
   challenge: any
@@ -29,6 +31,10 @@ export default function LeaderboardTab({ challenge }: LeaderboardTabProps) {
       ...p,
       rank: index + 1,
       resolvedAvatar: resolveImageUrl(p.avatar),
+      resolvedProfileHref: getUserProfileHref({
+        username: p.username,
+        name: p.name || "Anonymous",
+      }),
       isCurrentUser: currentUserId && (
         String(p.userId) === String(currentUserId) ||
         String(p.userId?._id) === String(currentUserId)
@@ -98,20 +104,24 @@ export default function LeaderboardTab({ challenge }: LeaderboardTabProps) {
               >
                 {participant.rank}
               </div>
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={participant.resolvedAvatar || "/placeholder.svg"} />
-                <AvatarFallback>
-                  {(participant.name || 'U')
-                    .split(" ")
-                    .map((n: string) => n[0])
-                    .join("")
-                    .toUpperCase()
-                    .slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
+              <Link href={participant.resolvedProfileHref} className="shrink-0 hover:opacity-90 transition-opacity">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={participant.resolvedAvatar || "/placeholder.svg"} />
+                  <AvatarFallback>
+                    {(participant.name || 'U')
+                      .split(" ")
+                      .map((n: string) => n[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
               <div className="flex-1">
                 <div className="font-semibold flex items-center">
-                  {participant.name || 'Anonymous'}
+                  <Link href={participant.resolvedProfileHref} className="hover:underline">
+                    {participant.name || 'Anonymous'}
+                  </Link>
                   {participant.isCurrentUser && (
                     <Badge variant="secondary" className="ml-2 text-xs">
                       You

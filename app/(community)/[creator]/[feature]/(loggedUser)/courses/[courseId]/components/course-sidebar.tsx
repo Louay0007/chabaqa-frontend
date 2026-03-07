@@ -13,6 +13,8 @@ import { tokenStorage } from "@/lib/token-storage"
 import { useToast } from "@/components/ui/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { format } from "date-fns"
+import Link from "next/link"
+import { getUserProfileHref } from "@/lib/profile-handle"
 
 interface CourseSidebarProps {
   course: any
@@ -62,6 +64,10 @@ export default function CourseSidebar({
   const [purchasing, setPurchasing] = useState(false)
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null)
   const { toast } = useToast()
+  const instructorProfileHref = getUserProfileHref({
+    username: course?.creator?.username,
+    name: course?.creator?.name || "Instructor",
+  })
   const isUserEnrolled = Boolean(enrollment)
   const firstChapterId = allChapters?.[0]?.id ? String(allChapters[0].id) : null
 
@@ -668,7 +674,7 @@ export default function CourseSidebar({
           <CardTitle className="text-base">Instructor</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center space-x-3">
+          <Link href={instructorProfileHref} className="flex items-center space-x-3 hover:opacity-90 transition-opacity">
             <Avatar className="h-10 w-10">
               <AvatarImage src={course.creator.avatar || "/placeholder.svg"} />
               <AvatarFallback className="text-xs">
@@ -679,10 +685,10 @@ export default function CourseSidebar({
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{course.creator.name}</p>
+              <p className="font-medium text-sm truncate hover:underline">{course.creator.name}</p>
               <p className="text-xs text-muted-foreground line-clamp-1">{course.creator.bio || "Instructor"}</p>
             </div>
-          </div>
+          </Link>
           <Button variant="outline" size="sm" className="w-full">
             <MessageSquare className="h-3.5 w-3.5 mr-2" />
             Message

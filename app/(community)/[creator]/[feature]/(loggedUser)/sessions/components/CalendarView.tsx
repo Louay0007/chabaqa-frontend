@@ -1,12 +1,14 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar } from "@/components/ui/calendar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { CalendarIcon, Star, Clock, Video, CheckCircle, XCircle, AlertCircle } from "lucide-react"
 import { format, isSameDay, isPast } from "date-fns"
+import { getUserProfileHref } from "@/lib/profile-handle"
 
 interface CalendarViewProps {
   sessions: any[]
@@ -124,6 +126,10 @@ export default function CalendarView({ sessions, userBookings }: CalendarViewPro
                       name: session?.creatorName || 'Unknown',
                       avatar: session?.creatorAvatar || undefined,
                     }
+                    const mentorProfileHref = getUserProfileHref({
+                      username: mentor?.username,
+                      name: mentor?.name || session?.creatorName || "Unknown",
+                    })
 
                     return (
                       <div 
@@ -131,12 +137,14 @@ export default function CalendarView({ sessions, userBookings }: CalendarViewPro
                         className={`p-4 rounded-lg border ${isUpcoming ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}
                       >
                         <div className="flex items-start gap-4">
-                          <Avatar className="h-12 w-12">
-                            <AvatarImage src={mentor.avatar || "/placeholder.svg"} />
-                            <AvatarFallback className="bg-gradient-to-br from-pink-500 to-purple-500 text-white">
-                              {mentor.name?.split(" ").map((n: string) => n[0]).join("") || "?"}
-                            </AvatarFallback>
-                          </Avatar>
+                          <Link href={mentorProfileHref} className="shrink-0 hover:opacity-90 transition-opacity">
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={mentor.avatar || "/placeholder.svg"} />
+                              <AvatarFallback className="bg-gradient-to-br from-pink-500 to-purple-500 text-white">
+                                {mentor.name?.split(" ").map((n: string) => n[0]).join("") || "?"}
+                              </AvatarFallback>
+                            </Avatar>
+                          </Link>
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
                               <h4 className="font-semibold">{session?.title || 'Session'}</h4>
@@ -145,7 +153,12 @@ export default function CalendarView({ sessions, userBookings }: CalendarViewPro
                                 <span className="ml-1 capitalize">{booking.status}</span>
                               </Badge>
                             </div>
-                            <p className="text-sm text-muted-foreground">with {mentor.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              with{" "}
+                              <Link href={mentorProfileHref} className="hover:underline">
+                                {mentor.name}
+                              </Link>
+                            </p>
                             <div className="flex items-center gap-4 mt-2 text-sm">
                               <div className="flex items-center gap-1">
                                 <Clock className="h-4 w-4 text-muted-foreground" />
@@ -207,6 +220,10 @@ export default function CalendarView({ sessions, userBookings }: CalendarViewPro
                       name: session?.creatorName || 'Unknown',
                       avatar: session?.creatorAvatar || undefined,
                     }
+                    const mentorProfileHref = getUserProfileHref({
+                      username: mentor?.username,
+                      name: mentor?.name || session?.creatorName || "Unknown",
+                    })
 
                     return (
                       <div 
@@ -219,12 +236,18 @@ export default function CalendarView({ sessions, userBookings }: CalendarViewPro
                         onClick={() => setSelectedDate(scheduledAt)}
                       >
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={mentor.avatar || "/placeholder.svg"} />
-                            <AvatarFallback className="text-xs bg-gradient-to-br from-pink-500 to-purple-500 text-white">
-                              {mentor.name?.split(" ").map((n: string) => n[0]).join("") || "?"}
-                            </AvatarFallback>
-                          </Avatar>
+                          <Link
+                            href={mentorProfileHref}
+                            className="shrink-0 hover:opacity-90 transition-opacity"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={mentor.avatar || "/placeholder.svg"} />
+                              <AvatarFallback className="text-xs bg-gradient-to-br from-pink-500 to-purple-500 text-white">
+                                {mentor.name?.split(" ").map((n: string) => n[0]).join("") || "?"}
+                              </AvatarFallback>
+                            </Avatar>
+                          </Link>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-sm truncate">{session?.title || 'Session'}</div>
                             <div className="text-xs text-muted-foreground">

@@ -12,6 +12,7 @@ import Image from "next/image"
 import { ProductWithDetails } from "@/lib/api/products-community.api"
 import { resolveImageUrl } from "@/lib/resolve-image-url"
 import { useProductPurchaseFlow } from "@/lib/hooks/use-product-purchase-flow"
+import { getUserProfileHref } from "@/lib/profile-handle"
 
 interface ProductCardProps {
   creatorSlug: string
@@ -53,6 +54,10 @@ export default function ProductCard({
   const fileTypes = [...new Set((productDetails.files || []).map((f: any) => f.type))]
   const openProductHref = `/${creatorSlug}/${slug}/products/${productDetails.id}${isPurchased ? "?tab=files" : ""}`
   const ratingCount = Number(productDetails.ratingCount || 0)
+  const creatorProfileHref = getUserProfileHref({
+    username: (productDetails.creator as any)?.username,
+    name: productDetails.creator?.name || "Creator",
+  })
 
   const handleStripePayment = async () => {
     try {
@@ -131,7 +136,11 @@ export default function ProductCard({
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
+            <Link
+              href={creatorProfileHref}
+              className="flex items-center space-x-2 hover:opacity-90 transition-opacity"
+              onClick={(event) => event.stopPropagation()}
+            >
               <Avatar className="h-8 w-8">
                 <AvatarImage src={productDetails.creator?.avatar || "/placeholder.svg"} />
                 <AvatarFallback>
@@ -141,8 +150,8 @@ export default function ProductCard({
                     .join("")}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-sm text-muted-foreground">{productDetails.creator?.name || 'Creator'}</span>
-            </div>
+              <span className="text-sm text-muted-foreground hover:underline">{productDetails.creator?.name || 'Creator'}</span>
+            </Link>
 
             <div className="flex items-center space-x-2">
               {(isPurchased || isFreeProduct) ? (

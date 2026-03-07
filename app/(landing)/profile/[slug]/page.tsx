@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import ProfilePage from "../page"
-import { getUserProfileHandle } from "@/lib/profile-handle"
+import { getUserProfileHandle, slugifyToHandle } from "@/lib/profile-handle"
 
 interface SlugUser {
   _id: string
@@ -64,31 +64,56 @@ export default function ProfileSlugPage() {
           return
         }
 
-        // Fetch user by handle from API
+        // Fetch user by username handle from API
         const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
-        const response = await fetch(`${apiBase}/user/by-username/${encodeURIComponent(handle)}`)
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError(`User @${handle} not found`)
-          } else {
-            setError("Failed to load profile")
+        const candidates = getHandleCandidates(handle)
+        let resolvedUser: SlugUser | null = null
+
+        for (const candidate of candidates) {
+          const response = await fetch(`${apiBase}/user/by-username/${encodeURIComponent(candidate)}`)
+          if (!response.ok) continue
+
+          const data = await response.json()
+          if (data?.success && data?.user) {
+            resolvedUser = data.user
+            break
           }
+          if (data?.user) {
+            resolvedUser = data.user
+            break
+          }
+        }
+
+        if (!resolvedUser) {
+          // Fallback for contexts where only user id is available.
+          for (const candidate of candidates) {
+            const byIdResponse = await fetch(`${apiBase}/user/user/${encodeURIComponent(candidate)}`)
+            if (!byIdResponse.ok) continue
+
+            const byIdData = await byIdResponse.json()
+            if (byIdData?.user) {
+              resolvedUser = byIdData.user
+              break
+            }
+            if (byIdData?.data?.user) {
+              resolvedUser = byIdData.data.user
+              break
+            }
+          }
+        }
+
+        if (!resolvedUser) {
+          setError(`User @${safeDecodeHandle(handle)} not found`)
           setLoading(false)
           return
         }
 
-        const data = await response.json()
-        if (data.success && data.user) {
-          const canonicalHandle = getUserProfileHandle(data.user)
-          if (canonicalHandle && canonicalHandle !== handle) {
-            router.replace(`/profile/${canonicalHandle}`)
-            return
-          }
-          setSlugUser(data.user)
-        } else {
-          setError("Invalid response format")
+        const canonicalHandle = getUserProfileHandle(resolvedUser)
+        if (canonicalHandle && canonicalHandle !== handle.toLowerCase()) {
+          router.replace(`/profile/${canonicalHandle}`)
+          return
         }
+        setSlugUser(resolvedUser)
       } catch (err) {
         console.error("Error fetching slug user:", err)
         setError("Failed to load profile")
@@ -146,4 +171,34 @@ export default function ProfileSlugPage() {
 
   // Pass the fetched user data to the existing ProfilePage component
   return <ProfilePage overrideUser={slugUser} isOwnProfile={isOwnProfile} />
+}
+
+function safeDecodeHandle(value: string): string {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
+function getHandleCandidates(rawHandle: string): string[] {
+  const base = String(rawHandle || "").trim()
+  const decoded = safeDecodeHandle(base).trim()
+  const lowerBase = base.toLowerCase()
+  const lowerDecoded = decoded.toLowerCase()
+  const slugged = slugifyToHandle(decoded || base)
+  const compact = slugged.replace(/[-_.]/g, "")
+  const underscore = slugged.replace(/-/g, "_")
+  const dotted = slugged.replace(/-/g, ".")
+  const rawCompact = lowerDecoded.replace(/[^a-z0-9]/g, "")
+  const embeddedObjectId = (lowerDecoded.match(/[a-f0-9]{24}/i) || [])[0] || ""
+  const embeddedNameSlug = (lowerDecoded.match(/(?:^|-)name-([a-z0-9-]{2,}?)(?:-email-|$)/i) || [])[1] || ""
+
+  return Array.from(
+    new Set(
+      [lowerBase, lowerDecoded, slugged, compact, underscore, dotted, rawCompact, embeddedObjectId, embeddedNameSlug].filter(
+        (value) => value.length > 0,
+      ),
+    ),
+  )
 }
