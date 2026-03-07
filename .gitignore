@@ -8,6 +8,7 @@ pnpm-lock.yaml
 dist/
 build/
 .next/
+.next.bak.*/
 out/
 .nuxt/
 
