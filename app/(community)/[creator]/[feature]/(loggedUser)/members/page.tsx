@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Loader2, Users as UsersIcon, MessageSquare, LogOut } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -11,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { communitiesApi } from '@/lib/api/communities.api'
 import { useAuthContext } from '@/app/providers/auth-provider'
 import type { CommunityMember } from '@/lib/api/types'
+import { getUserProfileHref } from '@/lib/profile-handle'
 
 interface Community {
   id: string
@@ -204,12 +206,16 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
 
             const memberId = resolveMemberUserId(member)
             const isSelf = memberId === myId
+            const memberProfileHref = getUserProfileHref({
+              username: user?.username,
+              name: fullName,
+            })
 
             return (
               <Card key={member.id} className="bg-white">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
+                    <Link href={memberProfileHref} className="flex items-center gap-3 min-w-0 hover:opacity-90 transition-opacity">
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={user?.avatar || (user as any)?.profile_picture || (user as any)?.photo_profil || (user as any)?.photo || '/placeholder.svg'} />
                         <AvatarFallback>{initials || 'U'}</AvatarFallback>
@@ -224,7 +230,7 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
                           <div className="text-xs text-muted-foreground truncate">@{user.username}</div>
                         )}
                       </div>
-                    </div>
+                    </Link>
 
                     <div className="flex items-center gap-2">
                       {isSelf && (

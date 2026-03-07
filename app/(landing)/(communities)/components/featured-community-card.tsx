@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Explore } from "@/lib/data-communities"
 import { resolveExploreCardRouting } from "@/app/(landing)/(communities)/components/explore-card-routing"
 import { useTranslations } from "next-intl"
+import { getUserProfileHref } from "@/lib/profile-handle"
 
 type ItemType = "community" | "course" | "challenge" | "product" | "oneToOne" | "event"
 
@@ -75,6 +76,10 @@ export function FeaturedCommunityCard({ community, index, slug, accessAware = fa
 
   const itemType = (((community as any).type ?? "community") as ItemType)
   const typeConfig = getTypeConfig(itemType)
+  const creatorProfileHref = getUserProfileHref({
+    username: community.creatorSlug,
+    name: community.creator,
+  })
 
   // Fix: Use communitySlug if available (for courses/challenges/etc) otherwise use community.slug
   const targetSlug = (community as any).communitySlug || community.slug
@@ -137,7 +142,7 @@ export function FeaturedCommunityCard({ community, index, slug, accessAware = fa
         </h3>
 
         {/* Simple Creator Section */}
-        <div className="flex items-center gap-2">
+        <Link href={creatorProfileHref} className="flex items-center gap-2 min-w-0 hover:opacity-90 transition-opacity">
           <div className="relative">
             <Image
               src={community.creatorAvatar || "/placeholder.svg"}
@@ -160,7 +165,7 @@ export function FeaturedCommunityCard({ community, index, slug, accessAware = fa
               </p>
             )}
           </div>
-        </div>
+        </Link>
 
         {/* Compact Stats */}
         <div className="flex gap-2">

@@ -3,6 +3,10 @@ import { render, screen } from "@testing-library/react"
 import { CommunityCard } from "@/app/(landing)/(communities)/components/community-card"
 import type { Explore } from "@/lib/data-communities"
 
+jest.mock("next-intl", () => ({
+  useTranslations: () => (key: string) => key,
+}))
+
 function makeExploreItem(overrides: Partial<Explore>): Explore {
   return {
     id: "item-1",

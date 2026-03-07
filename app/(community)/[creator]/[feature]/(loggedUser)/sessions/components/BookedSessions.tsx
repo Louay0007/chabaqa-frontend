@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -16,6 +17,7 @@ import { feedbackApi, type Feedback, type FeedbackStats } from "@/lib/api/feedba
 import { ReviewForm } from "@/components/reviews/review-form"
 import { ReviewsList } from "@/components/reviews/reviews-list"
 import { StarRating } from "@/components/reviews/star-rating"
+import { getUserProfileHref } from "@/lib/profile-handle"
 
 interface BookedSessionsProps {
   setActiveTab: (tab: string) => void
@@ -180,6 +182,10 @@ export default function BookedSessions({ setActiveTab, userBookings }: BookedSes
             avatar: session?.creatorAvatar || undefined,
             role: 'Mentor',
           }
+          const mentorProfileHref = getUserProfileHref({
+            username: mentor?.username,
+            name: mentor?.name || session?.creatorName || "Unknown",
+          })
 
           return (
             <Card key={booking.id} className="border-0 shadow-sm">
@@ -195,17 +201,21 @@ export default function BookedSessions({ setActiveTab, userBookings }: BookedSes
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div className="flex items-center space-x-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={mentor.avatar || "/placeholder.svg"} />
-                        <AvatarFallback>
-                          {mentor.name
-                            .split(" ")
-                            .map((n: string) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
+                      <Link href={mentorProfileHref} className="shrink-0 hover:opacity-90 transition-opacity">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={mentor.avatar || "/placeholder.svg"} />
+                          <AvatarFallback>
+                            {mentor.name
+                              .split(" ")
+                              .map((n: string) => n[0])
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
                       <div>
-                        <div className="font-medium">{mentor.name}</div>
+                        <Link href={mentorProfileHref} className="font-medium hover:underline">
+                          {mentor.name}
+                        </Link>
                         <div className="text-sm text-muted-foreground">{mentor.role}</div>
                       </div>
                     </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -9,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { MessageSquare, Star, Send, Loader2 } from "lucide-react"
 import { feedbackApi, Feedback, FeedbackStats } from "@/lib/api/feedback.api"
 import { formatDistanceToNow } from "date-fns"
+import { getUserProfileHref } from "@/lib/profile-handle"
 
 interface ProductReviewsProps {
   productId: string
@@ -208,14 +210,22 @@ export default function ProductReviews({ productId, productMongoId, onStatsChang
         {feedbacks.length > 0 ? (
           <div className="space-y-3 sm:space-y-4">
             <h4 className="text-sm font-medium text-muted-foreground">Recent Reviews ({feedbacks.length})</h4>
-            {feedbacks.slice(0, 5).map((feedback) => (
+            {feedbacks.slice(0, 5).map((feedback) => {
+              const reviewerProfileHref = getUserProfileHref({
+                username: (feedback.user as any)?.username,
+                name: feedback.user?.name || "Anonymous",
+              })
+
+              return (
               <div key={feedback._id} className="flex gap-3 sm:gap-4">
-                <Avatar className="mt-1 h-8 w-8 shrink-0 sm:h-10 sm:w-10">
-                  <AvatarImage src={feedback.user?.avatar} />
-                  <AvatarFallback className="text-xs sm:text-sm">
-                    {getInitials(feedback.user?.name || "Anonymous")}
-                  </AvatarFallback>
-                </Avatar>
+                <Link href={reviewerProfileHref} className="shrink-0 hover:opacity-90 transition-opacity">
+                  <Avatar className="mt-1 h-8 w-8 shrink-0 sm:h-10 sm:w-10">
+                    <AvatarImage src={feedback.user?.avatar} />
+                    <AvatarFallback className="text-xs sm:text-sm">
+                      {getInitials(feedback.user?.name || "Anonymous")}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
                 <div className="flex-1 space-y-2">
                   <div className="rounded-lg bg-gray-50/80 p-3 sm:p-4">
                     <div className="mb-2 flex items-center gap-1">
@@ -229,13 +239,15 @@ export default function ProductReviews({ productId, productMongoId, onStatsChang
                     {feedback.comment && <p className="text-xs leading-relaxed text-foreground sm:text-sm">{feedback.comment}</p>}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="font-medium">{feedback.user?.name || "Anonymous"}</span>
+                    <Link href={reviewerProfileHref} className="font-medium hover:underline">
+                      {feedback.user?.name || "Anonymous"}
+                    </Link>
                     <span>•</span>
                     <span>{formatTimeAgo(feedback.createdAt)}</span>
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         ) : (
           <div className="py-6 text-center">

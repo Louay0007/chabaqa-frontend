@@ -2,6 +2,7 @@
 
 import React from "react"
 import { useMemo, useState } from "react"
+import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -33,6 +34,7 @@ import {
 import { postsApi } from "@/lib/api/posts.api"
 import type { Post, PostComment, PostStats, User } from "@/lib/api/types"
 import { resolveImageUrl } from "@/lib/hooks/useUser"
+import { getUserProfileHref } from "@/lib/profile-handle"
 import { useToast } from "@/hooks/use-toast"
 import { PostShareDialog } from "@/app/(community)/components/post-share-dialog"
 
@@ -80,6 +82,10 @@ export function PostCard({
     () => currentUser?.id || (currentUser as any)?._id || "",
     [currentUser],
   )
+  const postAuthorProfileHref = getUserProfileHref({
+    username: (post.author as any)?.username,
+    name: post.author.username || post.author.firstName || "Anonymous",
+  })
   const canManagePost = currentUserId.length > 0 && currentUserId === post.author.id
 
   // Format date helper
@@ -324,18 +330,24 @@ export function PostCard({
         {/* Post Header */}
         <div className="flex items-start justify-between mb-3 sm:mb-4">
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-              <AvatarImage src={post.author.avatar || "/placeholder.svg?height=48&width=48"} />
-              <AvatarFallback>
-                {(post.author.username || post.author.firstName || "U")
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <Link href={postAuthorProfileHref} className="hover:opacity-90 transition-opacity">
+              <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
+                <AvatarImage src={post.author.avatar || "/placeholder.svg?height=48&width=48"} />
+                <AvatarFallback>
+                  {(post.author.username || post.author.firstName || "U")
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
             <div>
-              <h4 className="font-semibold text-sm sm:text-base">{post.author.username || post.author.firstName || "Anonymous"}</h4>
+              <h4 className="font-semibold text-sm sm:text-base">
+                <Link href={postAuthorProfileHref} className="hover:underline">
+                  {post.author.username || post.author.firstName || "Anonymous"}
+                </Link>
+              </h4>
               <p className="text-xs sm:text-sm text-muted-foreground">
                 {formatTimeAgo(post.createdAt)} • {post.author.role}
               </p>
@@ -585,24 +597,32 @@ export function PostCard({
                 comments.map((c) => {
                   const isEditing = editingComment?.id === c.id
                   const canManage = c.userId === currentUserId
+                  const commentAuthorProfileHref = getUserProfileHref({
+                    username: (c as any)?.username,
+                    name: c.userName || "Anonymous",
+                  })
 
                   return (
                     <div key={c.id} className="flex items-start gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={c.userAvatar || "/placeholder.svg?height=32&width=32"} />
-                        <AvatarFallback>
-                          {(c.userName || "U")
-                            .split(" ")
-                            .map((n: string) => n[0])
-                            .join("")
-                            .toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      <Link href={commentAuthorProfileHref} className="shrink-0 hover:opacity-90 transition-opacity">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={c.userAvatar || "/placeholder.svg?height=32&width=32"} />
+                          <AvatarFallback>
+                            {(c.userName || "U")
+                              .split(" ")
+                              .map((n: string) => n[0])
+                              .join("")
+                              .toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
 
                       <div className="flex-1">
                         <div className="rounded-2xl bg-gray-50 px-4 py-3">
                           <div className="flex items-center justify-between gap-2">
-                            <div className="text-sm font-medium truncate">{c.userName}</div>
+                            <Link href={commentAuthorProfileHref} className="text-sm font-medium truncate hover:underline">
+                              {c.userName}
+                            </Link>
                             <div className="text-xs text-muted-foreground">{formatTimeAgo(c.createdAt)}</div>
                           </div>
 

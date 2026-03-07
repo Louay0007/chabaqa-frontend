@@ -44,6 +44,7 @@ import type { Post, PostLink } from "@/lib/api/types"
 import { PostCard } from "@/app/(community)/components/post-card"
 import { useToast } from "@/hooks/use-toast"
 import { useSearchParams } from "next/navigation"
+import { getUserProfileHref } from "@/lib/profile-handle"
 
 const POSTS_PAGE = 1
 const POSTS_LIMIT = 10
@@ -759,6 +760,10 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
 
   // Use /[creator_name]/[feature] route structure for all navigation
   const basePath = `/${community.creator.name}/${feature}`
+  const communityCreatorProfileHref = getUserProfileHref({
+    username: (community.creator as any)?.username,
+    name: community.creator.name,
+  })
   const feedPosts = activeFeedTab === "saved" ? savedPosts : posts
   const isSavedFeedEmpty = activeFeedTab === "saved" && !isLoadingSaved && feedPosts.length === 0
   const canLoadMoreSaved =
@@ -1249,7 +1254,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                 </CardHeader>
                 <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
                   {/* Creator Info */}
-                  <div className="flex items-center gap-3">
+                  <Link href={communityCreatorProfileHref} className="flex items-center gap-3 hover:opacity-90 transition-opacity">
                     <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
                       <AvatarImage src={community.creator.avatar || "/placeholder.svg"} />
                       <AvatarFallback>
@@ -1264,7 +1269,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                       <h4 className="font-semibold text-sm sm:text-base truncate">{community.creator.name}</h4>
                       <p className="text-xs text-muted-foreground">Community Creator</p>
                     </div>
-                  </div>
+                  </Link>
 
                   {/* Description */}
                   <div>

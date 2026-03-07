@@ -1,10 +1,12 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { User, Calendar, Loader2 } from "lucide-react"
 import { usersApi, CreatorProfile, CreatorStats } from "@/lib/api/users.api"
+import { getUserProfileHref } from "@/lib/profile-handle"
 
 interface CreatorInfoProps {
   product: any
@@ -77,6 +79,10 @@ export default function CreatorInfo({ product }: CreatorInfoProps) {
   const displayAvatar = creatorProfile?.profile_picture || creatorProfile?.photo_profil || creatorProfile?.avatar || product?.creator?.avatar
   const displayBio = creatorProfile?.bio || product?.creator?.bio
   const displayJoinDate = creatorProfile?.createdAt || product?.creator?.joinDate || product?.creator?.createdAt
+  const creatorProfileHref = getUserProfileHref({
+    username: (creatorProfile as any)?.username || (product?.creator as any)?.username,
+    name: displayName,
+  })
   
   // Stats - use fetched stats, fallback to product.creator stats
   const totalProducts = Number(creatorStats?.totalProducts ?? product?.creator?.totalProducts ?? 0)
@@ -114,7 +120,7 @@ export default function CreatorInfo({ product }: CreatorInfoProps) {
       </CardHeader>
       <CardContent className="space-y-4 pt-0 pb-5 sm:space-y-6 sm:pb-6">
         {/* Creator Profile */}
-        <div className="flex items-start gap-3 sm:gap-4">
+        <Link href={creatorProfileHref} className="flex items-start gap-3 sm:gap-4 hover:opacity-90 transition-opacity">
           <Avatar className="h-12 w-12 sm:h-16 sm:w-16 shrink-0">
             <AvatarImage 
               src={displayAvatar || "/placeholder.svg"} 
@@ -126,7 +132,7 @@ export default function CreatorInfo({ product }: CreatorInfoProps) {
           </Avatar>
           <div className="flex-1 min-w-0 space-y-1 sm:space-y-2">
             <div>
-              <h3 className="font-semibold text-sm sm:text-base truncate">
+              <h3 className="font-semibold text-sm sm:text-base truncate hover:underline">
                 {displayName}
               </h3>
               <p className="text-xs sm:text-sm text-muted-foreground">
@@ -134,7 +140,7 @@ export default function CreatorInfo({ product }: CreatorInfoProps) {
               </p>
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Creator Stats */}
         <div className="grid grid-cols-3 gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:gap-4 sm:p-4">
