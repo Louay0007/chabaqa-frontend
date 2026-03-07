@@ -139,24 +139,9 @@ export function CheckoutForm({
     try {
       // Check if community is free
       if (basePrice <= 0) {
-        // Free community: use join endpoint directly
-        const headerToken = getAuthHeaderToken()
-        const joinResponse = await fetch("/api/community/join", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(headerToken ? { Authorization: headerToken } : {}),
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            ...(normalizedInviteCode ? { inviteCode: normalizedInviteCode } : { communityId: community.id }),
-          }),
+        const result = await communitiesApi.join({
+          ...(normalizedInviteCode ? { inviteCode: normalizedInviteCode } : { communityId: community.id }),
         })
-
-        const result = await joinResponse.json()
-        if (!joinResponse.ok) {
-          throw new Error(result?.message || "Failed to join community")
-        }
 
         const message = (result.message || "").toLowerCase()
 
@@ -190,55 +175,18 @@ export function CheckoutForm({
         }
       } else {
         // Paid community: initiate manual payment
-        let headerToken: string | null = null
-        if (typeof window !== 'undefined') {
-          const rawLocalToken =
-            localStorage.getItem('accessToken') ||
-            localStorage.getItem('token') ||
-            localStorage.getItem('jwt') ||
-            localStorage.getItem('authToken') ||
-            localStorage.getItem('access_token')
-
-          headerToken = rawLocalToken
-            ? (rawLocalToken.toLowerCase().startsWith('bearer ')
-              ? rawLocalToken
-              : `Bearer ${rawLocalToken}`)
-            : null
-        }
-
         if (!paymentProof) {
           setError("Please upload a payment proof")
           setIsProcessing(false)
           return
         }
 
-        const formData = new FormData()
-        formData.append('communityId', community.id)
-        formData.append('proof', paymentProof)
-        if (normalizedInviteCode) {
-          formData.append('inviteCode', normalizedInviteCode)
-        }
-
-        // Call payment init endpoint
-        const paymentUrl = promoCode
-          ? `/api/payments/manual/init/community?promoCode=${encodeURIComponent(promoCode)}`
-          : '/api/payments/manual/init/community'
-
-        const response = await fetch(paymentUrl, {
-          method: 'POST',
-          headers: {
-            ...(headerToken ? { Authorization: headerToken } : {}),
-            // Content-Type is set automatically for FormData
-          },
-          credentials: 'include',
-          body: formData,
+        await communitiesApi.initManualPayment({
+          communityId: community.id,
+          proof: paymentProof,
+          inviteCode: normalizedInviteCode || undefined,
+          promoCode: promoCode || undefined,
         })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data?.message || 'Failed to initiate payment')
-        }
 
         setSuccess(true)
         // For manual payment, we show a success message but DO NOT redirect

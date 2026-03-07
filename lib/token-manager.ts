@@ -14,6 +14,8 @@ class TokenManager {
   private accessToken: string | null = null;
   private refreshTimer: NodeJS.Timeout | null = null;
   private readonly REFRESH_THRESHOLD = 5 * 60 * 1000; // 5 minutes before expiration
+  private readonly API_BASE =
+    (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api').replace(/\/$/, '');
 
   /**
    * Initialize token manager and set up automatic refresh
@@ -91,7 +93,7 @@ class TokenManager {
    */
   private async refreshToken(): Promise<boolean> {
     try {
-      const response = await fetch('/api/auth/refresh', {
+      const response = await fetch(`${this.API_BASE}/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
         headers: {

@@ -36,6 +36,17 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 const ACCESS_TOKEN_COOKIE_NAME = 'accessToken'
 const ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
 
+function extractAccessTokenFromResponse(payload: any): string {
+  const rawToken =
+    payload?.accessToken ||
+    payload?.access_token ||
+    payload?.token ||
+    payload?.jwt ||
+    ''
+
+  return String(rawToken || '').trim()
+}
+
 function syncAccessTokenCookie(accessToken: string | null) {
   if (typeof document === 'undefined') return
   const isSecure =
@@ -78,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchMe = useCallback(async () => {
     try {
-      const token = localStorage.getItem('accessToken')
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('access_token')
       setToken(token)
       if (!token) {
         syncAccessTokenCookie(null)
@@ -86,6 +97,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false)
         return null
       }
+
+      // Normalize legacy key to the middleware-consumed key.
+      localStorage.setItem('accessToken', token)
+      localStorage.removeItem('access_token')
 
       // Keep middleware-accessible cookie synced with local storage token.
       syncAccessTokenCookie(token)
@@ -108,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         // Token invalid
         localStorage.removeItem('accessToken')
+        localStorage.removeItem('access_token')
         localStorage.removeItem('user')
         syncAccessTokenCookie(null)
         setUser(null)
@@ -156,14 +172,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Handle potential data wrapping (e.g. { data: { user, accessToken } })
       const responseData = data.data || data;
-      const { accessToken, user } = responseData;
+      const accessToken = extractAccessTokenFromResponse(responseData)
+      const user = responseData?.user
 
-      if (!user) {
+      if (!user || !accessToken) {
         console.error("Login response missing user data:", data);
-        throw new Error("Invalid server response: User data missing");
+        throw new Error("Invalid server response: auth payload missing");
       }
 
       localStorage.setItem('accessToken', accessToken)
+      localStorage.removeItem('access_token')
       localStorage.setItem('user', JSON.stringify(user))
       syncAccessTokenCookie(accessToken)
       setToken(accessToken)
@@ -208,6 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateAuth = useCallback((accessToken: string, userData: any) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('accessToken', accessToken)
+      localStorage.removeItem('access_token')
       localStorage.setItem('user', JSON.stringify(userData))
     }
     syncAccessTokenCookie(accessToken)
@@ -276,11 +295,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Auto login after register? Or just redirect to login.
       // For simplicity, let's just return and let the component handle it (usually redirect to login)
       // Or if the backend returns a token, we can auto-login.
-      if (data.user && data.accessToken) {
-        localStorage.setItem('accessToken', data.accessToken)
+      const registerToken = extractAccessTokenFromResponse(data)
+      if (data.user && registerToken) {
+        localStorage.setItem('accessToken', registerToken)
+        localStorage.removeItem('access_token')
         localStorage.setItem('user', JSON.stringify(data.user))
-        syncAccessTokenCookie(data.accessToken)
-        setToken(data.accessToken)
+        syncAccessTokenCookie(registerToken)
+        setToken(registerToken)
         const normalizedUser = normalizeUser(data.user)
         setUser(normalizedUser)
         router.push(localizeHref(pathname || '/', '/explore'))
@@ -301,6 +322,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // 1. Clear all local storage keys used by various systems
       localStorage.removeItem('accessToken')
+      localStorage.removeItem('access_token')
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('user')
       localStorage.removeItem('auth-preferences')

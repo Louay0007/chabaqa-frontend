@@ -183,6 +183,11 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
                 id="email"
                 type="email"
                 value={email}
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="none"
+                data-gramm="false"
+                data-ms-editor="false"
                 onChange={(e) => {
                   setEmail(e.target.value)
                   if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: '' })
@@ -214,6 +219,11 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="none"
+                data-gramm="false"
+                data-ms-editor="false"
                 onChange={(e) => {
                   setPassword(e.target.value)
                   if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: '' })

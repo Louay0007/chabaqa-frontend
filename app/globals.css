@@ -422,6 +422,16 @@ html {
   }
 }
 
+@media (max-width: 639px) {
+  .community-mobile-main {
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  }
+
+  .community-mobile-header {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
 /* Print styles */
 @media print {
   .no-print {

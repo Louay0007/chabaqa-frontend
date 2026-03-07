@@ -54,7 +54,7 @@ export function ArabicAutoTranslate() {
     const translateTexts = async (texts: string[]) => {
       const unknown = texts.filter((text) => !cache[text])
       if (unknown.length) {
-        const response = await fetch("/api/i18n/translate", {
+        const response = await fetch("/internal/i18n/translate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ texts: unknown, source: "en", target: "ar" }),

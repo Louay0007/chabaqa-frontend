@@ -8,6 +8,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { communitiesApi } from "@/lib/api/communities.api"
 import { AlertTriangle, ArrowRight, Loader2, Lock, Users } from "lucide-react"
 import type { InvitePreview } from "@/lib/api/types"
 
@@ -142,20 +143,7 @@ export default function InvitePage() {
       setSubmitting(true)
       setError(null)
 
-      const response = await fetch("/api/community/join", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: authHeader,
-        },
-        credentials: "include",
-        body: JSON.stringify({ inviteCode }),
-      })
-
-      const payload = await response.json().catch(() => null)
-      if (!response.ok) {
-        throw new Error(extractMessage(payload) || "Failed to join community")
-      }
+      await communitiesApi.join({ inviteCode })
 
       if (preview.slug) {
         router.push(`/community/${encodeURIComponent(preview.slug)}/home?joined=1`)

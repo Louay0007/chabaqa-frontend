@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent } from "@/components/ui/sheet"
 import {
   Bell,
   ChevronDown,
@@ -78,6 +78,10 @@ const navigationItems = [
   // { label: "Achievements", href: "/achievements", icon: Trophy },
   { label: "Members", href: "/members", icon: Users },
 ]
+
+const mobilePrimaryNavigationItems = navigationItems.filter((item) =>
+  ["/home", "/courses", "/challenges", "/sessions"].includes(item.href),
+)
 
 const getCommunityLogoUrl = (community?: Community | null): string | undefined => {
   if (!community) return undefined
@@ -224,7 +228,7 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
 
   if (loading) {
     return (
-      <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b shadow-sm">
+      <header className="community-mobile-header sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -242,9 +246,20 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
 
   const community = currentCommunityData
   const unreadCount = notifications.filter(n => n.unread).length
+  const communityBasePath = `/${creatorSlug}/${currentCommunity}`
+  const mobilePrimaryHrefs = new Set(mobilePrimaryNavigationItems.map((item) => item.href))
+
+  const isRouteActive = (href: string) => {
+    const fullPath = `${communityBasePath}${href}`
+    return pathname === fullPath || pathname.startsWith(`${fullPath}/`)
+  }
+
+  const isMoreActive = navigationItems.some(
+    (item) => !mobilePrimaryHrefs.has(item.href) && isRouteActive(item.href),
+  )
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b shadow-sm">
+    <header className="community-mobile-header sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b shadow-sm">
       <div className="container mx-auto px-4">
         {/* Top Bar */}
         <div className="flex h-16 items-center justify-between">
@@ -434,16 +449,6 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
 
             {/* Mobile Menu */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="md:hidden rounded-full"
-                  onClick={() => setMobileMenuOpen(true)}
-                >
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
               <SheetContent side="right" className="p-0">
                 <div className="h-full overflow-y-auto p-6 space-y-6">
                   {/* Profile */}
@@ -665,8 +670,8 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
         <div className="hidden sm:block border-t bg-white/50">
           <div className="flex items-center space-x-1 py-2 overflow-x-auto">
             {navigationItems.map((item) => {
-              const href = `/${creatorSlug}/${currentCommunity}${item.href}`
-              const isActive = pathname === href
+              const href = `${communityBasePath}${item.href}`
+              const isActive = isRouteActive(item.href)
 
               return (
                 <Link
@@ -686,6 +691,53 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
             })}
           </div>
         </div>
+
+        <nav
+          aria-label="Mobile navigation"
+          className="fixed inset-x-0 bottom-0 z-[60] border-t border-gray-200/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90 sm:hidden"
+        >
+          <div
+            className="mx-auto flex max-w-lg items-center justify-between gap-1 px-2 pt-2"
+            style={{
+              paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))",
+              paddingLeft: "max(0.5rem, env(safe-area-inset-left))",
+              paddingRight: "max(0.5rem, env(safe-area-inset-right))",
+            }}
+          >
+            {mobilePrimaryNavigationItems.map((item) => {
+              const href = `${communityBasePath}${item.href}`
+              const isActive = isRouteActive(item.href)
+
+              return (
+                <Link
+                  key={item.label}
+                  href={href}
+                  className={cn(
+                    "flex h-14 min-w-[64px] flex-1 flex-col items-center justify-center rounded-xl text-[11px] font-medium transition-colors",
+                    isActive ? "bg-primary-50 text-primary-700" : "text-gray-500 hover:text-gray-900",
+                  )}
+                >
+                  <item.icon className={cn("h-5 w-5", isActive && "text-primary-700")} />
+                  <span className="mt-1 leading-none">{item.label}</span>
+                </Link>
+              )
+            })}
+
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className={cn(
+                "flex h-14 min-w-[64px] flex-1 flex-col items-center justify-center rounded-xl text-[11px] font-medium transition-colors",
+                isMoreActive || mobileMenuOpen
+                  ? "bg-primary-50 text-primary-700"
+                  : "text-gray-500 hover:text-gray-900",
+              )}
+            >
+              <Menu className={cn("h-5 w-5", (isMoreActive || mobileMenuOpen) && "text-primary-700")} />
+              <span className="mt-1 leading-none">More</span>
+            </button>
+          </div>
+        </nav>
       </div>
     </header>
   )

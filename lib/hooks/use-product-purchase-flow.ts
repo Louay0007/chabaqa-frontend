@@ -4,6 +4,8 @@ import { useState } from "react"
 import { productsApi } from "@/lib/api/products.api"
 import { tokenStorage } from "@/lib/token-storage"
 
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api").replace(/\/$/, "")
+
 interface SubmitManualPaymentInput {
   productId: string
   paymentProof: File
@@ -51,7 +53,7 @@ export function useProductPurchaseFlow() {
       formData.append("productId", productId)
       formData.append("proof", paymentProof)
 
-      const initResponse = await fetch(`/api/payments/manual/init/product${promoQuery}`, {
+      const initResponse = await fetch(`${API_BASE}/payment/manual/init/product${promoQuery}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,

@@ -6,13 +6,31 @@ import { jwtVerify } from 'jose'
  * Protects routes and handles token validation at the edge
  */
 
-const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'local-dev-jwt-secret-change-me')
-const secret = new TextEncoder().encode(JWT_SECRET)
+const LOCAL_DEV_JWT_SECRET = 'local-dev-jwt-secret-change-me'
+let hasLoggedMissingSecret = false
 
-// Protected routes that require authentication
-const PROTECTED_ROUTES = [
+function resolveJwtSecret(): Uint8Array | null {
+  const rawSecret = process.env.JWT_SECRET?.trim()
+
+  if (rawSecret) {
+    return new TextEncoder().encode(rawSecret)
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    return new TextEncoder().encode(LOCAL_DEV_JWT_SECRET)
+  }
+
+  if (!hasLoggedMissingSecret) {
+    console.error('[authMiddleware] JWT_SECRET is missing in production; protected routes will reject auth cookies until runtime env is fixed.')
+    hasLoggedMissingSecret = true
+  }
+
+  return null
+}
+
+// Prefix-protected routes require authentication for all descendants.
+const PREFIX_PROTECTED_ROUTES = [
   '/dashboard',
-  '/profile',
   '/settings',
   '/admin',
   '/creator',
@@ -43,6 +61,8 @@ const LOCALE_COOKIE = 'NEXT_LOCALE'
 const LOCALE_REWRITE_HEADER = 'x-locale-rewrite'
 const DEFAULT_LOCALE = 'en'
 const SUPPORTED_LOCALES = ['en', 'ar'] as const
+const AUTH_FAILURE_LOG_LIMIT_PER_REASON = 25
+const authFailureLogCounts: Record<string, number> = {}
 
 // Creator routes
 const CREATOR_ROUTES = [
@@ -98,9 +118,87 @@ function getExternalUrl(request: NextRequest): URL {
   return url
 }
 
+function readCookieValue(request: NextRequest, cookieName: string): string | undefined {
+  const parsedCookie = request.cookies.get(cookieName)?.value
+  if (parsedCookie) return parsedCookie
+
+  const rawCookieHeader = request.headers.get('cookie') || ''
+  const segments = rawCookieHeader.split(';')
+  for (const segment of segments) {
+    const [rawName, ...rawValueParts] = segment.trim().split('=')
+    if (rawName === cookieName) {
+      return rawValueParts.join('=')
+    }
+  }
+
+  return undefined
+}
+
+function logAuthFailure(
+  reason: 'missing_token' | 'missing_secret' | 'invalid_token' | 'role_mismatch',
+  details: Record<string, string | boolean | undefined>,
+) {
+  const currentCount = authFailureLogCounts[reason] || 0
+  if (currentCount >= AUTH_FAILURE_LOG_LIMIT_PER_REASON) {
+    return
+  }
+
+  authFailureLogCounts[reason] = currentCount + 1
+  const payload = {
+    reason,
+    ...details,
+    count: authFailureLogCounts[reason],
+  }
+  console.warn(`[authMiddleware] auth_failure ${JSON.stringify(payload)}`)
+}
+
+function normalizeAuthRedirect(target: string | null, locale: string): string {
+  if (!target) return withLocale(locale, '/dashboard')
+
+  let decoded = target
+  try {
+    decoded = decodeURIComponent(target)
+  } catch {
+    decoded = target
+  }
+
+  if (!decoded.startsWith('/') || decoded.startsWith('//')) {
+    return withLocale(locale, '/dashboard')
+  }
+
+  if (decoded.startsWith('/en/') || decoded.startsWith('/ar/')) {
+    return decoded
+  }
+
+  return withLocale(locale, decoded)
+}
+
+function isProtectedRoute(path: string): boolean {
+  if (PREFIX_PROTECTED_ROUTES.some((route) => path.startsWith(route))) {
+    return true
+  }
+
+  // Keep own-profile and edit protected, while allowing public profile slugs.
+  if (path === '/profile') {
+    return true
+  }
+
+  if (path.startsWith('/profile/') && path.endsWith('/edit')) {
+    return true
+  }
+
+  return false
+}
+
 export async function authMiddleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const { locale, normalizedPath, hasLocalePrefix } = extractLocale(pathname)
+  const preferredLocale = readCookieValue(request, LOCALE_COOKIE)
+  const fallbackLocale = SUPPORTED_LOCALES.includes(preferredLocale as (typeof SUPPORTED_LOCALES)[number])
+    ? preferredLocale
+    : DEFAULT_LOCALE
+  const extractedLocale = extractLocale(pathname)
+  const locale = extractedLocale.hasLocalePrefix ? extractedLocale.locale : fallbackLocale
+  const { normalizedPath, hasLocalePrefix } = extractedLocale
   const isInternalLocaleRewrite = request.headers.get(LOCALE_REWRITE_HEADER) === '1'
   
   // Skip middleware for API routes, static files, and Next.js internals
@@ -115,7 +213,7 @@ export async function authMiddleware(request: NextRequest) {
 
   if (!hasLocalePrefix && !isInternalLocaleRewrite) {
     const localizedUrl = getExternalUrl(request)
-    localizedUrl.pathname = withLocale(DEFAULT_LOCALE, pathname)
+    localizedUrl.pathname = withLocale(locale, pathname)
     return NextResponse.redirect(localizedUrl)
   }
 
@@ -148,7 +246,7 @@ export async function authMiddleware(request: NextRequest) {
   }
 
   // Check if route is protected
-  const isProtectedRoute = PROTECTED_ROUTES.some(route => normalizedPath.startsWith(route))
+  const isRouteProtected = isProtectedRoute(normalizedPath)
   const isPublicRoute = PUBLIC_ROUTES.some(route =>
     route === '/'
       ? normalizedPath === '/'
@@ -158,24 +256,36 @@ export async function authMiddleware(request: NextRequest) {
   const isCreatorRoute = CREATOR_ROUTES.some(route => normalizedPath.startsWith(route))
   const isAdminAuthPage = normalizedPath === '/admin/login' || normalizedPath === '/admin/verify-2fa'
 
-  const verifyToken = async (token?: string) => {
-    if (!token || !JWT_SECRET) {
+  const verifyToken = async (token: string | undefined, cookieName: string) => {
+    if (!token) {
+      return { user: null, isValidToken: false }
+    }
+
+    const secret = resolveJwtSecret()
+    if (!secret) {
+      logAuthFailure('missing_secret', {
+        path: normalizedPath,
+        cookieName,
+      })
       return { user: null, isValidToken: false }
     }
 
     try {
       const { payload } = await jwtVerify(token, secret)
       return { user: payload, isValidToken: true }
-    } catch (error) {
-      console.log('Token verification failed:', error)
+    } catch {
+      logAuthFailure('invalid_token', {
+        path: normalizedPath,
+        cookieName,
+      })
       return { user: null, isValidToken: false }
     }
   }
 
-  const userToken = request.cookies.get(USER_ACCESS_COOKIE)?.value
-  const adminToken = request.cookies.get(ADMIN_ACCESS_COOKIE)?.value
-  const { user, isValidToken } = await verifyToken(userToken)
-  const { user: adminUser, isValidToken: isValidAdminToken } = await verifyToken(adminToken)
+  const userToken = readCookieValue(request, USER_ACCESS_COOKIE)
+  const adminToken = readCookieValue(request, ADMIN_ACCESS_COOKIE)
+  const { user, isValidToken } = await verifyToken(userToken, USER_ACCESS_COOKIE)
+  const { user: adminUser, isValidToken: isValidAdminToken } = await verifyToken(adminToken, ADMIN_ACCESS_COOKIE)
 
   const userRole = typeof user?.role === 'string' ? user.role : ''
   const adminRole = typeof adminUser?.role === 'string' ? adminUser.role : ''
@@ -192,10 +302,7 @@ export async function authMiddleware(request: NextRequest) {
 
   // Redirect authenticated users away from regular auth pages
   if (isValidToken && (normalizedPath === '/signin' || normalizedPath === '/signup' || normalizedPath === '/verify-email')) {
-    const redirectTo = request.nextUrl.searchParams.get('redirect') || '/dashboard'
-    const normalizedRedirect = redirectTo.startsWith('/en/') || redirectTo.startsWith('/ar/')
-      ? redirectTo
-      : withLocale(locale, redirectTo)
+    const normalizedRedirect = normalizeAuthRedirect(request.nextUrl.searchParams.get('redirect'), locale)
     return NextResponse.redirect(new URL(normalizedRedirect, getExternalUrl(request)))
   }
 
@@ -221,7 +328,11 @@ export async function authMiddleware(request: NextRequest) {
   }
 
   // Handle protected routes
-  if (isProtectedRoute && !isAdminRoute && !isValidToken) {
+  if (isRouteProtected && !isAdminRoute && !isValidToken) {
+    logAuthFailure('missing_token', {
+      path: normalizedPath,
+      cookieName: USER_ACCESS_COOKIE,
+    })
     const loginUrl = new URL(withLocale(locale, '/signin'), getExternalUrl(request))
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
@@ -230,12 +341,21 @@ export async function authMiddleware(request: NextRequest) {
   // Handle creator routes
   if (isCreatorRoute && (!isValidToken || (user?.role !== 'creator' && user?.role !== 'admin'))) {
     if (!isValidToken) {
+      logAuthFailure('missing_token', {
+        path: normalizedPath,
+        cookieName: USER_ACCESS_COOKIE,
+      })
       const loginUrl = new URL('/signin', getExternalUrl(request))
       loginUrl.pathname = withLocale(locale, '/signin')
       loginUrl.searchParams.set('redirect', pathname)
       return NextResponse.redirect(loginUrl)
     } else {
       // User is authenticated but not creator/admin
+      logAuthFailure('role_mismatch', {
+        path: normalizedPath,
+        requiredRole: 'creator|admin',
+        actualRole: userRole || 'unknown',
+      })
       return NextResponse.redirect(new URL(withLocale(locale, '/dashboard'), getExternalUrl(request)))
     }
   }

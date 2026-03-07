@@ -5,6 +5,8 @@ import HeaderSection from "@/app/(community)/[creator]/[feature]/(loggedUser)/ch
 import ChallengesTabs from "@/app/(community)/[creator]/[feature]/(loggedUser)/challenges/components/ChallengesTabs"
 import { tokenStorage } from "@/lib/token-storage"
 
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api").replace(/\/$/, "")
+
 interface ChallengesPageContentProps {
   creatorSlug: string
   slug: string
@@ -57,10 +59,11 @@ export default function ChallengesPageContent({ creatorSlug, slug, community, al
 
       // Also try to fetch from API for more detailed progress info
       try {
-        const response = await fetch(`/api/challenges/user/my-participations?communitySlug=${slug}`, {
+        const response = await fetch(`${API_BASE}/challenges/user/my-participations?communitySlug=${encodeURIComponent(slug)}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
+          credentials: "include",
         })
 
         if (!response.ok) {

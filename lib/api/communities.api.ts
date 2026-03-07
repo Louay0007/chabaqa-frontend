@@ -35,6 +35,35 @@ const asNumber = (value: unknown, fallback = 0): number => {
   return fallback;
 };
 
+const getClientApiBase = () =>
+  (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api').replace(/\/$/, '');
+
+const getBrowserAuthHeader = (): string | null => {
+  if (typeof window === 'undefined') return null;
+
+  const rawLocalToken =
+    localStorage.getItem('accessToken') ||
+    localStorage.getItem('token') ||
+    localStorage.getItem('jwt') ||
+    localStorage.getItem('authToken') ||
+    localStorage.getItem('access_token');
+
+  if (!rawLocalToken) return null;
+  return rawLocalToken.toLowerCase().startsWith('bearer ')
+    ? rawLocalToken
+    : `Bearer ${rawLocalToken}`;
+};
+
+const parseJsonSafely = async (response: Response) => {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const text = await response.text().catch(() => '');
+    return text ? { message: text } : null;
+  }
+
+  return response.json().catch(() => null);
+};
+
 const normalizeCommunityMetrics = (community: any) => {
   if (!community || typeof community !== "object") {
     return community;
@@ -116,6 +145,19 @@ export interface UpdateCommunityData
   > {}
 
 export interface UpdateCommunitySettingsData extends Partial<Omit<CommunitySettings, 'id' | 'communityId' | 'updatedAt'>> { }
+
+export interface JoinCommunityInput {
+  communityId?: string;
+  inviteCode?: string;
+  message?: string;
+}
+
+export interface CommunityManualPaymentInput {
+  communityId: string;
+  proof: File;
+  inviteCode?: string;
+  promoCode?: string;
+}
 
 export interface CreateCommunityResponse extends ApiSuccessResponse<Community> {
   accessToken?: string;
@@ -214,6 +256,40 @@ export const communitiesApi = {
     return apiClient.get<ApiSuccessResponse<InvitePreview>>(
       `/community-aff-crea-join/validate-invite/${encodeURIComponent(inviteCode)}`,
     );
+  },
+
+  join: async (
+    input: JoinCommunityInput,
+  ): Promise<ApiSuccessResponse<Community | null>> => {
+    const communityId = typeof input?.communityId === 'string' ? input.communityId.trim() : '';
+    const inviteCode = typeof input?.inviteCode === 'string' ? input.inviteCode.trim() : '';
+    const message = typeof input?.message === 'string' ? input.message : undefined;
+
+    if (!communityId && !inviteCode) {
+      throw new Error('communityId or inviteCode is required');
+    }
+
+    const endpoint = inviteCode
+      ? '/community-aff-crea-join/join-by-invite'
+      : '/community-aff-crea-join/join';
+    const payload = inviteCode
+      ? { inviteCode, message }
+      : { communityId, message };
+
+    try {
+      return await apiClient.post<ApiSuccessResponse<Community>>(endpoint, payload);
+    } catch (error: any) {
+      const statusCode = Number(error?.statusCode ?? error?.status ?? 0);
+      if (statusCode === 409) {
+        return {
+          success: true,
+          message: error?.message || 'Already a member of this community',
+          data: null,
+        };
+      }
+
+      throw error;
+    }
   },
 
   joinByInvite: async (inviteCode: string): Promise<ApiSuccessResponse<Community>> => {
@@ -361,55 +437,49 @@ export const communitiesApi = {
     promoCode?: string,
     inviteCode?: string,
   ): Promise<ApiSuccessResponse<any>> => {
-    const payload: Record<string, any> = {
-      communityId: id,
-    };
+    const endpoint = inviteCode
+      ? `/community-aff-crea-join/checkout-private/${encodeURIComponent(inviteCode)}${promoCode ? `?promoCode=${encodeURIComponent(promoCode)}` : ''}`
+      : `/community-aff-crea-join/${encodeURIComponent(id)}/checkout${promoCode ? `?promoCode=${encodeURIComponent(promoCode)}` : ''}`;
 
-    if (promoCode) {
-      payload.promoCode = promoCode;
+    return apiClient.post<ApiSuccessResponse<any>>(
+      endpoint,
+      inviteCode ? { inviteCode } : undefined,
+    );
+  },
+
+  initManualPayment: async (
+    input: CommunityManualPaymentInput,
+  ): Promise<ApiSuccessResponse<any>> => {
+    const communityId = String(input?.communityId || '').trim();
+    const inviteCode = String(input?.inviteCode || '').trim();
+    const promoCode = String(input?.promoCode || '').trim();
+
+    if (!communityId) {
+      throw new Error('communityId is required');
     }
+
+    const formData = new FormData();
+    formData.append('communityId', communityId);
+    formData.append('proof', input.proof);
     if (inviteCode) {
-      payload.inviteCode = inviteCode;
+      formData.append('inviteCode', inviteCode);
     }
 
-    let headerToken: string | null = null;
-
-    if (typeof window !== 'undefined') {
-      const rawLocalToken =
-        localStorage.getItem('accessToken') ||
-        localStorage.getItem('token') ||
-        localStorage.getItem('jwt') ||
-        localStorage.getItem('authToken') ||
-        localStorage.getItem('access_token');
-
-      headerToken = rawLocalToken
-        ? (rawLocalToken.toLowerCase().startsWith('bearer ')
-          ? rawLocalToken
-          : `Bearer ${rawLocalToken}`)
-        : null;
-    }
-
-    const response = await fetch('/api/community/checkout', {
+    const endpoint = `${getClientApiBase()}/payment/manual/init/community${promoCode ? `?promoCode=${encodeURIComponent(promoCode)}` : ''}`;
+    const authHeader = getBrowserAuthHeader();
+    const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(headerToken ? { Authorization: headerToken } : {}),
-      },
+      headers: authHeader ? { Authorization: authHeader } : undefined,
       credentials: 'include',
-      body: JSON.stringify({
-        communityId: id,
-        promoCode,
-        inviteCode,
-      }),
+      body: formData,
     });
 
-    const data = await response.json();
-
+    const data = await parseJsonSafely(response);
     if (!response.ok) {
-      throw new Error(data?.message || 'Failed to process community checkout');
+      throw new Error(data?.message || 'Failed to initiate payment');
     }
 
-    return data;
+    return data as ApiSuccessResponse<any>;
   },
 
   /**

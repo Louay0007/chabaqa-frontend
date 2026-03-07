@@ -1,5 +1,5 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter, Tajawal } from "next/font/google"
 import Script from "next/script"
 import { cookies, headers } from "next/headers"
@@ -8,6 +8,7 @@ import "./globals.css"
 import { Ga4ScriptGate } from "@/components/ga4-script-gate"
 import { CookieConsentProvider } from "@/components/cookie-consent-provider"
 import { ArabicAutoTranslate } from "@/components/arabic-auto-translate"
+import { PwaServiceWorker } from "@/components/pwa-service-worker"
 import { DEFAULT_LOCALE, getLocaleDirection, isAppLocale, LOCALE_COOKIE } from "@/lib/i18n/config"
 import { getMessagesForLocale } from "@/lib/i18n/messages"
 import {
@@ -76,6 +77,13 @@ export const metadata: Metadata = {
   category: 'technology',
 }
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#ffffff",
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -102,7 +110,7 @@ export default function RootLayout({
         <link rel="alternate" hrefLang="x-default" href="https://chabaqa.io" />
         
         {/* Additional meta tags for better SEO */}
-        <meta name="theme-color" content="#6366f1" />
+        <meta name="theme-color" content="#ffffff" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Chabaqa" />
@@ -115,6 +123,7 @@ export default function RootLayout({
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
+          <PwaServiceWorker />
           <ArabicAutoTranslate />
           <Ga4ScriptGate />
           <CookieConsentProvider />

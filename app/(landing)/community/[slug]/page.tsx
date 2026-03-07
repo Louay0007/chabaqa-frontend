@@ -561,7 +561,7 @@ export default async function CommunityDetailsPage({ params }: CommunityDetailsP
     <div
       className="min-h-screen"
       style={{
-        background: `linear-gradient(180deg, ${themeTokens.softPrimary} 0%, #ffffff 22%, #ffffff 78%, ${themeTokens.softSecondary} 100%)`,
+        background: `linear-gradient(180deg, ${themeTokens.softPrimary} 0%, #ffffff 22%, #ffffff 100%)`,
       }}
     >
       <main className="relative isolate overflow-hidden">

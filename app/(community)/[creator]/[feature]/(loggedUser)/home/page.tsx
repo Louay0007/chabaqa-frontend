@@ -769,14 +769,17 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
     savedPagination.page < savedPagination.totalPages
   const savedCount = Math.max(savedPagination.total, savedPosts.length)
   const isEditMode = Boolean(editingPost)
+  const composerHasContent = newPost.trim().length > 0
+  const composerMediaCount = uploadedImages.length + uploadedVideos.length
+  const composerLinkCount = links.length
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-6 sm:py-8">
         <div className="flex flex-col space-y-6">
           {/* Create / Edit Post */}
-          <Card className="border-0 shadow-sm bg-white">
-            <CardContent className="p-4 sm:p-6">
+          <Card className="border border-slate-200/80 shadow-sm bg-white rounded-2xl">
+            <CardContent className="p-4 sm:p-6 lg:p-7">
               <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
                 <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
                   <AvatarImage src={currentUser?.avatar || "/placeholder.svg?height=48&width=48"} />
@@ -788,7 +791,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                       .toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 space-y-3">
+                <div className="flex-1 space-y-4">
                   {isEditMode && (
                     <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
                       <div className="flex items-center gap-2 text-sm text-amber-800">
@@ -808,30 +811,41 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                     </div>
                   )}
 
-                  <Textarea
-                    placeholder="Share your progress, ask questions, or celebrate wins..."
-                    value={newPost}
-                    onChange={(e) => setNewPost(e.target.value)}
-                    ref={postTextareaRef}
-                    className="min-h-[80px] sm:min-h-[100px] resize-none border-0 bg-gray-100 rounded-lg focus-visible:ring-2 focus-visible:ring-primary-300 text-sm transition-all duration-200"
-                  />
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 sm:px-4 sm:py-4">
+                    <Textarea
+                      placeholder="Share your progress, ask questions, or celebrate wins..."
+                      value={newPost}
+                      onChange={(e) => setNewPost(e.target.value)}
+                      ref={postTextareaRef}
+                      className="min-h-[96px] sm:min-h-[118px] resize-none border-0 bg-transparent rounded-lg px-0 py-0 focus-visible:ring-0 text-sm sm:text-[15px] leading-6 text-slate-700 placeholder:text-slate-400"
+                    />
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                      <span className="rounded-full bg-white px-2.5 py-1 border border-slate-200">{newPost.length} chars</span>
+                      <span className="rounded-full bg-white px-2.5 py-1 border border-slate-200">{composerMediaCount} media</span>
+                      <span className="rounded-full bg-white px-2.5 py-1 border border-slate-200">{composerLinkCount} links</span>
+                    </div>
+                  </div>
 
                   {/* Optional metadata */}
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowMetadata((value) => !value)}
-                      className="w-fit text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors rounded-full p-2 sm:p-3"
+                      className={`h-9 rounded-full px-3 text-xs sm:text-sm transition-colors ${
+                        showMetadata
+                          ? "bg-primary-50 text-primary-700 hover:bg-primary-100"
+                          : "text-muted-foreground hover:bg-gray-100 hover:text-primary-500"
+                      }`}
                     >
-                      <Settings2 className="h-4 w-4 mr-2" />
+                      <Settings2 className="h-4 w-4 mr-1.5" />
                       {showMetadata ? "Hide details" : "Add title & tags"}
                       {showMetadata ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
                     </Button>
 
                     {showMetadata && (
-                      <div className="rounded-lg border bg-white p-3 space-y-3">
+                      <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 space-y-3">
                         <Input
                           placeholder="Post title (optional)"
                           value={postTitle}
@@ -913,21 +927,25 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                   )}
 
                   {/* Links (toggle) */}
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowLinks((v) => !v)}
-                      className="w-fit text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors rounded-full p-2 sm:p-3"
+                      className={`h-9 rounded-full px-3 text-xs sm:text-sm transition-colors ${
+                        showLinks
+                          ? "bg-primary-50 text-primary-700 hover:bg-primary-100"
+                          : "text-muted-foreground hover:bg-gray-100 hover:text-primary-500"
+                      }`}
                     >
-                      <LinkIcon className="h-4 w-4 mr-2" />
+                      <LinkIcon className="h-4 w-4 mr-1.5" />
                       {showLinks ? "Hide links" : "Add links"}
                       {showLinks ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
                     </Button>
 
                     {showLinks && (
-                      <div className="space-y-2">
+                      <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 space-y-3">
                         <div className="flex flex-col sm:flex-row gap-2">
                           <Input
                             placeholder="https://example.com"
@@ -953,7 +971,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                         {links.length > 0 && (
                           <div className="space-y-2">
                             {links.map((link, idx) => (
-                              <div key={`${link.url}-${idx}`} className="flex items-center justify-between gap-2 rounded-lg border bg-white px-3 py-2">
+                              <div key={`${link.url}-${idx}`} className="flex items-center justify-between gap-2 rounded-lg border bg-slate-50 px-3 py-2.5">
                                 <div className="min-w-0">
                                   <div className="text-sm font-medium truncate">{link.title || link.url}</div>
                                   <div className="text-xs text-muted-foreground truncate">{link.url}</div>
@@ -1004,19 +1022,19 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                     className="hidden"
                   />
 
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-1 sm:gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3 sm:pt-4">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors rounded-full p-2 sm:p-3"
+                        className="h-9 rounded-full px-3 text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors"
                         title="Add Photo"
                         onClick={() => imageInputRef.current?.click()}
                         disabled={isUploadingMedia}
                       >
-                        <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="hidden sm:inline ml-2 text-xs sm:text-sm">
+                        <ImageIcon className="h-4 w-4" />
+                        <span className="ml-1.5 text-xs sm:text-sm">
                           {isUploadingMedia ? "Uploading..." : "Photo"}
                         </span>
                       </Button>
@@ -1024,51 +1042,51 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors rounded-full p-2 sm:p-3"
+                        className="h-9 rounded-full px-3 text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors"
                         title="Add Video"
                         onClick={() => videoInputRef.current?.click()}
                         disabled={isUploadingMedia}
                       >
-                        <Video className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="hidden sm:inline ml-2 text-xs sm:text-sm">Video</span>
+                        <Video className="h-4 w-4" />
+                        <span className="ml-1.5 text-xs sm:text-sm">Video</span>
                       </Button>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors rounded-full p-2 sm:p-3"
+                        className="h-9 rounded-full px-3 text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors"
                         title="Add Link"
                         onClick={() => setShowLinks(true)}
                       >
-                        <LinkIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="hidden sm:inline ml-2 text-xs sm:text-sm">Link</span>
+                        <LinkIcon className="h-4 w-4" />
+                        <span className="ml-1.5 text-xs sm:text-sm">Link</span>
                       </Button>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors rounded-full p-2 sm:p-3"
+                        className="h-9 rounded-full px-3 text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors"
                         title="Add Emoji"
                         onClick={() => setShowEmojiPicker((v) => !v)}
                       >
-                        <Smile className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="hidden sm:inline ml-2 text-xs sm:text-sm">Emoji</span>
+                        <Smile className="h-4 w-4" />
+                        <span className="ml-1.5 text-xs sm:text-sm">Emoji</span>
                       </Button>
                     </div>
                     <Button
                       onClick={handleCreateOrUpdatePost}
-                      disabled={!newPost.trim() || isCreatingPost || !currentUser || isUploadingMedia}
-                      className="bg-primary-500 hover:bg-primary-600 text-white text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-full transition-colors disabled:opacity-50"
+                      disabled={!composerHasContent || isCreatingPost || !currentUser || isUploadingMedia}
+                      className="bg-primary-500 hover:bg-primary-600 text-white text-sm px-4 sm:px-5 h-10 rounded-full transition-colors disabled:opacity-50 shadow-sm"
                     >
                       {isCreatingPost ? (
                         <>
-                          <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
-                          <span className="hidden sm:inline">{isEditMode ? "Saving..." : "Posting..."}</span>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <span>{isEditMode ? "Saving..." : "Posting..."}</span>
                         </>
                       ) : (
                         <>
-                          <Send className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                          <span className="hidden sm:inline">{isEditMode ? "Save changes" : "Post"}</span>
+                          <Send className="h-4 w-4 mr-2" />
+                          <span>{isEditMode ? "Save changes" : "Post"}</span>
                         </>
                       )}
                     </Button>
