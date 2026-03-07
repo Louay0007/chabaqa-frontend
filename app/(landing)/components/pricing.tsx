@@ -128,7 +128,7 @@ export function Pricing() {
   const atEnd = active === plans.length - 1
 
   return (
-    <section id="pricing" className="py-20 bg-white relative">
+    <section id="pricing" className="py-20 bg-white relative overflow-hidden">
       {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-10 right-4 md:top-20 md:right-10 w-32 h-32 md:w-60 md:h-60 bg-gradient-to-br from-[#3b82f6]/20 to-[#1d4ed8]/15 rounded-full blur-2xl animate-pulse" />
@@ -138,13 +138,13 @@ export function Pricing() {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Title */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-10 max-w-4xl mx-auto">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">{t("title")}</h2>
           <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">{t("subtitle")}</p>
         </div>
 
         {/* Billing switch */}
-        <div className="flex items-center justify-center mb-6 sm:mb-10">
+        <div className="flex flex-col items-center justify-center mb-6 sm:mb-10">
           <div className="inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm">
             <button
               onClick={() => setBilling("monthly")}
@@ -170,17 +170,13 @@ export function Pricing() {
 
         {/* Mobile savings mini badge (better indication) */}
         <MobileSaveBadge plans={plans} billing={billing} t={t} />
-
-
-
-
         {/* Pricing cards: mobile carousel (smaller) + desktop grid */}
         <div
           ref={sliderRef}
           className="
             flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 -mx-4 px-4 md:mx-0 md:px-0
             [scrollbar-width:none] [-ms-overflow-style:none]
-            md:grid md:grid-cols-3 md:gap-8 md:overflow-visible md:snap-none md:pb-0
+            md:grid md:grid-cols-3 md:gap-8 md:overflow-visible md:snap-none md:pb-0 md:items-stretch
             max-w-6xl mx-auto
           "
           style={{ scrollbarWidth: "none" } as any}
@@ -203,7 +199,7 @@ export function Pricing() {
                 aria-label={t("planAriaLabel", { name: translatedPlan.name })}
                 className={`
                   relative min-w-[70%] sm:min-w-[58%] snap-center border-2 bg-white/80
-                  md:min-w-0 md:w-full
+                  md:min-w-0 md:w-full md:h-full md:flex md:flex-col
                   ${plan.popular ? "border-chabaqa-primary shadow-xl md:scale-[1.02]" : "border-gray-200 shadow-lg"}
                 `}
               >
@@ -222,7 +218,7 @@ export function Pricing() {
                   </div>
                 ) : null}
 
-                <CardHeader className="text-center pb-6 sm:pb-8">
+                <CardHeader className="text-center pb-6 sm:pb-8 md:min-h-[220px]">
                   <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 mt-4 sm:mt-6">
                     {translatedPlan.name}
                   </CardTitle>
@@ -260,8 +256,8 @@ export function Pricing() {
                   )}
                 </CardHeader>
 
-                <CardContent className="space-y-4 sm:space-y-6">
-                  <ul className="space-y-2 sm:space-y-3">
+                <CardContent className="space-y-4 sm:space-y-6 flex flex-col h-full">
+                  <ul className="space-y-2 sm:space-y-3 flex-1">
                     {(translatedPlan.features as string[]).map((f: string, idx: number) => (
                       <li key={idx} className="flex items-center">
                         <Check className="w-4 h-4 sm:w-5 sm:h-5 text-chabaqa-primary mr-2 sm:mr-3 flex-shrink-0" />
@@ -334,7 +330,7 @@ function SaveBadge({
 
   return (
     <div
-      className={`ml-4 hidden sm:flex items-center rounded-full px-3 py-1 text-sm font-medium ring-1 transition ${billing === "yearly" ? "bg-green-50 text-green-700 ring-green-200" : "bg-gray-50 text-gray-600 ring-gray-200"
+      className={`hidden sm:flex mt-3 items-center rounded-full px-3 py-1 text-sm font-medium ring-1 transition ${billing === "yearly" ? "bg-green-50 text-green-700 ring-green-200" : "bg-gray-50 text-gray-600 ring-gray-200"
         }`}
     >
       {billing === "yearly" ? t("saveBadge.yearly", { percent: best }) : t("saveBadge.monthly", { percent: best })}
@@ -370,7 +366,7 @@ function MobileSaveBadge({
   if (best == null) return null
   return (
     <div
-      className={`sm:hidden flex w-fit mx-auto mb-3 items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition ${billing === "yearly"
+      className={`sm:hidden flex w-fit mx-auto mb-3 -mt-2 items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition ${billing === "yearly"
         ? "bg-green-50 text-green-700 ring-green-200"
         : "bg-gray-50 text-gray-600 ring-gray-200"
         }`}

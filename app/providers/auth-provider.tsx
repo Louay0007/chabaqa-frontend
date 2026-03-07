@@ -84,6 +84,24 @@ function extractErrorMessage(data: any): string {
   return 'Login failed'
 }
 
+function decodeBase64Url(input: string): string {
+  const base64 = input.replace(/-/g, "+").replace(/_/g, "/")
+  const padding = base64.length % 4 === 0 ? "" : "=".repeat(4 - (base64.length % 4))
+  return atob(base64 + padding)
+}
+
+function isSafeRedirectPath(path: string | null): path is string {
+  return !!path && path.startsWith('/') && !path.startsWith('//')
+}
+
+function parseHashUserPayload(userEncoded: string): any {
+  try {
+    return JSON.parse(decodeBase64Url(userEncoded))
+  } catch {
+    return JSON.parse(userEncoded)
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
@@ -247,6 +265,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const normalizedUser = normalizeUser(userData)
     setUser(normalizedUser)
   }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const rawHash = window.location.hash?.replace(/^#/, '')
+    if (!rawHash) return
+
+    const hashParams = new URLSearchParams(rawHash)
+    const accessToken = (hashParams.get('access_token') || hashParams.get('accessToken') || '').trim()
+    const userEncoded = hashParams.get('user')
+    const redirectFromHash = hashParams.get('redirect')
+
+    if (!accessToken || !userEncoded) return
+
+    try {
+      const userData = parseHashUserPayload(userEncoded)
+      updateAuth(accessToken, userData)
+
+      const cleanUrl = `${window.location.pathname}${window.location.search}`
+      window.history.replaceState({}, document.title, cleanUrl)
+
+      if (isSafeRedirectPath(redirectFromHash) && redirectFromHash !== localizeHref(pathname || '/', '/signin')) {
+        router.replace(localizeHref(pathname || '/', redirectFromHash))
+        return
+      }
+
+      const role = String(userData?.role || '').toLowerCase()
+      if (role === 'creator') {
+        router.replace(localizeHref(pathname || '/', '/creator/dashboard'))
+      } else if (role === 'admin') {
+        router.replace(localizeHref(pathname || '/', '/admin'))
+      } else {
+        router.replace(localizeHref(pathname || '/', '/explore'))
+      }
+    } catch (hashError) {
+      console.error('Failed to finalize OAuth hash login:', hashError)
+    }
+  }, [pathname, router, updateAuth])
 
   // Keep a lightweight DM socket connected for all authenticated web users.
   // This makes cross-platform presence (mobile online dots) accurate everywhere on web.

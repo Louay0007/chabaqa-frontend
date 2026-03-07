@@ -751,12 +751,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
           }
         } else {
           console.warn('Failed to fetch user challenges:', response.status)
-          // Fallback to mock data for now
-          setChallenges([
-            { id: '1', title: 'JS Masters', status: 'Active', progress: 75, type: 'participated', category: 'Programming', difficulty: 'Intermediate', thumbnail: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1200&auto=format&fit=crop' },
-            { id: '2', title: '30-Day UI', status: 'In Progress', progress: 45, type: 'participated', category: 'Design', difficulty: 'Beginner', thumbnail: 'https://images.unsplash.com/photo-1542831371-d531d36971e6?q=80&w=1200&auto=format&fit=crop' },
-            { id: '3', title: 'Algo Sprint', status: 'Completed', progress: 100, type: 'participated', category: 'Programming', difficulty: 'Advanced', thumbnail: 'https://images.unsplash.com/photo-1526378722484-bd91ca387e72?q=80&w=1200&auto=format&fit=crop' }
-          ])
+          setChallenges([])
         }
       } catch (error) {
         console.error('Error fetching user challenges:', error)
@@ -795,12 +790,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
           }
         } else {
           console.warn('Failed to fetch user sessions:', response.status)
-          // Fallback to mock data for now
-          setSessions([
-            { id: '1', title: 'Design Systems Workshop', startTime: '2024-01-20T14:00:00Z', duration: 60, status: 'upcoming', type: 'booked', creator: { name: 'Jane Doe', avatar: 'https://placehold.co/32x32?text=JD' }, thumbnail: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=1200&auto=format&fit=crop', communityName: 'Design Community' },
-            { id: '2', title: 'React Performance', startTime: '2024-01-18T10:00:00Z', duration: 90, status: 'past', type: 'booked', creator: { name: 'John Smith', avatar: 'https://placehold.co/32x32?text=JS' }, thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=1200&auto=format&fit=crop', communityName: 'React Devs' },
-            { id: '3', title: 'UX Research Methods', startTime: '2024-01-25T16:00:00Z', duration: 120, status: 'upcoming', type: 'created', creator: { name: user?.name || 'You', avatar: user?.avatar || 'https://placehold.co/32x32?text=ME' }, thumbnail: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=1200&auto=format&fit=crop', communityName: 'UX Designers' }
-          ])
+          setSessions([])
         }
       } catch (error) {
         console.error('Error fetching user sessions:', error)
@@ -832,12 +822,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
           }
         } else {
           console.warn('Failed to fetch user communities:', response.status)
-          // Fallback to mock data for now
-          setCommunities([
-            { id: '1', name: 'Web Dev Community', slug: 'web-dev', logo: 'https://placehold.co/64x64?text=WD', coverImage: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop', membersCount: 1250, role: 'member', type: 'joined' },
-            { id: '2', name: 'Design Systems Hub', slug: 'design-systems', logo: 'https://placehold.co/64x64?text=DS', coverImage: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?q=80&w=1200&auto=format&fit=crop', membersCount: 890, role: 'admin', type: 'created' },
-            { id: '3', name: 'React Developers', slug: 'react-devs', logo: 'https://placehold.co/64x64?text=RD', coverImage: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=1200&auto=format&fit=crop', membersCount: 2340, role: 'moderator', type: 'joined' }
-          ])
+          setCommunities([])
         }
       } catch (error) {
         console.error('Error fetching user communities:', error)
@@ -853,6 +838,11 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
   // Fetch user achievements
   useEffect(() => {
     const fetchAchievements = async () => {
+      if (!isOwnProfile) {
+        setFetchedAchievements([])
+        setAchievementsLoading(false)
+        return
+      }
       if (!user?._id && !user?.id) return
       try {
         setAchievementsLoading(true)
@@ -878,11 +868,16 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
       }
     }
     fetchAchievements()
-  }, [user])
+  }, [user, isOwnProfile])
 
   // Fetch user recent activity
   useEffect(() => {
     const fetchActivity = async () => {
+      if (!isOwnProfile) {
+        setFetchedActivity([])
+        setActivityLoading(false)
+        return
+      }
       if (!user?._id && !user?.id) return
       try {
         setActivityLoading(true)
@@ -907,7 +902,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
       }
     }
     fetchActivity()
-  }, [user])
+  }, [user, isOwnProfile])
 
 
   // Current authenticated user only (no mock fallback)
@@ -927,7 +922,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
   const totalOffers = sessions.length + products.length
   const profileChecklist = [
     Boolean(currentUser?.name),
-    Boolean(currentUser?.email),
+    ...(isOwnProfile ? [Boolean(currentUser?.email)] : []),
     Boolean(currentUser?.avatar),
     Boolean(currentUser?.bio),
     Boolean(currentUser?.ville || currentUser?.pays),
@@ -976,10 +971,12 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                     <div className="flex flex-col justify-center gap-1">
                       <p className="text-2xl sm:text-3xl font-bold leading-tight tracking-tight">{currentUser?.name}</p>
                       <p className="text-text-secondary text-base">@{profileHandle}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Mail className="w-4 h-4 text-text-tertiary" />
-                        <p className="text-text-secondary text-sm break-all">{currentUser?.email}</p>
-                      </div>
+                      {isOwnProfile && currentUser?.email && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <Mail className="w-4 h-4 text-text-tertiary" />
+                          <p className="text-text-secondary text-sm break-all">{currentUser?.email}</p>
+                        </div>
+                      )}
                       <p className="text-text-secondary text-base flex items-center gap-1.5 mt-1 break-words">
                         <MapPin className="w-4 h-4" /> {[currentUser?.ville, currentUser?.pays].filter(Boolean).join(', ') || '—'}
                       </p>
@@ -1543,7 +1540,7 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                                         </a>
                                       )}
                                     </div>
-                                    {community.role?.toLowerCase() === 'owner' && (
+                                    {isOwnProfile && community.role?.toLowerCase() === 'owner' && (
                                       <Link
                                         href="/creator/dashboard"
                                         className="w-full text-center text-xs px-3 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white transition-colors font-medium"
