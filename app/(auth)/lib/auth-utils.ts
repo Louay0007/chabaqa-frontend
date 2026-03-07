@@ -5,7 +5,7 @@ import { cookies } from "next/headers"
 export async function refreshTokenAction(): Promise<{ success: boolean; error?: string }> {
   try {
     const cookieStore = await cookies()
-    const refreshToken = cookieStore.get('refresh_token')?.value
+    const refreshToken = cookieStore.get('refreshToken')?.value || cookieStore.get('refresh_token')?.value
 
     if (!refreshToken) {
       return { success: false, error: "Pas de refresh token disponible" }
@@ -22,12 +22,14 @@ export async function refreshTokenAction(): Promise<{ success: boolean; error?: 
     })
 
     const result = await response.json()
+    const payload = result?.data || result || {}
+    const accessToken = payload.access_token || payload.accessToken
 
-    if (response.ok && result.access_token) {
+    if (response.ok && accessToken) {
       // Utiliser la vraie durée d'expiration du backend
-      const expiresIn = result.expires_in || 7200 // 2 heures par défaut
+      const expiresIn = payload.expires_in || payload.expiresIn || 7200 // 2 heures par défaut
       
-      cookieStore.set('access_token', result.access_token, {
+      cookieStore.set('access_token', accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -45,13 +47,13 @@ export async function refreshTokenAction(): Promise<{ success: boolean; error?: 
 
 export async function getAccessToken(): Promise<string | null> {
   const cookieStore = await cookies()
-  return cookieStore.get('access_token')?.value || null
+  return cookieStore.get('accessToken')?.value || cookieStore.get('access_token')?.value || null
 }
 
 // Nouvelle fonction pour vérifier si le token va bientôt expirer
 export async function isTokenExpiringSoon(): Promise<boolean> {
   const cookieStore = await cookies()
-  const accessToken = cookieStore.get('access_token')?.value
+  const accessToken = cookieStore.get('accessToken')?.value || cookieStore.get('access_token')?.value
   
   if (!accessToken) return true
   

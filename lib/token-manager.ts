@@ -103,8 +103,10 @@ class TokenManager {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.access_token) {
-          this.setAccessToken(data.access_token);
+        const payload = data?.data || data || {};
+        const accessToken = payload.access_token || payload.accessToken;
+        if (accessToken) {
+          this.setAccessToken(accessToken);
           return true;
         }
       }

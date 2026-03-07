@@ -47,6 +47,15 @@ function extractAccessTokenFromResponse(payload: any): string {
   return String(rawToken || '').trim()
 }
 
+function extractRefreshTokenFromResponse(payload: any): string {
+  const rawToken =
+    payload?.refreshToken ||
+    payload?.refresh_token ||
+    ''
+
+  return String(rawToken || '').trim()
+}
+
 function syncAccessTokenCookie(accessToken: string | null) {
   if (typeof document === 'undefined') return
   const isSecure =
@@ -173,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Handle potential data wrapping (e.g. { data: { user, accessToken } })
       const responseData = data.data || data;
       const accessToken = extractAccessTokenFromResponse(responseData)
+      const refreshToken = extractRefreshTokenFromResponse(responseData)
       const user = responseData?.user
 
       if (!user || !accessToken) {
@@ -182,6 +192,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       localStorage.setItem('accessToken', accessToken)
       localStorage.removeItem('access_token')
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken)
+      }
       localStorage.setItem('user', JSON.stringify(user))
       syncAccessTokenCookie(accessToken)
       setToken(accessToken)

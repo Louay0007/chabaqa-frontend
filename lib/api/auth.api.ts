@@ -38,6 +38,8 @@ export interface AuthResponse {
   user: User;
   access_token: string;
   refresh_token?: string;
+  accessToken?: string;
+  refreshToken?: string;
   rememberMe?: boolean;
   message?: string;
 }
@@ -54,7 +56,9 @@ export interface ResetPasswordData {
 
 export interface RefreshTokenResponse {
   access_token: string;
+  accessToken?: string;
   expires_in: number;
+  user?: User;
 }
 
 export class AuthApiError extends Error {
@@ -78,6 +82,9 @@ export const authApi = {
       const response = await apiClient.post<RegisterOtpResponse>('/auth/register', data);
       return response;
     } catch (error: any) {
+      if (error.statusCode === 429) {
+        throw new AuthApiError(429, 'Too many attempts. Please wait a moment before trying again.', error.data);
+      }
       const errorMessage = typeof error.message === 'string' ? error.message : '';
       if (error.statusCode === 409 || errorMessage.includes('already exists')) {
         throw new AuthApiError(409, 'This email is already registered. Please use another email or sign in.', error.data);
@@ -98,6 +105,9 @@ export const authApi = {
       const response = await apiClient.post<RegisterOtpResponse>('/auth/register-creator', data);
       return response;
     } catch (error: any) {
+      if (error.statusCode === 429) {
+        throw new AuthApiError(429, 'Too many attempts. Please wait a moment before trying again.', error.data);
+      }
       const errorMessage = typeof error.message === 'string' ? error.message : '';
       if (error.statusCode === 409 || errorMessage.includes('already exists')) {
         throw new AuthApiError(409, 'This email is already registered. Please use another email or sign in.', error.data);
@@ -114,6 +124,9 @@ export const authApi = {
       const response = await apiClient.post<VerifyRegisterOtpResponse>('/auth/register/verify-otp', data);
       return response;
     } catch (error: any) {
+      if (error.statusCode === 429) {
+        throw new AuthApiError(429, 'Too many attempts. Please wait a moment before trying again.', error.data);
+      }
       if (error.statusCode === 400) {
         throw new AuthApiError(400, 'Invalid or expired verification code', error.data);
       }
@@ -126,6 +139,9 @@ export const authApi = {
       const response = await apiClient.post<RegisterOtpResponse>('/auth/register/resend-otp', { email });
       return response;
     } catch (error: any) {
+      if (error.statusCode === 429) {
+        throw new AuthApiError(429, 'Too many attempts. Please wait a moment before trying again.', error.data);
+      }
       if (error.statusCode === 400) {
         throw new AuthApiError(400, 'Unable to resend OTP. Please sign up again.', error.data);
       }
@@ -141,6 +157,9 @@ export const authApi = {
       const response = await apiClient.post<ApiSuccessResponse<AuthResponse>>('/auth/login', data);
       return response;
     } catch (error: any) {
+      if (error.statusCode === 429) {
+        throw new AuthApiError(429, 'Too many attempts. Please wait a moment before trying again.', error.data);
+      }
       if (error.statusCode === 401 || error.message?.includes('Invalid')) {
         throw new AuthApiError(401, 'Invalid email or password', error.data);
       }
@@ -178,11 +197,19 @@ export const authApi = {
    */
   refreshToken: async (refreshToken?: string): Promise<RefreshTokenResponse> => {
     try {
-      const response = await apiClient.post<ApiSuccessResponse<RefreshTokenResponse>>(
+      const response = await apiClient.post<any>(
         '/auth/refresh',
         refreshToken ? { refreshToken } : {}
       );
-      return response.data;
+      const payload = response?.data || response || {};
+      const accessTokenValue = payload.access_token || payload.accessToken || '';
+
+      return {
+        access_token: accessTokenValue,
+        accessToken: accessTokenValue,
+        expires_in: payload.expires_in || payload.expiresIn || 2 * 60 * 60,
+        user: payload.user,
+      };
     } catch (error: any) {
       if (error.statusCode === 401) {
         throw new AuthApiError(401, 'Refresh token expired or invalid', error.data);
@@ -198,6 +225,9 @@ export const authApi = {
     try {
       return await apiClient.post<ApiSuccessResponse<{ message: string }>>('/auth/forgot-password', data);
     } catch (error: any) {
+      if (error.statusCode === 429) {
+        throw new AuthApiError(429, 'Too many attempts. Please wait a moment before trying again.', error.data);
+      }
       if (error.statusCode === 404) {
         throw new AuthApiError(404, 'Email not found', error.data);
       }
@@ -212,6 +242,9 @@ export const authApi = {
     try {
       return await apiClient.post<ApiSuccessResponse<{ message: string }>>('/auth/reset-password', data);
     } catch (error: any) {
+      if (error.statusCode === 429) {
+        throw new AuthApiError(429, 'Too many attempts. Please wait a moment before trying again.', error.data);
+      }
       if (error.statusCode === 400 || error.message?.includes('Invalid')) {
         throw new AuthApiError(400, 'Invalid verification code or password', error.data);
       }

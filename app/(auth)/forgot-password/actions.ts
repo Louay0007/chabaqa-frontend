@@ -21,6 +21,10 @@ export async function forgotPasswordAction(data: { email: string }): Promise<For
     }
     return { success: false, error: result?.error || result?.message || response?.message || "Une erreur s'est produite" }
   } catch (error) {
-    return { success: false, error: "Erreur de connexion. Veuillez réessayer." }
+    const message =
+      typeof (error as any)?.message === "string"
+        ? (error as any).message
+        : "Erreur de connexion. Veuillez réessayer."
+    return { success: false, error: message }
   }
 }

@@ -333,8 +333,18 @@ class ApiClient {
           return false;
         }
 
-        // We don't need to manually set tokens in storage anymore
-        // The backend Set-Cookie header will handle it for the browser
+        const payload = await res.json().catch(() => ({}));
+        const data = payload?.data || payload || {};
+        const refreshedAccessToken = data.access_token || data.accessToken;
+
+        if (refreshedAccessToken) {
+          try {
+            localStorage.setItem('accessToken', refreshedAccessToken);
+            localStorage.removeItem('access_token');
+          } catch (storageError) {
+            console.warn('Failed to sync refreshed access token to storage:', storageError);
+          }
+        }
 
         return true;
       } catch (error) {

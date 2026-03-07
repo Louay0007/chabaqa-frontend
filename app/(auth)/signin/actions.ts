@@ -54,6 +54,7 @@ export async function loginAction(data: {
     })
 
     const json = await res.clone().json().catch(() => null)
+    const payload = json?.data || json || null
 
     // Propagate Set-Cookie headers from backend to browser via Next cookies()
     const setCookieHeaders: string[] = (res.headers as any).getSetCookie?.() || (res.headers.get('set-cookie') ? [res.headers.get('set-cookie') as string] : [])
@@ -94,9 +95,13 @@ export async function loginAction(data: {
     if (res.ok) {
       return {
         success: true,
-        user: json.user,
-        role: json.user?.role
+        user: payload?.user,
+        role: payload?.user?.role
       };
+    }
+
+    if (res.status === 429) {
+      return { success: false, error: json?.message || "Too many attempts. Please wait a moment before trying again." }
     }
 
     return { success: false, error: json?.message || "Login failed" }
@@ -111,6 +116,8 @@ export async function loginAction(data: {
 
     if (errText.includes("401") || errText.includes("Invalid")) {
       return { success: false, error: "Invalid email or password" }
+    } else if (errText.includes("429") || errText.toLowerCase().includes("too many")) {
+      return { success: false, error: "Too many attempts. Please wait a moment before trying again." }
     } else if (errText.includes("404")) {
       return { success: false, error: "Account not found" }
     }

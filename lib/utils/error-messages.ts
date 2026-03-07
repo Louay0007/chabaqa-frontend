@@ -130,6 +130,11 @@ const errorMappings: ErrorMapping[] = [
     message: 'Invalid authentication token',
     guidance: 'Please log in again.'
   },
+  {
+    pattern: /too many attempts|too many requests|trop de tentatives|rate limit/i,
+    message: 'Too many attempts',
+    guidance: 'Please wait a moment before trying again.'
+  },
 
   // General errors
   {

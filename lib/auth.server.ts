@@ -64,20 +64,23 @@ export async function getProfileServer(): Promise<User | null> {
 
       if (refreshResponse.ok) {
         const refreshData = await refreshResponse.json()
+        const refreshPayload = refreshData?.data || refreshData || {}
+        const refreshedAccessToken = refreshPayload.accessToken || refreshPayload.access_token
         
         // Update access token cookie
-        if (refreshData.data?.accessToken) {
-          cookieStore.set('accessToken', refreshData.data.accessToken, {
+        if (refreshedAccessToken) {
+          const expiresIn = refreshPayload.expires_in || refreshPayload.expiresIn || 2 * 60 * 60
+          cookieStore.set('accessToken', refreshedAccessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7
+            maxAge: expiresIn
           })
           
           // Retry getting profile with new token
           const profileResponse = await fetch(`${API_BASE_URL}/auth/me`, {
             headers: {
-              "Authorization": `Bearer ${refreshData.data.accessToken}`,
+              "Authorization": `Bearer ${refreshedAccessToken}`,
               "Content-Type": "application/json",
             },
             cache: 'no-store'
