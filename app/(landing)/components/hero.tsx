@@ -36,9 +36,9 @@ export function Hero({ className }: HeroProps) {
   ]
 
   const timelineData = [
-    { id: 1, title: t("timeline.community.title"), date: t("timeline.community.date"), content: t("timeline.community.content"), category: t("timeline.community.category"), icon: Users, relatedIds: [2, 3], status: "completed" as const, energy: 100, image: "/community-platform.jpg" },
+    { id: 1, title: t("timeline.community.title"), date: t("timeline.community.date"), content: t("timeline.community.content"), category: t("timeline.community.category"), icon: Users, relatedIds: [2, 3], status: "completed" as const, energy: 100, image: "/hero/community.png" },
     { id: 2, title: t("timeline.courses.title"), date: t("timeline.courses.date"), content: t("timeline.courses.content"), category: t("timeline.courses.category"), icon: BookOpen, relatedIds: [1, 4], status: "in-progress" as const, energy: 85, image: "/online-courses.jpg" },
-    { id: 3, title: t("timeline.challenges.title"), date: t("timeline.challenges.date"), content: t("timeline.challenges.content"), category: t("timeline.challenges.category"), icon: Trophy, relatedIds: [1, 5], status: "in-progress" as const, energy: 75, image: "/challenges-competition.jpg" },
+    { id: 3, title: t("timeline.challenges.title"), date: t("timeline.challenges.date"), content: t("timeline.challenges.content"), category: t("timeline.challenges.category"), icon: Trophy, relatedIds: [1, 5], status: "in-progress" as const, energy: 75, image: "/hero/challenge.png" },
     { id: 4, title: t("timeline.products.title"), date: t("timeline.products.date"), content: t("timeline.products.content"), category: t("timeline.products.category"), icon: ShoppingBag, relatedIds: [2, 6], status: "pending" as const, energy: 45, image: "/digital-products-store.jpg" },
     { id: 5, title: t("timeline.sessions.title"), date: t("timeline.sessions.date"), content: t("timeline.sessions.content"), category: t("timeline.sessions.category"), icon: Video, relatedIds: [3, 6], status: "pending" as const, energy: 55, image: "/video-coaching-session.jpg" },
     { id: 6, title: t("timeline.events.title"), date: t("timeline.events.date"), content: t("timeline.events.content"), category: t("timeline.events.category"), icon: Calendar, relatedIds: [4, 5], status: "pending" as const, energy: 35, image: "/live-events-meetup.jpg" },
