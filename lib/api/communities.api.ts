@@ -82,6 +82,13 @@ const normalizeCommunityMetrics = (community: any) => {
   const normalizedMembers = Math.max(membersCount, derivedMembers, 0);
   const rating = asNumber(community.averageRating ?? community.rating, 0);
   const ratingCount = asNumber(community.ratingCount, 0);
+  const verified = Boolean(community.verified ?? community.isVerified ?? false);
+  const isActive =
+    typeof community.isActive === "boolean"
+      ? community.isActive
+      : typeof community.status === "string"
+        ? community.status !== "inactive"
+        : true;
 
   return {
     ...community,
@@ -90,6 +97,9 @@ const normalizeCommunityMetrics = (community: any) => {
     rating,
     averageRating: rating,
     ratingCount,
+    verified,
+    isVerified: verified,
+    isActive,
   };
 };
 

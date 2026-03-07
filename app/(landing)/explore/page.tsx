@@ -14,9 +14,9 @@ import {
 } from "@/lib/seo-config"
 
 const EXPLORE_FETCH_TIMEOUT_MS = 7000
-const EXPLORE_LIST_FETCH_OPTIONS = { cache: "force-cache" as const }
+const EXPLORE_LIST_FETCH_OPTIONS = { cache: "no-store" as const }
 
-export const revalidate = 60
+export const dynamic = "force-dynamic"
 export const metadata: Metadata = {
   title: "Explore Communities, Courses, Events and Sessions",
   description:
@@ -210,11 +210,11 @@ function transformCommunityToExplore(community: Community): Explore {
     members: membersCount,
     rating: (community as any).averageRating || community.rating || 0,
     tags: community.tags,
-    verified: community.verified,
+    verified: Boolean((community as any).verified ?? (community as any).isVerified ?? false),
     price: normalizePrice((community as any).price),
     priceType: mapPriceType(String((community as any).priceType || 'free')),
     image: primaryImage,
-    featured: community.featured,
+    featured: Boolean((community as any).featured),
     link: `/${encodeURIComponent(creatorName)}/${community.slug}`,
   }
 }

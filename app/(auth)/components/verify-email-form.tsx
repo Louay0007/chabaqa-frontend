@@ -2,18 +2,21 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CheckCircle, Loader2 } from "lucide-react"
 import { verifyEmailOtpAction, resendEmailOtpAction } from "../verify-email/actions"
+import { useTranslations } from "next-intl"
+import { localizeHref } from "@/lib/i18n/client"
 
 interface VerifyEmailFormProps {
   email: string
 }
 
 export default function VerifyEmailForm({ email }: VerifyEmailFormProps) {
+  const t = useTranslations("auth.verifyEmailForm")
   const [verificationDigits, setVerificationDigits] = useState(["", "", "", "", "", ""])
   const [isLoading, setIsLoading] = useState(false)
   const [isResending, setIsResending] = useState(false)
@@ -22,6 +25,7 @@ export default function VerifyEmailForm({ email }: VerifyEmailFormProps) {
   const [info, setInfo] = useState("")
   const [resendCooldown, setResendCooldown] = useState(0)
   const router = useRouter()
+  const pathname = usePathname()
   const inputRefs = useRef<Array<HTMLInputElement | null>>([])
   const verificationCode = verificationDigits.join("")
 
@@ -40,12 +44,12 @@ export default function VerifyEmailForm({ email }: VerifyEmailFormProps) {
     setInfo("")
 
     if (!email) {
-      setError("Missing email. Please return to signup and try again.")
+      setError(t("errors.missingEmail"))
       return
     }
 
     if (verificationCode.length !== 6) {
-      setError("Verification code must be exactly 6 digits")
+      setError(t("errors.codeLength"))
       return
     }
 
@@ -53,17 +57,18 @@ export default function VerifyEmailForm({ email }: VerifyEmailFormProps) {
     try {
       const result = await verifyEmailOtpAction({ email, verificationCode })
       if (!result.success) {
-        setError(result.error || "Invalid or expired verification code")
+        setError(result.error || t("errors.invalidCode"))
         return
       }
 
       setIsSuccess(true)
-      setInfo(result.message || "Email verified successfully")
+      setInfo(result.message || t("successTitle"))
       setTimeout(() => {
-        router.push("/signin?message=Email verified successfully. Please sign in.")
+        const redirect = `${localizeHref(pathname, "/signin")}?message=${encodeURIComponent(t("signInNotice"))}`
+        router.push(redirect)
       }, 1400)
     } catch {
-      setError("Unable to verify code right now. Please try again.")
+      setError(t("errors.verifyFailed"))
     } finally {
       setIsLoading(false)
     }
@@ -105,14 +110,14 @@ export default function VerifyEmailForm({ email }: VerifyEmailFormProps) {
     try {
       const result = await resendEmailOtpAction(email)
       if (!result.success) {
-        setError(result.error || "Unable to resend verification code")
+        setError(result.error || t("errors.resendFailed"))
         return
       }
 
-      setInfo(result.message || "A new verification code has been sent")
+      setInfo(result.message || t("resendSent"))
       setResendCooldown(60)
     } catch {
-      setError("Unable to resend verification code")
+      setError(t("errors.resendFailed"))
     } finally {
       setIsResending(false)
     }
@@ -123,19 +128,19 @@ export default function VerifyEmailForm({ email }: VerifyEmailFormProps) {
       <div className="text-center mb-8 animate-fade-in-delay-400">
         {!isSuccess ? (
           <>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2 drop-shadow-sm">Verify your email</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2 drop-shadow-sm">{t("title")}</h2>
             <p className="text-gray-700 drop-shadow-sm">
-              We sent a 6-digit verification code to <strong>{email || "your email"}</strong>.
+              {t("introPrefix")} <strong>{email || t("yourEmailFallback")}</strong>.
             </p>
-            <p className="text-sm text-gray-600 mt-2 drop-shadow-sm">The code expires in 10 minutes.</p>
+            <p className="text-sm text-gray-600 mt-2 drop-shadow-sm">{t("codeExpires")}</p>
           </>
         ) : (
           <>
             <div className="w-16 h-16 bg-gradient-to-r from-[#8e78fb] to-[#47c7ea] rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2 drop-shadow-sm">Email verified!</h2>
-            <p className="text-gray-700 drop-shadow-sm">Your account is now active.</p>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2 drop-shadow-sm">{t("successTitle")}</h2>
+            <p className="text-gray-700 drop-shadow-sm">{t("successBody")}</p>
           </>
         )}
       </div>
@@ -157,7 +162,7 @@ export default function VerifyEmailForm({ email }: VerifyEmailFormProps) {
 
             <div className="space-y-3 animate-fade-in-delay-800">
               <Label htmlFor="verificationCode-0" className="text-sm font-medium text-gray-800 block">
-                Verification code
+                {t("verificationCodeLabel")}
               </Label>
               <div className="flex justify-center gap-2 sm:gap-3">
                 {verificationDigits.map((digit, index) => (
@@ -181,7 +186,7 @@ export default function VerifyEmailForm({ email }: VerifyEmailFormProps) {
                   />
                 ))}
               </div>
-              <p className="text-center text-xs text-gray-600">You can paste the full 6-digit code.</p>
+              <p className="text-center text-xs text-gray-600">{t("pasteHint")}</p>
             </div>
 
             <Button
@@ -192,10 +197,10 @@ export default function VerifyEmailForm({ email }: VerifyEmailFormProps) {
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  <span>Verifying...</span>
+                  <span>{t("verifying")}</span>
                 </>
               ) : (
-                <span className="relative z-10">Verify and create account</span>
+                <span className="relative z-10">{t("verifyAndCreate")}</span>
               )}
             </Button>
 
@@ -208,31 +213,31 @@ export default function VerifyEmailForm({ email }: VerifyEmailFormProps) {
               {isResending ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  <span>Resending...</span>
+                  <span>{t("resending")}</span>
                 </>
               ) : resendCooldown > 0 ? (
-                <span>Resend code in {resendCooldown}s</span>
+                <span>{t("resendIn", { seconds: resendCooldown })}</span>
               ) : (
-                <span>Resend verification code</span>
+                <span>{t("resendCode")}</span>
               )}
             </Button>
           </form>
         ) : (
-          <Link href="/signin">
+          <Link href={localizeHref(pathname, "/signin")}>
             <Button className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#8e78fb] to-[#47c7ea] text-white font-semibold text-lg shadow-lg hover:shadow-2xl transition-all duration-300 border-0 relative overflow-hidden group hover:scale-105">
-              <span className="relative z-10">Go to Sign In</span>
+              <span className="relative z-10">{t("goToSignIn")}</span>
             </Button>
           </Link>
         )}
 
         <div className="mt-8 text-center animate-fade-in-delay-1200">
           <div className="text-sm text-gray-700 drop-shadow-sm">
-            Entered the wrong email?{" "}
+            {t("wrongEmail")}{" "}
             <Link
-              href="/signup"
+              href={localizeHref(pathname, "/signup")}
               className="text-[#47c7ea] hover:text-[#3bb5d6] font-medium transition-all duration-200 hover:underline"
             >
-              Go back to signup
+              {t("backToSignup")}
             </Link>
           </div>
         </div>

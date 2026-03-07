@@ -19,12 +19,12 @@ export async function forgotPasswordAction(data: { email: string }): Promise<For
         message: result?.message || response?.message || "Verification code sent successfully"
       }
     }
-    return { success: false, error: result?.error || result?.message || response?.message || "Une erreur s'est produite" }
+    return { success: false, error: result?.error || result?.message || response?.message || "An error occurred" }
   } catch (error) {
     const message =
       typeof (error as any)?.message === "string"
         ? (error as any).message
-        : "Erreur de connexion. Veuillez réessayer."
+        : "Connection error. Please try again."
     return { success: false, error: message }
   }
 }

@@ -58,6 +58,96 @@
       "signIn": "تسجيل الدخول",
       "connectionError": "خطأ في الاتصال. حاول مرة أخرى.",
       "unknownError": "حدث خطأ"
+    },
+    "forgotPasswordPage": {
+      "backgroundAlt": "خلفية متدرجة",
+      "logoAlt": "شعار شبكة",
+      "footer": "© 2026 شبكة. ابنِ مستقبل المجتمعات."
+    },
+    "forgotPasswordForm": {
+      "title": "هل نسيت كلمة المرور؟",
+      "intro": "لا تقلق! أدخل بريدك الإلكتروني وسنرسل لك رمز تحقق.",
+      "checkEmailTitle": "تحقق من بريدك الإلكتروني",
+      "checkEmailBody": "لقد أرسلنا رمز تحقق مكوّنًا من 6 أرقام إلى",
+      "codeExpires": "ستنتهي صلاحية الرمز خلال 10 دقائق.",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "your@email.com",
+      "sending": "جارٍ الإرسال...",
+      "sendCode": "إرسال رمز التحقق",
+      "missingCodeHint": "لم يصلك الرمز؟ تحقق من البريد العشوائي أو حاول مرة أخرى.",
+      "enterCode": "إدخال رمز التحقق",
+      "tryDifferentEmail": "استخدام بريد إلكتروني آخر",
+      "rememberPassword": "تذكرت كلمة المرور؟",
+      "signIn": "تسجيل الدخول",
+      "errors": {
+        "generic": "حدث خطأ",
+        "connection": "خطأ في الاتصال. يرجى المحاولة مرة أخرى."
+      }
+    },
+    "resetPasswordPage": {
+      "backgroundAlt": "خلفية متدرجة",
+      "logoAlt": "شعار شبكة",
+      "footer": "© 2026 شبكة. ابنِ مستقبل المجتمعات."
+    },
+    "resetPasswordForm": {
+      "title": "إعادة تعيين كلمة المرور",
+      "introPrefix": "أدخل الرمز المرسل إلى",
+      "introSuffix": "وكلمة المرور الجديدة.",
+      "codeExpires": "تنتهي صلاحية الرمز خلال 10 دقائق.",
+      "successTitle": "تمت إعادة تعيين كلمة المرور بنجاح!",
+      "successBody": "تم تحديث كلمة المرور بنجاح.",
+      "successHint": "اضغط الزر أدناه لتسجيل الدخول بكلمة المرور الجديدة.",
+      "verificationCodeLabel": "رمز التحقق",
+      "pasteHint": "اللصق مدعوم للرمز كاملًا.",
+      "newPasswordLabel": "كلمة المرور الجديدة",
+      "newPasswordPlaceholder": "أدخل كلمة المرور الجديدة",
+      "confirmPasswordLabel": "تأكيد كلمة المرور الجديدة",
+      "confirmPasswordPlaceholder": "أكد كلمة المرور الجديدة",
+      "resetting": "جارٍ إعادة التعيين...",
+      "resetPassword": "إعادة تعيين كلمة المرور",
+      "signedInHint": "يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.",
+      "goToSignIn": "الانتقال إلى تسجيل الدخول",
+      "rememberPassword": "تذكرت كلمة المرور؟",
+      "signIn": "تسجيل الدخول",
+      "errors": {
+        "passwordMismatch": "كلمتا المرور غير متطابقتين",
+        "passwordLength": "يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل",
+        "codeLength": "يجب أن يتكون رمز التحقق من 6 أرقام",
+        "generic": "حدث خطأ",
+        "connection": "خطأ في الاتصال. يرجى المحاولة مرة أخرى."
+      }
+    },
+    "verifyEmailPage": {
+      "backgroundAlt": "خلفية متدرجة",
+      "logoAlt": "شعار شبكة",
+      "footer": "© 2026 شبكة. ابنِ مستقبل المجتمعات."
+    },
+    "verifyEmailForm": {
+      "title": "تأكيد البريد الإلكتروني",
+      "introPrefix": "أرسلنا رمز تحقق مكوّنًا من 6 أرقام إلى",
+      "yourEmailFallback": "بريدك الإلكتروني",
+      "codeExpires": "تنتهي صلاحية الرمز خلال 10 دقائق.",
+      "successTitle": "تم تأكيد البريد الإلكتروني!",
+      "successBody": "أصبح حسابك نشطًا الآن.",
+      "verificationCodeLabel": "رمز التحقق",
+      "pasteHint": "يمكنك لصق رمز الـ6 أرقام كاملًا.",
+      "verifying": "جارٍ التحقق...",
+      "verifyAndCreate": "تحقق وأنشئ الحساب",
+      "resending": "جارٍ إعادة الإرسال...",
+      "resendIn": "إعادة إرسال الرمز خلال {seconds}ث",
+      "resendCode": "إعادة إرسال رمز التحقق",
+      "goToSignIn": "الانتقال إلى تسجيل الدخول",
+      "wrongEmail": "أدخلت بريدًا خاطئًا؟",
+      "backToSignup": "العودة إلى إنشاء الحساب",
+      "signInNotice": "تم تأكيد البريد الإلكتروني بنجاح. يرجى تسجيل الدخول.",
+      "resendSent": "تم إرسال رمز تحقق جديد",
+      "errors": {
+        "missingEmail": "البريد الإلكتروني غير موجود. عد إلى التسجيل وحاول مرة أخرى.",
+        "codeLength": "يجب أن يكون رمز التحقق 6 أرقام بالضبط",
+        "invalidCode": "رمز التحقق غير صحيح أو منتهي الصلاحية",
+        "verifyFailed": "تعذر التحقق من الرمز الآن. يرجى المحاولة مرة أخرى.",
+        "resendFailed": "تعذر إعادة إرسال رمز التحقق"
+      }
     }
   },
   "landing": {

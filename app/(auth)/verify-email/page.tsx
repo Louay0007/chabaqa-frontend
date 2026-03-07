@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import Image from "next/image"
 import { getProfileServer } from "@/lib/auth.server"
 import VerifyEmailForm from "../components/verify-email-form"
+import { getTranslations } from "next-intl/server"
 
 export const dynamic = 'force-dynamic'
 
@@ -12,6 +13,7 @@ interface VerifyEmailPageProps {
 }
 
 export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
+  const t = await getTranslations("auth.verifyEmailPage")
   const user = await getProfileServer()
 
   if (user) {
@@ -24,13 +26,13 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
   return (
     <div className="min-h-screen relative overflow-hidden">
       <div className="absolute inset-0 gradient-fallback">
-        <Image src="/gradient-background.png" alt="Gradient Background" fill className="object-cover" priority />
+        <Image src="/gradient-background.png" alt={t("backgroundAlt")} fill className="object-cover" priority />
       </div>
 
       <div className="absolute top-8 left-8 z-20 animate-fade-in">
         <Image
           src="/logo_chabaqa.png"
-          alt="Chabaqa Logo"
+          alt={t("logoAlt")}
           width={140}
           height={56}
           className="drop-shadow-lg"
@@ -43,7 +45,7 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
           <VerifyEmailForm email={email} />
 
           <div className="text-center mt-8 animate-fade-in-delay-1400">
-            <p className="text-xs text-gray-600 drop-shadow-sm">© 2026 Chabaqa. Build the future of communities.</p>
+            <p className="text-xs text-gray-600 drop-shadow-sm">{t("footer")}</p>
           </div>
         </div>
       </div>

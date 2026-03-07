@@ -38,6 +38,8 @@ import { ProfileHeader } from "@/components/profile/ProfileHeader"
 import { StatCard } from "@/components/profile/StatCard"
 import { ProfileDetails } from "@/components/profile/ProfileDetails"
 import { getUserProfileHandle } from "@/lib/profile-handle"
+import { SOCIAL_PLATFORMS, cleanSocialLinks, type SocialPlatform, type UserSocialLinks } from "@/lib/social-links"
+import { SocialMediaSidebar } from "@/components/profile/SocialMediaSidebar"
 
 // Types for user data
 interface UserAchievement {
@@ -95,6 +97,19 @@ interface User {
   communities?: Community[];
   analytics?: UserAnalytics;
   activityData?: ActivityData[];
+  socialLinks?: UserSocialLinks;
+  lien_instagram?: string;
+}
+
+const SOCIAL_LABELS: Record<SocialPlatform, string> = {
+  instagram: "Instagram",
+  facebook: "Facebook",
+  linkedin: "LinkedIn",
+  twitter: "X",
+  youtube: "YouTube",
+  tiktok: "TikTok",
+  github: "GitHub",
+  website: "Website",
 }
 
 interface DisplayAchievement {
@@ -935,6 +950,17 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
     { label: "Offers", value: totalOffers, icon: ShoppingBag, color: "#f65887" },
   ]
   const profileHandle = getUserProfileHandle(currentUser)
+  const profileSocialLinks = cleanSocialLinks({
+    ...((currentUser as any)?.socialLinks || {}),
+    instagram: (currentUser as any)?.socialLinks?.instagram || (currentUser as any)?.lien_instagram || "",
+  })
+  const socialEntries = SOCIAL_PLATFORMS
+    .filter((platform) => Boolean(profileSocialLinks[platform]))
+    .map((platform) => ({
+      platform,
+      label: SOCIAL_LABELS[platform],
+      href: profileSocialLinks[platform] as string,
+    }))
 
   if (!loading && !currentUser) {
     return (
@@ -1598,6 +1624,11 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                 )}
               </div>
             </div>
+            <SocialMediaSidebar
+              entries={socialEntries}
+              isOwnProfile={isOwnProfile}
+              editHref={`/profile/${profileHandle}/edit`}
+            />
           </div>
         </div>
       </main>

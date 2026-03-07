@@ -38,6 +38,8 @@ interface CommunityDetails {
   status: 'pending' | 'approved' | 'rejected' | 'active' | 'inactive'
   featured: boolean
   verified: boolean
+  isVerified?: boolean
+  isActive?: boolean
   membersCount: number
   contentCount: number
   createdAt: string
@@ -68,6 +70,14 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
   const [active, setActive] = useState(true)
   const [moderationNotes, setModerationNotes] = useState('')
 
+  const resolveVerified = (data: Partial<CommunityDetails> | null | undefined) =>
+    Boolean(data?.verified ?? data?.isVerified ?? false)
+
+  const resolveActive = (data: Partial<CommunityDetails> | null | undefined) => {
+    if (typeof data?.isActive === 'boolean') return data.isActive
+    return data?.status === 'active' || data?.status === 'approved'
+  }
+
   // Auth guard
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -87,9 +97,9 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
         
         setCommunity(data)
         setFeatured(data.featured || false)
-        setVerified(data.verified || false)
-        setActive(data.status === 'active')
-        setModerationNotes('')
+        setVerified(resolveVerified(data))
+        setActive(resolveActive(data))
+        setModerationNotes(data.adminNotes || '')
       } catch (error) {
         console.error('[Community Details] Fetch error:', error)
         toast.error('Failed to load community details')
@@ -121,6 +131,9 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
       const response = await adminApi.communities.getCommunityDetails(params.id)
       const updatedData = response.data as CommunityDetails
       setCommunity(updatedData)
+      setFeatured(Boolean(updatedData.featured))
+      setVerified(resolveVerified(updatedData))
+      setActive(resolveActive(updatedData))
       setModerationNotes(updatedData.adminNotes || '')
     } catch (error) {
       console.error('[Save Settings] Error:', error)
@@ -234,10 +247,10 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
               {community.featured && (
                 <StatusBadge status="Featured" variant="info" size="sm" />
               )}
-              {community.verified && (
+              {resolveVerified(community) && (
                 <StatusBadge status="Verified" variant="success" size="sm" />
               )}
-              {!community.featured && !community.verified && (
+              {!community.featured && !resolveVerified(community) && (
                 <span className="text-sm text-muted-foreground">None</span>
               )}
             </div>

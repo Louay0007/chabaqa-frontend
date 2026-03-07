@@ -27,8 +27,8 @@ export async function resetPasswordAction(data: {
         message: result?.message || response?.message || "Password reset successfully"
       }
     }
-    return { success: false, error: result?.error || result?.message || response?.message || "Une erreur s'est produite" }
+    return { success: false, error: result?.error || result?.message || response?.message || "An error occurred" }
   } catch (error) {
-    return { success: false, error: "Erreur de connexion. Veuillez réessayer." }
+    return { success: false, error: "Connection error. Please try again." }
   }
 }
