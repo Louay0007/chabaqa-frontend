@@ -20,7 +20,7 @@ export function LoadingOverlay({
     <div
       className={cn(
         "flex flex-col items-center justify-center gap-4",
-        fullScreen ? "fixed inset-0 bg-background/80 backdrop-blur-sm z-50" : "p-8",
+        fullScreen ? "fixed inset-0 bg-background/80 backdrop-blur-sm z-50" : "p-4 sm:p-6 lg:p-8",
         className
       )}
     >

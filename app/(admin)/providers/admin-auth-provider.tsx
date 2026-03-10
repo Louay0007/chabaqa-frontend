@@ -10,12 +10,14 @@ import {
   type AdminSessionResponse,
 } from "@/lib/api/admin-api"
 import { localizeHref, stripLocaleFromPath } from "@/lib/i18n/client"
+import { getAdminLandingPath } from "../lib/admin-capability-routing"
 
 export interface AdminUser {
   _id: string
   name: string
   email: string
   role: string
+  avatar?: string
   createdAt: string | Date
   lastLogin?: string | Date
   twoFactorEnabled?: boolean
@@ -238,9 +240,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (isAuthenticated && isAdminAuthPage) {
-      router.replace(localizeHref(pathname || "/", "/admin/dashboard"))
+      router.replace(localizeHref(pathname || "/", getAdminLandingPath(capabilities)))
     }
-  }, [isAdminAuthPage, isAuthenticated, loading, normalizedPath, pathname, router])
+  }, [capabilities, isAdminAuthPage, isAuthenticated, loading, normalizedPath, pathname, router])
 
   const login = useCallback(async (email: string, password: string): Promise<{ requires2FA: boolean; message?: string }> => {
     try {

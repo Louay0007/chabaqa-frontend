@@ -268,7 +268,7 @@ export default function SubscriptionsListPage() {
   }
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button

@@ -119,7 +119,7 @@ export default function CampaignDetailsPage({ params }: { params: { id: string }
 
   if (!campaign) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <div className="text-center">
           <p className="text-muted-foreground">Campaign not found</p>
           <Button
@@ -146,9 +146,9 @@ export default function CampaignDetailsPage({ params }: { params: { id: string }
   const canDelete = campaign.status !== 'sending'
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -211,7 +211,7 @@ export default function CampaignDetailsPage({ params }: { params: { id: string }
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Target Audience</div>
                 <div className="mt-1">{audienceLabels[campaign.targetAudience]}</div>
@@ -230,7 +230,7 @@ export default function CampaignDetailsPage({ params }: { params: { id: string }
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Created By</div>
                 <div className="mt-1">{campaign.createdBy?.name || 'N/A'}</div>
@@ -270,7 +270,7 @@ export default function CampaignDetailsPage({ params }: { params: { id: string }
           <CardContent>
             {campaign.analytics ? (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">Sent</span>

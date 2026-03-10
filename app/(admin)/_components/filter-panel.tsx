@@ -101,7 +101,7 @@ export function FilterPanel({
 
       case 'dateRange':
         return (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">From</Label>
               <Input
@@ -199,15 +199,17 @@ export function FilterPanel({
   }
 
   return (
-    <Card className={cn("border-0 shadow-lg", className)}>
+    <Card className={cn("admin-surface overflow-hidden rounded-3xl border-0 shadow-none", className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            <span className="admin-icon-chip h-9 w-9 rounded-xl">
+              <Filter className="h-4 w-4 text-[hsl(var(--admin-primary-strong))]" aria-hidden="true" />
+            </span>
             <CardTitle className="text-lg">Filters</CardTitle>
             {hasActiveFilters && (
-              <span 
-                className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground"
+              <span
+                className="admin-badge h-6 min-w-6 px-2"
                 aria-label={`${Object.values(values).filter(v => {
                   if (Array.isArray(v)) return v.length > 0
                   if (typeof v === 'string') return v.trim() !== ''
@@ -254,7 +256,7 @@ export function FilterPanel({
           ))}
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2 border-t">
+        <div className="flex items-center justify-end gap-2 border-t border-[hsl(var(--admin-border)/0.7)] pt-2">
           <Button
             variant="outline"
             size="sm"
@@ -280,4 +282,3 @@ export function FilterPanel({
     </Card>
   )
 }
-

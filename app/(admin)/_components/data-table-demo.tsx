@@ -154,7 +154,7 @@ export function DataTableDemo() {
   }
 
   return (
-    <div className="space-y-4 p-8">
+    <div className="space-y-4 p-4 sm:p-6 lg:p-8">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">DataTable Demo</h2>
         <div className="flex gap-2">

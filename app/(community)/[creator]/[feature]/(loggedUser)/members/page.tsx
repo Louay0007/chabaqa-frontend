@@ -21,9 +21,27 @@ interface Community {
   creatorId?: string
 }
 
+const resolveEntityId = (value: any): string => {
+  if (!value) return ''
+  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'number') return String(value)
+
+  const nested = value._id ?? value.id ?? value.userId ?? value.creatorId ?? value.createurId
+  if (nested && nested !== value) {
+    return resolveEntityId(nested)
+  }
+
+  if (typeof value.toString === 'function') {
+    const text = value.toString().trim()
+    return text === '[object Object]' ? '' : text
+  }
+
+  return ''
+}
+
 const resolveMemberUserId = (member: CommunityMember): string => {
   const user = member.user as any
-  return user?.id || user?._id || member.userId || ''
+  return resolveEntityId(user) || resolveEntityId(member.userId)
 }
 
 export default function CommunityMembersPage({ params }: { params: Promise<{ creator?: string; feature: string }> }) {
@@ -39,7 +57,7 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
   const [members, setMembers] = useState<CommunityMember[]>([])
   const [search, setSearch] = useState('')
   const { user: currentUser } = useAuthContext()
-  const myId = currentUser?.id || (currentUser as any)?._id || ''
+  const myId = resolveEntityId(currentUser)
 
   useEffect(() => {
     const fetchMembers = async () => {
@@ -49,20 +67,19 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
 
         const communityRes = await communitiesApi.getBySlug(feature)
         const c = communityRes.data as any
-        const creatorData = c?.createur || c?.creator || c?.creatorId
-        const creatorId =
-          typeof creatorData === 'string'
-            ? creatorData
-            : creatorData?._id || creatorData?.id || ''
+        const creatorId = resolveEntityId(c?.createur || c?.creator || c?.creatorId || c?.createurId)
 
         setCommunity({
-          id: c.id || c._id,
+          id: resolveEntityId(c?.id) || resolveEntityId(c?._id),
           _id: c._id,
           name: c.name,
           creatorId,
         })
 
-        const communityId = c._id || c.id
+        const communityId = resolveEntityId(c?._id) || resolveEntityId(c?.id)
+        if (!communityId) {
+          throw new Error('Community identifier is missing')
+        }
         const membersRes: any = await communitiesApi.getMembers(communityId, { page: 1, limit: 200 })
 
         const items = Array.isArray(membersRes?.data)

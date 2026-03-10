@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -9,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { adminApi } from "@/lib/api/admin-api"
 import { useAdminLayout } from "../providers/admin-layout-provider"
 import { useAdminAuth } from "../providers/admin-auth-provider"
@@ -22,6 +23,7 @@ import {
   Shield,
   Coins,
   BarChart3,
+  Database,
   Lock,
   Mail,
   Settings,
@@ -58,6 +60,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
     support: 0,
   })
   const [expandedItems, setExpandedItems] = useState<string[]>([])
+  const canAccessOperations = capabilities.financial || capabilities.security || capabilities.analytics || capabilities.dashboard
 
   useEffect(() => {
     let mounted = true
@@ -160,6 +163,16 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       hidden: !capabilities.analytics,
     },
     {
+      title: "Operations",
+      href: "/admin/export",
+      icon: Database,
+      hidden: !canAccessOperations,
+      children: [
+        { title: "Export Center", href: "/admin/export" },
+        { title: "Bulk Operations", href: "/admin/data-management" },
+      ],
+    },
+    {
       title: "Security",
       href: "/admin/security",
       icon: Lock,
@@ -171,13 +184,15 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
     },
     {
       title: "Communication",
-      href: "/admin/communication",
+      href: capabilities.communication ? "/admin/communication" : "/admin/communication/support",
       icon: Mail,
       badge: pendingCounts.support,
       hidden: !capabilities.communication && !capabilities.liveSupport,
       children: [
         ...(capabilities.communication ? [{ title: "Campaigns", href: "/admin/communication" }] : []),
         ...(capabilities.communication ? [{ title: "Templates", href: "/admin/communication/templates" }] : []),
+        ...(capabilities.communication ? [{ title: "Notifications", href: "/admin/communication/notifications" }] : []),
+        ...(capabilities.communication ? [{ title: "Communication Analytics", href: "/admin/communication/analytics" }] : []),
         ...(capabilities.liveSupport ? [{ title: "Live Support", href: "/admin/communication/support" }] : []),
       ],
     },
@@ -218,7 +233,12 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       "Security Events": t("menu.securityEvents"),
       Campaigns: t("menu.campaigns"),
       Templates: t("menu.templates"),
+      Notifications: t("menu.notifications"),
+      "Communication Analytics": t("menu.analytics"),
       "Live Support": t("menu.liveSupport"),
+      Operations: t("menu.operations"),
+      "Export Center": t("menu.exportCenter"),
+      "Bulk Operations": t("menu.bulkOperations"),
     }
     return mapping[label] || label
   }
@@ -249,23 +269,38 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
-      {/* Logo */}
-      <div className="flex h-16 items-center border-b px-6">
+      <div className="border-b border-[hsl(var(--admin-border)/0.85)] px-4 py-4">
         <Link 
           href={localizeHref(pathname, "/admin/dashboard")}
-          className="flex items-center space-x-2"
+          className="group flex items-center gap-3"
           aria-label="Chabaqa Admin Dashboard Home"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <span className="text-lg font-bold" aria-hidden="true">C</span>
+          <div className="admin-icon-chip h-12 w-12 overflow-hidden rounded-2xl p-2">
+            <Image
+              src="/Logos/PNG/brandmark.png"
+              alt="Chabaqa"
+              width={32}
+              height={32}
+              className="h-8 w-8 object-contain"
+            />
           </div>
-          <span className="text-xl font-bold">{t("brandName")}</span>
+          <div className="min-w-0">
+            <Image
+              src="/logo_chabaqa.png"
+              alt="Chabaqa"
+              width={122}
+              height={28}
+              className="h-7 w-auto object-contain"
+            />
+            <p className="mt-1 text-xs font-medium uppercase tracking-[0.22em] text-[hsl(var(--admin-muted))]">
+              Admin control
+            </p>
+          </div>
         </Link>
       </div>
 
-      {/* Navigation */}
-      <ScrollArea className="flex-1 px-3 py-4">
-        <nav className="space-y-1" aria-label="Main navigation">
+      <ScrollArea className="flex-1 px-2.5 py-4">
+        <nav className="space-y-0.5" aria-label="Main navigation">
           {localizedNavigationItems.map((item) => {
             const Icon = item.icon
             const hasChildren = item.children && item.children.length > 0
@@ -283,18 +318,20 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
                     <Button
                       variant="ghost"
                       className={cn(
-                        "w-full justify-start",
-                        active && "bg-accent text-accent-foreground"
+                        "admin-nav-item h-auto min-h-10 !justify-start text-left",
+                        active && "admin-nav-active"
                       )}
                       aria-expanded={isExpanded}
                       aria-label={`${item.title} menu${item.badge ? `, ${item.badge} pending items` : ''}`}
                     >
-                      <Icon className="mr-2 h-4 w-4" aria-hidden="true" />
+                      <span className="admin-icon-chip mr-2.5 h-8 w-8 rounded-xl">
+                        <Icon className="h-4 w-4" aria-hidden="true" />
+                      </span>
                       <span className="flex-1 text-left">{item.title}</span>
                       {item.badge !== undefined && item.badge > 0 && (
-                        <Badge 
-                          variant="destructive" 
-                          className="ml-auto mr-2"
+                        <Badge
+                          variant="secondary"
+                          className="admin-badge ml-auto mr-2 border-0"
                           aria-label={`${item.badge} pending`}
                         >
                           {item.badge}
@@ -307,7 +344,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
                       )}
                     </Button>
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="ml-6 mt-1 space-y-1">
+                  <CollapsibleContent className="mt-0.5 space-y-0.5">
                     {item.children?.map((child) => (
                       <Button
                         key={child.href}
@@ -315,16 +352,18 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
                         size="sm"
                         asChild
                         className={cn(
-                          "w-full justify-start",
-                          isActive(child.href) && "bg-accent text-accent-foreground"
+                          "admin-nav-item h-10 rounded-xl px-2.5 py-2 text-sm",
+                          isActive(child.href) && "admin-nav-active"
                         )}
                       >
                         <Link 
                           href={child.href} 
                           onClick={closeSidebar}
+                          className="flex w-full items-center justify-start text-left"
                           aria-current={isActive(child.href) ? "page" : undefined}
                         >
-                          {child.title}
+                          <span className="admin-icon-chip mr-2.5 h-8 w-8 rounded-xl opacity-70" aria-hidden="true" />
+                          <span className="flex-1 text-left">{child.title}</span>
                         </Link>
                       </Button>
                     ))}
@@ -339,22 +378,25 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
                 variant="ghost"
                 asChild
                 className={cn(
-                  "w-full justify-start",
-                  active && "bg-accent text-accent-foreground"
+                  "admin-nav-item h-auto min-h-10 !justify-start text-left",
+                  active && "admin-nav-active"
                 )}
               >
                 <Link 
                   href={item.href} 
                   onClick={closeSidebar}
+                  className="flex w-full items-center justify-start text-left"
                   aria-current={active ? "page" : undefined}
                   aria-label={`${item.title}${item.badge ? `, ${item.badge} pending items` : ''}`}
                 >
-                  <Icon className="mr-2 h-4 w-4" aria-hidden="true" />
-                  <span>{item.title}</span>
+                  <span className="admin-icon-chip mr-2.5 h-8 w-8 rounded-xl">
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <span className="flex-1 text-left">{item.title}</span>
                   {item.badge !== undefined && item.badge > 0 && (
-                    <Badge 
-                      variant="destructive" 
-                      className="ml-auto"
+                    <Badge
+                      variant="secondary"
+                      className="admin-badge ml-auto border-0"
                       aria-label={`${item.badge} pending`}
                     >
                       {item.badge}
@@ -367,10 +409,9 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
         </nav>
       </ScrollArea>
 
-      {/* User Profile Section */}
-      <div className="border-t p-4">
-        <div className="flex items-center space-x-3">
-          <Avatar>
+      <div className="border-t border-[hsl(var(--admin-border)/0.85)] p-3">
+        <div className="admin-surface-muted flex items-center space-x-3 rounded-3xl px-3 py-2.5">
+          <Avatar className="border border-[hsl(var(--admin-border)/0.9)]">
             <AvatarFallback>
               {admin?.name
                 ?.split(" ")
@@ -380,8 +421,8 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-medium truncate">{admin?.name || "Admin"}</p>
-            <p className="text-xs text-muted-foreground truncate">
+            <p className="truncate text-sm font-medium">{admin?.name || "Admin"}</p>
+            <p className="truncate text-xs text-muted-foreground">
               {admin?.email || "admin@chabaqa.com"}
             </p>
           </div>
@@ -389,6 +430,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
             variant="ghost"
             size="icon"
             onClick={handleLogout}
+            className="rounded-2xl text-[hsl(var(--admin-muted))] hover:bg-[hsl(var(--admin-primary)/0.1)] hover:text-foreground"
             aria-label={t("header.logout")}
           >
             <LogOut className="h-4 w-4" aria-hidden="true" />
@@ -402,7 +444,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
   const desktopSidebar = (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen w-64 border-r bg-background transition-transform duration-300 ease-in-out lg:translate-x-0",
+        "fixed left-0 top-0 z-40 h-screen w-72 border-r border-[hsl(var(--admin-border)/0.75)] bg-white/85 backdrop-blur-xl transition-transform duration-300 ease-in-out lg:translate-x-0",
         !sidebarOpen && "-translate-x-full",
         className
       )}
@@ -418,7 +460,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
     <Sheet open={sidebarOpen} onOpenChange={closeSidebar}>
       <SheetContent 
         side="left" 
-        className="w-64 p-0"
+        className="w-72 border-r border-[hsl(var(--admin-border)/0.75)] bg-white/95 p-0 backdrop-blur-xl"
         aria-label={t("header.toggleNavigation")}
       >
         <SheetHeader className="sr-only">

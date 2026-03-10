@@ -588,6 +588,9 @@
       "security": "Security",
       "communication": "Communication",
       "settings": "Settings",
+      "operations": "Operations",
+      "exportCenter": "Export Center",
+      "bulkOperations": "Bulk Operations",
       "subscriptions": "Subscriptions",
       "transactions": "Transactions",
       "payouts": "Payouts",
@@ -595,6 +598,7 @@
       "securityEvents": "Security Events",
       "campaigns": "Campaigns",
       "templates": "Templates",
+      "notifications": "Notifications",
       "liveSupport": "Live Support"
     },
     "header": {
@@ -644,6 +648,13 @@
       "backToLogin": "Back to Login",
       "developmentMode": "Development Mode:",
       "developmentHint": "2FA code will be displayed after login"
+    },
+    "routing": {
+      "redirectingWorkspace": "Redirecting to your admin workspace...",
+      "accessRestrictedTitle": "Access Restricted",
+      "accessRestrictedDescription": "You do not have the required capability to view this admin route.",
+      "goToAllowedArea": "Go To Allowed Area",
+      "reevaluateLanding": "Re-evaluate Landing"
     }
   }
 }

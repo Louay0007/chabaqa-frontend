@@ -50,18 +50,6 @@ interface ModerationItem {
   createdAt: string
 }
 
-interface ModerationQueueResponse {
-  success: boolean
-  message: string
-  data: ModerationItem[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
-}
-
 export default function ContentModerationPage() {
   const router = useRouter()
   const { isAuthenticated, loading: authLoading } = useAdminAuth()
@@ -106,17 +94,33 @@ export default function ContentModerationPage() {
       }
 
       // Add active filters
-      if (filterValues.status) filters.status = filterValues.status
-      if (filterValues.contentType) filters.contentType = filterValues.contentType
-      if (filterValues.priority) filters.priority = filterValues.priority
+      if (filterValues.status && filterValues.status !== 'all') filters.status = filterValues.status
+      if (filterValues.contentType && filterValues.contentType !== 'all') filters.contentType = filterValues.contentType
+      if (filterValues.priority && filterValues.priority !== 'all') filters.priority = filterValues.priority
       if (filterValues.dateRange?.from) filters.reportedFrom = filterValues.dateRange.from
       if (filterValues.dateRange?.to) filters.reportedTo = filterValues.dateRange.to
 
       const response = await adminApi.contentModeration.getQueue(filters)
-      const result = response as unknown as ModerationQueueResponse
+      // adminApi normalizes list endpoints to `{ data: { items, total, ... }, pagination? }`.
+      // Be defensive here to avoid `data.map is not a function` crashes if the shape changes.
+      const payload: any = (response as any)?.data
+      const normalizedItems =
+        Array.isArray(payload?.items)
+          ? payload.items
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : Array.isArray(payload)
+              ? payload
+              : []
 
-      setItems(result.data || [])
-      setTotal(result.pagination?.total || 0)
+      setItems(normalizedItems)
+      setTotal(
+        typeof payload?.total === 'number'
+          ? payload.total
+          : typeof (response as any)?.pagination?.total === 'number'
+            ? (response as any).pagination.total
+            : 0
+      )
     } catch (error) {
       console.error('[ContentModeration] Fetch error:', error)
       toast({
@@ -273,7 +277,7 @@ export default function ContentModerationPage() {
       options: [
         { label: 'All', value: 'all' },
         { label: 'Low', value: 'low' },
-        { label: 'Medium', value: 'medium' },
+        { label: 'Medium', value: 'normal' },
         { label: 'High', value: 'high' },
         { label: 'Urgent', value: 'urgent' }
       ]
@@ -319,7 +323,7 @@ export default function ContentModerationPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="low">Low</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
+            <SelectItem value="normal">Medium</SelectItem>
             <SelectItem value="high">High</SelectItem>
             <SelectItem value="urgent">Urgent</SelectItem>
           </SelectContent>
@@ -431,9 +435,9 @@ export default function ContentModerationPage() {
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Content Moderation</h1>
           <p className="text-muted-foreground mt-1">

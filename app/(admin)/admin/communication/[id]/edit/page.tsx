@@ -168,7 +168,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
   }
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.push(`/admin/communication/${params.id}`)}>
           <ArrowLeft className="h-4 w-4" />

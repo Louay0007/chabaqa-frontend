@@ -588,6 +588,9 @@
       "security": "الأمان",
       "communication": "التواصل",
       "settings": "الإعدادات",
+      "operations": "العمليات",
+      "exportCenter": "مركز التصدير",
+      "bulkOperations": "العمليات المجمعة",
       "subscriptions": "الاشتراكات",
       "transactions": "المعاملات",
       "payouts": "المدفوعات",
@@ -595,6 +598,7 @@
       "securityEvents": "أحداث الأمان",
       "campaigns": "الحملات",
       "templates": "القوالب",
+      "notifications": "الإشعارات",
       "liveSupport": "الدعم المباشر"
     },
     "header": {
@@ -644,6 +648,13 @@
       "backToLogin": "العودة لتسجيل الدخول",
       "developmentMode": "وضع التطوير:",
       "developmentHint": "سيتم عرض رمز التحقق بخطوتين بعد تسجيل الدخول"
+    },
+    "routing": {
+      "redirectingWorkspace": "جارٍ تحويلك إلى مساحة الإدارة...",
+      "accessRestrictedTitle": "الوصول مقيّد",
+      "accessRestrictedDescription": "لا تملك الصلاحية المطلوبة لعرض هذا المسار الإداري.",
+      "goToAllowedArea": "الانتقال إلى منطقة مسموح بها",
+      "reevaluateLanding": "إعادة تقييم صفحة البداية"
     }
   }
 }

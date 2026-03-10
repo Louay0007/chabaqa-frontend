@@ -290,7 +290,7 @@ export default function ContentDetailsPage({ params }: { params: { id: string } 
 
   if (loading) {
     return (
-      <div className="p-8 space-y-6">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
         <Skeleton className="h-8 w-64" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
@@ -306,7 +306,7 @@ export default function ContentDetailsPage({ params }: { params: { id: string } 
 
   if (!details) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         <Card>
           <CardContent className="p-12 text-center">
             <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -328,9 +328,9 @@ export default function ContentDetailsPage({ params }: { params: { id: string } 
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -380,7 +380,7 @@ export default function ContentDetailsPage({ params }: { params: { id: string } 
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-xs text-muted-foreground">Username</Label>
                     <p className="text-sm font-medium">{details.reportedBy.username}</p>

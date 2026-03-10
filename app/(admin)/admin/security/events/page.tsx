@@ -1,8 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
-import { CheckCircle, AlertTriangle, AlertCircle, XCircle } from "lucide-react"
+import { CheckCircle, AlertTriangle, AlertCircle, FileText, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
@@ -13,6 +12,8 @@ import { ConfirmDialog } from "@/app/(admin)/_components/confirm-dialog"
 import { MetricCard } from "@/app/(admin)/_components/metric-card"
 import { adminApi, SecurityEventFilters } from "@/lib/api/admin-api"
 import { formatDistanceToNow } from "date-fns"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 
 // Security event interface
 interface SecurityEvent {
@@ -42,7 +43,6 @@ interface SecurityMetrics {
 }
 
 export default function SecurityEventsPage() {
-  const router = useRouter()
   const { toast } = useToast()
   
   // State
@@ -51,7 +51,11 @@ export default function SecurityEventsPage() {
   const [loading, setLoading] = React.useState(true)
   const [metricsLoading, setMetricsLoading] = React.useState(true)
   const [resolveDialogOpen, setResolveDialogOpen] = React.useState(false)
+  const [reportDialogOpen, setReportDialogOpen] = React.useState(false)
   const [selectedEvent, setSelectedEvent] = React.useState<SecurityEvent | null>(null)
+  const [resolutionNotes, setResolutionNotes] = React.useState("")
+  const [incidentReport, setIncidentReport] = React.useState<any | null>(null)
+  const [incidentReportLoading, setIncidentReportLoading] = React.useState(false)
   
   // Pagination state
   const [page, setPage] = React.useState(1)
@@ -67,7 +71,6 @@ export default function SecurityEventsPage() {
     severity: '',
     eventType: '',
     resolved: '',
-    dateRange: { from: '', to: '' }
   })
 
   // Filter configuration
@@ -115,11 +118,6 @@ export default function SecurityEventsPage() {
       ],
       placeholder: 'Select status...'
     },
-    {
-      key: 'dateRange',
-      label: 'Date Range',
-      type: 'dateRange'
-    }
   ]
 
   // Get severity icon
@@ -211,20 +209,33 @@ export default function SecurityEventsPage() {
       id: 'actions',
       header: 'Actions',
       cell: (row) => (
-        !row.resolved && (
+        <div className="flex gap-2">
+          {!row.resolved && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleResolveClick(row)
+              }}
+            >
+              Resolve
+            </Button>
+          )}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={(e) => {
+            onClick={async (e) => {
               e.stopPropagation()
-              handleResolveClick(row)
+              await handleOpenIncidentReport(row)
             }}
           >
-            Resolve
+            <FileText className="mr-2 h-4 w-4" />
+            Report
           </Button>
-        )
+        </div>
       ),
-      width: '100px'
+      width: '180px'
     }
   ]
 
@@ -238,8 +249,6 @@ export default function SecurityEventsPage() {
         severity: filterValues.severity || undefined,
         eventType: filterValues.eventType || undefined,
         resolved: filterValues.resolved ? filterValues.resolved === 'true' : undefined,
-        startDate: filterValues.dateRange?.from || undefined,
-        endDate: filterValues.dateRange?.to || undefined
       }
 
       const response = await adminApi.security.getSecurityEvents(filters)
@@ -297,7 +306,6 @@ export default function SecurityEventsPage() {
       severity: '',
       eventType: '',
       resolved: '',
-      dateRange: { from: '', to: '' }
     })
   }
 
@@ -326,7 +334,28 @@ export default function SecurityEventsPage() {
   // Handle resolve click
   const handleResolveClick = (event: SecurityEvent) => {
     setSelectedEvent(event)
+    setResolutionNotes("")
     setResolveDialogOpen(true)
+  }
+
+  const handleOpenIncidentReport = async (event: SecurityEvent) => {
+    setSelectedEvent(event)
+    setReportDialogOpen(true)
+    setIncidentReportLoading(true)
+
+    try {
+      const response = await adminApi.security.getIncidentReport(event._id)
+      setIncidentReport(response.data)
+    } catch (error) {
+      console.error('[Security Events] Incident report fetch error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load incident report.",
+        variant: "destructive"
+      })
+    } finally {
+      setIncidentReportLoading(false)
+    }
   }
 
   // Handle resolve confirm
@@ -334,11 +363,9 @@ export default function SecurityEventsPage() {
     if (!selectedEvent) return
 
     try {
-      // Note: The resolution notes would be captured by the ConfirmDialog's internal input
-      // For now, we'll pass an empty string as the API expects it
       await adminApi.security.resolveSecurityEvent(
         selectedEvent._id,
-        "Resolved by admin" // Default resolution message
+        resolutionNotes.trim() || "Resolved by admin"
       )
 
       toast({
@@ -351,6 +378,7 @@ export default function SecurityEventsPage() {
       fetchMetrics()
       setResolveDialogOpen(false)
       setSelectedEvent(null)
+      setResolutionNotes("")
     } catch (error) {
       console.error('[Security Events] Resolve error:', error)
       toast({
@@ -362,7 +390,7 @@ export default function SecurityEventsPage() {
   }
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Security Events</h1>
@@ -458,9 +486,78 @@ export default function SecurityEventsPage() {
         description={`Are you sure you want to resolve this security event? ${selectedEvent?.description || ''}`}
         confirmLabel="Resolve"
         onConfirm={handleResolveConfirm}
-        requiresInput
-        inputPlaceholder="Enter resolution notes (optional)..."
-      />
+      >
+        <div className="space-y-2">
+          <Textarea
+            value={resolutionNotes}
+            onChange={(e) => setResolutionNotes(e.target.value)}
+            placeholder="Enter resolution notes (optional)..."
+            rows={4}
+          />
+        </div>
+      </ConfirmDialog>
+
+      <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Incident Report</DialogTitle>
+            <DialogDescription>
+              Review impact, related logs, and recommendations for the selected incident.
+            </DialogDescription>
+          </DialogHeader>
+
+          {incidentReportLoading ? (
+            <div className="py-8 text-sm text-muted-foreground">Loading incident report...</div>
+          ) : incidentReport ? (
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="space-y-4">
+                <div className="rounded-lg border p-4">
+                  <h3 className="font-medium">Incident</h3>
+                  <p className="mt-2 text-sm"><span className="font-medium">Type:</span> {incidentReport.incident?.eventType}</p>
+                  <p className="text-sm"><span className="font-medium">Severity:</span> {incidentReport.incident?.severity}</p>
+                  <p className="text-sm"><span className="font-medium">Impact:</span> {incidentReport.impact}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{incidentReport.incident?.description}</p>
+                </div>
+
+                <div className="rounded-lg border p-4">
+                  <h3 className="font-medium">Recommendations</h3>
+                  <div className="mt-3 space-y-2">
+                    {(incidentReport.recommendations || []).map((item: string) => (
+                      <div key={item} className="rounded border bg-muted/30 p-2 text-sm">
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="rounded-lg border p-4">
+                  <h3 className="font-medium">Related Logs</h3>
+                  <div className="mt-3 max-h-72 space-y-2 overflow-auto">
+                    {(incidentReport.relatedLogs || []).map((log: any) => (
+                      <div key={log._id} className="rounded border p-2 text-sm">
+                        <div className="font-medium">{log.action}</div>
+                        <div className="text-xs text-muted-foreground">{new Date(log.timestamp).toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">{log.entityType} - {log.entityId}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border p-4">
+                  <h3 className="font-medium">Timeline</h3>
+                  <pre className="mt-3 max-h-56 overflow-auto rounded bg-muted p-3 text-xs">
+                    {JSON.stringify(incidentReport.timeline || [], null, 2)}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="py-8 text-sm text-muted-foreground">No incident report available.</div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
