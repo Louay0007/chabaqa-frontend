@@ -30,6 +30,7 @@ import {
   ChevronDown,
   ChevronRight,
   LogOut,
+  FileText,
 } from "lucide-react"
 
 interface NavigationItem {
@@ -145,6 +146,19 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       hidden: !capabilities.contentModeration,
     },
     {
+      title: "Content",
+      href: "/admin/content",
+      icon: FileText,
+      hidden: !capabilities.contentManagement,
+      children: [
+        { title: "All Content", href: "/admin/content" },
+        { title: "Courses", href: "/admin/content/courses" },
+        { title: "Challenges", href: "/admin/content/challenges" },
+        { title: "Events", href: "/admin/content/events" },
+        { title: "Posts", href: "/admin/content/posts" },
+      ],
+    },
+    {
       title: "Financial",
       href: "/admin/financial",
       icon: Coins,
@@ -221,6 +235,12 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       Users: t("menu.users"),
       Communities: t("menu.communities"),
       "Content Moderation": t("menu.contentModeration"),
+      Content: t("menu.content"),
+      "All Content": t("menu.allContent"),
+      Courses: t("menu.courses"),
+      Challenges: t("menu.challenges"),
+      Events: t("menu.events"),
+      Posts: t("menu.posts"),
       Financial: t("menu.financial"),
       Analytics: t("menu.analytics"),
       Security: t("menu.security"),

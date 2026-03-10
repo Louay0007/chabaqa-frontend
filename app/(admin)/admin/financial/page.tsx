@@ -164,9 +164,8 @@ export default function FinancialDashboardPage() {
   const handleExport = async () => {
     try {
       await adminApi.financial.generateReport({
-        startDate: getStartDate(dateRange),
-        endDate: new Date().toISOString(),
-        includeDetails: true
+        period: dateRange,
+        format: 'pdf'
       })
       toast.success('Financial report generated successfully')
     } catch (error) {

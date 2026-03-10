@@ -310,6 +310,7 @@ export interface AdminCapabilities {
   users: boolean;
   communities: boolean;
   contentModeration: boolean;
+  contentManagement: boolean;
   financial: boolean;
   analytics: boolean;
   security: boolean;
@@ -1736,10 +1737,12 @@ export const adminApi = {
         ...response,
         data: {
           ...payload,
-          monthlyRevenue: asNumber(payload.subscriptionRevenue, 0),
-          revenueGrowth: asNumber(payload.growthRate, 0),
-          totalTransactions: asNumber(payload.transactionCount, 0),
+          totalRevenue: asNumber(payload.totalRevenue, 0),
+          monthlyRevenue: asNumber(payload.subscriptionRevenue, asNumber(payload.monthlyRevenue, 0)),
+          revenueGrowth: asNumber(payload.growthRate, asNumber(payload.revenueGrowth, 0)),
+          totalTransactions: asNumber(payload.transactionCount, asNumber(payload.totalTransactions, 0)),
           activeSubscriptions: asNumber(payload.activeSubscriptions, 0),
+          averageTransactionValue: asNumber(payload.averageTransactionValue, 0),
         },
       };
     },
@@ -1828,7 +1831,7 @@ export const adminApi = {
     cancelPayout: (id: string, reason: string) =>
       apiClient.post(`/admin/financial/payouts/${id}/cancel`, { reason }),
 
-    generateReport: (data: { startDate: string; endDate: string; includeDetails?: boolean }) =>
+    generateReport: (data: { period: string; format?: string; startDate?: string; endDate?: string }) =>
       apiClient.post('/admin/financial/reports/generate', data),
 
     // Financial Analytics
@@ -1869,7 +1872,10 @@ export const adminApi = {
     getRevenueGrowth: async (query: FinancialAnalyticsQuery) => {
       const response = await apiClient.get('/admin/financial/analytics/revenue-growth', query);
       const payload = asRecord(getResponseData(response));
-      const normalized = [
+      
+      // Map to a format suitable for the LineChart component
+      // It expects an array of objects where each object is a data point
+      const data = [
         {
           period: 'Previous',
           revenue: asNumber(payload.previousPeriodRevenue, 0),
@@ -1881,9 +1887,10 @@ export const adminApi = {
           growth: asNumber(payload.growthRate, 0),
         },
       ];
+
       return {
         ...response,
-        data: normalized,
+        data,
       };
     },
 
@@ -2405,6 +2412,75 @@ export const adminApi = {
         data: normalizeValidationResult(getResponseData(response)),
       };
     },
+  },
+
+  content: {
+    // Summary
+    getSummary: () => apiClient.get('/admin/content/summary'),
+
+    // Courses
+    getCourses: (filters: Record<string, unknown> = {}) =>
+      apiClient.get('/admin/content/courses', filters),
+    getCourseById: (id: string) =>
+      apiClient.get(`/admin/content/courses/${id}`),
+    approveCourse: (id: string) =>
+      apiClient.put(`/admin/content/courses/${id}/approve`, {}),
+    rejectCourse: (id: string, reason: string) =>
+      apiClient.put(`/admin/content/courses/${id}/reject`, { reason }),
+    featureCourse: (id: string, featured: boolean) =>
+      apiClient.put(`/admin/content/courses/${id}/feature`, { featured }),
+    getCourseEnrollments: (id: string, pagination: Record<string, unknown> = {}) =>
+      apiClient.get(`/admin/content/courses/${id}/enrollments`, pagination),
+    bulkApproveCourses: (ids: string[]) =>
+      apiClient.post('/admin/content/courses/bulk-approve', { ids }),
+
+    // Challenges
+    getChallenges: (filters: Record<string, unknown> = {}) =>
+      apiClient.get('/admin/content/challenges', filters),
+    getChallengeById: (id: string) =>
+      apiClient.get(`/admin/content/challenges/${id}`),
+    getChallengeSubmissions: (id: string, filters: Record<string, unknown> = {}) =>
+      apiClient.get(`/admin/content/challenges/${id}/submissions`, filters),
+    approveChallenge: (id: string) =>
+      apiClient.put(`/admin/content/challenges/${id}/approve`, {}),
+    rejectChallenge: (id: string, reason: string) =>
+      apiClient.put(`/admin/content/challenges/${id}/reject`, { reason }),
+    endChallengeEarly: (id: string) =>
+      apiClient.put(`/admin/content/challenges/${id}/end`, {}),
+    approveSubmission: (submissionId: string, feedback?: string, markAsWinner?: boolean) =>
+      apiClient.put(`/admin/content/challenges/submissions/${submissionId}/approve`, { feedback, markAsWinner }),
+    rejectSubmission: (submissionId: string, reason: string, feedback?: string) =>
+      apiClient.put(`/admin/content/challenges/submissions/${submissionId}/reject`, { reason, feedback }),
+
+    // Events
+    getEvents: (filters: Record<string, unknown> = {}) =>
+      apiClient.get('/admin/content/events', filters),
+    getEventById: (id: string) =>
+      apiClient.get(`/admin/content/events/${id}`),
+    getEventAttendees: (id: string, pagination: Record<string, unknown> = {}) =>
+      apiClient.get(`/admin/content/events/${id}/attendees`, pagination),
+    approveEvent: (id: string) =>
+      apiClient.put(`/admin/content/events/${id}/approve`, {}),
+    rejectEvent: (id: string, reason: string) =>
+      apiClient.put(`/admin/content/events/${id}/reject`, { reason }),
+    cancelEvent: (id: string, reason: string) =>
+      apiClient.put(`/admin/content/events/${id}/cancel`, { reason }),
+    messageAttendees: (id: string, message: string, sendEmail?: boolean) =>
+      apiClient.post(`/admin/content/events/${id}/message-attendees`, { message, sendEmail }),
+
+    // Posts
+    getPosts: (filters: Record<string, unknown> = {}) =>
+      apiClient.get('/admin/content/posts', filters),
+    getPostById: (id: string) =>
+      apiClient.get(`/admin/content/posts/${id}`),
+    moderatePost: (id: string, action: 'hide' | 'delete' | 'restore') =>
+      apiClient.put(`/admin/content/posts/${id}/moderate`, { action }),
+    featurePost: (id: string, featured: boolean) =>
+      apiClient.put(`/admin/content/posts/${id}/feature`, { featured }),
+    deletePost: (id: string) =>
+      apiClient.delete(`/admin/content/posts/${id}`),
+    deleteComment: (postId: string, commentId: string) =>
+      apiClient.delete(`/admin/content/posts/${postId}/comments/${commentId}`),
   },
 
   support: {
