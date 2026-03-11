@@ -9,10 +9,25 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    concurrency:
-      group: chabaqa-vps-deploy
-      cancel-in-progress: true
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build
+        env:
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          API_INTERNAL_URL: ${{ secrets.API_INTERNAL_URL }}
+        run: npm run build
+
       - name: Deploy via SSH
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -26,4 +41,13 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           if [ -z "${VPS_PORT:-}" ]; then VPS_PORT=22; fi
           ssh-keyscan -p "$VPS_PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
-          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" 'bash -lc "/home/ubuntu/chabaqa/scripts/deploy-from-github.sh"'
+          rsync -az --delete -e "ssh -p $VPS_PORT" \
+            --rsync-path="sudo rsync" \
+            .next/standalone/ "$VPS_USER@$VPS_HOST:/var/www/frontend/.next/standalone/"
+          rsync -az --delete -e "ssh -p $VPS_PORT" \
+            --rsync-path="sudo rsync" \
+            .next/static/ "$VPS_USER@$VPS_HOST:/var/www/frontend/.next/static/"
+          rsync -az --delete -e "ssh -p $VPS_PORT" \
+            --rsync-path="sudo rsync" \
+            public/ "$VPS_USER@$VPS_HOST:/var/www/frontend/public/"
+          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" 'sudo supervisorctl restart chabaqa-frontend'
