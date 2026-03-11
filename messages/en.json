@@ -583,6 +583,7 @@
       "users": "Users",
       "communities": "Communities",
       "contentModeration": "Content Moderation",
+      "contentManagement": "Content Management",
       "financial": "Financial",
       "analytics": "Analytics",
       "security": "Security",
@@ -600,6 +601,437 @@
       "templates": "Templates",
       "notifications": "Notifications",
       "liveSupport": "Live Support"
+    },
+    "content": {
+      "title": "Content Management",
+      "subtitle": "Review and manage all learning content.",
+      "total": "Total",
+      "pending": "Pending",
+      "hidden": "Hidden",
+      "quickActions": {
+        "title": "Quick Actions",
+        "reviewCourses": "Review pending courses",
+        "manageChallenges": "Manage challenges",
+        "upcomingEvents": "Upcoming events",
+        "moderatePosts": "Moderate posts"
+      },
+      "courses": {
+        "title": "Courses",
+        "description": "Review, feature, and manage courses.",
+        "subtitle": "Manage courses and approvals.",
+        "searchPlaceholder": "Search courses...",
+        "filterByStatus": "Filter by status",
+        "allStatuses": "All statuses",
+        "status": {
+          "pending": "Pending",
+          "approved": "Approved",
+          "featured": "Featured",
+          "suspended": "Suspended"
+        },
+        "table": {
+          "course": "Course",
+          "creator": "Creator",
+          "community": "Community",
+          "price": "Price",
+          "enrollments": "Enrollments",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "actions": {
+          "view": "View",
+          "approve": "Approve",
+          "feature": "Feature",
+          "unfeature": "Unfeature",
+          "suspend": "Suspend"
+        },
+        "free": "Free",
+        "noCourses": "No courses",
+        "noCoursesDescription": "No courses to show.",
+        "showing": "Showing",
+        "of": "of",
+        "fetchError": "Failed to load courses.",
+        "approveSuccess": "Course approved.",
+        "approveError": "Failed to approve course.",
+        "featureSuccess": "Course featured.",
+        "unfeatureSuccess": "Feature removed.",
+        "featureError": "Failed to update feature.",
+        "detail": {
+          "subtitle": "Course details",
+          "fetchError": "Failed to load course.",
+          "approveSuccess": "Course approved.",
+          "approveError": "Failed to approve course.",
+          "featureSuccess": "Course featured.",
+          "unfeatureSuccess": "Feature removed.",
+          "featureError": "Failed to update feature.",
+          "notFound": "Course not found",
+          "notFoundDescription": "This course no longer exists.",
+          "actions": {
+            "approve": "Approve",
+            "feature": "Feature",
+            "unfeature": "Unfeature",
+            "suspend": "Suspend"
+          },
+          "overview": {
+            "title": "Overview",
+            "published": "Published",
+            "draft": "Draft",
+            "featured": "Featured",
+            "free": "Free",
+            "sections": "Sections",
+            "chapters": "Chapters",
+            "ratings": "ratings",
+            "learningObjectives": "Learning objectives",
+            "requirements": "Requirements"
+          },
+          "tabs": {
+            "sections": "Sections",
+            "resources": "Resources"
+          },
+          "sections": {
+            "title": "Sections",
+            "chapters": "chapters",
+            "preview": "Preview"
+          },
+          "resources": {
+            "title": "Resources",
+            "empty": "No resources yet."
+          },
+          "creator": {
+            "title": "Creator"
+          },
+          "community": {
+            "title": "Community",
+            "viewCommunity": "View community"
+          },
+          "stats": {
+            "title": "Stats",
+            "enrollments": "Enrollments",
+            "created": "Created",
+            "updated": "Updated"
+          },
+          "viewEnrollments": "View enrollments"
+        }
+      },
+      "challenges": {
+        "title": "Challenges",
+        "description": "Oversee challenges and submissions.",
+        "subtitle": "Manage challenges and approvals.",
+        "searchPlaceholder": "Search challenges...",
+        "filterByStatus": "Filter by status",
+        "allStatuses": "All statuses",
+        "status": {
+          "pending": "Pending",
+          "approved": "Approved",
+          "featured": "Featured",
+          "active": "Active",
+          "ended": "Ended",
+          "upcoming": "Upcoming"
+        },
+        "difficulty": {
+          "beginner": "Beginner",
+          "intermediate": "Intermediate",
+          "advanced": "Advanced"
+        },
+        "table": {
+          "challenge": "Challenge",
+          "creator": "Creator",
+          "dates": "Dates",
+          "participants": "Participants",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "actions": {
+          "view": "View",
+          "viewSubmissions": "View submissions",
+          "approve": "Approve",
+          "endEarly": "End early",
+          "feature": "Feature",
+          "unfeature": "Unfeature"
+        },
+        "teamChallenge": "Team challenge",
+        "participants": "participants",
+        "submissions": "submissions",
+        "noChallenges": "No challenges",
+        "noChallengesDescription": "No challenges to show.",
+        "showing": "Showing",
+        "of": "of",
+        "fetchError": "Failed to load challenges.",
+        "approveSuccess": "Challenge approved.",
+        "approveError": "Failed to approve challenge.",
+        "endSuccess": "Challenge ended.",
+        "endError": "Failed to end challenge.",
+        "detail": {
+          "subtitle": "Challenge details",
+          "fetchError": "Failed to load challenge.",
+          "approveSuccess": "Challenge approved.",
+          "approveError": "Failed to approve challenge.",
+          "endSuccess": "Challenge ended.",
+          "endError": "Failed to end challenge.",
+          "notFound": "Challenge not found",
+          "notFoundDescription": "This challenge no longer exists.",
+          "actions": {
+            "approve": "Approve",
+            "endEarly": "End early",
+            "viewSubmissions": "View submissions"
+          },
+          "difficulty": {
+            "beginner": "Beginner",
+            "intermediate": "Intermediate",
+            "advanced": "Advanced"
+          },
+          "status": {
+            "upcoming": "Upcoming",
+            "active": "Active",
+            "ended": "Ended"
+          },
+          "teamChallenge": "Team challenge",
+          "featured": "Featured",
+          "overview": {
+            "title": "Overview",
+            "startDate": "Start date",
+            "endDate": "End date",
+            "participants": "Participants",
+            "submissions": "Submissions",
+            "prizes": "Prizes",
+            "hashtags": "Hashtags",
+            "max": "max"
+          },
+          "tabs": {
+            "tasks": "Tasks",
+            "rules": "Rules",
+            "prizes": "Prizes",
+            "resources": "Resources"
+          },
+          "tasks": {
+            "title": "Tasks",
+            "day": "Day",
+            "points": "points"
+          },
+          "rules": {
+            "title": "Rules",
+            "evaluationCriteria": "Evaluation criteria"
+          },
+          "prizes": {
+            "title": "Prizes",
+            "value": "Value",
+            "empty": "No prizes listed."
+          },
+          "resources": {
+            "title": "Resources",
+            "empty": "No resources yet."
+          },
+          "creator": {
+            "title": "Creator"
+          },
+          "community": {
+            "title": "Community",
+            "viewCommunity": "View community"
+          },
+          "viewSubmissions": "View submissions"
+        }
+      },
+      "events": {
+        "title": "Events",
+        "description": "Manage events and attendees.",
+        "subtitle": "Manage events and approvals.",
+        "searchPlaceholder": "Search events...",
+        "filterByStatus": "Filter by status",
+        "allStatuses": "All statuses",
+        "status": {
+          "pending": "Pending",
+          "approved": "Approved",
+          "featured": "Featured",
+          "upcoming": "Upcoming",
+          "ongoing": "Ongoing",
+          "ended": "Ended",
+          "cancelled": "Cancelled"
+        },
+        "table": {
+          "event": "Event",
+          "creator": "Creator",
+          "dates": "Dates",
+          "attendees": "Attendees",
+          "location": "Location",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "actions": {
+          "view": "View",
+          "viewAttendees": "View attendees",
+          "approve": "Approve",
+          "messageAttendees": "Message attendees",
+          "cancel": "Cancel"
+        },
+        "ticketTypes": "ticket types",
+        "online": "Online",
+        "inPerson": "In person",
+        "onlineEvent": "Online event",
+        "noEvents": "No events",
+        "noEventsDescription": "No events to show.",
+        "showing": "Showing",
+        "of": "of",
+        "fetchError": "Failed to load events.",
+        "approveSuccess": "Event approved.",
+        "approveError": "Failed to approve event.",
+        "cancelSuccess": "Event cancelled.",
+        "cancelError": "Failed to cancel event.",
+        "detail": {
+          "subtitle": "Event details",
+          "fetchError": "Failed to load event.",
+          "approveSuccess": "Event approved.",
+          "approveError": "Failed to approve event.",
+          "cancelSuccess": "Event cancelled.",
+          "cancelError": "Failed to cancel event.",
+          "notFound": "Event not found",
+          "notFoundDescription": "This event no longer exists.",
+          "actions": {
+            "approve": "Approve",
+            "cancel": "Cancel"
+          },
+          "status": {
+            "upcoming": "Upcoming",
+            "ongoing": "Ongoing",
+            "ended": "Ended",
+            "cancelled": "Cancelled"
+          },
+          "featured": "Featured",
+          "online": "Online",
+          "inPerson": "In person",
+          "onlineEvent": "Online event",
+          "private": "Private",
+          "overview": {
+            "title": "Overview",
+            "startDate": "Start date",
+            "endDate": "End date",
+            "location": "Location",
+            "attendees": "Attendees",
+            "max": "max",
+            "onlineLink": "Online link",
+            "requirements": "Requirements",
+            "whatToBring": "What to bring"
+          },
+          "tabs": {
+            "tickets": "Tickets",
+            "agenda": "Agenda",
+            "speakers": "Speakers"
+          },
+          "tickets": {
+            "title": "Tickets",
+            "available": "Available",
+            "sold": "Sold",
+            "free": "Free",
+            "empty": "No tickets available."
+          },
+          "agenda": {
+            "title": "Agenda",
+            "speaker": "Speaker"
+          },
+          "speakers": {
+            "title": "Speakers"
+          },
+          "creator": {
+            "title": "Creator"
+          },
+          "community": {
+            "title": "Community",
+            "viewCommunity": "View community"
+          },
+          "viewAttendees": "View attendees",
+          "messageAttendees": "Message attendees"
+        }
+      },
+      "posts": {
+        "title": "Posts",
+        "description": "Moderate community posts.",
+        "subtitle": "Manage posts and moderation.",
+        "searchPlaceholder": "Search posts...",
+        "filterByStatus": "Filter by status",
+        "allStatuses": "All statuses",
+        "status": {
+          "published": "Published",
+          "hidden": "Hidden",
+          "featured": "Featured"
+        },
+        "table": {
+          "post": "Post",
+          "author": "Author",
+          "community": "Community",
+          "engagement": "Engagement",
+          "date": "Date",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "actions": {
+          "view": "View",
+          "feature": "Feature",
+          "unfeature": "Unfeature",
+          "hide": "Hide",
+          "restore": "Restore",
+          "delete": "Delete"
+        },
+        "noPosts": "No posts",
+        "noPostsDescription": "No posts to show.",
+        "showing": "Showing",
+        "of": "of",
+        "fetchError": "Failed to load posts.",
+        "hideSuccess": "Post hidden.",
+        "restoreSuccess": "Post restored.",
+        "deleteSuccess": "Post deleted.",
+        "moderateError": "Failed to update status.",
+        "featureSuccess": "Post featured.",
+        "unfeatureSuccess": "Feature removed.",
+        "featureError": "Failed to update feature.",
+        "detail": {
+          "subtitle": "Post details",
+          "fetchError": "Failed to load post.",
+          "notFound": "Post not found",
+          "notFoundDescription": "This post no longer exists.",
+          "untitledPost": "Untitled post",
+          "actions": {
+            "feature": "Feature",
+            "unfeature": "Unfeature",
+            "hide": "Hide",
+            "restore": "Restore",
+            "delete": "Delete"
+          },
+          "status": {
+            "published": "Published",
+            "hidden": "Hidden",
+            "featured": "Featured"
+          },
+          "engagement": {
+            "likes": "Likes",
+            "comments": "Comments"
+          },
+          "comments": {
+            "title": "Comments",
+            "empty": "No comments yet."
+          },
+          "author": {
+            "title": "Author"
+          },
+          "community": {
+            "title": "Community",
+            "viewCommunity": "View community"
+          },
+          "stats": {
+            "title": "Stats",
+            "likes": "Likes",
+            "comments": "Comments",
+            "created": "Created",
+            "updated": "Updated"
+          },
+          "hideSuccess": "Post hidden.",
+          "restoreSuccess": "Post restored.",
+          "deleteSuccess": "Post deleted.",
+          "deleteCommentSuccess": "Comment deleted.",
+          "deleteCommentError": "Failed to delete comment.",
+          "moderateError": "Failed to update status.",
+          "featureSuccess": "Post featured.",
+          "unfeatureSuccess": "Feature removed.",
+          "featureError": "Failed to update feature."
+        }
+      }
     },
     "header": {
       "profile": "Profile",

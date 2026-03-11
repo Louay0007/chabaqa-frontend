@@ -90,7 +90,7 @@ export default function AdminLayout({
           </div>
           <main 
             id="main-content" 
-            className="admin-page"
+            className="admin-page px-4 pb-10 pt-6 sm:px-6 lg:px-8"
             role="main"
             aria-label="Main content"
             tabIndex={-1}

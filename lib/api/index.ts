@@ -25,6 +25,8 @@ export * from './subscription.api';
 export * from './users.api';
 export * from './user.api';
 export * from './progression.api';
+export * from './learning-path.api';
+export * from './resources.api';
 export * from './achievements.api';
 export * from './community-page-content';
 export * from './feedback.api';
@@ -55,6 +57,8 @@ import { feedbackApi } from './feedback.api';
 import { aiApi } from './ai.api';
 import { dmApi } from './dm.api';
 import { liveSupportApi } from './live-support.api';
+import { learningPathApi } from './learning-path.api';
+import { resourcesApi } from './resources.api';
 
 export const api = {
   auth: authApi,
@@ -77,4 +81,6 @@ export const api = {
   ai: aiApi,
   dm: dmApi,
   liveSupport: liveSupportApi,
+  learningPath: learningPathApi,
+  resources: resourcesApi,
 };

@@ -39,7 +39,8 @@ import {
   Sparkles,
   Star,
   LayoutDashboard,
-  Loader2
+  Loader2,
+  Route
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { communitiesApi } from "@/lib/api/communities.api"
@@ -75,6 +76,7 @@ const navigationItems = [
   { label: "Events", href: "/events", icon: Sparkles },
   { label: "Reviews", href: "/reviews", icon: Star },
   { label: "Progress", href: "/progress", icon: TrendingUp },
+  { label: "Learning Path", href: "/learning-path", icon: Route },
   // { label: "Achievements", href: "/achievements", icon: Trophy },
   { label: "Members", href: "/members", icon: Users },
 ]

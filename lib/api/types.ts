@@ -689,6 +689,95 @@ export interface ProgressionOverview {
   items: ProgressionItem[];
 }
 
+// Learning path types
+export interface LearningPathItem {
+  id: string;
+  type: 'chapter' | 'challenge' | 'resource';
+  contentId: string;
+  title: string;
+  reason: string;
+  score: number;
+  metadata?: Record<string, any>;
+}
+
+export interface LearningPathResponse {
+  items: LearningPathItem[];
+}
+
+// Resource types
+export type ResourceType = 'Article' | 'Video' | 'Guide' | 'Podcast' | 'Ebook';
+
+export type ResourceElementType =
+  | 'text'
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'link'
+  | 'code'
+  | 'quote';
+
+export interface ResourceContentElement {
+  type: ResourceElementType;
+  content: string;
+  title?: string;
+  description?: string;
+  alt?: string;
+  caption?: string;
+  order?: number;
+  metadata?: Record<string, any>;
+}
+
+export interface ResourceGuideSection {
+  title: string;
+  description?: string;
+  order?: number;
+  elements?: ResourceContentElement[];
+}
+
+export interface ResourceContentArticle {
+  elements?: ResourceContentElement[];
+  excerpt?: string;
+  tags?: string[];
+}
+
+export interface ResourceContentVideo {
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  duration?: number;
+  quality?: string;
+  description?: ResourceContentElement[];
+}
+
+export interface ResourceContentGuide {
+  sections?: ResourceGuideSection[];
+  introduction?: ResourceContentElement[];
+  conclusion?: ResourceContentElement[];
+  guideMetadata?: Record<string, any>;
+}
+
+export interface Resource {
+  _id?: string;
+  id?: string;
+  titre: string;
+  slug?: string;
+  description: string;
+  type: ResourceType;
+  readTime?: string;
+  category?: string;
+  author?: string;
+  authorName?: string;
+  communityId?: string;
+  thumbnailUrl?: string;
+  coverImageUrl?: string;
+  content?: ResourceContentArticle | ResourceContentVideo | ResourceContentGuide | Record<string, any>;
+  isPublished?: boolean;
+  isPremium?: boolean;
+  tags?: string[];
+  publishedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // Messaging types
 export type ConversationType = 'COMMUNITY_DM' | 'HELP_DM' | 'PEER_DM' | 'SESSION_TEMP_DM' | 'LIVE_SUPPORT';
 

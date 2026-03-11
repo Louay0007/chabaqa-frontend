@@ -186,16 +186,16 @@ export default function EventsManagementPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      <div className="admin-section-header">
         <div>
           <h1 className="text-3xl font-bold">{t("title")}</h1>
           <p className="text-muted-foreground mt-2">{t("subtitle")}</p>
         </div>
       </div>
 
-      <Card>
-        <CardContent className="p-6">
+      <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
+        <CardContent className="p-5 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <form onSubmit={handleSearch} className="flex gap-2 flex-1 max-w-md">
               <Input
@@ -230,7 +230,7 @@ export default function EventsManagementPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="admin-table-shell border-0">
         <CardContent className="p-0">
           {loading ? (
             <div className="flex min-h-[400px] items-center justify-center">

@@ -583,6 +583,7 @@
       "users": "المستخدمون",
       "communities": "المجتمعات",
       "contentModeration": "مراجعة المحتوى",
+      "contentManagement": "إدارة المحتوى",
       "financial": "المالية",
       "analytics": "التحليلات",
       "security": "الأمان",
@@ -600,6 +601,437 @@
       "templates": "القوالب",
       "notifications": "الإشعارات",
       "liveSupport": "الدعم المباشر"
+    },
+    "content": {
+      "title": "إدارة المحتوى",
+      "subtitle": "مراجعة وإدارة كل المحتوى التعليمي.",
+      "total": "الإجمالي",
+      "pending": "قيد المراجعة",
+      "hidden": "مخفي",
+      "quickActions": {
+        "title": "إجراءات سريعة",
+        "reviewCourses": "مراجعة الدورات المعلقة",
+        "manageChallenges": "إدارة التحديات",
+        "upcomingEvents": "الفعاليات القادمة",
+        "moderatePosts": "مراجعة المنشورات"
+      },
+      "courses": {
+        "title": "الدورات",
+        "description": "مراجعة الدورات وإدارتها.",
+        "subtitle": "إدارة الدورات والموافقات.",
+        "searchPlaceholder": "ابحث عن دورة...",
+        "filterByStatus": "تصفية بالحالة",
+        "allStatuses": "كل الحالات",
+        "status": {
+          "pending": "قيد المراجعة",
+          "approved": "مقبول",
+          "featured": "مميّز",
+          "suspended": "معلّق"
+        },
+        "table": {
+          "course": "الدورة",
+          "creator": "المنشئ",
+          "community": "المجتمع",
+          "price": "السعر",
+          "enrollments": "التسجيلات",
+          "status": "الحالة",
+          "actions": "الإجراءات"
+        },
+        "actions": {
+          "view": "عرض",
+          "approve": "اعتماد",
+          "feature": "تمييز",
+          "unfeature": "إلغاء التمييز",
+          "suspend": "إيقاف"
+        },
+        "free": "مجاني",
+        "noCourses": "لا توجد دورات",
+        "noCoursesDescription": "لا توجد دورات للعرض.",
+        "showing": "عرض",
+        "of": "من",
+        "fetchError": "تعذر تحميل الدورات.",
+        "approveSuccess": "تم اعتماد الدورة.",
+        "approveError": "فشل اعتماد الدورة.",
+        "featureSuccess": "تم تمييز الدورة.",
+        "unfeatureSuccess": "تم إلغاء التمييز.",
+        "featureError": "فشل تحديث التمييز.",
+        "detail": {
+          "subtitle": "تفاصيل الدورة",
+          "fetchError": "تعذر تحميل الدورة.",
+          "approveSuccess": "تم اعتماد الدورة.",
+          "approveError": "فشل اعتماد الدورة.",
+          "featureSuccess": "تم تمييز الدورة.",
+          "unfeatureSuccess": "تم إلغاء التمييز.",
+          "featureError": "فشل تحديث التمييز.",
+          "notFound": "الدورة غير موجودة",
+          "notFoundDescription": "لم نتمكن من العثور على هذه الدورة.",
+          "actions": {
+            "approve": "اعتماد",
+            "feature": "تمييز",
+            "unfeature": "إلغاء التمييز",
+            "suspend": "إيقاف"
+          },
+          "overview": {
+            "title": "نظرة عامة",
+            "published": "منشور",
+            "draft": "مسودة",
+            "featured": "مميّز",
+            "free": "مجاني",
+            "sections": "الأقسام",
+            "chapters": "الفصول",
+            "ratings": "تقييمات",
+            "learningObjectives": "أهداف التعلم",
+            "requirements": "المتطلبات"
+          },
+          "tabs": {
+            "sections": "الأقسام",
+            "resources": "الموارد"
+          },
+          "sections": {
+            "title": "الأقسام",
+            "chapters": "فصول",
+            "preview": "معاينة"
+          },
+          "resources": {
+            "title": "الموارد",
+            "empty": "لا توجد موارد بعد."
+          },
+          "creator": {
+            "title": "المنشئ"
+          },
+          "community": {
+            "title": "المجتمع",
+            "viewCommunity": "عرض المجتمع"
+          },
+          "stats": {
+            "title": "الإحصاءات",
+            "enrollments": "التسجيلات",
+            "created": "تاريخ الإنشاء",
+            "updated": "آخر تحديث"
+          },
+          "viewEnrollments": "عرض التسجيلات"
+        }
+      },
+      "challenges": {
+        "title": "التحديات",
+        "description": "متابعة التحديات والمشاركات.",
+        "subtitle": "إدارة التحديات والموافقات.",
+        "searchPlaceholder": "ابحث عن تحدي...",
+        "filterByStatus": "تصفية بالحالة",
+        "allStatuses": "كل الحالات",
+        "status": {
+          "pending": "قيد المراجعة",
+          "approved": "مقبول",
+          "featured": "مميّز",
+          "active": "نشط",
+          "ended": "منتهٍ",
+          "upcoming": "قادم"
+        },
+        "difficulty": {
+          "beginner": "مبتدئ",
+          "intermediate": "متوسط",
+          "advanced": "متقدم"
+        },
+        "table": {
+          "challenge": "التحدي",
+          "creator": "المنشئ",
+          "dates": "التواريخ",
+          "participants": "المشاركون",
+          "status": "الحالة",
+          "actions": "الإجراءات"
+        },
+        "actions": {
+          "view": "عرض",
+          "viewSubmissions": "عرض المشاركات",
+          "approve": "اعتماد",
+          "endEarly": "إنهاء مبكر",
+          "feature": "تمييز",
+          "unfeature": "إلغاء التمييز"
+        },
+        "teamChallenge": "تحدي جماعي",
+        "participants": "مشاركون",
+        "submissions": "مشاركات",
+        "noChallenges": "لا توجد تحديات",
+        "noChallengesDescription": "لا توجد تحديات للعرض.",
+        "showing": "عرض",
+        "of": "من",
+        "fetchError": "تعذر تحميل التحديات.",
+        "approveSuccess": "تم اعتماد التحدي.",
+        "approveError": "فشل اعتماد التحدي.",
+        "endSuccess": "تم إنهاء التحدي.",
+        "endError": "فشل إنهاء التحدي.",
+        "detail": {
+          "subtitle": "تفاصيل التحدي",
+          "fetchError": "تعذر تحميل التحدي.",
+          "approveSuccess": "تم اعتماد التحدي.",
+          "approveError": "فشل اعتماد التحدي.",
+          "endSuccess": "تم إنهاء التحدي.",
+          "endError": "فشل إنهاء التحدي.",
+          "notFound": "التحدي غير موجود",
+          "notFoundDescription": "لم نتمكن من العثور على هذا التحدي.",
+          "actions": {
+            "approve": "اعتماد",
+            "endEarly": "إنهاء مبكر",
+            "viewSubmissions": "عرض المشاركات"
+          },
+          "difficulty": {
+            "beginner": "مبتدئ",
+            "intermediate": "متوسط",
+            "advanced": "متقدم"
+          },
+          "status": {
+            "upcoming": "قادم",
+            "active": "نشط",
+            "ended": "منتهٍ"
+          },
+          "teamChallenge": "تحدي جماعي",
+          "featured": "مميّز",
+          "overview": {
+            "title": "نظرة عامة",
+            "startDate": "تاريخ البداية",
+            "endDate": "تاريخ النهاية",
+            "participants": "المشاركون",
+            "submissions": "المشاركات",
+            "prizes": "الجوائز",
+            "hashtags": "الوسوم",
+            "max": "الحد الأقصى"
+          },
+          "tabs": {
+            "tasks": "المهام",
+            "rules": "القواعد",
+            "prizes": "الجوائز",
+            "resources": "الموارد"
+          },
+          "tasks": {
+            "title": "المهام",
+            "day": "اليوم",
+            "points": "نقاط"
+          },
+          "rules": {
+            "title": "القواعد",
+            "evaluationCriteria": "معايير التقييم"
+          },
+          "prizes": {
+            "title": "الجوائز",
+            "value": "القيمة",
+            "empty": "لا توجد جوائز."
+          },
+          "resources": {
+            "title": "الموارد",
+            "empty": "لا توجد موارد بعد."
+          },
+          "creator": {
+            "title": "المنشئ"
+          },
+          "community": {
+            "title": "المجتمع",
+            "viewCommunity": "عرض المجتمع"
+          },
+          "viewSubmissions": "عرض المشاركات"
+        }
+      },
+      "events": {
+        "title": "الفعاليات",
+        "description": "إدارة الفعاليات والحضور.",
+        "subtitle": "إدارة الفعاليات والموافقات.",
+        "searchPlaceholder": "ابحث عن فعالية...",
+        "filterByStatus": "تصفية بالحالة",
+        "allStatuses": "كل الحالات",
+        "status": {
+          "pending": "قيد المراجعة",
+          "approved": "مقبول",
+          "featured": "مميّز",
+          "upcoming": "قادم",
+          "ongoing": "جارٍ",
+          "ended": "منتهٍ",
+          "cancelled": "ملغى"
+        },
+        "table": {
+          "event": "الفعالية",
+          "creator": "المنشئ",
+          "dates": "التواريخ",
+          "attendees": "الحضور",
+          "location": "الموقع",
+          "status": "الحالة",
+          "actions": "الإجراءات"
+        },
+        "actions": {
+          "view": "عرض",
+          "viewAttendees": "عرض الحضور",
+          "approve": "اعتماد",
+          "messageAttendees": "مراسلة الحضور",
+          "cancel": "إلغاء"
+        },
+        "ticketTypes": "أنواع التذاكر",
+        "online": "أونلاين",
+        "inPerson": "حضوري",
+        "onlineEvent": "فعالية أونلاين",
+        "noEvents": "لا توجد فعاليات",
+        "noEventsDescription": "لا توجد فعاليات للعرض.",
+        "showing": "عرض",
+        "of": "من",
+        "fetchError": "تعذر تحميل الفعاليات.",
+        "approveSuccess": "تم اعتماد الفعالية.",
+        "approveError": "فشل اعتماد الفعالية.",
+        "cancelSuccess": "تم إلغاء الفعالية.",
+        "cancelError": "فشل إلغاء الفعالية.",
+        "detail": {
+          "subtitle": "تفاصيل الفعالية",
+          "fetchError": "تعذر تحميل الفعالية.",
+          "approveSuccess": "تم اعتماد الفعالية.",
+          "approveError": "فشل اعتماد الفعالية.",
+          "cancelSuccess": "تم إلغاء الفعالية.",
+          "cancelError": "فشل إلغاء الفعالية.",
+          "notFound": "الفعالية غير موجودة",
+          "notFoundDescription": "لم نتمكن من العثور على هذه الفعالية.",
+          "actions": {
+            "approve": "اعتماد",
+            "cancel": "إلغاء"
+          },
+          "status": {
+            "upcoming": "قادم",
+            "ongoing": "جارٍ",
+            "ended": "منتهٍ",
+            "cancelled": "ملغى"
+          },
+          "featured": "مميّز",
+          "online": "أونلاين",
+          "inPerson": "حضوري",
+          "onlineEvent": "فعالية أونلاين",
+          "private": "خاص",
+          "overview": {
+            "title": "نظرة عامة",
+            "startDate": "تاريخ البداية",
+            "endDate": "تاريخ النهاية",
+            "location": "الموقع",
+            "attendees": "الحضور",
+            "max": "الحد الأقصى",
+            "onlineLink": "رابط أونلاين",
+            "requirements": "المتطلبات",
+            "whatToBring": "ماذا تحضر"
+          },
+          "tabs": {
+            "tickets": "التذاكر",
+            "agenda": "الجدول",
+            "speakers": "المتحدثون"
+          },
+          "tickets": {
+            "title": "التذاكر",
+            "available": "المتاح",
+            "sold": "المباع",
+            "free": "مجاني",
+            "empty": "لا توجد تذاكر."
+          },
+          "agenda": {
+            "title": "الجدول",
+            "speaker": "المتحدث"
+          },
+          "speakers": {
+            "title": "المتحدثون"
+          },
+          "creator": {
+            "title": "المنشئ"
+          },
+          "community": {
+            "title": "المجتمع",
+            "viewCommunity": "عرض المجتمع"
+          },
+          "viewAttendees": "عرض الحضور",
+          "messageAttendees": "مراسلة الحضور"
+        }
+      },
+      "posts": {
+        "title": "المنشورات",
+        "description": "مراجعة منشورات المجتمع.",
+        "subtitle": "إدارة المنشورات والمراجعة.",
+        "searchPlaceholder": "ابحث عن منشور...",
+        "filterByStatus": "تصفية بالحالة",
+        "allStatuses": "كل الحالات",
+        "status": {
+          "published": "منشور",
+          "hidden": "مخفي",
+          "featured": "مميّز"
+        },
+        "table": {
+          "post": "المنشور",
+          "author": "الكاتب",
+          "community": "المجتمع",
+          "engagement": "التفاعل",
+          "date": "التاريخ",
+          "status": "الحالة",
+          "actions": "الإجراءات"
+        },
+        "actions": {
+          "view": "عرض",
+          "feature": "تمييز",
+          "unfeature": "إلغاء التمييز",
+          "hide": "إخفاء",
+          "restore": "استعادة",
+          "delete": "حذف"
+        },
+        "noPosts": "لا توجد منشورات",
+        "noPostsDescription": "لا توجد منشورات للعرض.",
+        "showing": "عرض",
+        "of": "من",
+        "fetchError": "تعذر تحميل المنشورات.",
+        "hideSuccess": "تم إخفاء المنشور.",
+        "restoreSuccess": "تمت استعادة المنشور.",
+        "deleteSuccess": "تم حذف المنشور.",
+        "moderateError": "فشل تحديث الحالة.",
+        "featureSuccess": "تم تمييز المنشور.",
+        "unfeatureSuccess": "تم إلغاء التمييز.",
+        "featureError": "فشل تحديث التمييز.",
+        "detail": {
+          "subtitle": "تفاصيل المنشور",
+          "fetchError": "تعذر تحميل المنشور.",
+          "notFound": "المنشور غير موجود",
+          "notFoundDescription": "لم نتمكن من العثور على هذا المنشور.",
+          "untitledPost": "منشور بدون عنوان",
+          "actions": {
+            "feature": "تمييز",
+            "unfeature": "إلغاء التمييز",
+            "hide": "إخفاء",
+            "restore": "استعادة",
+            "delete": "حذف"
+          },
+          "status": {
+            "published": "منشور",
+            "hidden": "مخفي",
+            "featured": "مميّز"
+          },
+          "engagement": {
+            "likes": "الإعجابات",
+            "comments": "التعليقات"
+          },
+          "comments": {
+            "title": "التعليقات",
+            "empty": "لا توجد تعليقات بعد."
+          },
+          "author": {
+            "title": "الكاتب"
+          },
+          "community": {
+            "title": "المجتمع",
+            "viewCommunity": "عرض المجتمع"
+          },
+          "stats": {
+            "title": "الإحصاءات",
+            "likes": "الإعجابات",
+            "comments": "التعليقات",
+            "created": "تاريخ الإنشاء",
+            "updated": "آخر تحديث"
+          },
+          "hideSuccess": "تم إخفاء المنشور.",
+          "restoreSuccess": "تمت استعادة المنشور.",
+          "deleteSuccess": "تم حذف المنشور.",
+          "deleteCommentSuccess": "تم حذف التعليق.",
+          "deleteCommentError": "فشل حذف التعليق.",
+          "moderateError": "فشل تحديث الحالة.",
+          "featureSuccess": "تم تمييز المنشور.",
+          "unfeatureSuccess": "تم إلغاء التمييز.",
+          "featureError": "فشل تحديث التمييز."
+        }
+      }
     },
     "header": {
       "profile": "الملف الشخصي",

@@ -169,7 +169,7 @@ export default function ProgressItemCard({ item }: ProgressItemCardProps) {
                 alt={item.title}
                 fill
                 unoptimized
-                className="object-cover object-center"
+                className="object-contain object-center p-2"
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">

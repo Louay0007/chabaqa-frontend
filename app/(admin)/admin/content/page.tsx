@@ -122,7 +122,7 @@ export default function ContentManagementPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="admin-section-header">
         <div>
           <h1 className="text-3xl font-bold">{t("title")}</h1>
           <p className="text-muted-foreground mt-2">{t("subtitle")}</p>
@@ -135,17 +135,17 @@ export default function ContentManagementPage() {
           return (
             <Card 
               key={card.title} 
-              className={`hover:shadow-lg transition-shadow cursor-pointer ${card.borderColor}`}
+              className={`admin-surface overflow-hidden rounded-3xl border-0 shadow-none hover:shadow-lg transition-shadow cursor-pointer ${card.borderColor}`}
             >
               <Link href={localizeHref(pathname, card.href)}>
-                <CardHeader className="pb-4">
+                <CardHeader className="pb-4 px-6 pt-6">
                   <div className={`w-12 h-12 rounded-xl ${card.color} flex items-center justify-center mb-4`}>
                     <Icon className="h-6 w-6" />
                   </div>
                   <CardTitle className="text-lg">{card.title}</CardTitle>
                   <p className="text-sm text-muted-foreground">{card.description}</p>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-6 pb-6">
                   <div className="flex items-center justify-between">
                     <div className="flex gap-2">
                       <Badge variant="secondary">
@@ -171,14 +171,14 @@ export default function ContentManagementPage() {
         })}
       </div>
 
-      <Card>
+      <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
         <CardHeader>
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
             <CardTitle>{t("quickActions.title")}</CardTitle>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pb-6">
           <div className="flex flex-wrap gap-3">
             <Button variant="outline" asChild>
               <Link href={localizeHref(pathname, "/admin/content/courses?status=pending")}>

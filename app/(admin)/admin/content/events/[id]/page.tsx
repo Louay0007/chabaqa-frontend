@@ -155,18 +155,21 @@ export default function EventDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={localizeHref(pathname, "/admin/content/events")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold">{event.title}</h1>
-          <p className="text-muted-foreground">{t("subtitle")}</p>
+    <div className="space-y-8">
+      <div className="admin-section-header">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={localizeHref(pathname, "/admin/content/events")}>
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">{event.title}</h1>
+            <p className="text-muted-foreground mt-2">{t("subtitle")}</p>
+          </div>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {event.status === "pending" && (
             <Button onClick={handleApprove}>
               <CheckCircle className="h-4 w-4 mr-2" />
@@ -184,7 +187,7 @@ export default function EventDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <Card>
+          <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
             {event.coverImage && (
               <div className="aspect-video w-full overflow-hidden rounded-t-lg">
                 <img 
@@ -325,7 +328,7 @@ export default function EventDetailPage() {
               )}
             </TabsList>
             <TabsContent value="tickets">
-              <Card>
+              <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
                 <CardHeader>
                   <CardTitle>{t("tickets.title")}</CardTitle>
                 </CardHeader>
@@ -363,11 +366,11 @@ export default function EventDetailPage() {
             </TabsContent>
             {event.agenda && event.agenda.length > 0 && (
               <TabsContent value="agenda">
-                <Card>
+                <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
                   <CardHeader>
                     <CardTitle>{t("agenda.title")}</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent>
                     {event.agenda.map((item) => (
                       <div key={item.id} className="flex gap-4 p-4 border rounded-lg">
                         <div className="text-sm text-muted-foreground min-w-[100px]">
@@ -389,7 +392,7 @@ export default function EventDetailPage() {
             )}
             {event.speakers && event.speakers.length > 0 && (
               <TabsContent value="speakers">
-                <Card>
+                <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
                   <CardHeader>
                     <CardTitle>{t("speakers.title")}</CardTitle>
                   </CardHeader>
@@ -426,7 +429,7 @@ export default function EventDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <Card>
+          <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
             <CardHeader>
               <CardTitle>{t("creator.title")}</CardTitle>
             </CardHeader>
@@ -453,7 +456,7 @@ export default function EventDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
             <CardHeader>
               <CardTitle>{t("community.title")}</CardTitle>
             </CardHeader>

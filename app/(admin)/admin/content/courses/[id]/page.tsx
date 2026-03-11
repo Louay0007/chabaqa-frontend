@@ -153,18 +153,21 @@ export default function CourseDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={localizeHref(pathname, "/admin/content/courses")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold">{course.title}</h1>
-          <p className="text-muted-foreground">{t("subtitle")}</p>
+    <div className="space-y-8">
+      <div className="admin-section-header">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={localizeHref(pathname, "/admin/content/courses")}>
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">{course.title}</h1>
+            <p className="text-muted-foreground mt-2">{t("subtitle")}</p>
+          </div>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {course.status === "pending" && (
             <Button onClick={handleApprove}>
               <CheckCircle className="h-4 w-4 mr-2" />
@@ -185,8 +188,8 @@ export default function CourseDetailPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
+        <div className="lg:col-span-2 space-y-8">
+          <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
             {course.thumbnail && (
               <div className="aspect-video w-full overflow-hidden rounded-t-lg">
                 <img 
@@ -279,7 +282,7 @@ export default function CourseDetailPage() {
               <TabsTrigger value="resources">{t("tabs.resources")}</TabsTrigger>
             </TabsList>
             <TabsContent value="sections">
-              <Card>
+              <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
                 <CardHeader>
                   <CardTitle>{t("sections.title")}</CardTitle>
                 </CardHeader>
@@ -316,7 +319,7 @@ export default function CourseDetailPage() {
               </Card>
             </TabsContent>
             <TabsContent value="resources">
-              <Card>
+              <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
                 <CardHeader>
                   <CardTitle>{t("resources.title")}</CardTitle>
                 </CardHeader>
@@ -343,7 +346,7 @@ export default function CourseDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <Card>
+          <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
             <CardHeader>
               <CardTitle>{t("creator.title")}</CardTitle>
             </CardHeader>
@@ -370,7 +373,7 @@ export default function CourseDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
             <CardHeader>
               <CardTitle>{t("community.title")}</CardTitle>
             </CardHeader>
@@ -392,7 +395,7 @@ export default function CourseDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
             <CardHeader>
               <CardTitle>{t("stats.title")}</CardTitle>
             </CardHeader>

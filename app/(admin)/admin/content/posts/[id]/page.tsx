@@ -144,18 +144,21 @@ export default function PostDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={localizeHref(pathname, "/admin/content/posts")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold">{post.title || t("untitledPost")}</h1>
-          <p className="text-muted-foreground">{t("subtitle")}</p>
+    <div className="space-y-8">
+      <div className="admin-section-header">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={localizeHref(pathname, "/admin/content/posts")}>
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">{post.title || t("untitledPost")}</h1>
+            <p className="text-muted-foreground mt-2">{t("subtitle")}</p>
+          </div>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <Button 
             variant={post.isFeatured ? "default" : "outline"} 
             onClick={handleFeature}
@@ -183,7 +186,7 @@ export default function PostDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <Card>
+          <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
             {post.thumbnail && (
               <div className="aspect-video w-full overflow-hidden rounded-t-lg">
                 <img 
@@ -230,7 +233,7 @@ export default function PostDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageCircle className="h-5 w-5" />
@@ -283,7 +286,7 @@ export default function PostDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <Card>
+          <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
             <CardHeader>
               <CardTitle>{t("author.title")}</CardTitle>
             </CardHeader>
@@ -310,7 +313,7 @@ export default function PostDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
             <CardHeader>
               <CardTitle>{t("community.title")}</CardTitle>
             </CardHeader>
@@ -332,7 +335,7 @@ export default function PostDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="admin-surface overflow-hidden rounded-3xl border-0 shadow-none">
             <CardHeader>
               <CardTitle>{t("stats.title")}</CardTitle>
             </CardHeader>

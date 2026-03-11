@@ -146,12 +146,11 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       hidden: !capabilities.contentModeration,
     },
     {
-      title: "Content",
+      title: "Content Management",
       href: "/admin/content",
       icon: FileText,
       hidden: !capabilities.contentManagement,
       children: [
-        { title: "All Content", href: "/admin/content" },
         { title: "Courses", href: "/admin/content/courses" },
         { title: "Challenges", href: "/admin/content/challenges" },
         { title: "Events", href: "/admin/content/events" },
@@ -235,7 +234,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       Users: t("menu.users"),
       Communities: t("menu.communities"),
       "Content Moderation": t("menu.contentModeration"),
-      Content: t("menu.content"),
+      "Content Management": t("menu.contentManagement"),
       "All Content": t("menu.allContent"),
       Courses: t("menu.courses"),
       Challenges: t("menu.challenges"),
