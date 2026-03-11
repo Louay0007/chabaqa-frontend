@@ -55,4 +55,5 @@ jobs:
           rsync -az --delete -e "ssh -p $VPS_PORT" \
             --rsync-path="sudo rsync" \
             public/ "$VPS_USER@$VPS_HOST:/var/www/frontend/public/"
+          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" 'sudo chown -R www-data:www-data /var/www/frontend'
           ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" 'sudo supervisorctl restart chabaqa-frontend'
