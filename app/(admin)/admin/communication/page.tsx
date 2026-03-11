@@ -269,9 +269,9 @@ export default function CampaignsListPage() {
   }
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Email Campaigns</h1>
           <p className="text-muted-foreground mt-1">
@@ -279,6 +279,18 @@ export default function CampaignsListPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => router.push('/admin/communication/notifications')}
+          >
+            Notifications
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push('/admin/communication/analytics')}
+          >
+            Analytics
+          </Button>
           <Button
             variant="outline"
             onClick={() => setBulkMessageDialogOpen(true)}

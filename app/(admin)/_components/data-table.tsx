@@ -132,10 +132,10 @@ export function DataTable<T extends Record<string, any>>({
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="rounded-md border">
+        <div className="admin-table-shell">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="admin-table-head hover:bg-transparent">
                 {selection && (
                   <TableHead className="w-12">
                     <Skeleton className="h-4 w-4" />
@@ -174,10 +174,10 @@ export function DataTable<T extends Record<string, any>>({
   // Empty state
   if (data.length === 0) {
     return (
-      <div className="rounded-md border">
+      <div className="admin-table-shell">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="admin-table-head hover:bg-transparent">
               {selection && (
                 <TableHead className="w-12">
                   <Checkbox disabled />
@@ -209,11 +209,10 @@ export function DataTable<T extends Record<string, any>>({
 
   return (
     <div className="space-y-4">
-      {/* Table */}
-      <div className="rounded-md border overflow-x-auto" role="region" aria-label="Data table">
+      <div className="admin-table-shell overflow-x-auto" role="region" aria-label="Data table">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="admin-table-head hover:bg-transparent">
               {selection && (
                 <TableHead className="w-12">
                   <Checkbox
@@ -229,10 +228,10 @@ export function DataTable<T extends Record<string, any>>({
               {columns.map((column) => (
                 <TableHead key={column.id} style={{ width: column.width }}>
                   {column.sortable ? (
-                    <Button
+                  <Button
                       variant="ghost"
                       size="sm"
-                      className="-ml-3 h-8 data-[state=open]:bg-accent"
+                      className="-ml-3 h-8 rounded-xl text-[hsl(var(--admin-muted))] data-[state=open]:bg-accent hover:bg-[hsl(var(--admin-primary)/0.08)] hover:text-foreground"
                       onClick={() => handleSort(column.id)}
                       aria-label={`Sort by ${column.header}`}
                       aria-sort={
@@ -263,7 +262,9 @@ export function DataTable<T extends Record<string, any>>({
                   key={rowId}
                   data-state={isSelected ? "selected" : undefined}
                   className={cn(
-                    onRowClick && "cursor-pointer"
+                    onRowClick && "cursor-pointer",
+                    "border-b border-[hsl(var(--admin-border)/0.55)] transition-colors hover:bg-[hsl(var(--admin-primary)/0.05)]",
+                    isSelected && "bg-[hsl(var(--admin-primary)/0.08)]"
                   )}
                   onClick={() => onRowClick?.(row)}
                   aria-selected={isSelected}
@@ -298,12 +299,12 @@ export function DataTable<T extends Record<string, any>>({
 
       {/* Pagination */}
       {pagination && (
-        <nav 
-          className="flex items-center justify-between px-2"
+        <nav
+          className="admin-surface-muted flex flex-col gap-3 rounded-2xl border border-[hsl(var(--admin-border)/0.8)] px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
           role="navigation"
           aria-label="Table pagination"
         >
-          <div className="flex items-center space-x-2">
+          <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
             <p className="text-sm text-muted-foreground">
               Rows per page
             </p>
@@ -312,7 +313,7 @@ export function DataTable<T extends Record<string, any>>({
               onValueChange={(value) => pagination.onPageSizeChange(Number(value))}
             >
               <SelectTrigger 
-                className="h-8 w-[70px]"
+                className="h-8 w-[70px] rounded-xl border-[hsl(var(--admin-border)/0.9)] bg-white/80"
                 aria-label="Select page size"
               >
                 <SelectValue placeholder={pagination.pageSize} />
@@ -327,9 +328,9 @@ export function DataTable<T extends Record<string, any>>({
             </Select>
           </div>
 
-          <div className="flex items-center space-x-6 lg:space-x-8">
+          <div className="flex w-full items-center justify-between gap-4 sm:w-auto sm:space-x-6 lg:space-x-8">
             <div 
-              className="flex w-[100px] items-center justify-center text-sm font-medium"
+              className="flex items-center justify-center text-sm font-medium sm:w-[100px]"
               aria-live="polite"
               aria-atomic="true"
             >
@@ -339,7 +340,7 @@ export function DataTable<T extends Record<string, any>>({
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
-                className="h-8 w-8 p-0"
+                className="h-8 w-8 rounded-xl border-[hsl(var(--admin-border)/0.9)] bg-white/80 p-0"
                 onClick={() => pagination.onPageChange(pagination.page - 1)}
                 disabled={pagination.page <= 1}
                 aria-label="Go to previous page"
@@ -349,7 +350,7 @@ export function DataTable<T extends Record<string, any>>({
               </Button>
               <Button
                 variant="outline"
-                className="h-8 w-8 p-0"
+                className="h-8 w-8 rounded-xl border-[hsl(var(--admin-border)/0.9)] bg-white/80 p-0"
                 onClick={() => pagination.onPageChange(pagination.page + 1)}
                 disabled={
                   pagination.page >= Math.ceil(pagination.total / pagination.pageSize)

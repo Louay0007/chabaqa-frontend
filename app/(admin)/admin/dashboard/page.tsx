@@ -6,16 +6,15 @@ import { useAdminAuth } from "../../providers/admin-auth-provider"
 import { adminApi } from "@/lib/api/admin-api"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { MetricCard } from "@/app/(admin)/_components/metric-card"
 import {
-  AlertCircle,
+  ArrowRight,
   Building2,
   Coins,
   FileText,
   LifeBuoy,
   RefreshCcw,
-  TrendingDown,
-  TrendingUp,
   UserPlus,
   Users,
 } from "lucide-react"
@@ -312,105 +311,124 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          Admin Dashboard
-        </h1>
-        <p className="mt-2 text-lg text-muted-foreground">
-          Welcome back, <span className="font-semibold">{admin?.name || "Admin"}</span>
-        </p>
+      <section className="admin-surface overflow-hidden rounded-[2rem] border-0 shadow-none">
+        <div className="grid gap-6 px-6 py-7 lg:grid-cols-[1.5fr_0.9fr] lg:px-8">
+          <div className="space-y-5">
+            <div className="admin-badge w-fit border-0">Chabaqa operations center</div>
+            <div className="space-y-3">
+              <h1 className="bg-gradient-to-r from-primary via-[hsl(var(--admin-pink))] to-[hsl(var(--admin-cyan))] bg-clip-text text-4xl font-bold tracking-tight text-transparent">
+                Admin Dashboard
+              </h1>
+              <p className="max-w-2xl text-base text-[hsl(var(--admin-muted))]">
+                Welcome back, <span className="font-semibold text-foreground">{admin?.name || "Admin"}</span>. Monitor approvals,
+                moderation, support, and revenue from one branded control room.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            <div className="admin-surface-muted rounded-3xl p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[hsl(var(--admin-muted))]">Capabilities</p>
+              <p className="mt-2 text-3xl font-semibold">{visibleWidgets.length}</p>
+              <p className="mt-1 text-sm text-[hsl(var(--admin-muted))]">modules active for this admin</p>
+            </div>
+            <div className="admin-surface-muted rounded-3xl p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[hsl(var(--admin-muted))]">User growth</p>
+              <p className="mt-2 text-3xl font-semibold">{growthRate >= 0 ? "+" : ""}{growthRate.toFixed(1)}%</p>
+              <p className="mt-1 text-sm text-[hsl(var(--admin-muted))]">last 30 days</p>
+            </div>
+            <div className="admin-surface-muted rounded-3xl p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[hsl(var(--admin-muted))]">Revenue change</p>
+              <p className="mt-2 text-3xl font-semibold">{revenueChange >= 0 ? "+" : ""}{revenueChange.toFixed(1)}%</p>
+              <p className="mt-1 text-sm text-[hsl(var(--admin-muted))]">current reporting period</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="admin-section-header">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">Operational snapshot</h2>
+          <p className="mt-1 text-sm text-[hsl(var(--admin-muted))]">Live metrics from the connected admin services.</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {visibleWidgets.map(({ key, icon: Icon, onClick, formatter, trend, widget }) => (
-          <Card
+          <MetricCard
             key={key}
-            className="hover:shadow-lg transition-shadow cursor-pointer"
             onClick={() => router.push(onClick)}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{widgetText[key as keyof typeof widgetText]?.label || widget.label}</CardTitle>
-              <Icon className="h-5 w-5 text-blue-600" />
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="text-3xl font-bold">{formatter(widget.value)}</div>
-              {widget.error ? (
-                <p className="text-xs text-amber-600 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  <span>{widget.error}</span>
-                </p>
-              ) : trend !== null ? (
-                <p className="text-xs text-muted-foreground flex items-center mt-1">
-                  {trend >= 0 ? (
-                    <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
-                  )}
-                  <span className={trend >= 0 ? "text-green-600" : "text-red-600"}>
-                    {trend >= 0 ? "+" : ""}
-                    {trend.toFixed(1)}%
-                  </span>
-                  <span className="ml-1">{widgetText[key as keyof typeof widgetText]?.description || widget.description}</span>
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">{widgetText[key as keyof typeof widgetText]?.description || widget.description}</p>
-              )}
-            </CardContent>
-          </Card>
+            title={widgetText[key as keyof typeof widgetText]?.label || widget.label}
+            value={formatter(widget.value)}
+            icon={Icon}
+            color={
+              key === "pendingContent" ? "warning" :
+              key === "liveSupport" ? "info" :
+              key === "revenue" ? "success" :
+              "primary"
+            }
+            change={
+              widget.error
+                ? { value: widget.error, trend: "neutral" }
+                : trend !== null
+                  ? { value: `${trend >= 0 ? "+" : ""}${trend.toFixed(1)}% ${widgetText[key as keyof typeof widgetText]?.description || widget.description}`, trend: trend >= 0 ? "up" : "down" }
+                  : undefined
+            }
+          />
         ))}
       </div>
 
       <div>
-        <h2 className="text-2xl font-semibold mb-4">Quick Actions</h2>
+        <h2 className="mb-4 text-2xl font-semibold">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {capabilities.users && (
             <Button
               variant="outline"
-              className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors"
+              className="admin-surface-muted h-28 flex-col items-start justify-between rounded-3xl border-[hsl(var(--admin-border)/0.85)] px-5 py-4 text-left transition hover:-translate-y-0.5 hover:bg-[hsl(var(--admin-primary)/0.06)]"
               onClick={() => router.push(localizeHref(pathname, "/admin/users"))}
             >
-              <UserPlus className="h-8 w-8 text-blue-600" />
-              <span className="font-medium">Manage Users</span>
+              <span className="admin-icon-chip h-11 w-11 rounded-2xl"><UserPlus className="h-5 w-5 text-[hsl(var(--admin-primary-strong))]" /></span>
+              <span className="flex w-full items-center justify-between font-medium">Manage Users <ArrowRight className="h-4 w-4 text-[hsl(var(--admin-muted))]" /></span>
             </Button>
           )}
 
           {capabilities.communities && (
             <Button
               variant="outline"
-              className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-green-50 hover:border-green-300 transition-colors"
+              className="admin-surface-muted h-28 flex-col items-start justify-between rounded-3xl border-[hsl(var(--admin-border)/0.85)] px-5 py-4 text-left transition hover:-translate-y-0.5 hover:bg-[hsl(var(--admin-success)/0.06)]"
               onClick={() => router.push(localizeHref(pathname, "/admin/communities"))}
             >
-              <Building2 className="h-8 w-8 text-green-600" />
-              <span className="font-medium">Review Communities</span>
+              <span className="admin-icon-chip h-11 w-11 rounded-2xl"><Building2 className="h-5 w-5 text-[hsl(var(--admin-success))]" /></span>
+              <span className="flex w-full items-center justify-between font-medium">Review Communities <ArrowRight className="h-4 w-4 text-[hsl(var(--admin-muted))]" /></span>
             </Button>
           )}
 
           {capabilities.contentModeration && (
             <Button
               variant="outline"
-              className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-amber-50 hover:border-amber-300 transition-colors"
+              className="admin-surface-muted h-28 flex-col items-start justify-between rounded-3xl border-[hsl(var(--admin-border)/0.85)] px-5 py-4 text-left transition hover:-translate-y-0.5 hover:bg-[hsl(var(--admin-warning)/0.06)]"
               onClick={() => router.push(localizeHref(pathname, "/admin/content-moderation"))}
             >
-              <FileText className="h-8 w-8 text-amber-600" />
-              <span className="font-medium">Moderate Content</span>
+              <span className="admin-icon-chip h-11 w-11 rounded-2xl"><FileText className="h-5 w-5 text-[hsl(var(--admin-warning))]" /></span>
+              <span className="flex w-full items-center justify-between font-medium">Moderate Content <ArrowRight className="h-4 w-4 text-[hsl(var(--admin-muted))]" /></span>
             </Button>
           )}
 
           {(capabilities.analytics || capabilities.financial) && (
             <Button
               variant="outline"
-              className="h-24 flex flex-col items-center justify-center gap-2 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+              className="admin-surface-muted h-28 flex-col items-start justify-between rounded-3xl border-[hsl(var(--admin-border)/0.85)] px-5 py-4 text-left transition hover:-translate-y-0.5 hover:bg-[hsl(var(--admin-cyan)/0.06)]"
               onClick={() => router.push(localizeHref(pathname, capabilities.financial ? "/admin/financial" : "/admin/analytics"))}
             >
-              <RefreshCcw className="h-8 w-8 text-purple-600" />
-              <span className="font-medium">View Reports</span>
+              <span className="admin-icon-chip h-11 w-11 rounded-2xl"><RefreshCcw className="h-5 w-5 text-[hsl(var(--admin-cyan))]" /></span>
+              <span className="flex w-full items-center justify-between font-medium">View Reports <ArrowRight className="h-4 w-4 text-[hsl(var(--admin-muted))]" /></span>
             </Button>
           )}
         </div>
       </div>
 
       {visibleWidgets.length === 0 && (
-        <Card>
+        <Card className="admin-surface rounded-[2rem] border-0 shadow-none">
           <CardHeader>
             <CardTitle>No Dashboard Modules Available</CardTitle>
             <CardDescription>

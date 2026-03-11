@@ -2,8 +2,7 @@ import { redirect } from "next/navigation"
 import { getProfileServer } from "@/lib/auth.server"
 import ResetPasswordForm from "../components/reset-password-form"
 import Image from "next/image"
-import Link from "next/link"
-import { ArrowLeft } from 'lucide-react'
+import { getTranslations } from "next-intl/server"
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +13,7 @@ interface ResetPasswordPageProps {
 }
 
 export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
+  const t = await getTranslations("auth.resetPasswordPage")
   const user = await getProfileServer()
 
   if (user) {
@@ -26,14 +26,14 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
     <div className="min-h-screen relative overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0 gradient-fallback">
-        <Image src="/gradient-background.png" alt="Gradient Background" fill className="object-cover" priority />
+        <Image src="/gradient-background.png" alt={t("backgroundAlt")} fill className="object-cover" priority />
       </div>
 
       {/* Logo - Top Left */}
       <div className="absolute top-8 left-8 z-20 animate-fade-in">
         <Image
           src="/logo_chabaqa.png"
-          alt="Chabaqa Logo"
+          alt={t("logoAlt")}
           width={140}
           height={56}
           className="drop-shadow-lg"
@@ -49,7 +49,7 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
 
           {/* Footer */}
           <div className="text-center mt-8 animate-fade-in-delay-1400">
-            <p className="text-xs text-gray-600 drop-shadow-sm">© 2024 Chabaqa. Build the future of communities.</p>
+            <p className="text-xs text-gray-600 drop-shadow-sm">{t("footer")}</p>
           </div>
         </div>
       </div>

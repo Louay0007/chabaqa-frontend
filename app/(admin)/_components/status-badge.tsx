@@ -9,12 +9,12 @@ const statusBadgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground",
-        success: "border-transparent bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
-        warning: "border-transparent bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100",
-        danger: "border-transparent bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
-        info: "border-transparent bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-        secondary: "border-transparent bg-secondary text-secondary-foreground"
+        default: "border-[hsl(var(--admin-primary)/0.16)] bg-[hsl(var(--admin-primary)/0.12)] text-[hsl(var(--admin-primary-strong))]",
+        success: "border-[hsl(var(--admin-success)/0.18)] bg-[hsl(var(--admin-success)/0.12)] text-[hsl(var(--admin-success))]",
+        warning: "border-[hsl(var(--admin-warning)/0.2)] bg-[hsl(var(--admin-warning)/0.14)] text-[hsl(var(--admin-warning))]",
+        danger: "border-[hsl(var(--admin-danger)/0.18)] bg-[hsl(var(--admin-danger)/0.12)] text-[hsl(var(--admin-danger))]",
+        info: "border-[hsl(var(--admin-cyan)/0.2)] bg-[hsl(var(--admin-cyan)/0.14)] text-[hsl(var(--admin-cyan))]",
+        secondary: "border-[hsl(var(--admin-border)/0.9)] bg-white/75 text-[hsl(var(--admin-muted))]"
       },
       size: {
         sm: "px-2 py-0.5 text-xs",

@@ -7,17 +7,22 @@ import { AdminSidebar } from "../_components/admin-sidebar"
 import { AdminHeader } from "../_components/admin-header"
 import { SkipNav } from "../_components/skip-nav"
 import { Toaster } from "sonner"
-import { stripLocaleFromPath } from "@/lib/i18n/client"
+import { localizeHref, stripLocaleFromPath } from "@/lib/i18n/client"
 import { useTranslations } from "next-intl"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { AlertTriangle } from "lucide-react"
+import { canAccessAdminPath, getAdminLandingPath, requiresCapabilityGuard } from "../lib/admin-capability-routing"
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { loading } = useAdminAuth()
+  const { loading, capabilities, isAuthenticated } = useAdminAuth()
   const pathname = usePathname()
   const t = useTranslations("admin.dashboard")
+  const routingT = useTranslations("admin.routing")
   const internalPath = stripLocaleFromPath(pathname)
   const isAuthPage =
     internalPath === "/admin/login" ||
@@ -27,13 +32,15 @@ export default function AdminLayout({
   // Show loading state while checking authentication
   if (loading) {
     return (
-      <div 
-        className="flex items-center justify-center min-h-screen"
+      <div
+        className="admin-shell flex min-h-screen items-center justify-center"
         role="status"
         aria-live="polite"
         aria-label={t("loadingDashboard")}
       >
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="admin-surface rounded-3xl px-10 py-8">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
+        </div>
         <span className="sr-only">{t("loadingDashboardData")}</span>
       </div>
     )
@@ -43,21 +50,54 @@ export default function AdminLayout({
     return <>{children}</>
   }
 
+  const canAccessCurrentRoute = canAccessAdminPath(internalPath, capabilities)
+
+  if (isAuthenticated && requiresCapabilityGuard(internalPath) && !canAccessCurrentRoute) {
+    const landingPath = getAdminLandingPath(capabilities)
+    return (
+      <div className="admin-shell flex min-h-screen items-center justify-center p-6">
+        <div className="admin-surface w-full max-w-xl rounded-3xl border border-[hsl(var(--admin-border)/0.75)] p-4 sm:p-6 lg:p-8 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+            <AlertTriangle className="h-6 w-6" />
+          </div>
+          <h2 className="text-2xl font-semibold">{routingT("accessRestrictedTitle")}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {routingT("accessRestrictedDescription")}
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Button asChild>
+              <Link href={localizeHref(pathname, landingPath)}>{routingT("goToAllowedArea")}</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={localizeHref(pathname, "/admin")}>{routingT("reevaluateLanding")}</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <AdminLayoutProvider>
       <SkipNav />
-      <div className="min-h-screen bg-background">
+      <div className="admin-shell min-h-screen">
         <AdminSidebar />
-        <div className="lg:pl-64">
-          <AdminHeader />
+        <div className="lg:pl-72">
+          <div className="px-4 pt-4 sm:px-6 lg:px-8">
+            <div className="mx-auto w-full max-w-[1480px]">
+              <AdminHeader />
+            </div>
+          </div>
           <main 
             id="main-content" 
-            className="p-4 sm:p-6 lg:p-8"
+            className="admin-page"
             role="main"
             aria-label="Main content"
             tabIndex={-1}
           >
-            {children}
+            <div className="mx-auto w-full max-w-[1480px]">
+              {children}
+            </div>
           </main>
         </div>
       </div>

@@ -7,11 +7,11 @@ export default function AdminRootLayout({
   children: React.ReactNode
 }) {
   return (
-    <>
+    <div className="admin-theme">
       <AdminAuthProvider>
         {children}
       </AdminAuthProvider>
       <Toaster />
-    </>
+    </div>
   )
 }

@@ -8,14 +8,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { CheckCircle, Loader2, Eye, EyeOff } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { resetPasswordAction } from "../reset-password/actions"
+import { useTranslations } from "next-intl"
+import { localizeHref } from "@/lib/i18n/client"
 
 interface ResetPasswordFormProps {
   email: string
 }
 
 export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
+  const t = useTranslations("auth.resetPasswordForm")
   const [verificationDigits, setVerificationDigits] = useState(["", "", "", "", "", ""])
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -25,6 +28,7 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
   const [isSuccess, setIsSuccess] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
+  const pathname = usePathname()
   const inputRefs = useRef<Array<HTMLInputElement | null>>([])
   const verificationCode = verificationDigits.join("")
 
@@ -34,17 +38,17 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
 
     // Validation
     if (newPassword !== confirmPassword) {
-      setError("Les mots de passe ne correspondent pas")
+      setError(t("errors.passwordMismatch"))
       return
     }
 
     if (newPassword.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères")
+      setError(t("errors.passwordLength"))
       return
     }
 
     if (verificationCode.length !== 6) {
-      setError("Le code de vérification doit contenir 6 chiffres")
+      setError(t("errors.codeLength"))
       return
     }
 
@@ -60,10 +64,10 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
       if (result.success) {
         setIsSuccess(true)
       } else {
-        setError(result.error || "Une erreur s'est produite")
+        setError(result.error || t("errors.generic"))
       }
-    } catch (error) {
-      setError("Erreur de connexion. Veuillez réessayer.")
+    } catch {
+      setError(t("errors.connection"))
     } finally {
       setIsLoading(false)
     }
@@ -101,20 +105,20 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
       <div className="text-center mb-8 animate-fade-in-delay-400">
         {!isSuccess ? (
           <>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2 drop-shadow-sm">Reset your password</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2 drop-shadow-sm">{t("title")}</h2>
             <p className="text-gray-700 drop-shadow-sm">
-              Enter the code sent to <strong>{email}</strong> and your new password.
+              {t("introPrefix")} <strong>{email}</strong> {t("introSuffix")}
             </p>
-            <p className="text-sm text-gray-600 mt-2 drop-shadow-sm">The code expires in 10 minutes.</p>
+            <p className="text-sm text-gray-600 mt-2 drop-shadow-sm">{t("codeExpires")}</p>
           </>
         ) : (
           <>
             <div className="w-16 h-16 bg-gradient-to-r from-[#8e78fb] to-[#47c7ea] rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2 drop-shadow-sm">Password reset successful!</h2>
-            <p className="text-gray-700 drop-shadow-sm">Your password has been successfully updated.</p>
-            <p className="text-sm text-gray-600 mt-2 drop-shadow-sm">Click the button below to sign in with your new password.</p>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2 drop-shadow-sm">{t("successTitle")}</h2>
+            <p className="text-gray-700 drop-shadow-sm">{t("successBody")}</p>
+            <p className="text-sm text-gray-600 mt-2 drop-shadow-sm">{t("successHint")}</p>
           </>
         )}
       </div>
@@ -133,7 +137,7 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
             {/* Verification Code Field */}
             <div className="space-y-3 animate-fade-in-delay-800">
               <Label htmlFor="verificationCode-0" className="text-sm font-medium text-gray-800 block">
-                Verification Code
+                {t("verificationCodeLabel")}
               </Label>
               <div className="flex justify-center gap-2 sm:gap-3">
                 {verificationDigits.map((digit, index) => (
@@ -157,13 +161,13 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
                   />
                 ))}
               </div>
-              <p className="text-center text-xs text-gray-600">Paste is supported for the full code.</p>
+              <p className="text-center text-xs text-gray-600">{t("pasteHint")}</p>
             </div>
 
             {/* New Password Field */}
             <div className="space-y-2 animate-fade-in-delay-900">
               <Label htmlFor="newPassword" className="text-sm font-medium text-gray-800 block">
-                New Password
+                {t("newPasswordLabel")}
               </Label>
               <div className="relative">
                 <Input
@@ -171,7 +175,7 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
                   type={showPassword ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter your new password"
+                  placeholder={t("newPasswordPlaceholder")}
                   required
                   disabled={isLoading}
                   className="w-full px-4 py-4 pr-12 rounded-2xl border-2 border-white/60 focus:border-[#8e78fb] focus:ring-4 focus:ring-[#8e78fb]/20 transition-all duration-300 text-gray-900 placeholder-gray-500 bg-white/80 backdrop-blur-sm disabled:opacity-50 shadow-sm"
@@ -189,7 +193,7 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
             {/* Confirm Password Field */}
             <div className="space-y-2 animate-fade-in-delay-1000">
               <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-800 block">
-                Confirm New Password
+                {t("confirmPasswordLabel")}
               </Label>
               <div className="relative">
                 <Input
@@ -197,7 +201,7 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm your new password"
+                  placeholder={t("confirmPasswordPlaceholder")}
                   required
                   disabled={isLoading}
                   className="w-full px-4 py-4 pr-12 rounded-2xl border-2 border-white/60 focus:border-[#8e78fb] focus:ring-4 focus:ring-[#8e78fb]/20 transition-all duration-300 text-gray-900 placeholder-gray-500 bg-white/80 backdrop-blur-sm disabled:opacity-50 shadow-sm"
@@ -222,11 +226,11 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    <span>Resetting...</span>
+                    <span>{t("resetting")}</span>
                   </>
                 ) : (
                   <>
-                    <span className="relative z-10">Reset Password</span>
+                    <span className="relative z-10">{t("resetPassword")}</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-[#7c66e9] to-[#3bb5d6] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </>
                 )}
@@ -236,12 +240,12 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
         ) : (
           <div className="text-center space-y-6">
             <div className="space-y-4">
-              <p className="text-gray-700 drop-shadow-sm">You can now sign in with your new password.</p>
+              <p className="text-gray-700 drop-shadow-sm">{t("signedInHint")}</p>
             </div>
 
-            <Link href="/signin">
+            <Link href={localizeHref(pathname, "/signin")}>
               <Button className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#8e78fb] to-[#47c7ea] text-white font-semibold text-lg shadow-lg hover:shadow-2xl transition-all duration-300 border-0 relative overflow-hidden group hover:scale-105">
-                <span className="relative z-10">Go to Sign In</span>
+                <span className="relative z-10">{t("goToSignIn")}</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-[#7c66e9] to-[#3bb5d6] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </Button>
             </Link>
@@ -252,12 +256,12 @@ export default function ResetPasswordForm({ email }: ResetPasswordFormProps) {
         {!isSuccess && (
           <div className="mt-8 text-center animate-fade-in-delay-1200">
             <div className="text-sm text-gray-700 drop-shadow-sm">
-              Remember your password?{" "}
+              {t("rememberPassword")}{" "}
               <Link
-                href="/signin"
+                href={localizeHref(pathname, "/signin")}
                 className="text-[#47c7ea] hover:text-[#3bb5d6] font-medium transition-all duration-200 hover:underline"
               >
-                Sign in
+                {t("signIn")}
               </Link>
             </div>
           </div>

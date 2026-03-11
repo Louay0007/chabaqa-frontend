@@ -1,4 +1,5 @@
 import { authenticatedFetch } from '@/lib/authenticated-fetch'
+import type { UserSocialLinks } from '@/lib/social-links'
 
 export interface UpdateProfilePayload {
   name?: string
@@ -8,6 +9,8 @@ export interface UpdateProfilePayload {
   pays?: string
   avatar?: string
   photo_profil?: string
+  socialLinks?: UserSocialLinks
+  lien_instagram?: string
 }
 
 export interface ChangePasswordPayload {

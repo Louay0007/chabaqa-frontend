@@ -58,6 +58,96 @@
       "signIn": "Sign In",
       "connectionError": "Connection error. Please try again.",
       "unknownError": "An error occurred"
+    },
+    "forgotPasswordPage": {
+      "backgroundAlt": "Gradient Background",
+      "logoAlt": "Chabaqa Logo",
+      "footer": "© 2026 Chabaqa. Build the future of communities."
+    },
+    "forgotPasswordForm": {
+      "title": "Forgot your password?",
+      "intro": "No worries! Enter your email address and we'll send you a verification code.",
+      "checkEmailTitle": "Check your email",
+      "checkEmailBody": "We've sent a 6-digit verification code to",
+      "codeExpires": "The code will expire in 10 minutes.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "your@email.com",
+      "sending": "Sending...",
+      "sendCode": "Send Verification Code",
+      "missingCodeHint": "Didn't receive the code? Check your spam folder or try again.",
+      "enterCode": "Enter Verification Code",
+      "tryDifferentEmail": "Try Different Email",
+      "rememberPassword": "Remember your password?",
+      "signIn": "Sign in",
+      "errors": {
+        "generic": "An error occurred",
+        "connection": "Connection error. Please try again."
+      }
+    },
+    "resetPasswordPage": {
+      "backgroundAlt": "Gradient Background",
+      "logoAlt": "Chabaqa Logo",
+      "footer": "© 2026 Chabaqa. Build the future of communities."
+    },
+    "resetPasswordForm": {
+      "title": "Reset your password",
+      "introPrefix": "Enter the code sent to",
+      "introSuffix": "and your new password.",
+      "codeExpires": "The code expires in 10 minutes.",
+      "successTitle": "Password reset successful!",
+      "successBody": "Your password has been successfully updated.",
+      "successHint": "Click the button below to sign in with your new password.",
+      "verificationCodeLabel": "Verification Code",
+      "pasteHint": "Paste is supported for the full code.",
+      "newPasswordLabel": "New Password",
+      "newPasswordPlaceholder": "Enter your new password",
+      "confirmPasswordLabel": "Confirm New Password",
+      "confirmPasswordPlaceholder": "Confirm your new password",
+      "resetting": "Resetting...",
+      "resetPassword": "Reset Password",
+      "signedInHint": "You can now sign in with your new password.",
+      "goToSignIn": "Go to Sign In",
+      "rememberPassword": "Remember your password?",
+      "signIn": "Sign in",
+      "errors": {
+        "passwordMismatch": "Passwords do not match",
+        "passwordLength": "Password must contain at least 8 characters",
+        "codeLength": "Verification code must contain 6 digits",
+        "generic": "An error occurred",
+        "connection": "Connection error. Please try again."
+      }
+    },
+    "verifyEmailPage": {
+      "backgroundAlt": "Gradient Background",
+      "logoAlt": "Chabaqa Logo",
+      "footer": "© 2026 Chabaqa. Build the future of communities."
+    },
+    "verifyEmailForm": {
+      "title": "Verify your email",
+      "introPrefix": "We sent a 6-digit verification code to",
+      "yourEmailFallback": "your email",
+      "codeExpires": "The code expires in 10 minutes.",
+      "successTitle": "Email verified!",
+      "successBody": "Your account is now active.",
+      "verificationCodeLabel": "Verification code",
+      "pasteHint": "You can paste the full 6-digit code.",
+      "verifying": "Verifying...",
+      "verifyAndCreate": "Verify and create account",
+      "resending": "Resending...",
+      "resendIn": "Resend code in {seconds}s",
+      "resendCode": "Resend verification code",
+      "goToSignIn": "Go to Sign In",
+      "wrongEmail": "Entered the wrong email?",
+      "backToSignup": "Go back to signup",
+      "signInNotice": "Email verified successfully. Please sign in.",
+      "resendSent": "A new verification code has been sent",
+      "errors": {
+        "missingEmail": "Missing email. Please return to signup and try again.",
+        "codeLength": "Verification code must be exactly 6 digits",
+        "invalidCode": "Invalid or expired verification code",
+        "verifyFailed": "Unable to verify code right now. Please try again.",
+        "resendFailed": "Unable to resend verification code"
+      }
     }
   },
   "landing": {
@@ -498,6 +588,9 @@
       "security": "Security",
       "communication": "Communication",
       "settings": "Settings",
+      "operations": "Operations",
+      "exportCenter": "Export Center",
+      "bulkOperations": "Bulk Operations",
       "subscriptions": "Subscriptions",
       "transactions": "Transactions",
       "payouts": "Payouts",
@@ -505,6 +598,7 @@
       "securityEvents": "Security Events",
       "campaigns": "Campaigns",
       "templates": "Templates",
+      "notifications": "Notifications",
       "liveSupport": "Live Support"
     },
     "header": {
@@ -554,6 +648,13 @@
       "backToLogin": "Back to Login",
       "developmentMode": "Development Mode:",
       "developmentHint": "2FA code will be displayed after login"
+    },
+    "routing": {
+      "redirectingWorkspace": "Redirecting to your admin workspace...",
+      "accessRestrictedTitle": "Access Restricted",
+      "accessRestrictedDescription": "You do not have the required capability to view this admin route.",
+      "goToAllowedArea": "Go To Allowed Area",
+      "reevaluateLanding": "Re-evaluate Landing"
     }
   }
 }

@@ -19,7 +19,10 @@ interface Community {
     _id: string
     username: string
   }
-  status: 'pending' | 'approved' | 'rejected' | 'active' | 'inactive'
+  status: 'pending' | 'approved' | 'rejected' | 'active' | 'inactive' | 'suspended'
+  isActive?: boolean
+  approvalStatus?: 'pending' | 'approved' | 'rejected'
+  isSuspended?: boolean
   featured: boolean
   verified: boolean
   membersCount: number
@@ -32,6 +35,14 @@ interface CommunitiesResponse {
   total: number
   page: number
   limit: number
+}
+
+const deriveCommunityStatus = (community: Partial<Community>): Community["status"] => {
+  if (community.isSuspended) return "suspended"
+  if (community.approvalStatus === "rejected") return "rejected"
+  if (community.isActive) return "active"
+  if (community.approvalStatus === "pending" || !community.approvalStatus) return "pending"
+  return (community.status as Community["status"]) || "inactive"
 }
 
 export default function CommunitiesPage() {
@@ -84,7 +95,11 @@ export default function CommunitiesPage() {
           // The body is { success: true, message: "...", data: { data: [], total: ... } }
           // So response.data is the PaginatedResult.
           const paginatedResult = response.data as any
-          setCommunities(paginatedResult.data || [])
+          const normalizedCommunities = (paginatedResult.data || []).map((community: Community) => ({
+            ...community,
+            status: deriveCommunityStatus(community),
+          }))
+          setCommunities(normalizedCommunities)
           setTotal(paginatedResult.total || 0)
         } else {
           setCommunities([])
@@ -274,9 +289,9 @@ export default function CommunitiesPage() {
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Building2 className="h-8 w-8" />

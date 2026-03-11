@@ -92,9 +92,229 @@
   [dir="rtl"] textarea {
     text-align: right;
   }
+
+  .admin-theme {
+    --background: 264 100% 99%;
+    --foreground: 248 26% 17%;
+    --card: 0 0% 100%;
+    --card-foreground: 248 26% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 248 26% 17%;
+    --primary: 251 94% 73%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 250 100% 98%;
+    --secondary-foreground: 248 26% 17%;
+    --muted: 248 100% 98%;
+    --muted-foreground: 247 16% 43%;
+    --accent: 192 80% 95%;
+    --accent-foreground: 248 26% 17%;
+    --border: 252 54% 90%;
+    --input: 252 54% 90%;
+    --ring: 251 94% 73%;
+
+    --admin-shell: 260 100% 99%;
+    --admin-shell-strong: 260 100% 97%;
+    --admin-surface: 0 0% 100%;
+    --admin-surface-alt: 252 100% 98%;
+    --admin-border: 252 60% 90%;
+    --admin-muted: 247 18% 45%;
+    --admin-primary: 251 94% 73%;
+    --admin-primary-strong: 257 81% 60%;
+    --admin-pink: 339 90% 66%;
+    --admin-cyan: 192 80% 60%;
+    --admin-success: 152 61% 42%;
+    --admin-warning: 33 95% 54%;
+    --admin-danger: 0 84% 63%;
+    --admin-shadow: 258 57% 28%;
+    --admin-chart-1: 251 94% 73%;
+    --admin-chart-2: 339 90% 66%;
+    --admin-chart-3: 192 80% 60%;
+    --admin-chart-4: 33 95% 54%;
+    --admin-chart-5: 152 61% 42%;
+  }
 }
 
 @layer components {
+  .admin-shell {
+    background:
+      radial-gradient(circle at top right, rgba(142, 120, 251, 0.18), transparent 24rem),
+      radial-gradient(circle at bottom left, rgba(71, 199, 234, 0.14), transparent 22rem),
+      linear-gradient(180deg, hsl(var(--admin-shell)) 0%, hsl(var(--background)) 100%);
+  }
+
+  .admin-surface {
+    background-color: hsl(var(--admin-surface) / 0.94);
+    border: 1px solid hsl(var(--admin-border) / 0.9);
+    box-shadow:
+      0 18px 45px -28px hsl(var(--admin-shadow) / 0.35),
+      0 10px 20px -18px hsl(var(--admin-shadow) / 0.22);
+    backdrop-filter: blur(14px);
+  }
+
+  .admin-surface-muted {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 245, 255, 0.96));
+    border: 1px solid hsl(var(--admin-border) / 0.85);
+  }
+
+  .admin-page {
+    animation: slide-up 0.35s ease-out;
+  }
+
+  .admin-section-header {
+    @apply flex flex-col gap-2 md:flex-row md:items-end md:justify-between;
+  }
+
+  .admin-kpi-card {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 247, 255, 0.94));
+    border: 1px solid hsl(var(--admin-border) / 0.92);
+    box-shadow:
+      0 22px 40px -30px hsl(var(--admin-shadow) / 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  .admin-icon-chip {
+    @apply inline-flex items-center justify-center rounded-2xl border;
+    background:
+      linear-gradient(135deg, hsl(var(--admin-primary) / 0.16), hsl(var(--admin-cyan) / 0.12));
+    border-color: hsl(var(--admin-border) / 0.95);
+    color: hsl(var(--foreground));
+  }
+
+  .admin-nav-item {
+    @apply relative w-full justify-start rounded-xl border border-transparent px-2.5 py-2 text-sm font-medium transition-all duration-200;
+    color: hsl(var(--foreground) / 0.82);
+  }
+
+  .admin-nav-item:hover {
+    background-color: hsl(var(--admin-primary) / 0.08);
+    color: hsl(var(--foreground));
+  }
+
+  .admin-nav-active {
+    background:
+      linear-gradient(135deg, hsl(var(--admin-primary) / 0.16), hsl(var(--admin-cyan) / 0.1));
+    border-color: hsl(var(--admin-primary) / 0.22);
+    color: hsl(var(--foreground));
+    box-shadow: 0 10px 24px -22px hsl(var(--admin-shadow) / 0.36);
+  }
+
+  .admin-badge {
+    @apply inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-semibold;
+    background-color: hsl(var(--admin-primary) / 0.12);
+    border-color: hsl(var(--admin-primary) / 0.18);
+    color: hsl(var(--admin-primary-strong));
+  }
+
+  .admin-auth-shell {
+    background:
+      radial-gradient(circle at top center, rgba(142, 120, 251, 0.22), transparent 20rem),
+      radial-gradient(circle at bottom right, rgba(71, 199, 234, 0.18), transparent 18rem),
+      linear-gradient(180deg, #faf7ff 0%, #f7fbff 48%, #ffffff 100%);
+  }
+
+  .admin-auth-panel {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 247, 255, 0.96));
+    border: 1px solid hsl(var(--admin-border) / 0.95);
+    box-shadow:
+      0 30px 60px -34px hsl(var(--admin-shadow) / 0.35),
+      0 18px 28px -24px hsl(var(--admin-shadow) / 0.22);
+  }
+
+  .admin-input {
+    @apply border-white/70 bg-white/80 shadow-sm backdrop-blur-sm;
+  }
+
+  .admin-input:focus-visible {
+    box-shadow: 0 0 0 4px rgba(142, 120, 251, 0.16);
+  }
+
+  .admin-table-shell {
+    @apply overflow-hidden rounded-3xl;
+    border: 1px solid hsl(var(--admin-border) / 0.9);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(251, 249, 255, 0.98));
+    box-shadow: 0 18px 40px -32px hsl(var(--admin-shadow) / 0.3);
+  }
+
+  .admin-table-head {
+    background: linear-gradient(180deg, rgba(244, 240, 255, 0.96), rgba(247, 251, 255, 0.96));
+  }
+
+  @media (max-width: 640px) {
+    .admin-theme .admin-page,
+    .admin-theme .admin-auth-panel {
+      font-size: 0.92rem;
+    }
+
+    .admin-theme .admin-page .p-6,
+    .admin-theme .admin-page .px-6,
+    .admin-theme .admin-page .py-6 {
+      padding: 0.875rem !important;
+    }
+
+    .admin-theme .admin-page .gap-6 {
+      gap: 0.875rem !important;
+    }
+
+    .admin-theme .admin-page .space-y-8 > :not([hidden]) ~ :not([hidden]) {
+      margin-top: 1rem !important;
+    }
+
+    .admin-theme .admin-page .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+      margin-top: 0.875rem !important;
+    }
+
+    .admin-theme .admin-surface,
+    .admin-theme .admin-surface-muted,
+    .admin-theme .admin-table-shell,
+    .admin-theme .admin-auth-panel {
+      border-radius: 1rem !important;
+      box-shadow: 0 10px 24px -22px hsl(var(--admin-shadow) / 0.28);
+    }
+
+    .admin-theme .admin-page .text-4xl {
+      font-size: 1.65rem !important;
+      line-height: 2rem !important;
+    }
+
+    .admin-theme .admin-page .text-3xl,
+    .admin-theme .admin-auth-panel .text-3xl {
+      font-size: 1.35rem !important;
+      line-height: 1.8rem !important;
+    }
+
+    .admin-theme .admin-page .text-2xl {
+      font-size: 1.2rem !important;
+      line-height: 1.65rem !important;
+    }
+
+    .admin-theme .admin-page .h-12,
+    .admin-theme .admin-page .h-11,
+    .admin-theme .admin-auth-panel .h-12,
+    .admin-theme .admin-auth-panel .h-11 {
+      height: 2.4rem !important;
+    }
+
+    .admin-theme .admin-page .h-14,
+    .admin-theme .admin-auth-panel .h-14 {
+      height: 2.75rem !important;
+    }
+
+    .admin-theme .admin-page .admin-badge {
+      font-size: 10px;
+      padding-inline: 0.375rem;
+      padding-block: 0.1rem;
+    }
+
+    .admin-theme .admin-page .admin-icon-chip {
+      border-radius: 0.75rem !important;
+      transform: scale(0.94);
+      transform-origin: center;
+    }
+  }
+
   .glass-card {
     @apply bg-white/10 backdrop-blur-md border border-white/20 shadow-xl;
   }

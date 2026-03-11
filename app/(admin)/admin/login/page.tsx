@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -22,23 +23,16 @@ const loginSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 })
 
-// 2FA form validation schema
-const twoFASchema = z.object({
-  code: z.string().length(6, "Verification code must be 6 digits"),
-})
-
 type LoginFormData = z.infer<typeof loginSchema>
-type TwoFAFormData = z.infer<typeof twoFASchema>
 
 export default function AdminLoginPage() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const t = useTranslations("admin.login")
-  const { loading: authLoading, login, verify2FA, isAuthenticated } = useAdminAuth()
+  const { loading: authLoading, login, isAuthenticated } = useAdminAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [requires2FA, setRequires2FA] = useState(false)
-  const [email, setEmail] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [twoFACode, setTwoFACode] = useState<string | null>(null)
   const [isDevelopment, setIsDevelopment] = useState(false)
@@ -73,19 +67,10 @@ export default function AdminLoginPage() {
     },
   })
 
-  // 2FA form
-  const twoFAForm = useForm<TwoFAFormData>({
-    resolver: zodResolver(twoFASchema),
-    defaultValues: {
-      code: "",
-    },
-  })
-
   // Handle login submission
   const onLoginSubmit = async (data: LoginFormData) => {
     try {
       setIsSubmitting(true)
-      setEmail(data.email)
       
       const result = await login(data.email, data.password)
       
@@ -132,46 +117,12 @@ export default function AdminLoginPage() {
     }
   }
 
-  // Handle 2FA submission
-  const on2FASubmit = async (data: TwoFAFormData) => {
-    try {
-      setIsSubmitting(true)
-      
-      await verify2FA(email, data.code)
-      
-      toast.success(t("verificationSuccessful"), {
-        description: "Redirecting to dashboard...",
-      })
-      
-      // Redirect will be handled by the auth provider
-      setTimeout(() => {
-        router.replace(safeRedirect)
-      }, 500)
-    } catch (error: any) {
-      console.error('[AdminLogin] 2FA error:', error)
-      toast.error(t("verificationFailed"), {
-        description: error.message || "Invalid verification code. Please try again.",
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  // Handle back to login
-  const handleBackToLogin = () => {
-    setRequires2FA(false)
-    setEmail("")
-    setTwoFACode(null)
-    loginForm.reset()
-    twoFAForm.reset()
-  }
-
   // Auto-fill 2FA code in development
   const handleUseDevelopmentCode = () => {
     if (twoFACode) {
-      twoFAForm.setValue('code', twoFACode)
+      navigator.clipboard.writeText(twoFACode)
       toast.success("Code Auto-filled", {
-        description: "Click 'Verify & Login' to continue",
+        description: "Code copied. Continue in the verification screen.",
       })
     }
   }
@@ -188,7 +139,7 @@ export default function AdminLoginPage() {
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
+      <div className="admin-auth-shell flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-sm text-muted-foreground">{t("signingIn")}</p>
@@ -198,18 +149,21 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-4">
-      <Card className="w-full max-w-md shadow-2xl border-0">
+    <div className="admin-auth-shell flex min-h-screen items-center justify-center p-4">
+      <Card className="admin-auth-panel w-full max-w-md rounded-[2rem] border-0 shadow-none">
         <CardHeader className="space-y-3 pb-6">
-          <div className="flex items-center justify-center mb-2">
-            <div className="p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
-              <Shield className="h-10 w-10 text-white" />
+          <div className="mb-2 flex items-center justify-center">
+            <div className="admin-icon-chip h-20 w-20 rounded-[1.75rem] bg-white/90 p-4">
+              <Image src="/Logos/PNG/brandmark.png" alt="Chabaqa" width={48} height={48} className="h-12 w-12 object-contain" />
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <div className="flex justify-center">
+            <Image src="/logo_chabaqa.png" alt="Chabaqa" width={136} height={32} className="h-8 w-auto object-contain" />
+          </div>
+          <CardTitle className="text-center text-3xl font-bold tracking-tight text-foreground">
             {show2FAForm ? t("twoFactorTitle") : t("title")}
           </CardTitle>
-          <CardDescription className="text-center text-base">
+          <CardDescription className="text-center text-base text-[hsl(var(--admin-muted))]">
             {show2FAForm
               ? t("twoFactorSubtitle")
               : t("subtitle")}
@@ -218,9 +172,9 @@ export default function AdminLoginPage() {
         <CardContent className="space-y-4">
           {/* Development Mode Alert */}
           {isDevelopment && !requires2FA && (
-            <Alert className="border-blue-200 bg-blue-50/50 backdrop-blur">
-              <AlertCircle className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-sm text-blue-800 ml-2">
+            <Alert className="border-[hsl(var(--admin-cyan)/0.22)] bg-[hsl(var(--admin-cyan)/0.08)]">
+              <AlertCircle className="h-4 w-4 text-[hsl(var(--admin-cyan))]" />
+              <AlertDescription className="ml-2 text-sm text-foreground">
                 <strong>Development Mode:</strong> 2FA code will be displayed after login
               </AlertDescription>
             </Alert>
@@ -228,13 +182,13 @@ export default function AdminLoginPage() {
 
           {/* 2FA Code Display in Development */}
           {isDevelopment && requires2FA && twoFACode && (
-            <Alert className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 backdrop-blur">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <Alert className="border-[hsl(var(--admin-success)/0.22)] bg-[hsl(var(--admin-success)/0.08)]">
+              <CheckCircle2 className="h-5 w-5 text-[hsl(var(--admin-success))]" />
               <AlertDescription className="ml-2">
                 <div className="flex flex-col gap-3">
-                  <strong className="text-green-800 text-sm">🔐 Development 2FA Code:</strong>
-                  <div className="flex items-center gap-2 bg-white rounded-lg p-3 border border-green-200">
-                    <code className="text-3xl font-mono font-bold text-green-900 tracking-wider flex-1 text-center">
+                  <strong className="text-sm text-foreground">Development 2FA Code</strong>
+                  <div className="flex items-center gap-2 rounded-2xl border border-[hsl(var(--admin-success)/0.18)] bg-white p-3">
+                    <code className="flex-1 text-center font-mono text-3xl font-bold tracking-wider text-[hsl(var(--admin-success))]">
                       {twoFACode}
                     </code>
                     <Button
@@ -252,7 +206,7 @@ export default function AdminLoginPage() {
                     variant="default"
                     size="sm"
                     onClick={handleUseDevelopmentCode}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-[hsl(var(--admin-success))] text-white hover:bg-[hsl(var(--admin-success)/0.92)]"
                   >
                     Auto-fill Code
                   </Button>
@@ -273,7 +227,7 @@ export default function AdminLoginPage() {
                     id="email"
                     type="email"
                     placeholder={t("emailPlaceholder")}
-                    className="pl-10 h-11"
+                    className="admin-input h-11 rounded-2xl pl-10"
                     {...loginForm.register("email")}
                     disabled={isSubmitting}
                   />
@@ -293,7 +247,7 @@ export default function AdminLoginPage() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder={t("passwordPlaceholder")}
-                    className="pl-10 pr-10 h-11"
+                    className="admin-input h-11 rounded-2xl pl-10 pr-10"
                     {...loginForm.register("password")}
                     disabled={isSubmitting}
                   />
@@ -318,9 +272,9 @@ export default function AdminLoginPage() {
               </div>
 
               {isDevelopment && (
-                <Alert className="border-amber-200 bg-amber-50/50">
-                  <AlertCircle className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="text-xs text-amber-800 ml-2">
+                <Alert className="border-[hsl(var(--admin-warning)/0.22)] bg-[hsl(var(--admin-warning)/0.08)]">
+                  <AlertCircle className="h-4 w-4 text-[hsl(var(--admin-warning))]" />
+                  <AlertDescription className="ml-2 text-xs text-foreground">
                     <strong>Test Credentials:</strong><br />
                     <span className="font-mono">admin@local.com</span> / <span className="font-mono">Admin@123456</span>
                   </AlertDescription>
@@ -329,7 +283,7 @@ export default function AdminLoginPage() {
 
             <Button
               type="submit"
-              className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg"
+              className="h-11 w-full rounded-2xl bg-gradient-to-r from-primary to-[hsl(var(--admin-pink))] text-white shadow-lg shadow-[rgba(95,74,180,0.22)] hover:opacity-95"
               disabled={isSubmitting}
             >
               {isSubmitting ? (

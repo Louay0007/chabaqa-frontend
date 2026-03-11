@@ -781,329 +781,328 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-6 sm:py-8">
-        <div className="flex flex-col space-y-6">
-          {/* Create / Edit Post */}
-          <Card className="border border-slate-200/80 shadow-sm bg-white rounded-2xl">
-            <CardContent className="p-4 sm:p-6 lg:p-7">
-              <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
-                <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
-                  <AvatarImage src={currentUser?.avatar || "/placeholder.svg?height=48&width=48"} />
-                  <AvatarFallback>
-                    {(currentUser?.username || currentUser?.firstName || "U")
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 space-y-4">
-                  {isEditMode && (
-                    <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-                      <div className="flex items-center gap-2 text-sm text-amber-800">
-                        <PencilLine className="h-4 w-4" />
-                        Editing post
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={resetComposer}
-                        disabled={isCreatingPost}
-                        className="text-amber-800 hover:text-amber-900"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  )}
-
-                  <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 sm:px-4 sm:py-4">
-                    <Textarea
-                      placeholder="Share your progress, ask questions, or celebrate wins..."
-                      value={newPost}
-                      onChange={(e) => setNewPost(e.target.value)}
-                      ref={postTextareaRef}
-                      className="min-h-[96px] sm:min-h-[118px] resize-none border-0 bg-transparent rounded-lg px-0 py-0 focus-visible:ring-0 text-sm sm:text-[15px] leading-6 text-slate-700 placeholder:text-slate-400"
-                    />
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                      <span className="rounded-full bg-white px-2.5 py-1 border border-slate-200">{newPost.length} chars</span>
-                      <span className="rounded-full bg-white px-2.5 py-1 border border-slate-200">{composerMediaCount} media</span>
-                      <span className="rounded-full bg-white px-2.5 py-1 border border-slate-200">{composerLinkCount} links</span>
-                    </div>
-                  </div>
-
-                  {/* Optional metadata */}
-                  <div className="space-y-2.5">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowMetadata((value) => !value)}
-                      className={`h-9 rounded-full px-3 text-xs sm:text-sm transition-colors ${
-                        showMetadata
-                          ? "bg-primary-50 text-primary-700 hover:bg-primary-100"
-                          : "text-muted-foreground hover:bg-gray-100 hover:text-primary-500"
-                      }`}
-                    >
-                      <Settings2 className="h-4 w-4 mr-1.5" />
-                      {showMetadata ? "Hide details" : "Add title & tags"}
-                      {showMetadata ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
-                    </Button>
-
-                    {showMetadata && (
-                      <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 space-y-3">
-                        <Input
-                          placeholder="Post title (optional)"
-                          value={postTitle}
-                          onChange={(e) => setPostTitle(e.target.value)}
-                        />
-
-                        <div className="space-y-2">
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <Input
-                              placeholder="Add a tag (press Enter)"
-                              value={tagInput}
-                              onChange={(e) => setTagInput(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault()
-                                  handleAddTag()
-                                }
-                              }}
-                            />
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              onClick={handleAddTag}
-                              disabled={!tagInput.trim()}
-                              className="shrink-0"
-                            >
-                              <Hash className="h-4 w-4 mr-1" />
-                              Add Tag
-                            </Button>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+            {/* Main Feed */}
+            <div className="lg:col-span-3 space-y-6">
+              {/* Create / Edit Post */}
+              <Card className="border border-slate-200/80 shadow-sm bg-white rounded-2xl">
+                <CardContent className="p-4 sm:p-6 lg:p-7">
+                  <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
+                    <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
+                      <AvatarImage src={currentUser?.avatar || "/placeholder.svg?height=48&width=48"} />
+                      <AvatarFallback>
+                        {(currentUser?.username || currentUser?.firstName || "U")
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 space-y-4">
+                      {isEditMode && (
+                        <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                          <div className="flex items-center gap-2 text-sm text-amber-800">
+                            <PencilLine className="h-4 w-4" />
+                            Editing post
                           </div>
-
-                          {postTags.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {postTags.map((tag) => (
-                                <Badge key={tag} variant="secondary" className="flex items-center gap-1 pr-1">
-                                  #{tag}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveTag(tag)}
-                                    className="rounded-full p-0.5 hover:bg-gray-300"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Media Preview */}
-                  {(uploadedImages.length > 0 || uploadedVideos.length > 0) && (
-                    <div className="flex flex-wrap gap-2">
-                      {uploadedImages.map((url, index) => (
-                        <div key={`img-${index}`} className="relative group">
-                          <img src={url} alt={`Upload ${index + 1}`} className="w-20 h-20 object-cover rounded-lg" />
-                          <button
-                            onClick={() => removeImage(index)}
-                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                      {uploadedVideos.map((url, index) => (
-                        <div key={`vid-${index}`} className="relative group">
-                          <video src={url} className="w-20 h-20 object-cover rounded-lg" />
-                          <button
-                            onClick={() => removeVideo(index)}
-                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Links (toggle) */}
-                  <div className="space-y-2.5">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowLinks((v) => !v)}
-                      className={`h-9 rounded-full px-3 text-xs sm:text-sm transition-colors ${
-                        showLinks
-                          ? "bg-primary-50 text-primary-700 hover:bg-primary-100"
-                          : "text-muted-foreground hover:bg-gray-100 hover:text-primary-500"
-                      }`}
-                    >
-                      <LinkIcon className="h-4 w-4 mr-1.5" />
-                      {showLinks ? "Hide links" : "Add links"}
-                      {showLinks ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
-                    </Button>
-
-                    {showLinks && (
-                      <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 space-y-3">
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <Input
-                            placeholder="https://example.com"
-                            value={linkUrl}
-                            onChange={(e) => setLinkUrl(e.target.value)}
-                          />
-                          <Input
-                            placeholder="Title (optional)"
-                            value={linkTitle}
-                            onChange={(e) => setLinkTitle(e.target.value)}
-                          />
                           <Button
                             type="button"
-                            variant="secondary"
-                            onClick={handleAddLink}
-                            disabled={!linkUrl.trim()}
-                            className="shrink-0"
+                            variant="ghost"
+                            size="sm"
+                            onClick={resetComposer}
+                            disabled={isCreatingPost}
+                            className="text-amber-800 hover:text-amber-900"
                           >
-                            Add
+                            Cancel
                           </Button>
                         </div>
+                      )}
 
-                        {links.length > 0 && (
-                          <div className="space-y-2">
-                            {links.map((link, idx) => (
-                              <div key={`${link.url}-${idx}`} className="flex items-center justify-between gap-2 rounded-lg border bg-slate-50 px-3 py-2.5">
-                                <div className="min-w-0">
-                                  <div className="text-sm font-medium truncate">{link.title || link.url}</div>
-                                  <div className="text-xs text-muted-foreground truncate">{link.url}</div>
-                                </div>
-                                <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveLink(idx)}>
-                                  <X className="h-4 w-4" />
+                      <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 sm:px-4 sm:py-4">
+                        <Textarea
+                          placeholder="Share your progress, ask questions, or celebrate wins..."
+                          value={newPost}
+                          onChange={(e) => setNewPost(e.target.value)}
+                          ref={postTextareaRef}
+                          className="min-h-[96px] sm:min-h-[118px] resize-none border-0 bg-transparent rounded-lg px-0 py-0 focus-visible:ring-0 text-sm sm:text-[15px] leading-6 text-slate-700 placeholder:text-slate-400"
+                        />
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                          <span className="rounded-full bg-white px-2.5 py-1 border border-slate-200">{newPost.length} chars</span>
+                          <span className="rounded-full bg-white px-2.5 py-1 border border-slate-200">{composerMediaCount} media</span>
+                          <span className="rounded-full bg-white px-2.5 py-1 border border-slate-200">{composerLinkCount} links</span>
+                        </div>
+                      </div>
+
+                      {/* Optional metadata */}
+                      <div className="space-y-2.5">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowMetadata((value) => !value)}
+                          className={`h-9 rounded-full px-3 text-xs sm:text-sm transition-colors ${
+                            showMetadata
+                              ? "bg-primary-50 text-primary-700 hover:bg-primary-100"
+                              : "text-muted-foreground hover:bg-gray-100 hover:text-primary-500"
+                          }`}
+                        >
+                          <Settings2 className="h-4 w-4 mr-1.5" />
+                          {showMetadata ? "Hide details" : "Add title & tags"}
+                          {showMetadata ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+                        </Button>
+
+                        {showMetadata && (
+                          <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 space-y-3">
+                            <Input
+                              placeholder="Post title (optional)"
+                              value={postTitle}
+                              onChange={(e) => setPostTitle(e.target.value)}
+                            />
+
+                            <div className="space-y-2">
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                <Input
+                                  placeholder="Add a tag (press Enter)"
+                                  value={tagInput}
+                                  onChange={(e) => setTagInput(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault()
+                                      handleAddTag()
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  onClick={handleAddTag}
+                                  disabled={!tagInput.trim()}
+                                  className="shrink-0"
+                                >
+                                  <Hash className="h-4 w-4 mr-1" />
+                                  Add Tag
                                 </Button>
                               </div>
-                            ))}
+
+                              {postTags.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                  {postTags.map((tag) => (
+                                    <Badge key={tag} variant="secondary" className="flex items-center gap-1 pr-1">
+                                      #{tag}
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveTag(tag)}
+                                        className="rounded-full p-0.5 hover:bg-gray-300"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Emoji picker */}
-                  {showEmojiPicker && (
-                    <div className="border rounded-lg p-3 bg-gray-50">
-                      <div className="grid grid-cols-10 gap-2">
-                        {COMMON_EMOJIS.map((emoji) => (
-                          <button
-                            key={emoji}
+                      {/* Media Preview */}
+                      {(uploadedImages.length > 0 || uploadedVideos.length > 0) && (
+                        <div className="flex flex-wrap gap-2">
+                          {uploadedImages.map((url, index) => (
+                            <div key={`img-${index}`} className="relative group">
+                              <img src={url} alt={`Upload ${index + 1}`} className="w-20 h-20 object-cover rounded-lg" />
+                              <button
+                                onClick={() => removeImage(index)}
+                                className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                          {uploadedVideos.map((url, index) => (
+                            <div key={`vid-${index}`} className="relative group">
+                              <video src={url} className="w-20 h-20 object-cover rounded-lg" />
+                              <button
+                                onClick={() => removeVideo(index)}
+                                className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Links (toggle) */}
+                      <div className="space-y-2.5">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowLinks((v) => !v)}
+                          className={`h-9 rounded-full px-3 text-xs sm:text-sm transition-colors ${
+                            showLinks
+                              ? "bg-primary-50 text-primary-700 hover:bg-primary-100"
+                              : "text-muted-foreground hover:bg-gray-100 hover:text-primary-500"
+                          }`}
+                        >
+                          <LinkIcon className="h-4 w-4 mr-1.5" />
+                          {showLinks ? "Hide links" : "Add links"}
+                          {showLinks ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+                        </Button>
+
+                        {showLinks && (
+                          <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 space-y-3">
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <Input
+                                placeholder="https://example.com"
+                                value={linkUrl}
+                                onChange={(e) => setLinkUrl(e.target.value)}
+                              />
+                              <Input
+                                placeholder="Title (optional)"
+                                value={linkTitle}
+                                onChange={(e) => setLinkTitle(e.target.value)}
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={handleAddLink}
+                                disabled={!linkUrl.trim()}
+                                className="shrink-0"
+                              >
+                                Add
+                              </Button>
+                            </div>
+
+                            {links.length > 0 && (
+                              <div className="space-y-2">
+                                {links.map((link, idx) => (
+                                  <div key={`${link.url}-${idx}`} className="flex items-center justify-between gap-2 rounded-lg border bg-slate-50 px-3 py-2.5">
+                                    <div className="min-w-0">
+                                      <div className="text-sm font-medium truncate">{link.title || link.url}</div>
+                                      <div className="text-xs text-muted-foreground truncate">{link.url}</div>
+                                    </div>
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveLink(idx)}>
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Emoji picker */}
+                      {showEmojiPicker && (
+                        <div className="border rounded-lg p-3 bg-gray-50">
+                          <div className="grid grid-cols-10 gap-2">
+                            {COMMON_EMOJIS.map((emoji) => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                onClick={() => insertEmojiIntoPost(emoji)}
+                                className="text-xl hover:bg-white p-2 rounded transition"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Hidden file inputs */}
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      <input
+                        ref={videoInputRef}
+                        type="file"
+                        accept="video/*"
+                        onChange={handleVideoUpload}
+                        className="hidden"
+                      />
+
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3 sm:pt-4">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <Button
                             type="button"
-                            onClick={() => insertEmojiIntoPost(emoji)}
-                            className="text-xl hover:bg-white p-2 rounded transition"
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 rounded-full px-3 text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors"
+                            title="Add Photo"
+                            onClick={() => imageInputRef.current?.click()}
+                            disabled={isUploadingMedia}
                           >
-                            {emoji}
-                          </button>
-                        ))}
+                            <ImageIcon className="h-4 w-4" />
+                            <span className="ml-1.5 text-xs sm:text-sm">
+                              {isUploadingMedia ? "Uploading..." : "Photo"}
+                            </span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 rounded-full px-3 text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors"
+                            title="Add Video"
+                            onClick={() => videoInputRef.current?.click()}
+                            disabled={isUploadingMedia}
+                          >
+                            <Video className="h-4 w-4" />
+                            <span className="ml-1.5 text-xs sm:text-sm">Video</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 rounded-full px-3 text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors"
+                            title="Add Link"
+                            onClick={() => setShowLinks(true)}
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                            <span className="ml-1.5 text-xs sm:text-sm">Link</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 rounded-full px-3 text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors"
+                            title="Add Emoji"
+                            onClick={() => setShowEmojiPicker((v) => !v)}
+                          >
+                            <Smile className="h-4 w-4" />
+                            <span className="ml-1.5 text-xs sm:text-sm">Emoji</span>
+                          </Button>
+                        </div>
+                        <Button
+                          onClick={handleCreateOrUpdatePost}
+                          disabled={!composerHasContent || isCreatingPost || !currentUser || isUploadingMedia}
+                          className="bg-primary-500 hover:bg-primary-600 text-white text-sm px-4 sm:px-5 h-10 rounded-full transition-colors disabled:opacity-50 shadow-sm"
+                        >
+                          {isCreatingPost ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              <span>{isEditMode ? "Saving..." : "Posting..."}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send className="h-4 w-4 mr-2" />
+                              <span>{isEditMode ? "Save changes" : "Post"}</span>
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </div>
-                  )}
-
-                  {/* Hidden file inputs */}
-                  <input
-                    ref={imageInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                  <input
-                    ref={videoInputRef}
-                    type="file"
-                    accept="video/*"
-                    onChange={handleVideoUpload}
-                    className="hidden"
-                  />
-
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3 sm:pt-4">
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 rounded-full px-3 text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors"
-                        title="Add Photo"
-                        onClick={() => imageInputRef.current?.click()}
-                        disabled={isUploadingMedia}
-                      >
-                        <ImageIcon className="h-4 w-4" />
-                        <span className="ml-1.5 text-xs sm:text-sm">
-                          {isUploadingMedia ? "Uploading..." : "Photo"}
-                        </span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 rounded-full px-3 text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors"
-                        title="Add Video"
-                        onClick={() => videoInputRef.current?.click()}
-                        disabled={isUploadingMedia}
-                      >
-                        <Video className="h-4 w-4" />
-                        <span className="ml-1.5 text-xs sm:text-sm">Video</span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 rounded-full px-3 text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors"
-                        title="Add Link"
-                        onClick={() => setShowLinks(true)}
-                      >
-                        <LinkIcon className="h-4 w-4" />
-                        <span className="ml-1.5 text-xs sm:text-sm">Link</span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 rounded-full px-3 text-muted-foreground hover:bg-gray-100 hover:text-primary-500 transition-colors"
-                        title="Add Emoji"
-                        onClick={() => setShowEmojiPicker((v) => !v)}
-                      >
-                        <Smile className="h-4 w-4" />
-                        <span className="ml-1.5 text-xs sm:text-sm">Emoji</span>
-                      </Button>
-                    </div>
-                    <Button
-                      onClick={handleCreateOrUpdatePost}
-                      disabled={!composerHasContent || isCreatingPost || !currentUser || isUploadingMedia}
-                      className="bg-primary-500 hover:bg-primary-600 text-white text-sm px-4 sm:px-5 h-10 rounded-full transition-colors disabled:opacity-50 shadow-sm"
-                    >
-                      {isCreatingPost ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          <span>{isEditMode ? "Saving..." : "Posting..."}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4 mr-2" />
-                          <span>{isEditMode ? "Save changes" : "Post"}</span>
-                        </>
-                      )}
-                    </Button>
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Main Feed */}
-            <div className="lg:col-span-3 space-y-6">
               <Card className="border-0 shadow-sm bg-white">
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1215,7 +1214,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
             </div>
 
             {/* Sidebar */}
-            <div className="lg:col-span-1 space-y-6">
+            <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-0 lg:self-start">
               {/* Active Challenge */}
               {activeChallenges.length > 0 && (
                 <Card className="border-0 shadow-sm bg-gradient-to-br from-challenges-50 to-orange-50">
@@ -1347,7 +1346,6 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                 </CardContent>
               </Card>
             </div>
-          </div>
         </div>
       </div>
 

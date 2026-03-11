@@ -20,9 +20,22 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { AtSign, Mail as MailIcon, MapPin, Pencil, Save as SaveIcon, TriangleAlert, User as UserIcon } from "lucide-react"
 import { getUserProfileHandle } from "@/lib/profile-handle"
+import { SOCIAL_PLATFORMS, cleanSocialLinks, type SocialPlatform, type UserSocialLinks } from "@/lib/social-links"
+import { SocialBrandIcon } from "@/components/profile/SocialBrandIcon"
 
 function slugFromUser(u: any) {
   return getUserProfileHandle(u)
+}
+
+const SOCIAL_LABELS: Record<SocialPlatform, string> = {
+  instagram: "Instagram",
+  facebook: "Facebook",
+  linkedin: "LinkedIn",
+  twitter: "X / Twitter",
+  youtube: "YouTube",
+  tiktok: "TikTok",
+  github: "GitHub",
+  website: "Website",
 }
 
 export default function EditProfilePage() {
@@ -41,6 +54,7 @@ export default function EditProfilePage() {
   const [email, setEmail] = useState("")
   const [location, setLocation] = useState("")
   const [bio, setBio] = useState("")
+  const [socialLinks, setSocialLinks] = useState<UserSocialLinks>({})
   const [nameTouched, setNameTouched] = useState(false)
   const [emailTouched, setEmailTouched] = useState(false)
   const [locationTouched, setLocationTouched] = useState(false)
@@ -69,12 +83,18 @@ export default function EditProfilePage() {
   const isValidEmail = (v: string) => /.+@.+\..+/.test((v || '').trim())
   const currentVille = (user as any)?.ville || ""
   const currentPays = (user as any)?.pays || ""
+  const currentSocialLinks = cleanSocialLinks({
+    ...((user as any)?.socialLinks || {}),
+    instagram: (user as any)?.socialLinks?.instagram || (user as any)?.lien_instagram || "",
+  })
+  const socialLinksDirty = JSON.stringify(cleanSocialLinks(socialLinks)) !== JSON.stringify(currentSocialLinks)
   const currentLocation = [currentVille, currentPays].filter(Boolean).join(", ")
   const isDirty = (
     fullName !== (user?.name || "") ||
     email !== (user?.email || "") ||
     bio !== ((user as any)?.bio || "") ||
     location !== currentLocation ||
+    socialLinksDirty ||
     (!!uploadedAvatarUrl && uploadedAvatarUrl !== user?.avatar)
   )
   const isValid = (
@@ -113,6 +133,10 @@ export default function EditProfilePage() {
       const loc = [ua.ville, ua.pays].filter(Boolean).join(", ")
       setLocation(loc)
       setBio(ua.bio || "")
+      setSocialLinks(cleanSocialLinks({
+        ...(ua.socialLinks || {}),
+        instagram: ua?.socialLinks?.instagram || ua?.lien_instagram || "",
+      }))
       setLoading(false)
     }
   }, [isLoading, user, params?.slug, router])
@@ -177,7 +201,11 @@ export default function EditProfilePage() {
         pays,
 
         bio: bio || undefined,
-        photo_profil: uploadedAvatarUrl || undefined
+        photo_profil: uploadedAvatarUrl || undefined,
+        socialLinks: cleanSocialLinks(socialLinks),
+      }
+      if (!Object.keys(payload.socialLinks).length) {
+        payload.socialLinks = {}
       }
       // Prepare optimistic user
       const optimisticUser = {
@@ -190,6 +218,8 @@ export default function EditProfilePage() {
         pays: payload.pays ?? (user as any)?.pays,
         photo_profil: payload.photo_profil ?? (user as any)?.photo_profil,
         avatar: payload.photo_profil ?? user?.avatar,
+        socialLinks: payload.socialLinks,
+        lien_instagram: payload.socialLinks?.instagram,
       }
       // Optimistic update with rollback on error
       await mutate(optimisticUser, { revalidate: false })
@@ -422,6 +452,38 @@ export default function EditProfilePage() {
                   maxLength={BIO_MAX}
                 />
                 <div className="mt-1 text-xs text-text-tertiary text-right">{bio.length}/{BIO_MAX}</div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1.5">Social Links</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {SOCIAL_PLATFORMS.map((platform) => (
+                    <div key={platform}>
+                      <label className="block text-xs text-text-secondary mb-1.5" htmlFor={`social-${platform}`}>
+                        {SOCIAL_LABELS[platform]}
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary">
+                          <SocialBrandIcon platform={platform} className="w-4 h-4" />
+                        </span>
+                        <input
+                          id={`social-${platform}`}
+                          name={`social-${platform}`}
+                          type="url"
+                          className="w-full rounded-lg border border-border-color pl-10 pr-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary transition"
+                          placeholder={`https://${platform === "website" ? "your-site.com" : `${platform}.com/username`}`}
+                          value={socialLinks[platform] || ""}
+                          onChange={(e) =>
+                            setSocialLinks((prev) => ({
+                              ...prev,
+                              [platform]: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {error && <div className="text-sm text-red-600">{error}</div>}

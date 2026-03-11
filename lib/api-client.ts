@@ -110,6 +110,23 @@ class ApiClient {
       const data = await response.json()
       
       if (!response.ok) {
+        // Handle unauthorized or forbidden errors for admin routes
+        if ((response.status === 401 || response.status === 403) && isAdminRequest && !isAuthEndpoint) {
+          if (typeof window !== 'undefined') {
+            // Clear admin tokens and redirect to login
+            localStorage.removeItem('admin_access_token');
+            localStorage.removeItem('admin_refresh_token');
+            localStorage.removeItem('admin_user');
+            localStorage.removeItem('admin_session');
+            
+            // Avoid redirect loops if already on login page
+            const pathname = window.location.pathname;
+            if (!pathname.includes('/admin/login') && !pathname.includes('/admin/verify-2fa')) {
+              window.location.href = '/en/admin/login?reason=expired';
+            }
+          }
+        }
+
         const error = new Error(data.message || `HTTP ${response.status}: ${response.statusText}`) as ApiClientError
         error.status = response.status
         throw error

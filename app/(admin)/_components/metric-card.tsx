@@ -5,7 +5,7 @@ import { LucideIcon, TrendingUp, TrendingDown } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
-interface MetricCardProps {
+export interface MetricCardProps {
   title: string
   value: number | string
   change?: {
@@ -20,29 +20,29 @@ interface MetricCardProps {
 
 const colorVariants = {
   primary: {
-    bg: 'bg-blue-50 dark:bg-blue-950',
-    icon: 'text-blue-600 dark:text-blue-400',
-    border: 'border-blue-200 dark:border-blue-800'
+    bg: 'bg-[hsl(var(--admin-primary)/0.14)]',
+    icon: 'text-[hsl(var(--admin-primary-strong))]',
+    border: 'border-[hsl(var(--admin-primary)/0.18)]'
   },
   success: {
-    bg: 'bg-green-50 dark:bg-green-950',
-    icon: 'text-green-600 dark:text-green-400',
-    border: 'border-green-200 dark:border-green-800'
+    bg: 'bg-[hsl(var(--admin-success)/0.12)]',
+    icon: 'text-[hsl(var(--admin-success))]',
+    border: 'border-[hsl(var(--admin-success)/0.2)]'
   },
   warning: {
-    bg: 'bg-yellow-50 dark:bg-yellow-950',
-    icon: 'text-yellow-600 dark:text-yellow-400',
-    border: 'border-yellow-200 dark:border-yellow-800'
+    bg: 'bg-[hsl(var(--admin-warning)/0.14)]',
+    icon: 'text-[hsl(var(--admin-warning))]',
+    border: 'border-[hsl(var(--admin-warning)/0.24)]'
   },
   danger: {
-    bg: 'bg-red-50 dark:bg-red-950',
-    icon: 'text-red-600 dark:text-red-400',
-    border: 'border-red-200 dark:border-red-800'
+    bg: 'bg-[hsl(var(--admin-danger)/0.12)]',
+    icon: 'text-[hsl(var(--admin-danger))]',
+    border: 'border-[hsl(var(--admin-danger)/0.2)]'
   },
   info: {
-    bg: 'bg-purple-50 dark:bg-purple-950',
-    icon: 'text-purple-600 dark:text-purple-400',
-    border: 'border-purple-200 dark:border-purple-800'
+    bg: 'bg-[hsl(var(--admin-cyan)/0.14)]',
+    icon: 'text-[hsl(var(--admin-cyan))]',
+    border: 'border-[hsl(var(--admin-cyan)/0.22)]'
   }
 }
 
@@ -60,7 +60,7 @@ export const MetricCard = React.memo(({
 
   if (loading) {
     return (
-      <Card className="border-0 shadow-lg">
+      <Card className="admin-kpi-card overflow-hidden rounded-3xl border-0 shadow-none">
         <CardContent className="p-6">
           <div className="space-y-3" role="status" aria-label="Loading metric">
             <div className="flex items-center justify-between">
@@ -135,7 +135,7 @@ export const MetricCard = React.memo(({
     return (
       <Card 
         className={cn(
-          "border-0 shadow-lg cursor-pointer transition-all hover:shadow-xl hover:scale-[1.02]",
+          "admin-kpi-card cursor-pointer overflow-hidden rounded-3xl border-0 shadow-none transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-26px_rgba(95,74,180,0.38)]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         )}
         onClick={onClick}
@@ -155,7 +155,7 @@ export const MetricCard = React.memo(({
   }
 
   return (
-    <Card className="border-0 shadow-lg">
+    <Card className="admin-kpi-card overflow-hidden rounded-3xl border-0 shadow-none">
       {content}
     </Card>
   )

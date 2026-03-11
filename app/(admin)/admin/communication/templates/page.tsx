@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useAdminAuth } from "@/app/(admin)/providers/admin-auth-provider"
-import { adminApi } from "@/lib/api/admin-api"
+import { adminApi, type AdminEmailTemplate } from "@/lib/api/admin-api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { ConfirmDialog } from "@/app/(admin)/_components/confirm-dialog"
-import { ArrowLeft, Plus, Edit, Trash2 } from "lucide-react"
+import { ArrowLeft, Plus, Edit, Trash2, Eye } from "lucide-react"
 import { toast } from "sonner"
 
 interface EmailTemplate {
@@ -42,6 +42,19 @@ const templateSchema = z.object({
 })
 
 type TemplateFormData = z.infer<typeof templateSchema>
+
+const toUiTemplate = (template: AdminEmailTemplate): EmailTemplate => {
+  const now = new Date().toISOString()
+  return {
+    _id: template._id,
+    name: template.name,
+    subject: template.subject ?? "",
+    content: template.content ?? "",
+    variables: template.variables ?? [],
+    createdAt: (template as { createdAt?: string }).createdAt ?? now,
+    updatedAt: (template as { updatedAt?: string }).updatedAt ?? now,
+  }
+}
 
 export default function EmailTemplatesPage() {
   const router = useRouter()
@@ -83,7 +96,8 @@ export default function EmailTemplatesPage() {
     try {
       const response = await adminApi.communication.getEmailTemplates()
       const data = response?.data || response
-      setTemplates(Array.isArray(data) ? data : data?.templates || [])
+      const apiTemplates = (Array.isArray(data) ? data : data?.templates || []) as AdminEmailTemplate[]
+      setTemplates(apiTemplates.map(toUiTemplate))
     } catch (error) {
       console.error('[Templates] Error:', error)
       toast.error('Failed to load templates')
@@ -201,9 +215,9 @@ export default function EmailTemplatesPage() {
   }
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -272,6 +286,14 @@ export default function EmailTemplatesPage() {
                 </div>
 
                 <div className="flex items-center gap-2 pt-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => router.push(`/admin/communication/templates/${template._id}`)}
+                  >
+                    <Eye className="h-3 w-3 mr-1" />
+                    Manage
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"

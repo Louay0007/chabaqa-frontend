@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import ProfilePage from "../page"
 import { getUserProfileHandle, slugifyToHandle } from "@/lib/profile-handle"
+import type { UserSocialLinks } from "@/lib/social-links"
 
 interface SlugUser {
   _id: string
@@ -16,6 +17,8 @@ interface SlugUser {
   ville?: string
   pays?: string
   bio?: string
+  socialLinks?: UserSocialLinks
+  lien_instagram?: string
   createdAt: string
 }
 
@@ -58,6 +61,8 @@ export default function ProfileSlugPage() {
             ville: (currentUser as any).ville,
             pays: (currentUser as any).pays,
             bio: (currentUser as any).bio,
+            socialLinks: (currentUser as any).socialLinks,
+            lien_instagram: (currentUser as any).lien_instagram,
             createdAt: (currentUser as any).createdAt || new Date().toISOString()
           })
           setLoading(false)

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -96,30 +97,33 @@ export default function AdminVerify2FAPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-4">
-      <Card className="w-full max-w-md shadow-2xl border-0">
+    <div className="admin-auth-shell flex min-h-screen items-center justify-center p-4">
+      <Card className="admin-auth-panel w-full max-w-md rounded-[2rem] border-0 shadow-none">
         <CardHeader className="space-y-3 pb-6">
-          <div className="flex items-center justify-center mb-2">
-            <div className="p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
-              <Shield className="h-10 w-10 text-white" />
+          <div className="mb-2 flex items-center justify-center">
+            <div className="admin-icon-chip h-20 w-20 rounded-[1.75rem] bg-white/90 p-4">
+              <Image src="/Logos/PNG/brandmark.png" alt="Chabaqa" width={48} height={48} className="h-12 w-12 object-contain" />
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <div className="flex justify-center">
+            <Image src="/logo_chabaqa.png" alt="Chabaqa" width={136} height={32} className="h-8 w-auto object-contain" />
+          </div>
+          <CardTitle className="text-center text-3xl font-bold tracking-tight text-foreground">
             Two-Factor Authentication
           </CardTitle>
-          <CardDescription className="text-center text-base">
+          <CardDescription className="text-center text-base text-[hsl(var(--admin-muted))]">
             Enter the 6-digit verification code
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {isDevelopment && twoFACode && (
-            <Alert className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 backdrop-blur">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <Alert className="border-[hsl(var(--admin-success)/0.22)] bg-[hsl(var(--admin-success)/0.08)]">
+              <CheckCircle2 className="h-5 w-5 text-[hsl(var(--admin-success))]" />
               <AlertDescription className="ml-2">
                 <div className="flex flex-col gap-3">
-                  <strong className="text-green-800 text-sm">🔐 Development 2FA Code:</strong>
-                  <div className="flex items-center gap-2 bg-white rounded-lg p-3 border border-green-200">
-                    <code className="text-3xl font-mono font-bold text-green-900 tracking-wider flex-1 text-center">
+                  <strong className="text-sm text-foreground">Development 2FA Code</strong>
+                  <div className="flex items-center gap-2 rounded-2xl border border-[hsl(var(--admin-success)/0.18)] bg-white p-3">
+                    <code className="flex-1 text-center font-mono text-3xl font-bold tracking-wider text-[hsl(var(--admin-success))]">
                       {twoFACode}
                     </code>
                     <Button
@@ -137,7 +141,7 @@ export default function AdminVerify2FAPage() {
                     variant="default"
                     size="sm"
                     onClick={handleUseDevelopmentCode}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-[hsl(var(--admin-success))] text-white hover:bg-[hsl(var(--admin-success)/0.92)]"
                   >
                     Auto-fill Code
                   </Button>
@@ -147,9 +151,9 @@ export default function AdminVerify2FAPage() {
           )}
 
           {!email && (
-            <Alert className="border-amber-200 bg-amber-50/50">
-              <AlertCircle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-xs text-amber-800 ml-2">
+            <Alert className="border-[hsl(var(--admin-warning)/0.22)] bg-[hsl(var(--admin-warning)/0.08)]">
+              <AlertCircle className="h-4 w-4 text-[hsl(var(--admin-warning))]" />
+              <AlertDescription className="ml-2 text-xs text-foreground">
                 Please sign in again to receive a verification code.
               </AlertDescription>
             </Alert>
@@ -163,7 +167,7 @@ export default function AdminVerify2FAPage() {
                 type="text"
                 placeholder="000000"
                 maxLength={6}
-                className="text-center text-3xl tracking-widest font-mono h-14"
+                className="admin-input h-14 rounded-2xl text-center font-mono text-3xl tracking-widest"
                 {...twoFAForm.register("code")}
                 disabled={isSubmitting}
                 autoFocus
@@ -180,7 +184,7 @@ export default function AdminVerify2FAPage() {
 
             <Button
               type="submit"
-              className="w-full h-11 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium shadow-lg"
+              className="h-11 w-full rounded-2xl bg-gradient-to-r from-primary to-[hsl(var(--admin-pink))] text-white shadow-lg shadow-[rgba(95,74,180,0.22)] hover:opacity-95"
               disabled={isSubmitting || !email}
             >
               {isSubmitting ? (
