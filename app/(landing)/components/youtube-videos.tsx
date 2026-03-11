@@ -14,71 +14,81 @@ interface Video {
 
 const videos: Video[] = [
   {
-    id: "dQw4w9WgXcQ",
-    thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
-    duration: "5:30"
+    id: "EmuPphacf0k",
+    thumbnail: "https://i.ytimg.com/vi/EmuPphacf0k/hqdefault.jpg",
+    duration: "3:10"
   },
   {
-    id: "dQw4w9WgXcQ",
-    thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
-    duration: "8:45"
+    id: "sEXWWLlhuqA",
+    thumbnail: "https://i.ytimg.com/vi/sEXWWLlhuqA/hqdefault.jpg",
+    duration: "2:59"
   },
   {
-    id: "dQw4w9WgXcQ",
-    thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
-    duration: "6:20"
+    id: "PyHE0D9pWFU",
+    thumbnail: "https://i.ytimg.com/vi/PyHE0D9pWFU/hqdefault.jpg",
+    duration: "3:39"
   },
   {
-    id: "dQw4w9WgXcQ",
-    thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
-    duration: "7:15"
+    id: "tmnUakwzMpQ",
+    thumbnail: "https://i.ytimg.com/vi/tmnUakwzMpQ/hqdefault.jpg",
+    duration: "3:06"
   },
   {
-    id: "dQw4w9WgXcQ",
-    thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
-    duration: "9:00"
+    id: "YXoqN0vRLe8",
+    thumbnail: "https://i.ytimg.com/vi/YXoqN0vRLe8/hqdefault.jpg",
+    duration: "1:51"
+  },
+  {
+    id: "Om87N_xrcfQ",
+    thumbnail: "https://i.ytimg.com/vi/Om87N_xrcfQ/hqdefault.jpg",
+    duration: "1:45"
   },
 ]
 
-const VideoCard = memo(({ video, onClick, thumbnailAlt }: { video: Video; onClick: () => void; thumbnailAlt: string }) => (
-  <div
-    className="flex-shrink-0 w-[280px] sm:w-[340px] lg:w-[380px] group cursor-pointer"
-    onClick={onClick}
-  >
-    <div className="relative">
-      {/* Animated gradient border */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-[#8e78fb] via-[#f65887] to-[#ff9b28] rounded-2xl opacity-0 group-hover:opacity-75 blur-sm transition-opacity duration-300" />
-      
-      {/* Card */}
-      <div className="relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-white shadow-lg group-hover:shadow-2xl transition-all duration-300">
-        <img
-          src={video.thumbnail}
-          alt={thumbnailAlt}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
+const VideoCard = memo(({ video, onClick, thumbnailAlt }: { video: Video; onClick: () => void; thumbnailAlt: string }) => {
+  const [imgError, setImgError] = useState(false)
+  
+  return (
+    <div
+      className="flex-shrink-0 w-[280px] sm:w-[340px] lg:w-[380px] group cursor-pointer"
+      onClick={onClick}
+    >
+      <div className="relative">
+        {/* Animated gradient border */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-[#8e78fb] via-[#f65887] to-[#ff9b28] rounded-2xl opacity-0 group-hover:opacity-75 blur-sm transition-opacity duration-300" />
         
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-        
-        {/* Play button */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative">
-            <div className="absolute inset-0 bg-[#8e78fb]/30 rounded-full blur-xl group-hover:blur-2xl transition-all" />
-            <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300">
-              <Play className="h-7 w-7 sm:h-9 sm:w-9 text-[#8e78fb] ml-1" fill="currentColor" />
+        {/* Card */}
+        <div className="relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-gray-900 shadow-lg group-hover:shadow-2xl transition-all duration-300">
+          <img
+            src={imgError ? `https://i.ytimg.com/vi/${video.id}/mqdefault.jpg` : video.thumbnail}
+            alt={thumbnailAlt}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+          
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+          
+          {/* Play button */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#8e78fb]/30 rounded-full blur-xl group-hover:blur-2xl transition-all" />
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300">
+                <Play className="h-7 w-7 sm:h-9 sm:w-9 text-[#8e78fb] ml-1" fill="currentColor" />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Duration badge */}
-        <div className="absolute bottom-3 right-3 bg-black/80 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-lg">
-          {video.duration}
+          {/* Duration badge */}
+          <div className="absolute bottom-3 right-3 bg-black/80 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-lg">
+            {video.duration}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-))
+  )
+})
 
 VideoCard.displayName = "VideoCard"
 
@@ -217,22 +227,23 @@ export function YouTubeVideos() {
       {/* Video Modal - matching About section modal style */}
       {selectedVideo && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 animate-in fade-in duration-300"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300"
           onClick={handleCloseModal}
           role="dialog"
           aria-modal="true"
         >
           <div
-            className="relative w-full max-w-6xl aspect-video bg-black rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300"
+            className="relative w-full max-w-5xl rounded-lg sm:rounded-xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300"
             onClick={(e) => e.stopPropagation()}
+            style={{ aspectRatio: '16/9' }}
           >
             <button
               onClick={handleCloseModal}
-              className="absolute -top-12 right-0 sm:top-4 sm:right-4 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white flex items-center justify-center transition-all hover:scale-110"
+              className="absolute -top-10 right-0 sm:-top-12 sm:right-0 z-10 w-10 h-10 rounded-full bg-white/90 hover:bg-white text-gray-900 flex items-center justify-center transition-all hover:scale-110 shadow-lg"
               aria-label={t("closeVideo")}
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
             <iframe
