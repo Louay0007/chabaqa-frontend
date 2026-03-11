@@ -44,7 +44,7 @@ const getApiBaseUrl = () => {
     return process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
   }
 
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+  return process.env.NEXT_PUBLIC_API_URL || '/api';
 };
 
 class ApiClient {

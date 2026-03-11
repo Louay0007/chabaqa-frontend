@@ -94,7 +94,9 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
   }
 
   const handleGoogleLogin = () => {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+    const apiBase =
+      process.env.NEXT_PUBLIC_API_URL ||
+      (typeof window !== "undefined" ? `${window.location.origin}/api` : "/api")
     const requestedRedirect = searchParams.get("redirect")
     const safeRedirect = isSafeRedirect(requestedRedirect)
       ? localizeHref(pathname, requestedRedirect)
