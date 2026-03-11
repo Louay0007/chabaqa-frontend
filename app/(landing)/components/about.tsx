@@ -78,10 +78,10 @@ export function About() {
 
             <div className="w-full max-w-full aspect-video h-auto rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
                <iframe
-                src="https://youtu.be/xf5Gvfpo330"
+                src="https://www.youtube.com/embed/t_IUPjKppN8?autoplay=1&rel=0"
                 title={t("aboutVideoExpandedTitle")}
-                className="w-full h-full max-h-[80vh]"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
@@ -128,7 +128,7 @@ export function About() {
                 referrerPolicy="no-referrer-when-downgrade"
               /> */}
             <Image
-              src="/coming-soon/soon-cover.png"
+              src="https://i.ytimg.com/vi/t_IUPjKppN8/hqdefault.jpg"
               alt={t("aboutVideoAlt")}
               fill
               className="object-cover rounded-2xl"
