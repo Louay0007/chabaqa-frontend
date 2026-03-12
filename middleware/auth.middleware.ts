@@ -193,9 +193,10 @@ function isProtectedRoute(path: string): boolean {
 export async function authMiddleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const preferredLocale = readCookieValue(request, LOCALE_COOKIE)
-  const fallbackLocale = SUPPORTED_LOCALES.includes(preferredLocale as (typeof SUPPORTED_LOCALES)[number])
-    ? preferredLocale
-    : DEFAULT_LOCALE
+  const isPreferredSupported =
+    typeof preferredLocale === 'string' &&
+    SUPPORTED_LOCALES.includes(preferredLocale as (typeof SUPPORTED_LOCALES)[number])
+  const fallbackLocale = isPreferredSupported ? preferredLocale : DEFAULT_LOCALE
   const extractedLocale = extractLocale(pathname)
   const locale = extractedLocale.hasLocalePrefix ? extractedLocale.locale : fallbackLocale
   const { normalizedPath, hasLocalePrefix } = extractedLocale
