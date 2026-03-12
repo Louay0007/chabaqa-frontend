@@ -1,10 +1,4 @@
-import {
-  CheckCircle2,
-  PlayCircle,
-  Target,
-  Timer,
-  TrendingUp,
-} from "lucide-react"
+import { CheckCircle2, PlayCircle, Timer, TrendingUp } from "lucide-react"
 
 interface ProgressHeaderProps {
   summary: {
@@ -26,59 +20,46 @@ export default function ProgressHeader({
       : 0
 
   return (
-    <section className="mb-6">
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/95 via-primary/85 to-primary/80 p-6 text-white shadow-sm sm:p-7">
-        <div className="pointer-events-none absolute -right-12 -top-14 h-40 w-40 rounded-full bg-white/10" />
-        <div className="pointer-events-none absolute -left-10 -bottom-12 h-32 w-32 rounded-full bg-white/10" />
+    <div className="mb-6">
+      <div className="bg-gradient-to-r from-rose-600 to-fuchsia-500 rounded-xl p-4 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between">
+        <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-12 translate-x-12"></div>
+        <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/10 rounded-full translate-y-8 -translate-x-8"></div>
 
-        <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-medium">
-              <Target className="h-3.5 w-3.5" />
-              Progress Overview
-            </div>
-            <h1 className="text-2xl font-bold leading-tight tracking-tight md:text-3xl">
-              My Progress
-            </h1>
-            <p className="max-w-2xl text-sm text-white/90 md:text-base">
-              {communityName
-                ? `Track your learning journey across ${communityName}.`
-                : "Track your learning journey across courses, challenges, sessions, and events."}
-            </p>
+        <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-3">
+          <div className="flex items-center space-x-2">
+            <TrendingUp className="h-6 w-6" />
+            <h1 className="text-2xl font-bold">Progress</h1>
           </div>
+          <div className="text-fuchsia-100 text-sm">
+            {communityName
+              ? `Tracking your journey in ${communityName}`
+              : "Tracking your learning journey"}
+          </div>
+        </div>
 
-          <div className="grid w-full grid-cols-2 gap-3 lg:w-auto lg:min-w-[360px]">
-            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur-sm">
-              <div className="mb-2 flex items-center gap-1.5 text-xs text-white/80">
-                <TrendingUp className="h-3.5 w-3.5" />
-                Overall
-              </div>
-              <p className="text-xl font-bold">{completionRate}%</p>
-            </div>
-            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur-sm">
-              <div className="mb-2 flex items-center gap-1.5 text-xs text-white/80">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Completed
-              </div>
-              <p className="text-xl font-bold">{summary.completed}</p>
-            </div>
-            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur-sm">
-              <div className="mb-2 flex items-center gap-1.5 text-xs text-white/80">
-                <Timer className="h-3.5 w-3.5" />
-                In Progress
-              </div>
-              <p className="text-xl font-bold">{summary.inProgress}</p>
-            </div>
-            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur-sm">
-              <div className="mb-2 flex items-center gap-1.5 text-xs text-white/80">
-                <PlayCircle className="h-3.5 w-3.5" />
-                Remaining
-              </div>
-              <p className="text-xl font-bold">{summary.notStarted}</p>
-            </div>
+        <p className="text-fuchsia-100 text-sm md:ml-4 mt-2 md:mt-0">
+          Stay on top of completed and in-progress content
+        </p>
+
+        <div className="flex flex-wrap gap-6 mt-4 md:mt-0">
+          <div className="text-center">
+            <div className="text-xl font-bold">{completionRate}%</div>
+            <div className="text-fuchsia-100 text-xs">Completion</div>
+          </div>
+          <div className="text-center">
+            <div className="text-xl font-bold">{summary.completed}</div>
+            <div className="text-fuchsia-100 text-xs">Completed</div>
+          </div>
+          <div className="text-center">
+            <div className="text-xl font-bold">{summary.inProgress}</div>
+            <div className="text-fuchsia-100 text-xs">In Progress</div>
+          </div>
+          <div className="text-center">
+            <div className="text-xl font-bold">{summary.notStarted}</div>
+            <div className="text-fuchsia-100 text-xs">Remaining</div>
           </div>
         </div>
       </div>
-    </section>
+    </div>
   )
 }
