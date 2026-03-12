@@ -162,14 +162,14 @@ export default function ProgressItemCard({ item }: ProgressItemCardProps) {
     <Card className="overflow-hidden border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
       <CardContent className="p-0">
         <div className="flex flex-col md:flex-row md:items-center">
-          <div className="relative h-44 w-full shrink-0 overflow-hidden rounded-t-lg bg-slate-100 md:mx-4 md:h-[184px] md:w-[248px] md:rounded-lg">
+          <div className="relative h-44 w-full shrink-0 overflow-hidden rounded-t-lg md:mx-4 md:h-[184px] md:w-[248px] md:rounded-lg">
             {item.thumbnail ? (
               <Image
                 src={item.thumbnail}
                 alt={item.title}
                 fill
                 unoptimized
-                className="object-contain object-center p-2"
+                className="object-contain object-center"
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
