@@ -52,6 +52,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { resolveImageUrl } from "@/lib/resolve-image-url"
 import { api } from "@/lib/api"
 import type { Conversation } from "@/lib/api/types"
+import { useSocket } from "@/lib/socket-context"
 
 
 interface CommunityHeaderProps {
@@ -108,6 +109,7 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
   const [dmUnread, setDmUnread] = useState(0)
 
   const { user: currentUser, isAuthenticated, logout } = useAuthContext()
+  const { socket } = useSocket()
   const searchParams = useSearchParams()
   const joinedFlag = searchParams.get('joined')
   const myId = currentUser?.id || (currentUser as any)?._id || ""
@@ -157,6 +159,23 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
     fetchNotifications()
   }, [isAuthenticated])
 
+  const fetchDmUnread = React.useCallback(async () => {
+    if (!isAuthenticated || !myId) {
+      setDmUnread(0)
+      return
+    }
+
+    try {
+      const res = await api.dm.listInbox()
+      const count = (res.conversations || []).reduce((sum, conv) => {
+        return sum + Math.max(0, getMyUnreadCount(conv, myId))
+      }, 0)
+      setDmUnread(count)
+    } catch (error) {
+      console.error("Error fetching DM unread count:", error)
+    }
+  }, [isAuthenticated, myId])
+
   useEffect(() => {
     if (!isAuthenticated || !myId) {
       setDmUnread(0)
@@ -165,18 +184,6 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
 
     let isActive = true
 
-    const fetchDmUnread = async () => {
-      try {
-        const res = await api.dm.listInbox()
-        const count = (res.conversations || []).reduce((sum, conv) => {
-          return sum + Math.max(0, getMyUnreadCount(conv, myId))
-        }, 0)
-        if (isActive) setDmUnread(count)
-      } catch (error) {
-        console.error("Error fetching DM unread count:", error)
-      }
-    }
-
     fetchDmUnread()
     const interval = setInterval(fetchDmUnread, 30000)
 
@@ -184,7 +191,47 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
       isActive = false
       clearInterval(interval)
     }
-  }, [isAuthenticated, myId])
+  }, [fetchDmUnread, isAuthenticated, myId])
+
+  useEffect(() => {
+    if (!socket) return
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null
+
+    const scheduleRefresh = () => {
+      if (refreshTimer) return
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null
+        fetchDmUnread()
+      }, 500)
+    }
+
+    const handleNewMessage = (payload: any) => {
+      const message = payload?.message || payload
+      const senderId = typeof message?.senderId === "string"
+        ? message.senderId
+        : message?.senderId?._id || message?.senderId?.id
+      if (senderId && senderId === myId) return
+      scheduleRefresh()
+    }
+
+    const handleRead = () => {
+      scheduleRefresh()
+    }
+
+    socket.on("dm:message:new", handleNewMessage)
+    socket.on("dm:message:read", handleRead)
+    return () => {
+      socket.off("dm:message:new", handleNewMessage)
+      socket.off("dm:message:read", handleRead)
+      if (refreshTimer) clearTimeout(refreshTimer)
+    }
+  }, [fetchDmUnread, myId, socket])
+
+  useEffect(() => {
+    if (pathname?.includes("/messages")) {
+      fetchDmUnread()
+    }
+  }, [fetchDmUnread, pathname])
 
   // Format time ago helper
   const formatTimeAgo = (date: Date) => {
