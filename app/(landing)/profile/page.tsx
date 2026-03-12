@@ -41,6 +41,61 @@ import { getUserProfileHandle } from "@/lib/profile-handle"
 import { SOCIAL_PLATFORMS, cleanSocialLinks, type SocialPlatform, type UserSocialLinks } from "@/lib/social-links"
 import { SocialMediaSidebar } from "@/components/profile/SocialMediaSidebar"
 
+const resolveCommunityId = (community: any): string => {
+  return String(
+    community?._id ||
+      community?.id ||
+      community?.communityId ||
+      community?.community?._id ||
+      community?.community?.id ||
+      "",
+  )
+}
+
+const resolveCommunitySlug = (community: any): string => {
+  return String(
+    community?.slug ||
+      community?.communitySlug ||
+      community?.featureSlug ||
+      community?.community?.slug ||
+      "",
+  )
+}
+
+const getCommunityKeys = (community: any): string[] => {
+  const keys = [resolveCommunityId(community), resolveCommunitySlug(community)]
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+  return Array.from(new Set(keys))
+}
+
+const resolveCommunityBasePath = (community: any): string | null => {
+  const link = typeof community?.link === "string" ? community.link : ""
+  if (link) {
+    const clean = link.split("?")[0].split("#")[0]
+    const parts = clean.split("/").filter(Boolean)
+    if (parts.length >= 2 && parts[0] !== "community") {
+      return `/${parts[0]}/${parts[1]}`
+    }
+  }
+
+  const creatorSlug = String(
+    community?.creatorSlug ||
+      community?.creator?.slug ||
+      community?.creator?.username ||
+      community?.creator?.handle ||
+      community?.creator?.name ||
+      community?.creator ||
+      "",
+  ).trim()
+  const featureSlug = resolveCommunitySlug(community).trim()
+  if (creatorSlug && featureSlug) {
+    return `/${creatorSlug}/${featureSlug}`
+  }
+
+  return null
+}
+
 // Types for user data
 interface UserAchievement {
   id: string;
@@ -628,6 +683,9 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
   const [achievementsLoading, setAchievementsLoading] = useState(false)
   const [fetchedActivity, setFetchedActivity] = useState<DisplayActivity[]>([])
   const [activityLoading, setActivityLoading] = useState(false)
+  const [viewer, setViewer] = useState<any>(null)
+  const [viewerCommunities, setViewerCommunities] = useState<any[]>([])
+  const [viewerCommunitiesLoading, setViewerCommunitiesLoading] = useState(false)
 
   // Fetch user data
   useEffect(() => {
@@ -850,6 +908,71 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
     fetchCommunities()
   }, [user, communitiesPage])
 
+  // Fetch authenticated viewer profile when viewing someone else
+  useEffect(() => {
+    if (isOwnProfile) {
+      setViewer(user)
+      setViewerCommunities(communities)
+      return
+    }
+
+    let isActive = true
+    const loadViewer = async () => {
+      try {
+        const profile = await getProfile()
+        if (!isActive) return
+        setViewer(profile)
+      } catch (error) {
+        if (!isActive) return
+        setViewer(null)
+      }
+    }
+
+    loadViewer()
+    return () => {
+      isActive = false
+    }
+  }, [isOwnProfile, user, communities])
+
+  // Fetch viewer communities to check shared membership
+  useEffect(() => {
+    if (isOwnProfile) return
+    if (!viewer?._id && !viewer?.id) {
+      setViewerCommunities([])
+      return
+    }
+
+    const fetchViewerCommunities = async () => {
+      try {
+        setViewerCommunitiesLoading(true)
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+        const viewerId = viewer?._id || viewer?.id
+        const communitiesUrl = `${apiBase}/communities/by-user/${encodeURIComponent(viewerId)}?page=1&limit=100&type=all`
+        const token = tokenManager.getAccessToken()
+        const headers: HeadersInit = { "Content-Type": "application/json" }
+        if (token) headers["Authorization"] = `Bearer ${token}`
+        const response = await fetch(communitiesUrl, { headers, credentials: "include" })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.data) {
+            setViewerCommunities(data.data.communities || [])
+          } else {
+            setViewerCommunities([])
+          }
+        } else {
+          setViewerCommunities([])
+        }
+      } catch (error) {
+        setViewerCommunities([])
+      } finally {
+        setViewerCommunitiesLoading(false)
+      }
+    }
+
+    fetchViewerCommunities()
+  }, [isOwnProfile, viewer])
+
   // Fetch user achievements
   useEffect(() => {
     const fetchAchievements = async () => {
@@ -962,6 +1085,35 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
       href: profileSocialLinks[platform] as string,
     }))
 
+  const viewerCommunityKeys = new Set(
+    viewerCommunities.flatMap((community) => getCommunityKeys(community)),
+  )
+  const commonCommunity = !isOwnProfile
+    ? communities.find((community) =>
+        getCommunityKeys(community).some((key) => viewerCommunityKeys.has(key)),
+      ) || null
+    : null
+  const dmBasePath = commonCommunity ? resolveCommunityBasePath(commonCommunity) : null
+  const canDm = Boolean(
+    !isOwnProfile &&
+      viewer &&
+      commonCommunity &&
+      dmBasePath &&
+      resolveCommunityId(commonCommunity) &&
+      !viewerCommunitiesLoading,
+  )
+
+  const handleDmClick = () => {
+    if (!commonCommunity || !dmBasePath) return
+    const communityId = resolveCommunityId(commonCommunity)
+    const targetUserId = String(currentUser?._id || currentUser?.id || "")
+    if (!communityId || !targetUserId) return
+    const query = new URLSearchParams()
+    query.set("communityId", communityId)
+    query.set("targetUserId", targetUserId)
+    router.push(`${dmBasePath}/messages?${query.toString()}`)
+  }
+
   if (!loading && !currentUser) {
     return (
       <div className="min-h-screen bg-background">
@@ -1016,6 +1168,16 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
                       <Pencil className="w-4 h-4" />
                       <span>Edit Profile</span>
                     </a>
+                  )}
+                  {!isOwnProfile && canDm && (
+                    <Button
+                      type="button"
+                      onClick={handleDmClick}
+                      className="flex w-full @[520px]:w-auto min-w-[84px] items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary hover:bg-primary-dark text-white text-sm font-bold border border-primary-dark"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span>DM</span>
+                    </Button>
                   )}
                 </div>
               </div>
