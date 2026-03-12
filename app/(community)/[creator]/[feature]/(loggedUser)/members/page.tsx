@@ -120,6 +120,17 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
     })
   }, [members, search, myId])
 
+  const membersStats = useMemo(() => {
+    const total = members.length
+    const admins = members.filter((member) => member.role === 'admin').length
+    const moderators = members.filter((member) => member.role === 'moderator').length
+    return {
+      total,
+      admins,
+      moderators,
+    }
+  }, [members])
+
   const myMembership = useMemo(
     () => members.find((member) => resolveMemberUserId(member) === myId) || null,
     [members, myId],
@@ -159,10 +170,12 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
 
   if (loading) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
-          <p className="text-muted-foreground">Loading members...</p>
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto flex min-h-[60vh] items-center justify-center px-4 py-8">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
+            <p className="text-muted-foreground">Loading members...</p>
+          </div>
         </div>
       </div>
     )
@@ -170,11 +183,13 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
 
   if (error) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <h2 className="text-xl font-semibold mb-2">Failed to load members</h2>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>Retry</Button>
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto flex min-h-[60vh] items-center justify-center px-4 py-8">
+          <div className="text-center max-w-md mx-auto p-6">
+            <h2 className="text-xl font-semibold mb-2">Failed to load members</h2>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>Retry</Button>
+          </div>
         </div>
       </div>
     )
@@ -182,18 +197,47 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-6 sm:py-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
-          <div>
-            <div className="flex items-center gap-2">
-              <UsersIcon className="h-5 w-5 text-primary" />
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Members</h1>
-            </div>
-            <p className="text-muted-foreground mt-1">
-              {community?.name ? `${community.name} members` : 'Community members'}
-            </p>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <div className="bg-gradient-to-r from-sky-600 to-cyan-500 rounded-xl p-4 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-12 translate-x-12"></div>
+            <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/10 rounded-full translate-y-8 -translate-x-8"></div>
 
+            <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-3">
+              <div className="flex items-center space-x-2">
+                <UsersIcon className="h-6 w-6" />
+                <h1 className="text-2xl font-bold">Members</h1>
+              </div>
+              <div className="text-cyan-100 text-sm">
+                {community?.name ? `${community.name} community` : 'Community members'}
+              </div>
+            </div>
+
+            <p className="text-cyan-100 text-sm md:ml-4 mt-2 md:mt-0">
+              Connect and message people in the community
+            </p>
+
+            <div className="flex flex-wrap gap-6 mt-4 md:mt-0">
+              <div className="text-center">
+                <div className="text-xl font-bold">{membersStats.total}</div>
+                <div className="text-cyan-100 text-xs">Members</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold">{membersStats.admins}</div>
+                <div className="text-cyan-100 text-xs">Admins</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold">{membersStats.moderators}</div>
+                <div className="text-cyan-100 text-xs">Moderators</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredMembers.length} of {membersStats.total} members
+          </div>
           <div className="w-full sm:w-80">
             <Input
               value={search}
