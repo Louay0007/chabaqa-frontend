@@ -170,7 +170,7 @@ export default function MessagesPage() {
       await api.dm.markRead(convId).catch(() => undefined)
       scrollToBottom()
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to load messages"))
+      setError(getErrorMessage(err))
     } finally {
       setIsLoadingMessages(false)
       loadingConvRef.current = null
@@ -216,7 +216,7 @@ export default function MessagesPage() {
       }
       fetchConversations().catch(() => undefined)
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to start conversation"))
+      setError(getErrorMessage(err))
     } finally {
       setIsLoadingMessages(false)
     }
@@ -387,7 +387,7 @@ export default function MessagesPage() {
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId))
       setNewMessage(text)
-      const rawMessage = getErrorMessage(err, "") || ""
+      const rawMessage = getErrorMessage(err) || ""
       if (/session chat is closed/i.test(rawMessage)) {
         setError("This session chat is closed.")
       } else {
@@ -426,7 +426,7 @@ export default function MessagesPage() {
         fetchConversations().catch(() => undefined)
       }
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to upload file"))
+      setError(getErrorMessage(err))
     } finally {
       setIsUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
@@ -459,7 +459,7 @@ export default function MessagesPage() {
     <div className="min-h-screen bg-[#f8f8fb]">
       <div className="mx-auto w-full max-w-6xl px-4 py-6">
         <div className="mb-6">
-          <div className="relative flex flex-col items-center justify-between overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 p-4 text-white md:flex-row">
+          <div className="relative flex flex-col items-center justify-between overflow-hidden rounded-xl bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 p-4 text-white md:flex-row">
             <div className="absolute right-0 top-0 h-20 w-20 -translate-y-12 translate-x-12 rounded-full bg-white/10"></div>
             <div className="absolute bottom-0 left-0 h-16 w-16 -translate-x-8 translate-y-8 rounded-full bg-white/10"></div>
 
@@ -470,22 +470,22 @@ export default function MessagesPage() {
               </div>
             </div>
 
-            <p className="mt-2 text-sm text-emerald-100 md:ml-4 md:mt-0">
+            <p className="mt-2 text-sm text-amber-100 md:ml-4 md:mt-0">
               Stay connected with your community.
             </p>
 
             <div className="mt-4 flex space-x-6 md:mt-0">
               <div className="text-center">
                 <div className="text-xl font-bold">{conversations.length}</div>
-                <div className="text-xs text-emerald-100">Conversations</div>
+                <div className="text-xs text-amber-100">Conversations</div>
               </div>
               <div className="text-center">
                 <div className="text-xl font-bold">{totalUnread}</div>
-                <div className="text-xs text-emerald-100">Unread</div>
+                <div className="text-xs text-amber-100">Unread</div>
               </div>
               <div className="text-center">
                 <div className="text-xl font-bold">{onlineCount}</div>
-                <div className="text-xs text-emerald-100">Online Now</div>
+                <div className="text-xs text-amber-100">Online Now</div>
               </div>
             </div>
           </div>
