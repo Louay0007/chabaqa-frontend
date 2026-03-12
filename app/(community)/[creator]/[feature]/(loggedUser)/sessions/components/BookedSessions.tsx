@@ -18,6 +18,7 @@ import { ReviewForm } from "@/components/reviews/review-form"
 import { ReviewsList } from "@/components/reviews/reviews-list"
 import { StarRating } from "@/components/reviews/star-rating"
 import { getUserProfileHref } from "@/lib/profile-handle"
+import { useParams, useRouter } from "next/navigation"
 
 interface BookedSessionsProps {
   setActiveTab: (tab: string) => void
@@ -26,6 +27,10 @@ interface BookedSessionsProps {
 
 export default function BookedSessions({ setActiveTab, userBookings }: BookedSessionsProps) {
   const { toast } = useToast()
+  const router = useRouter()
+  const params = useParams()
+  const creator = typeof params?.creator === "string" ? params.creator : Array.isArray(params?.creator) ? params.creator[0] : ""
+  const feature = typeof params?.feature === "string" ? params.feature : Array.isArray(params?.feature) ? params.feature[0] : ""
   const [openingChatBookingId, setOpeningChatBookingId] = useState<string | null>(null)
   const [reviewDialogTarget, setReviewDialogTarget] = useState<{
     bookingId: string
@@ -89,7 +94,8 @@ export default function BookedSessions({ setActiveTab, userBookings }: BookedSes
       if (!conversationId) {
         throw new Error("Conversation could not be opened")
       }
-      window.dispatchEvent(new CustomEvent("open-dm", { detail: { conversationId } }))
+      const basePath = creator && feature ? `/${creator}/${feature}` : ""
+      router.push(`${basePath}/messages?conversationId=${conversationId}`)
     } catch (error: any) {
       toast({
         title: "Failed to open mentor chat",

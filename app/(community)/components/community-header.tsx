@@ -48,9 +48,10 @@ import { notificationsApi } from "@/lib/api/notifications.api"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import { authApi } from "@/lib/api/auth.api"
 import type { Community } from "@/lib/api/types"
-import { DMComponent } from "./dm-dropdown"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { resolveImageUrl } from "@/lib/resolve-image-url"
+import { api } from "@/lib/api"
+import type { Conversation } from "@/lib/api/types"
 
 
 interface CommunityHeaderProps {
@@ -104,10 +105,24 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
   const [loading, setLoading] = useState(true)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [notificationsLoading, setNotificationsLoading] = useState(true)
+  const [dmUnread, setDmUnread] = useState(0)
 
   const { user: currentUser, isAuthenticated, logout } = useAuthContext()
   const searchParams = useSearchParams()
   const joinedFlag = searchParams.get('joined')
+  const myId = currentUser?.id || (currentUser as any)?._id || ""
+  const messagesHref = `/${creatorSlug}/${currentCommunity}/messages`
+
+  const getParticipantId = (p: any): string => {
+    if (!p) return ""
+    if (typeof p === "string") return p
+    return p.id || p._id || ""
+  }
+
+  const getMyUnreadCount = (c: Conversation, myIdValue: string): number => {
+    const aId = getParticipantId(c.participantA)
+    return aId === myIdValue ? c.unreadCountA : c.unreadCountB
+  }
 
   // Fetch notifications
   useEffect(() => {
@@ -141,6 +156,35 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
 
     fetchNotifications()
   }, [isAuthenticated])
+
+  useEffect(() => {
+    if (!isAuthenticated || !myId) {
+      setDmUnread(0)
+      return
+    }
+
+    let isActive = true
+
+    const fetchDmUnread = async () => {
+      try {
+        const res = await api.dm.listInbox()
+        const count = (res.conversations || []).reduce((sum, conv) => {
+          return sum + Math.max(0, getMyUnreadCount(conv, myId))
+        }, 0)
+        if (isActive) setDmUnread(count)
+      } catch (error) {
+        console.error("Error fetching DM unread count:", error)
+      }
+    }
+
+    fetchDmUnread()
+    const interval = setInterval(fetchDmUnread, 30000)
+
+    return () => {
+      isActive = false
+      clearInterval(interval)
+    }
+  }, [isAuthenticated, myId])
 
   // Format time ago helper
   const formatTimeAgo = (date: Date) => {
@@ -398,8 +442,17 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
 
           {/* Right Actions */}
           <div className="flex items-center space-x-2">
-            {/* DM Component */}
-            <DMComponent />
+            {/* Messages Link */}
+            <Link href={messagesHref}>
+              <Button variant="ghost" size="icon" className="relative rounded-full">
+                <MessageSquare className="h-5 w-5 text-gray-600" />
+                {dmUnread > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-[18px] min-w-[18px] px-1 bg-gray-900 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm">
+                    {dmUnread > 99 ? "99+" : dmUnread}
+                  </span>
+                )}
+              </Button>
+            </Link>
 
             {/* Notifications Dropdown */}
             <DropdownMenu>

@@ -47,6 +47,7 @@ const resolveMemberUserId = (member: CommunityMember): string => {
 export default function CommunityMembersPage({ params }: { params: Promise<{ creator?: string; feature: string }> }) {
   const resolvedParams = React.use(params)
   const { feature } = resolvedParams
+  const creatorSlug = resolvedParams.creator || ""
   const router = useRouter()
 
   const [loading, setLoading] = useState(true)
@@ -329,21 +330,12 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
                         className="gap-2"
                         onClick={() => {
                           const targetUserId = resolveMemberUserId(member)
-                          console.log('[Members] DM button clicked:', {
-                            targetUserId,
-                            memberId: member.id,
-                            userId: member.userId,
-                            user_id: user?.id,
-                            user__id: user?._id,
-                            communityId: community?.id || community?._id,
-                            myId
-                          })
-                          window.dispatchEvent(new CustomEvent('open-dm', {
-                            detail: {
-                              communityId: community?.id || community?._id,
-                              targetUserId
-                            }
-                          }))
+                          const communityId = community?.id || community?._id
+                          const basePath = creatorSlug ? `/${creatorSlug}/${feature}` : `/${feature}`
+                          const query = new URLSearchParams()
+                          if (communityId) query.set("communityId", String(communityId))
+                          if (targetUserId) query.set("targetUserId", String(targetUserId))
+                          router.push(`${basePath}/messages?${query.toString()}`)
                         }}
                       >
                         <MessageSquare className="h-4 w-4" />
