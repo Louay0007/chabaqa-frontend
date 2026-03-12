@@ -26,7 +26,7 @@ import {
   Flag,
 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useRouter, usePathname } from "next/navigation"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { getProfile } from "@/lib/auth"
@@ -654,6 +654,7 @@ interface ProfilePageProps {
 export default function ProfilePage({ overrideUser, isOwnProfile = true }: ProfilePageProps = {}) {
   const router = useRouter()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [showSignIn, setShowSignIn] = useState(false)
@@ -1088,28 +1089,42 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
   const viewerCommunityKeys = new Set(
     viewerCommunities.flatMap((community) => getCommunityKeys(community)),
   )
+  const preferredCommunityId = String(searchParams?.get("communityId") || "").trim()
+  const preferredCommunityPath = String(searchParams?.get("communityPath") || "").trim()
+  const preferredCommunityKey = preferredCommunityId.toLowerCase()
+  const viewerInPreferred = Boolean(preferredCommunityKey && viewerCommunityKeys.has(preferredCommunityKey))
+  const preferredBasePath = preferredCommunityPath.startsWith("/") ? preferredCommunityPath : ""
+
   const commonCommunity = !isOwnProfile
     ? communities.find((community) =>
         getCommunityKeys(community).some((key) => viewerCommunityKeys.has(key)),
       ) || null
     : null
-  const dmBasePath = commonCommunity ? resolveCommunityBasePath(commonCommunity) : null
+
+  const dmBasePath = viewerInPreferred
+    ? preferredBasePath
+    : commonCommunity
+      ? resolveCommunityBasePath(commonCommunity)
+      : null
+  const dmCommunityId = viewerInPreferred
+    ? preferredCommunityId
+    : commonCommunity
+      ? resolveCommunityId(commonCommunity)
+      : ""
   const canDm = Boolean(
     !isOwnProfile &&
       viewer &&
-      commonCommunity &&
+      dmCommunityId &&
       dmBasePath &&
-      resolveCommunityId(commonCommunity) &&
       !viewerCommunitiesLoading,
   )
 
   const handleDmClick = () => {
-    if (!commonCommunity || !dmBasePath) return
-    const communityId = resolveCommunityId(commonCommunity)
+    if (!dmCommunityId || !dmBasePath) return
     const targetUserId = String(currentUser?._id || currentUser?.id || "")
-    if (!communityId || !targetUserId) return
+    if (!targetUserId) return
     const query = new URLSearchParams()
-    query.set("communityId", communityId)
+    query.set("communityId", dmCommunityId)
     query.set("targetUserId", targetUserId)
     router.push(`${dmBasePath}/messages?${query.toString()}`)
   }
