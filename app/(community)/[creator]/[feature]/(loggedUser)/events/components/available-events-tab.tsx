@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { EventWithTickets } from "@/lib/api/events-community.api";
 import EventCard from "@/app/(community)/[creator]/[feature]/(loggedUser)/events/components/event-card";
 import { TabsContent } from "@/components/ui/tabs";
@@ -23,6 +24,8 @@ export default function AvailableEventsTab({
   targetEventNotice,
 }: AvailableEventsTabProps) {
   const { toast } = useToast();
+  const router = useRouter();
+  const params = useParams();
   const [selectedEvent, setSelectedEvent] = useState<EventWithTickets | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<string>("");
   const [notes, setNotes] = useState("");
@@ -86,15 +89,18 @@ export default function AvailableEventsTab({
 
     const ticket = selectedEvent.tickets?.find((t) => t.id === selectedTicket);
     const price = Number(ticket?.price || 0);
+    const creator = String((params as any)?.creator || "");
+    const feature = String((params as any)?.feature || "");
 
     setIsSubmitting(true);
     try {
       if (price <= 0) {
         await eventsApi.register(String(selectedEvent.id), String(selectedTicket));
         toast({ title: "Registered", description: "Your registration has been confirmed." });
-        setSelectedEvent(null);
-        setSelectedTicket("");
-        setNotes("");
+        const qrHref = creator && feature
+          ? `/${creator}/${feature}/events/qr?eventId=${encodeURIComponent(String(selectedEvent.id))}`
+          : `/dashboard`;
+        router.push(qrHref);
         return;
       }
 

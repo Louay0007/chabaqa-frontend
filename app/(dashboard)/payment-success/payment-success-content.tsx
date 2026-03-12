@@ -187,9 +187,9 @@ export default function PaymentSuccessContent() {
   const creatorSlug = paymentData?.creatorSlug;
   const communitySlug = paymentData?.communitySlug;
   const targetId = paymentData?.targetId || id;
-  const eventPageHref =
-    creatorSlug && communitySlug
-      ? `/${creatorSlug}/${communitySlug}/events${targetId ? `?eventId=${encodeURIComponent(String(targetId))}` : ''}`
+  const eventQrHref =
+    creatorSlug && communitySlug && targetId
+      ? `/${creatorSlug}/${communitySlug}/events/qr?eventId=${encodeURIComponent(String(targetId))}`
       : null;
 
   // After successful payment, redirect straight to content (no success page)
@@ -260,13 +260,21 @@ export default function PaymentSuccessContent() {
       router.replace(`/${creatorSlug}/${communitySlug}/sessions`);
       return;
     }
+
+    // Event Redirect (QR)
+    if (scope === 'event' && eventQrHref) {
+      redirectDone.current = true;
+      router.replace(eventQrHref);
+      return;
+    }
   }, [verified, scope, creatorSlug, communitySlug, targetId, router, searchParams, paymentData, chapterId, sessionId]);
 
   const isRedirecting = verified && (
     (scope === 'course' && creatorSlug && communitySlug && targetId) ||
     (scope === 'chapter' && creatorSlug && communitySlug) ||
     (scope === 'community' && creatorSlug && communitySlug) ||
-    (scope === 'session' && creatorSlug && communitySlug)
+    (scope === 'session' && creatorSlug && communitySlug) ||
+    (scope === 'event' && eventQrHref)
   );
 
   const renderContentButton = () => {
@@ -328,10 +336,10 @@ export default function PaymentSuccessContent() {
     }
 
     // 5. Event
-    if (scope === 'event' && eventPageHref) {
+    if (scope === 'event' && eventQrHref) {
       return (
-        <Link href={eventPageHref} className={baseClass}>
-          Go to Event
+        <Link href={eventQrHref} className={baseClass}>
+          View Ticket QR
         </Link>
       );
     }

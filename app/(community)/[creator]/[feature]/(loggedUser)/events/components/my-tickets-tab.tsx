@@ -1,3 +1,6 @@
+"use client";
+
+import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -120,6 +123,8 @@ export default function MyTicketsTab({
   isLoading = false,
   errorMessage,
 }: MyTicketsTabProps) {
+  const params = useParams();
+  const router = useRouter();
   const tickets = myTickets || [];
 
   if (isLoading) {
@@ -242,6 +247,23 @@ export default function MyTicketsTab({
                   </div>
 
                   <div className="flex flex-col xs:flex-row gap-2 xs:gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 xs:flex-none h-9 sm:h-10 text-sm"
+                      onClick={() => {
+                        const creator = String((params as any)?.creator || "");
+                        const feature = String((params as any)?.feature || "");
+                        const eventId = reg?.event?.id;
+                        if (!creator || !feature || !eventId) return;
+                        router.push(`/${creator}/${feature}/events/qr?eventId=${encodeURIComponent(String(eventId))}`);
+                      }}
+                      disabled={!reg?.event?.id}
+                    >
+                      <Ticket className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                      View QR
+                    </Button>
+
                     {reg.event?.type !== "In-person" && reg.event?.onlineUrl && (
                       <Button asChild className="flex-1 xs:flex-none h-9 sm:h-10 text-sm">
                         <a href={reg.event.onlineUrl} target="_blank" rel="noopener noreferrer">

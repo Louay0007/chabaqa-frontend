@@ -170,6 +170,11 @@ export const eventsApi = {
     return apiClient.get<ApiSuccessResponse<Event[]>>('/events/my-registrations');
   },
 
+  // Get QR token for event registration
+  getQrToken: async (id: string): Promise<ApiSuccessResponse<{ token: string; payload: any; expiresIn: string }>> => {
+    return apiClient.get<ApiSuccessResponse<{ token: string; payload: any; expiresIn: string }>>(`/events/${id}/qr`);
+  },
+
   // Toggle published status
   togglePublished: async (id: string): Promise<ApiSuccessResponse<{ isPublished: boolean; message: string }>> => {
     return apiClient.patch<ApiSuccessResponse<{ isPublished: boolean; message: string }>>(`/events/${id}/toggle-published`, {});
