@@ -22,6 +22,7 @@ export interface User {
 // Community types
 export interface Community {
   id: string;
+  _id?: string;
   name: string;
   slug: string;
   description: string;
