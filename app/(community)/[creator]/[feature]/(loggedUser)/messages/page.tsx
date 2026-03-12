@@ -260,8 +260,11 @@ export default function MessagesPage() {
         return
       }
 
-      if (selectedConversation?.id === convId) {
-        loadMessages(convId)
+      if (selectedConversation?.id === convId && message?.id) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === message.id)) return prev
+          return [...prev, message]
+        })
       } else {
         fetchConversations().catch(() => undefined)
       }
@@ -270,9 +273,7 @@ export default function MessagesPage() {
     const handleRead = (payload: any) => {
       const convId = payload?.conversationId
       if (!convId) return
-      if (selectedConversation?.id === convId) {
-        loadMessages(convId)
-      } else {
+      if (selectedConversation?.id !== convId) {
         fetchConversations().catch(() => undefined)
       }
     }
@@ -283,7 +284,7 @@ export default function MessagesPage() {
       socket.off("dm:message:new", handleNewMessage)
       socket.off("dm:message:read", handleRead)
     }
-  }, [fetchConversations, loadMessages, selectedConversation?.id, socket])
+  }, [fetchConversations, selectedConversation?.id, socket])
 
   React.useEffect(() => {
     if (!socket || !selectedConversation?.id) return
@@ -298,13 +299,7 @@ export default function MessagesPage() {
     return () => clearInterval(interval)
   }, [isConnected, fetchConversations])
 
-  React.useEffect(() => {
-    if (isConnected || !selectedConversation?.id) return
-    const interval = setInterval(() => {
-      loadMessages(selectedConversation.id)
-    }, 10000)
-    return () => clearInterval(interval)
-  }, [isConnected, loadMessages, selectedConversation?.id])
+  // Note: no auto-refresh of the active thread to avoid disrupting typing.
 
   React.useEffect(() => {
     scrollToBottom()
@@ -419,18 +414,50 @@ export default function MessagesPage() {
   const selectedOtherParticipant = selectedConversation ? getOtherParticipant(selectedConversation, myId) : null
   const selectedOtherId = getParticipantId(selectedOtherParticipant)
   const selectedIsOnline = selectedOtherId && onlineUsers.has(selectedOtherId)
+  const totalUnread = conversations.reduce((sum, conv) => sum + Math.max(0, getMyUnreadCount(conv, myId)), 0)
+  const onlineCount = React.useMemo(() => {
+    const ids = new Set<string>()
+    conversations.forEach((conv) => {
+      const other = getOtherParticipant(conv, myId)
+      const otherId = getParticipantId(other)
+      if (otherId && onlineUsers.has(otherId)) ids.add(otherId)
+    })
+    return ids.size
+  }, [conversations, myId, onlineUsers])
 
   return (
     <div className="min-h-screen bg-[#f8f8fb]">
       <div className="mx-auto w-full max-w-6xl px-4 py-6">
-        <div className="mb-5 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-[#1f2430]">Messages</h1>
-            <p className="text-sm text-[#6b7280]">Stay connected with your community.</p>
-          </div>
-          <div className="hidden md:flex items-center gap-2 text-xs text-[#6b7280]">
-            <span className={cn("h-2 w-2 rounded-full", isConnected ? "bg-emerald-400" : "bg-amber-400")} />
-            {isConnected ? "Realtime" : "Polling fallback"}
+        <div className="mb-6">
+          <div className="relative flex flex-col items-center justify-between overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 p-4 text-white md:flex-row">
+            <div className="absolute right-0 top-0 h-20 w-20 -translate-y-12 translate-x-12 rounded-full bg-white/10"></div>
+            <div className="absolute bottom-0 left-0 h-16 w-16 -translate-x-8 translate-y-8 rounded-full bg-white/10"></div>
+
+            <div className="flex flex-col space-y-1 md:flex-row md:items-center md:space-x-3 md:space-y-0">
+              <div className="flex items-center space-x-2">
+                <MessageSquare className="h-6 w-6" />
+                <h1 className="text-2xl font-bold">Messages</h1>
+              </div>
+            </div>
+
+            <p className="mt-2 text-sm text-emerald-100 md:ml-4 md:mt-0">
+              Stay connected with your community.
+            </p>
+
+            <div className="mt-4 flex space-x-6 md:mt-0">
+              <div className="text-center">
+                <div className="text-xl font-bold">{conversations.length}</div>
+                <div className="text-xs text-emerald-100">Conversations</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold">{totalUnread}</div>
+                <div className="text-xs text-emerald-100">Unread</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold">{onlineCount}</div>
+                <div className="text-xs text-emerald-100">Online Now</div>
+              </div>
+            </div>
           </div>
         </div>
 
