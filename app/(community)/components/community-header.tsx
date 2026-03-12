@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -159,7 +159,7 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
     fetchNotifications()
   }, [isAuthenticated])
 
-  const fetchDmUnread = React.useCallback(async () => {
+  const fetchDmUnread = useCallback(async () => {
     if (!isAuthenticated || !myId) {
       setDmUnread(0)
       return

@@ -4,15 +4,18 @@ import React from "react"
 import { useRouter, useSearchParams, useParams } from "next/navigation"
 import {
   ArrowLeft,
-  Check,
-  CheckCheck,
+  Copy,
+  Eye,
+  EyeOff,
   FileIcon,
   Loader2,
   MessageSquare,
   Paperclip,
+  Reply,
   Search,
   Send,
   Video,
+  X,
 } from "lucide-react"
 import { format, formatDistanceToNow, isSameDay, isToday, isYesterday } from "date-fns"
 import { Button } from "@/components/ui/button"
@@ -121,6 +124,7 @@ export default function MessagesPage() {
   const [searchQuery, setSearchQuery] = React.useState("")
   const [error, setError] = React.useState<string | null>(null)
   const [previewImageUrl, setPreviewImageUrl] = React.useState<string | null>(null)
+  const [replyTarget, setReplyTarget] = React.useState<{ id: string; name: string; text: string } | null>(null)
   const myId = currentUser?.id || (currentUser as any)?._id || ""
 
   const scrollRef = React.useRef<HTMLDivElement>(null)
@@ -273,7 +277,17 @@ export default function MessagesPage() {
     const handleRead = (payload: any) => {
       const convId = payload?.conversationId
       if (!convId) return
-      if (selectedConversation?.id !== convId) {
+      if (selectedConversation?.id === convId) {
+        const readAt = payload?.readAt || new Date().toISOString()
+        setMessages((prev) =>
+          prev.map((m) => {
+            if (m.senderId === myId || (m.sender as any)?.id === myId || (m.sender as any)?._id === myId) {
+              return { ...m, readAt }
+            }
+            return m
+          }),
+        )
+      } else {
         fetchConversations().catch(() => undefined)
       }
     }
@@ -284,7 +298,7 @@ export default function MessagesPage() {
       socket.off("dm:message:new", handleNewMessage)
       socket.off("dm:message:read", handleRead)
     }
-  }, [fetchConversations, selectedConversation?.id, socket])
+  }, [fetchConversations, myId, selectedConversation?.id, socket])
 
   React.useEffect(() => {
     if (!socket || !selectedConversation?.id) return
@@ -335,7 +349,7 @@ export default function MessagesPage() {
     setError(null)
 
     const tempId = `temp-${Date.now()}`
-    const optimisticMsg: Message = {
+    const optimisticMsg: Message & { replyPreview?: { name: string; text: string } } = {
       id: tempId,
       conversationId: selectedConversation.id,
       senderId: myId,
@@ -348,8 +362,12 @@ export default function MessagesPage() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
+    if (replyTarget) {
+      optimisticMsg.replyPreview = { name: replyTarget.name, text: replyTarget.text }
+    }
     setMessages((prev) => [...prev, optimisticMsg])
     scrollToBottom()
+    setReplyTarget(null)
 
     try {
       const res = await api.dm.sendMessage(selectedConversation.id, { text })
@@ -358,7 +376,10 @@ export default function MessagesPage() {
         setMessages((prev) => {
           const withoutTemp = prev.filter((m) => m.id !== tempId)
           if (withoutTemp.some((m) => m.id === serverMsg.id)) return withoutTemp
-          return [...withoutTemp, serverMsg]
+          const withReply = replyTarget
+            ? { ...(serverMsg as any), replyPreview: { name: replyTarget.name, text: replyTarget.text } }
+            : serverMsg
+          return [...withoutTemp, withReply]
         })
       }
       fetchConversations().catch(() => undefined)
@@ -372,6 +393,15 @@ export default function MessagesPage() {
       } else {
         setError(rawMessage || "Failed to send message")
       }
+    }
+  }
+
+  const handleCopyMessage = async (text?: string) => {
+    if (!text) return
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch (err) {
+      console.error("Failed to copy message:", err)
     }
   }
 
@@ -623,13 +653,24 @@ export default function MessagesPage() {
                                 </span>
                               </div>
                             ) : null}
-                            <div className={cn("flex", isMine ? "justify-end" : "justify-start")}>
+                            <div className={cn("flex", isMine ? "justify-start" : "justify-end")}>
                               <div
                                 className={cn(
                                   "max-w-[75%] rounded-2xl px-4 py-3 text-sm",
-                                  isMine ? "bg-[#1f2430] text-white" : "bg-[#f1f2f8] text-[#1f2430]",
+                                  isMine ? "bg-[#f1f2f8] text-[#1f2430]" : "bg-[#1f2430] text-white",
                                 )}
                               >
+                                {(msg as any).replyPreview ? (
+                                  <div
+                                    className={cn(
+                                      "mb-2 rounded-lg px-3 py-2 text-[11px] leading-snug",
+                                      isMine ? "bg-white/80 text-[#4b5563]" : "bg-white/10 text-white/80",
+                                    )}
+                                  >
+                                    <span className="font-semibold">{(msg as any).replyPreview.name}</span>
+                                    <span className="ml-2 line-clamp-2">{(msg as any).replyPreview.text}</span>
+                                  </div>
+                                ) : null}
                                 {attachments.length > 0 ? (
                                   <div className="mb-2 space-y-2">
                                     {attachments.map((att, idx) => (
@@ -647,7 +688,12 @@ export default function MessagesPage() {
                                             />
                                           </button>
                                         ) : (
-                                          <div className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs">
+                                          <div
+                                            className={cn(
+                                              "flex items-center gap-2 rounded-lg px-3 py-2 text-xs",
+                                              isMine ? "bg-[#e5e7f4] text-[#1f2430]" : "bg-white/10 text-white",
+                                            )}
+                                          >
                                             {att.type === "video" ? (
                                               <Video className="h-4 w-4" />
                                             ) : (
@@ -665,14 +711,36 @@ export default function MessagesPage() {
                                 {msg.text ? <p className="whitespace-pre-wrap">{msg.text}</p> : null}
                                 <div
                                   className={cn(
-                                    "mt-2 flex items-center gap-1 text-[10px]",
-                                    isMine ? "justify-end text-white/70" : "justify-start text-[#6b7280]",
+                                    "mt-2 flex items-center gap-2 text-[10px]",
+                                    isMine ? "justify-start text-[#6b7280]" : "justify-end text-white/70",
                                   )}
                                 >
                                   <span>{formatMessageTime(msg.createdAt)}</span>
                                   {isMine ? (
-                                    msg.readAt ? <CheckCheck className="h-3 w-3" /> : <Check className="h-3 w-3" />
+                                    msg.readAt ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />
                                   ) : null}
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center opacity-70 transition hover:opacity-100"
+                                    onClick={() =>
+                                      setReplyTarget({
+                                        id: msg.id,
+                                        name: isMine ? "You" : getParticipantName(selectedOtherParticipant),
+                                        text: msg.text || "Attachment",
+                                      })
+                                    }
+                                    aria-label="Reply"
+                                  >
+                                    <Reply className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center opacity-70 transition hover:opacity-100"
+                                    onClick={() => handleCopyMessage(msg.text)}
+                                    aria-label="Copy message"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -688,6 +756,22 @@ export default function MessagesPage() {
                   onSubmit={handleSendMessage}
                   className="border-t border-[#f1f2f8] bg-white px-4 py-3"
                 >
+                  {replyTarget ? (
+                    <div className="mb-2 flex items-center justify-between rounded-lg bg-[#f1f2f8] px-3 py-2 text-xs text-[#4b5563]">
+                      <div className="truncate">
+                        Replying to <span className="font-semibold">{replyTarget.name}</span>:{" "}
+                        <span className="text-[#6b7280]">{replyTarget.text}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="ml-3 inline-flex items-center text-[#6b7280] hover:text-[#1f2430]"
+                        onClick={() => setReplyTarget(null)}
+                        aria-label="Cancel reply"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : null}
                   {error ? (
                     <div className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</div>
                   ) : null}
