@@ -317,6 +317,9 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
 
   // Mark notification as read
   const markNotificationAsRead = async (notificationId: string) => {
+    const target = notifications.find((n) => n.id === notificationId)
+    if (!target || !target.unread) return
+
     try {
       await notificationsApi.markAsRead(notificationId)
       setNotifications(prev =>
@@ -613,10 +616,20 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
                                       </div>
                                       {n.unread && <div className="mt-1 h-2 w-2 rounded-full bg-[#8e78fb]" />}
                                     </div>
-                                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                       <span>{n.time}</span>
                                       <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
                                       <span>Chabaqa</span>
+                                      <span
+                                        className={cn(
+                                          "rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                                          n.unread
+                                            ? "border-[#8e78fb]/30 bg-[#8e78fb]/10 text-[#6d5de7]"
+                                            : "border-border-color bg-white/70 text-muted-foreground",
+                                        )}
+                                      >
+                                        {n.unread ? "Unread" : "Read"}
+                                      </span>
                                     </div>
                                   </div>
                                 </div>
@@ -653,10 +666,20 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
                                       </div>
                                       {n.unread && <div className="mt-1 h-2 w-2 rounded-full bg-[#8e78fb]" />}
                                     </div>
-                                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                       <span>{n.time}</span>
                                       <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
                                       <span>Chabaqa</span>
+                                      <span
+                                        className={cn(
+                                          "rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                                          n.unread
+                                            ? "border-[#8e78fb]/30 bg-[#8e78fb]/10 text-[#6d5de7]"
+                                            : "border-border-color bg-white/70 text-muted-foreground",
+                                        )}
+                                      >
+                                        {n.unread ? "Unread" : "Read"}
+                                      </span>
                                     </div>
                                   </div>
                                 </div>

@@ -20,7 +20,20 @@ export const notificationsApi = {
   // Get all notifications
   getAll: async (params?: { page?: number; limit?: number }): Promise<{ items: Notification[]; total: number; page: number; limit: number }> => {
     const response = await apiClient.get<{ success: boolean; message: string; data: Notification[] }>('/notifications', params);
-    const notifications = Array.isArray(response.data) ? response.data : [];
+
+    const payload: any =
+      (response as any)?.data?.data ??
+      (response as any)?.data ??
+      response;
+
+    const notifications = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.items)
+        ? payload.items
+        : Array.isArray(payload?.notifications)
+          ? payload.notifications
+          : [];
+
     return {
       items: notifications,
       total: notifications.length,
