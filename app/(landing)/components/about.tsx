@@ -147,7 +147,6 @@ export function About() {
               <p className="text-base sm:text-lg text-gray-700 leading-relaxed">
                 {t("description")}
               </p>
-              <p className="mt-2 text-sm text-gray-500">{t("brandNote")}</p>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
