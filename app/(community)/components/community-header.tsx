@@ -17,7 +17,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import {
   Bell,
   ChevronDown,
@@ -101,6 +108,7 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
   const pathname = usePathname()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [userCommunities, setUserCommunities] = useState<Community[]>([])
   const [currentCommunityData, setCurrentCommunityData] = useState<Community | null>(null)
   const [loading, setLoading] = useState(true)
@@ -319,6 +327,15 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
     }
   }
 
+  const markAllNotificationsAsRead = async () => {
+    try {
+      await notificationsApi.markAllAsRead()
+      setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error)
+    }
+  }
+
   if (loading) {
     return (
       <header className="community-mobile-header sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b shadow-sm">
@@ -339,6 +356,16 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
 
   const community = currentCommunityData
   const unreadCount = notifications.filter(n => n.unread).length
+  const splitNotifications = notifications.reduce(
+    (acc, notification) => {
+      const label = String(notification.time || "").toLowerCase()
+      const isToday = label.includes("min") || label.includes("hour") || label.includes("today")
+      if (isToday) acc.today.push(notification)
+      else acc.earlier.push(notification)
+      return acc
+    },
+    { today: [] as Notification[], earlier: [] as Notification[] },
+  )
   const communityBasePath = `/${creatorSlug}/${currentCommunity}`
   const mobilePrimaryHrefs = new Set(mobilePrimaryNavigationItems.map((item) => item.href))
 
@@ -502,52 +529,147 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
             </Link>
 
             {/* Notifications Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+              <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative rounded-full">
                   <Bell className="h-5 w-5" />
                   {unreadCount > 0 && (
-                    <Badge 
-                      variant="destructive" 
+                    <Badge
+                      variant="destructive"
                       className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] border-2 border-white rounded-full"
                     >
                       {unreadCount}
                     </Badge>
                   )}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[380px] p-0 shadow-xl border border-gray-200 rounded-xl overflow-hidden">
-                <div className="p-4 border-b bg-white">
-                  <h2 className="font-bold text-lg text-gray-900">Notifications</h2>
-                </div>
-                <ScrollArea className="h-[400px]">
+              </SheetTrigger>
+
+              <SheetContent className="relative overflow-hidden bg-[radial-gradient(120%_80%_at_10%_0%,#f7f5ff_0%,#ffffff_55%)]">
+                <div className="pointer-events-none absolute -top-24 right-0 h-60 w-60 rounded-full bg-[#86e4fd]/35 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-24 left-0 h-72 w-72 rounded-full bg-[#8e78fb]/20 blur-3xl" />
+
+                <SheetHeader className="relative space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <SheetTitle className="text-xl tracking-tight">Notifications</SheetTitle>
+                      <SheetDescription className="text-sm">Stay updated with your community activity</SheetDescription>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-full border border-white/60 bg-white/70 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm">
+                      <span>{unreadCount}</span>
+                      <span className="text-muted-foreground">unread</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-medium text-muted-foreground">Last 7 days</div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={markAllNotificationsAsRead}
+                      disabled={unreadCount === 0 || notificationsLoading}
+                    >
+                      Mark all read
+                    </Button>
+                  </div>
+                </SheetHeader>
+
+                <div className="mt-6">
                   {notificationsLoading ? (
                     <div className="flex items-center justify-center p-10">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     </div>
-                  ) : notifications.length > 0 ? (
-                    <div className="divide-y divide-gray-50">
-                      {notifications.map((n) => (
-                        <div 
-                          key={n.id} 
-                          className={cn("p-4 hover:bg-gray-50 transition-colors cursor-pointer", n.unread && "bg-blue-50/30")}
-                          onClick={() => markNotificationAsRead(n.id)}
-                        >
-                          <div className="font-semibold text-sm text-gray-900">{n.title}</div>
-                          <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
-                          <div className="text-[10px] text-gray-400 mt-1">{n.time}</div>
-                        </div>
-                      ))}
+                  ) : notifications.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-border-color bg-white/80 p-6 text-center text-sm text-muted-foreground shadow-sm">
+                      You&apos;re all caught up.
                     </div>
                   ) : (
-                    <div className="p-10 text-center text-muted-foreground">
-                      <Bell className="h-10 w-10 mx-auto mb-2 opacity-20" />
-                      <p className="text-sm">No notifications yet</p>
-                    </div>
+                    <ScrollArea className="h-[520px] pr-2">
+                      <div className="space-y-4 pb-2">
+                        {splitNotifications.today.length > 0 && (
+                          <div className="space-y-3">
+                            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground/70">Today</div>
+                            {splitNotifications.today.map((n) => (
+                              <button
+                                key={n.id}
+                                type="button"
+                                onClick={() => markNotificationAsRead(n.id)}
+                                className={cn(
+                                  "group relative w-full text-left overflow-hidden rounded-2xl border bg-white/80 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+                                  n.unread ? "border-[#8e78fb]/30" : "border-border-color",
+                                )}
+                              >
+                                {n.unread && (
+                                  <span className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-[#8e78fb] to-[#86e4fd]" />
+                                )}
+                                <div className="flex items-start gap-3">
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#8e78fb]/20 to-[#86e4fd]/10">
+                                    <Bell className="h-5 w-5 text-[#8e78fb]" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div>
+                                        <h4 className="text-sm font-semibold text-gray-900">{n.title}</h4>
+                                        <p className="mt-1 text-sm text-muted-foreground">{n.message}</p>
+                                      </div>
+                                      {n.unread && <div className="mt-1 h-2 w-2 rounded-full bg-[#8e78fb]" />}
+                                    </div>
+                                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                                      <span>{n.time}</span>
+                                      <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                                      <span>Chabaqa</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {splitNotifications.earlier.length > 0 && (
+                          <div className="space-y-3">
+                            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground/70">Earlier</div>
+                            {splitNotifications.earlier.map((n) => (
+                              <button
+                                key={n.id}
+                                type="button"
+                                onClick={() => markNotificationAsRead(n.id)}
+                                className={cn(
+                                  "group relative w-full text-left overflow-hidden rounded-2xl border bg-white/80 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+                                  n.unread ? "border-[#8e78fb]/30" : "border-border-color",
+                                )}
+                              >
+                                {n.unread && (
+                                  <span className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-[#8e78fb] to-[#86e4fd]" />
+                                )}
+                                <div className="flex items-start gap-3">
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#8e78fb]/20 to-[#86e4fd]/10">
+                                    <Bell className="h-5 w-5 text-[#8e78fb]" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div>
+                                        <h4 className="text-sm font-semibold text-gray-900">{n.title}</h4>
+                                        <p className="mt-1 text-sm text-muted-foreground">{n.message}</p>
+                                      </div>
+                                      {n.unread && <div className="mt-1 h-2 w-2 rounded-full bg-[#8e78fb]" />}
+                                    </div>
+                                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                                      <span>{n.time}</span>
+                                      <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                                      <span>Chabaqa</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </ScrollArea>
                   )}
-                </ScrollArea>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </div>
+              </SheetContent>
+            </Sheet>
 
             {/* Mobile Menu */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
