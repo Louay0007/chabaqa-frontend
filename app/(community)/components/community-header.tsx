@@ -26,7 +26,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import {
-  Bell,
   ChevronDown,
   Settings,
   LogOut,
@@ -46,34 +45,23 @@ import {
   Sparkles,
   Star,
   LayoutDashboard,
-  Loader2,
   Route
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { communitiesApi } from "@/lib/api/communities.api"
-import { notificationsApi } from "@/lib/api/notifications.api"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import { authApi } from "@/lib/api/auth.api"
 import type { Community } from "@/lib/api/types"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { resolveImageUrl } from "@/lib/resolve-image-url"
 import { api } from "@/lib/api"
 import type { Conversation } from "@/lib/api/types"
 import { useSocket } from "@/lib/socket-context"
+import { NotificationsBell } from "./notifications-bell"
 
 
 interface CommunityHeaderProps {
   currentCommunity: string
   creatorSlug: string
-}
-
-interface Notification {
-  id: string
-  title: string
-  message: string
-  time: string
-  unread: boolean
-  createdAt?: string
 }
 
 const navigationItems = [
@@ -108,12 +96,9 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
   const pathname = usePathname()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [userCommunities, setUserCommunities] = useState<Community[]>([])
   const [currentCommunityData, setCurrentCommunityData] = useState<Community | null>(null)
   const [loading, setLoading] = useState(true)
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [notificationsLoading, setNotificationsLoading] = useState(true)
   const [dmUnread, setDmUnread] = useState(0)
 
   const { user: currentUser, isAuthenticated, logout } = useAuthContext()
@@ -133,39 +118,6 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
     const aId = getParticipantId(c.participantA)
     return aId === myIdValue ? c.unreadCountA : c.unreadCountB
   }
-
-  // Fetch notifications
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!isAuthenticated) {
-        setNotificationsLoading(false)
-        return
-      }
-
-      try {
-        const response = await notificationsApi.getAll({ limit: 10 })
-        const notificationsList = response?.items || []
-
-        const formattedNotifications = notificationsList.map((n: any) => ({
-          id: n._id || n.id,
-          title: n.title || 'Notification',
-          message: n.message || n.body || '',
-          time: n.createdAt ? formatTimeAgo(new Date(n.createdAt)) : 'Just now',
-          unread: !(n.isRead ?? n.read ?? false),
-          createdAt: n.createdAt,
-        }))
-
-        setNotifications(formattedNotifications)
-      } catch (error) {
-        console.error('Error fetching notifications:', error)
-        setNotifications([])
-      } finally {
-        setNotificationsLoading(false)
-      }
-    }
-
-    fetchNotifications()
-  }, [isAuthenticated])
 
   const fetchDmUnread = useCallback(async () => {
     if (!isAuthenticated || !myId) {
@@ -241,20 +193,6 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
     }
   }, [fetchDmUnread, pathname])
 
-  // Format time ago helper
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
-
-    if (diffMins < 1) return 'Just now'
-    if (diffMins < 60) return `${diffMins} min ago`
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
-    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
-  }
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -315,30 +253,6 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
     }
   }
 
-  // Mark notification as read
-  const markNotificationAsRead = async (notificationId: string) => {
-    const target = notifications.find((n) => n.id === notificationId)
-    if (!target || !target.unread) return
-
-    try {
-      await notificationsApi.markAsRead(notificationId)
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, unread: false } : n)
-      )
-    } catch (error) {
-      console.error('Error marking notification as read:', error)
-    }
-  }
-
-  const markAllNotificationsAsRead = async () => {
-    try {
-      await notificationsApi.markAllAsRead()
-      setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error)
-    }
-  }
-
   if (loading) {
     return (
       <header className="community-mobile-header sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b shadow-sm">
@@ -358,17 +272,6 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
   }
 
   const community = currentCommunityData
-  const unreadCount = notifications.filter(n => n.unread).length
-  const splitNotifications = notifications.reduce(
-    (acc, notification) => {
-      const label = String(notification.time || "").toLowerCase()
-      const isToday = label.includes("min") || label.includes("hour") || label.includes("today")
-      if (isToday) acc.today.push(notification)
-      else acc.earlier.push(notification)
-      return acc
-    },
-    { today: [] as Notification[], earlier: [] as Notification[] },
-  )
   const communityBasePath = `/${creatorSlug}/${currentCommunity}`
   const mobilePrimaryHrefs = new Set(mobilePrimaryNavigationItems.map((item) => item.href))
 
@@ -531,168 +434,7 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
               </Button>
             </Link>
 
-            {/* Notifications Dropdown */}
-            <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative rounded-full">
-                  <Bell className="h-5 w-5" />
-                  {unreadCount > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px] border-2 border-white rounded-full"
-                    >
-                      {unreadCount}
-                    </Badge>
-                  )}
-                </Button>
-              </SheetTrigger>
-
-              <SheetContent className="relative overflow-hidden bg-[radial-gradient(120%_80%_at_10%_0%,#f7f5ff_0%,#ffffff_55%)]">
-                <div className="pointer-events-none absolute -top-24 right-0 h-60 w-60 rounded-full bg-[#86e4fd]/35 blur-3xl" />
-                <div className="pointer-events-none absolute -bottom-24 left-0 h-72 w-72 rounded-full bg-[#8e78fb]/20 blur-3xl" />
-
-                <SheetHeader className="relative space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <SheetTitle className="text-xl tracking-tight">Notifications</SheetTitle>
-                      <SheetDescription className="text-sm">Stay updated with your community activity</SheetDescription>
-                    </div>
-                    <div className="flex items-center gap-2 rounded-full border border-white/60 bg-white/70 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm">
-                      <span>{unreadCount}</span>
-                      <span className="text-muted-foreground">unread</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-medium text-muted-foreground">Last 7 days</div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs"
-                      onClick={markAllNotificationsAsRead}
-                      disabled={unreadCount === 0 || notificationsLoading}
-                    >
-                      Mark all read
-                    </Button>
-                  </div>
-                </SheetHeader>
-
-                <div className="mt-6">
-                  {notificationsLoading ? (
-                    <div className="flex items-center justify-center p-10">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  ) : notifications.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-border-color bg-white/80 p-6 text-center text-sm text-muted-foreground shadow-sm">
-                      You&apos;re all caught up.
-                    </div>
-                  ) : (
-                    <ScrollArea className="h-[520px] pr-2">
-                      <div className="space-y-4 pb-2">
-                        {splitNotifications.today.length > 0 && (
-                          <div className="space-y-3">
-                            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground/70">Today</div>
-                            {splitNotifications.today.map((n) => (
-                              <button
-                                key={n.id}
-                                type="button"
-                                onClick={() => markNotificationAsRead(n.id)}
-                                className={cn(
-                                  "group relative w-full text-left overflow-hidden rounded-2xl border bg-white/80 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
-                                  n.unread ? "border-[#8e78fb]/30" : "border-border-color",
-                                )}
-                              >
-                                {n.unread && (
-                                  <span className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-[#8e78fb] to-[#86e4fd]" />
-                                )}
-                                <div className="flex items-start gap-3">
-                                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#8e78fb]/20 to-[#86e4fd]/10">
-                                    <Bell className="h-5 w-5 text-[#8e78fb]" />
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-start justify-between gap-3">
-                                      <div>
-                                        <h4 className="text-sm font-semibold text-gray-900">{n.title}</h4>
-                                        <p className="mt-1 text-sm text-muted-foreground">{n.message}</p>
-                                      </div>
-                                      {n.unread && <div className="mt-1 h-2 w-2 rounded-full bg-[#8e78fb]" />}
-                                    </div>
-                                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                      <span>{n.time}</span>
-                                      <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
-                                      <span>Chabaqa</span>
-                                      <span
-                                        className={cn(
-                                          "rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                                          n.unread
-                                            ? "border-[#8e78fb]/30 bg-[#8e78fb]/10 text-[#6d5de7]"
-                                            : "border-border-color bg-white/70 text-muted-foreground",
-                                        )}
-                                      >
-                                        {n.unread ? "Unread" : "Read"}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-
-                        {splitNotifications.earlier.length > 0 && (
-                          <div className="space-y-3">
-                            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground/70">Earlier</div>
-                            {splitNotifications.earlier.map((n) => (
-                              <button
-                                key={n.id}
-                                type="button"
-                                onClick={() => markNotificationAsRead(n.id)}
-                                className={cn(
-                                  "group relative w-full text-left overflow-hidden rounded-2xl border bg-white/80 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
-                                  n.unread ? "border-[#8e78fb]/30" : "border-border-color",
-                                )}
-                              >
-                                {n.unread && (
-                                  <span className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-[#8e78fb] to-[#86e4fd]" />
-                                )}
-                                <div className="flex items-start gap-3">
-                                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#8e78fb]/20 to-[#86e4fd]/10">
-                                    <Bell className="h-5 w-5 text-[#8e78fb]" />
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-start justify-between gap-3">
-                                      <div>
-                                        <h4 className="text-sm font-semibold text-gray-900">{n.title}</h4>
-                                        <p className="mt-1 text-sm text-muted-foreground">{n.message}</p>
-                                      </div>
-                                      {n.unread && <div className="mt-1 h-2 w-2 rounded-full bg-[#8e78fb]" />}
-                                    </div>
-                                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                      <span>{n.time}</span>
-                                      <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
-                                      <span>Chabaqa</span>
-                                      <span
-                                        className={cn(
-                                          "rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                                          n.unread
-                                            ? "border-[#8e78fb]/30 bg-[#8e78fb]/10 text-[#6d5de7]"
-                                            : "border-border-color bg-white/70 text-muted-foreground",
-                                        )}
-                                      >
-                                        {n.unread ? "Unread" : "Read"}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </ScrollArea>
-                  )}
-                </div>
-              </SheetContent>
-            </Sheet>
+            <NotificationsBell creatorSlug={creatorSlug} communitySlug={currentCommunity} />
 
             {/* Mobile Menu */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
