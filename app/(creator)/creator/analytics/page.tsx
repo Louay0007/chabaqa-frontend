@@ -201,6 +201,30 @@ const toChangeLabel = (value: unknown): string | undefined => {
   return undefined
 }
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  if (!value || typeof value !== "object") return false
+  const proto = Object.getPrototypeOf(value)
+  return proto === Object.prototype || proto === null
+}
+
+const tryParseJsonObject = (input: unknown): Record<string, unknown> | null => {
+  if (typeof input !== "string") return null
+  const trimmed = input.trim()
+  if (!trimmed.startsWith("{")) return null
+
+  const withoutTruncated = trimmed.replace(/\n?\[truncated\]\s*$/i, "").trim()
+  const lastBrace = withoutTruncated.lastIndexOf("}")
+  if (lastBrace <= 0) return null
+
+  const candidate = withoutTruncated.slice(0, lastBrace + 1)
+  try {
+    const parsed = JSON.parse(candidate)
+    return isPlainObject(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 const getRangeFromTimeRange = (timeRange: AnalyticsTimeRange): { from: string; to: string } => {
   const now = new Date()
   const to = now.toISOString()
@@ -499,6 +523,8 @@ export default function CommunityAnalyticsPage() {
   >(null)
   const [focusStepId, setFocusStepId] = useState<string | null>(null)
   const [aiInsights, setAiInsights] = useState<CreatorInsightsResponse | null>(null)
+  const [aiInsightsMeta, setAiInsightsMeta] = useState<{ cached?: boolean; model?: string } | null>(null)
+  const [aiTab, setAiTab] = useState<"summary" | "issues" | "fixes" | "rewrites" | "experiments" | "raw">("summary")
   const [isFunnelLoading, setIsFunnelLoading] = useState(false)
   const [isInsightsLoading, setIsInsightsLoading] = useState(false)
   const [funnelError, setFunnelError] = useState<string | null>(null)
@@ -533,10 +559,34 @@ export default function CommunityAnalyticsPage() {
     setStepFunnelData(null)
     setFocusStepId(null)
     setAiInsights(null)
+    setAiInsightsMeta(null)
+    setAiTab("summary")
     setFunnelError(null)
     setLastUpdatedAt(null)
     setIsSupplementalLoading(false)
   }, [])
+
+  const focusStepTitle = useMemo(() => {
+    if (!focusStepId) return null
+    const items = (stepFunnelData as any)?.items
+    if (!Array.isArray(items)) return null
+    const found = items.find((it: any) => String(it?.stepId) === String(focusStepId))
+    const title = found?.stepTitle
+    return typeof title === "string" && title.trim().length > 0 ? title.trim() : null
+  }, [focusStepId, stepFunnelData])
+
+  const copyToClipboard = useCallback(
+    async (text: string, successMessage: string = "Copied to clipboard") => {
+      try {
+        await navigator.clipboard.writeText(text)
+        toast({ title: successMessage })
+      } catch (error) {
+        console.error("[Analytics] clipboard copy failed:", error)
+        toast({ variant: "destructive", title: "Copy failed", description: "Your browser blocked clipboard access." })
+      }
+    },
+    [toast],
+  )
 
   useEffect(() => {
     if (!topItems || topItems.length === 0) {
@@ -546,6 +596,8 @@ export default function CommunityAnalyticsPage() {
       setStepFunnelData(null)
       setFocusStepId(null)
       setAiInsights(null)
+      setAiInsightsMeta(null)
+      setAiTab("summary")
       setFunnelError(null)
       return
     }
@@ -1142,6 +1194,8 @@ export default function CommunityAnalyticsPage() {
       const payload = (response as any)?.data || response
       const data = payload?.data || payload
       setAiInsights(data)
+      setAiInsightsMeta({ cached: Boolean(payload?.cached), model: typeof payload?.model === "string" ? payload.model : undefined })
+      setAiTab("summary")
       toast({
         title: "AI insights ready",
         description: payload?.cached ? "Loaded from cache." : "Generated from your latest metrics.",
@@ -2078,41 +2132,58 @@ export default function CommunityAnalyticsPage() {
                       {selectedContentType === "course" || selectedContentType === "challenge" ? (
                         stepFunnelData && Array.isArray((stepFunnelData as any).items) ? (
                           <>
-                            <div className="space-y-2">
-                              {(stepFunnelData as any).items
+                            {(() => {
+                              const items = (stepFunnelData as any).items
                                 .filter((it: any) => Number(it.uniqueStarts || 0) > 0)
                                 .sort((a: any, b: any) => Number(b.dropOffRate || 0) - Number(a.dropOffRate || 0))
                                 .slice(0, 5)
-                                .map((it: any) => {
-                                  const isFocused = focusStepId && String(focusStepId) === String(it.stepId)
-                                  return (
-                                    <div
-                                      key={it.stepId}
-                                      className={`flex items-center justify-between rounded-md border p-2 text-sm cursor-pointer ${
-                                        isFocused ? "border-blue-400 bg-blue-50" : "hover:bg-gray-50"
-                                      }`}
-                                      onClick={() => {
-                                        setFocusStepId(String(it.stepId))
-                                        setAiInsights(null)
-                                      }}
-                                    >
-                                      <div className="min-w-0 pr-3">
-                                        <p className="font-medium text-gray-900 truncate">{it.stepTitle}</p>
-                                        <p className="text-xs text-gray-500">
-                                          Starts: {Number(it.uniqueStarts || 0).toLocaleString()} · Completes:{" "}
-                                          {Number(it.uniqueCompletes || 0).toLocaleString()}
-                                        </p>
+
+                              if (items.length === 0) {
+                                return (
+                                  <div className="text-sm text-gray-600">
+                                    No step-level drop-off yet for this time range (no chapter/task starts recorded).
+                                  </div>
+                                )
+                              }
+
+                              return (
+                                <div className="space-y-2">
+                                  {items.map((it: any) => {
+                                    const isFocused = focusStepId && String(focusStepId) === String(it.stepId)
+                                    return (
+                                      <div
+                                        key={it.stepId}
+                                        className={`flex items-center justify-between rounded-md border p-2 text-sm cursor-pointer ${
+                                          isFocused ? "border-blue-400 bg-blue-50" : "hover:bg-gray-50"
+                                        }`}
+                                        onClick={() => {
+                                          setFocusStepId(String(it.stepId))
+                                          setAiInsights(null)
+                                          setAiInsightsMeta(null)
+                                          setAiTab("summary")
+                                        }}
+                                      >
+                                        <div className="min-w-0 pr-3">
+                                          <p className="font-medium text-gray-900 truncate" dir="auto">
+                                            {it.stepTitle}
+                                          </p>
+                                          <p className="text-xs text-gray-500">
+                                            Starts: {Number(it.uniqueStarts || 0).toLocaleString()} · Completes:{" "}
+                                            {Number(it.uniqueCompletes || 0).toLocaleString()}
+                                          </p>
+                                        </div>
+                                        <div className="text-right">
+                                          <p className="font-semibold text-gray-900">
+                                            {Math.round(Number(it.dropOffRate || 0) * 100)}%
+                                          </p>
+                                          <p className="text-xs text-gray-500">drop</p>
+                                        </div>
                                       </div>
-                                      <div className="text-right">
-                                        <p className="font-semibold text-gray-900">
-                                          {Math.round(Number(it.dropOffRate || 0) * 100)}%
-                                        </p>
-                                        <p className="text-xs text-gray-500">drop</p>
-                                      </div>
-                                    </div>
-                                  )
-                                })}
-                            </div>
+                                    )
+                                  })}
+                                </div>
+                              )
+                            })()}
 
                             {Array.isArray((stepFunnelData as any).warnings) && (stepFunnelData as any).warnings.length > 0 ? (
                               <div className="mt-3 space-y-1">
@@ -2135,57 +2206,297 @@ export default function CommunityAnalyticsPage() {
 
                   {aiInsights ? (
                     <div className="border rounded-lg bg-white p-4 space-y-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900">AI Explainer</p>
-                          <p className="text-xs text-gray-500">
-                            {selectedItemTitle ? selectedItemTitle : selectedItemId}
-                            {focusStepId ? ` · Focus step: ${focusStepId}` : ""}
-                          </p>
-                        </div>
-                      </div>
+                      {(() => {
+                        const parsed = tryParseJsonObject(aiInsights.summary)
+                        const derived = parsed && typeof (parsed as any).summary === "string" ? (parsed as any) : null
+                        const effectiveInsights: CreatorInsightsResponse = derived
+                          ? {
+                              ...aiInsights,
+                              summary: String(derived.summary),
+                              topIssues: Array.isArray(derived.topIssues) ? derived.topIssues : aiInsights.topIssues,
+                              fixes: Array.isArray(derived.fixes) ? derived.fixes : aiInsights.fixes,
+                              rewriteSuggestions: Array.isArray(derived.rewriteSuggestions)
+                                ? derived.rewriteSuggestions
+                                : aiInsights.rewriteSuggestions,
+                              experiments: Array.isArray(derived.experiments) ? derived.experiments : aiInsights.experiments,
+                              warnings: Array.from(
+                                new Set([
+                                  ...(Array.isArray(aiInsights.warnings) ? aiInsights.warnings : []),
+                                  ...(Array.isArray(derived.warnings) ? derived.warnings : []),
+                                ]),
+                              ),
+                            }
+                          : aiInsights
 
-                      <p className="text-sm text-gray-800 whitespace-pre-line">{aiInsights.summary}</p>
+                        const warnings = Array.isArray(effectiveInsights.warnings) ? effectiveInsights.warnings : []
+                        const hasFallbackWarning = warnings.some((w) => /not valid json|fallback/i.test(String(w)))
+                        const hasParsedFromSummary = Boolean(derived)
+                        const rawJson = JSON.stringify(effectiveInsights, null, 2)
+                        const summaryText = String(effectiveInsights.summary || "")
+                        const summaryLooksLikeJson = summaryText.trim().startsWith("{")
 
-                      {Array.isArray(aiInsights.warnings) && aiInsights.warnings.length > 0 ? (
-                        <div className="space-y-1">
-                          {aiInsights.warnings.slice(0, 6).map((w) => (
-                            <p key={w} className="text-xs text-amber-700">
-                              {w}
-                            </p>
-                          ))}
-                        </div>
-                      ) : null}
+                        const renderConfidence = (confidence: any) => {
+                          const value = String(confidence || "").toLowerCase()
+                          const label = value === "high" ? "High" : value === "med" ? "Medium" : "Low"
+                          const classes =
+                            value === "high"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : value === "med"
+                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                : "bg-gray-50 text-gray-700 border-gray-200"
+                          return (
+                            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${classes}`}>
+                              {label} confidence
+                            </span>
+                          )
+                        }
 
-                      {aiInsights.fixes?.length ? (
-                        <div className="space-y-2">
-                          <p className="text-sm font-semibold text-gray-900">Top fixes</p>
-                          <div className="space-y-2">
-                            {aiInsights.fixes.slice(0, 3).map((fix) => (
-                              <div key={fix.title} className="rounded-md border p-3">
-                                <p className="text-sm font-medium text-gray-900">{fix.title}</p>
-                                <p className="text-xs text-gray-600 mt-1">{fix.exactCreatorAction}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-
-                      {aiInsights.rewriteSuggestions?.length ? (
-                        <div className="space-y-2">
-                          <p className="text-sm font-semibold text-gray-900">Rewrite suggestions</p>
-                          <div className="space-y-2">
-                            {aiInsights.rewriteSuggestions.slice(0, 2).map((rw, idx) => (
-                              <div key={`${rw.stepId}-${rw.target}-${idx}`} className="rounded-md border p-3">
-                                <p className="text-xs text-gray-500 mb-1">
-                                  {rw.target} · step {rw.stepId}
+                        return (
+                          <>
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-gray-900">AI Explainer</p>
+                                <p className="text-xs text-gray-500" dir="auto">
+                                  {selectedItemTitle ? selectedItemTitle : selectedItemId}
+                                  {focusStepId ? ` · Focus: ${focusStepTitle ? focusStepTitle : focusStepId}` : ""}
+                                  {aiInsightsMeta?.model ? ` · Model: ${aiInsightsMeta.model}` : ""}
+                                  {aiInsightsMeta?.cached ? " · Cached" : ""}
                                 </p>
-                                <p className="text-sm text-gray-800 whitespace-pre-line">{rw.text}</p>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
+                              <div className="flex items-center gap-2">
+                                <Button variant="outline" size="sm" onClick={() => copyToClipboard(rawJson, "Copied AI JSON")}>
+                                  Copy JSON
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setAiInsights(null)
+                                    setAiInsightsMeta(null)
+                                    setAiTab("summary")
+                                  }}
+                                >
+                                  Clear
+                                </Button>
+                              </div>
+                            </div>
+
+                            {hasFallbackWarning ? (
+                              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                                <p className="text-xs font-medium text-amber-800">AI returned a fallback response</p>
+                                <p className="text-xs text-amber-800 mt-0.5">
+                                  Some parts may be incomplete. Use the Raw tab to copy the full payload.
+                                </p>
+                              </div>
+                            ) : null}
+
+                            {hasParsedFromSummary ? (
+                              <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2">
+                                <p className="text-xs text-blue-800">
+                                  Detected a structured JSON payload inside the summary and rendered it in a readable format.
+                                </p>
+                              </div>
+                            ) : null}
+
+                            {warnings.length > 0 ? (
+                              <div className="space-y-1">
+                                {warnings.slice(0, 6).map((w) => (
+                                  <p key={String(w)} className="text-xs text-amber-700" dir="auto">
+                                    {String(w)}
+                                  </p>
+                                ))}
+                              </div>
+                            ) : null}
+
+                            <Tabs value={aiTab} onValueChange={(v) => setAiTab(v as any)}>
+                              <TabsList className="flex flex-wrap h-auto">
+                                <TabsTrigger value="summary">Summary</TabsTrigger>
+                                <TabsTrigger value="issues">Issues</TabsTrigger>
+                                <TabsTrigger value="fixes">Fixes</TabsTrigger>
+                                <TabsTrigger value="rewrites">Rewrites</TabsTrigger>
+                                <TabsTrigger value="experiments">Experiments</TabsTrigger>
+                                <TabsTrigger value="raw">Raw</TabsTrigger>
+                              </TabsList>
+
+                              <TabsContent value="summary" className="mt-3">
+                                <div className="rounded-md border bg-gray-50 p-3 max-h-[240px] overflow-auto">
+                                  {summaryLooksLikeJson ? (
+                                    <pre className="text-xs text-gray-900 whitespace-pre-wrap" dir="auto">
+                                      {summaryText || "No summary returned."}
+                                    </pre>
+                                  ) : (
+                                    <p className="text-sm text-gray-900 whitespace-pre-line" dir="auto">
+                                      {summaryText || "No summary returned."}
+                                    </p>
+                                  )}
+                                </div>
+                              </TabsContent>
+
+                              <TabsContent value="issues" className="mt-3">
+                                {effectiveInsights.topIssues?.length ? (
+                                  <div className="space-y-3">
+                                    {effectiveInsights.topIssues.slice(0, 6).map((issue) => (
+                                      <div key={`${issue.stepId}-${issue.stepTitle}`} className="rounded-md border p-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div className="min-w-0">
+                                            <p className="text-sm font-semibold text-gray-900 truncate" dir="auto">
+                                              {issue.stepTitle}
+                                            </p>
+                                            <p className="text-xs text-gray-500">Step {issue.stepId}</p>
+                                          </div>
+                                          {renderConfidence(issue.confidence)}
+                                        </div>
+                                        {Array.isArray(issue.metricEvidence) && issue.metricEvidence.length > 0 ? (
+                                          <ul className="mt-2 space-y-1">
+                                            {issue.metricEvidence.slice(0, 4).map((ev) => (
+                                              <li key={ev} className="text-xs text-gray-700" dir="auto">
+                                                • {ev}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        ) : null}
+                                        {issue.hypothesis ? (
+                                          <p className="text-xs text-gray-700 mt-2 whitespace-pre-line" dir="auto">
+                                            {issue.hypothesis}
+                                          </p>
+                                        ) : null}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-gray-600">No issues returned.</p>
+                                )}
+                              </TabsContent>
+
+                              <TabsContent value="fixes" className="mt-3">
+                                {effectiveInsights.fixes?.length ? (
+                                  <div className="space-y-3">
+                                    {effectiveInsights.fixes.slice(0, 8).map((fix) => (
+                                      <div key={fix.title} className="rounded-md border p-3">
+                                        <p className="text-sm font-semibold text-gray-900" dir="auto">
+                                          {fix.title}
+                                        </p>
+                                        {fix.whyItHelps ? (
+                                          <p className="text-xs text-gray-700 mt-1 whitespace-pre-line" dir="auto">
+                                            {fix.whyItHelps}
+                                          </p>
+                                        ) : null}
+                                        {fix.exactCreatorAction ? (
+                                          <div className="mt-2 rounded-md bg-gray-50 border px-3 py-2">
+                                            <p className="text-xs font-medium text-gray-800">What to do</p>
+                                            <p className="text-xs text-gray-700 mt-0.5 whitespace-pre-line" dir="auto">
+                                              {fix.exactCreatorAction}
+                                            </p>
+                                          </div>
+                                        ) : null}
+                                        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                          <div className="rounded-md border bg-white px-3 py-2">
+                                            <p className="text-xs font-medium text-gray-800">Expected lift</p>
+                                            <p className="text-xs text-gray-700 mt-0.5" dir="auto">
+                                              {fix.expectedMetricLift || "—"}
+                                            </p>
+                                          </div>
+                                          <div className="rounded-md border bg-white px-3 py-2">
+                                            <p className="text-xs font-medium text-gray-800">Risk</p>
+                                            <p className="text-xs text-gray-700 mt-0.5" dir="auto">
+                                              {fix.risk || "—"}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-gray-600">No fixes returned.</p>
+                                )}
+                              </TabsContent>
+
+                              <TabsContent value="rewrites" className="mt-3">
+                                {effectiveInsights.rewriteSuggestions?.length ? (
+                                  <div className="space-y-3">
+                                    {effectiveInsights.rewriteSuggestions.slice(0, 8).map((rw, idx) => (
+                                      <div key={`${rw.stepId}-${rw.target}-${idx}`} className="rounded-md border p-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div className="min-w-0">
+                                            <p className="text-xs text-gray-500" dir="auto">
+                                              {rw.target} · step {rw.stepId}
+                                            </p>
+                                          </div>
+                                          <Button variant="outline" size="sm" onClick={() => copyToClipboard(rw.text, "Copied rewrite")}>
+                                            Copy
+                                          </Button>
+                                        </div>
+                                        <div className="mt-2 rounded-md border bg-gray-50 p-3">
+                                          <p className="text-sm text-gray-900 whitespace-pre-line" dir="auto">
+                                            {rw.text}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-gray-600">No rewrite suggestions returned.</p>
+                                )}
+                              </TabsContent>
+
+                              <TabsContent value="experiments" className="mt-3">
+                                {effectiveInsights.experiments?.length ? (
+                                  <div className="space-y-3">
+                                    {effectiveInsights.experiments.slice(0, 6).map((exp) => (
+                                      <div key={exp.name} className="rounded-md border p-3">
+                                        <p className="text-sm font-semibold text-gray-900" dir="auto">
+                                          {exp.name}
+                                        </p>
+                                        <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                          <div className="rounded-md border bg-gray-50 p-3">
+                                            <p className="text-xs font-medium text-gray-800">Variant A</p>
+                                            <p className="text-xs text-gray-700 mt-1 whitespace-pre-line" dir="auto">
+                                              {exp.variantA}
+                                            </p>
+                                          </div>
+                                          <div className="rounded-md border bg-gray-50 p-3">
+                                            <p className="text-xs font-medium text-gray-800">Variant B</p>
+                                            <p className="text-xs text-gray-700 mt-1 whitespace-pre-line" dir="auto">
+                                              {exp.variantB}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                          <div className="rounded-md border bg-white px-3 py-2">
+                                            <p className="text-xs font-medium text-gray-800">Success metric</p>
+                                            <p className="text-xs text-gray-700 mt-0.5" dir="auto">
+                                              {exp.successMetric}
+                                            </p>
+                                          </div>
+                                          <div className="rounded-md border bg-white px-3 py-2">
+                                            <p className="text-xs font-medium text-gray-800">Run for</p>
+                                            <p className="text-xs text-gray-700 mt-0.5">
+                                              {Number(exp.runForDays || 0)} days
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-gray-600">No experiments returned.</p>
+                                )}
+                              </TabsContent>
+
+                              <TabsContent value="raw" className="mt-3">
+                                <div className="flex items-center justify-end mb-2">
+                                  <Button variant="outline" size="sm" onClick={() => copyToClipboard(rawJson, "Copied raw JSON")}>
+                                    Copy
+                                  </Button>
+                                </div>
+                                <pre className="rounded-md border bg-gray-50 p-3 text-xs overflow-auto max-h-[420px]" dir="auto">
+                                  {rawJson}
+                                </pre>
+                              </TabsContent>
+                            </Tabs>
+                          </>
+                        )
+                      })()}
                     </div>
                   ) : null}
                 </div>
