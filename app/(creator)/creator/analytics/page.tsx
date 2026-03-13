@@ -2299,9 +2299,30 @@ export default function CommunityAnalyticsPage() {
                           : aiInsights
 
                         const warnings = Array.isArray(effectiveInsights.warnings) ? effectiveInsights.warnings : []
-                        const hasFallbackWarning = warnings.some((w) => /not valid json|fallback/i.test(String(w)))
+                        const uiWarnings = warnings
+                          .map((w) => String(w))
+                          .filter((w) => w.trim().length > 0)
+                          .filter((w) => !/ai response was not valid json/i.test(w))
+                          .filter((w) => !/returned a safe fallback summary/i.test(w))
+                          .filter((w) => !/response is not an object/i.test(w))
+                          .filter((w) => !/fallback response/i.test(w))
                         const summaryText = String(effectiveInsights.summary || "")
                         const humanSummary = toHumanParagraph(summaryText) || "No summary returned."
+                        const summaryTitle = `Insights for ${selectedItemTitle ? selectedItemTitle : selectedItemId}${focusStepId ? ` · ${focusStepTitle ? focusStepTitle : `Step ${focusStepId}`}` : ""}`
+                        const conclusionText = (() => {
+                          if (effectiveInsights.fixes?.length) {
+                            const actions = effectiveInsights.fixes
+                              .slice(0, 2)
+                              .map((fix) => String(fix.exactCreatorAction || fix.title || "").trim())
+                              .filter(Boolean)
+                            if (actions.length) return actions.join("\n")
+                          }
+                          if (effectiveInsights.experiments?.length) {
+                            const exp = effectiveInsights.experiments[0]
+                            if (exp?.name) return `Run an experiment: ${exp.name} (track: ${exp.successMetric}).`
+                          }
+                          return "Focus on the worst drop-off step first, simplify prerequisites, and test a clearer intro + CTA."
+                        })()
 
                         const renderConfidence = (confidence: any) => {
                           const value = String(confidence || "").toLowerCase()
@@ -2349,16 +2370,9 @@ export default function CommunityAnalyticsPage() {
                               </div>
                             </div>
 
-                            {hasFallbackWarning ? (
-                              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
-                                <p className="text-xs font-medium text-amber-800">AI returned a fallback response</p>
-                                <p className="text-xs text-amber-800 mt-0.5">Some parts may be incomplete.</p>
-                              </div>
-                            ) : null}
-
-                            {warnings.length > 0 ? (
+                            {uiWarnings.length > 0 ? (
                               <div className="space-y-1">
-                                {warnings.slice(0, 6).map((w) => (
+                                {uiWarnings.slice(0, 6).map((w) => (
                                   <p key={String(w)} className="text-xs text-amber-700" dir="auto">
                                     {String(w)}
                                   </p>
@@ -2376,10 +2390,25 @@ export default function CommunityAnalyticsPage() {
                               </TabsList>
 
                               <TabsContent value="summary" className="mt-3">
-                                <div className="rounded-md border bg-gray-50 p-3 max-h-[240px] overflow-auto">
-                                  <p className="text-sm text-gray-900 whitespace-pre-line" dir="auto">
-                                    {humanSummary}
-                                  </p>
+                                <div className="rounded-md border bg-gray-50 p-4 space-y-3">
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-500">Title</p>
+                                    <p className="text-sm font-semibold text-gray-900 mt-1" dir="auto">
+                                      {summaryTitle}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-medium text-gray-500">Description</p>
+                                    <p className="text-sm text-gray-900 mt-1 whitespace-pre-line" dir="auto">
+                                      {humanSummary}
+                                    </p>
+                                  </div>
+                                  <div className="rounded-md border bg-white p-3">
+                                    <p className="text-xs font-medium text-gray-600">Conclusion</p>
+                                    <p className="text-sm text-gray-900 mt-1 whitespace-pre-line" dir="auto">
+                                      {conclusionText}
+                                    </p>
+                                  </div>
                                 </div>
                               </TabsContent>
 
