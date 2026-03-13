@@ -16,6 +16,123 @@ export type CreatorAnalyticsExportScope =
   | 'products'
   | 'posts';
 
+export type CreatorFunnelContentType =
+  | 'course'
+  | 'challenge'
+  | 'session'
+  | 'event'
+  | 'product'
+  | 'post'
+  | 'community';
+
+export interface CreatorFunnelStep {
+  stepKey: string;
+  stepLabel: string;
+  uniqueUsers: number | null;
+  events: number;
+  rateFromPrev: number | null;
+}
+
+export interface CreatorFunnelDropOffSummary {
+  worstStep: { stepKey: string; stepLabel: string; dropOffRate?: number; uniqueUsers?: number | null } | null;
+  dropOffRate?: number;
+  sampleSizeWarnings?: string[];
+}
+
+export interface CreatorFunnelResponse {
+  contentMeta: {
+    title?: string;
+    communityId?: string;
+    currency?: string;
+    price?: number;
+    trackingIds?: string[];
+    orderIds?: string[];
+  };
+  funnel: CreatorFunnelStep[];
+  dropOff: CreatorFunnelDropOffSummary;
+  warnings?: string[];
+}
+
+export interface CreatorCourseChapterFunnelItem {
+  stepId: string;
+  stepTitle: string;
+  sectionId: string;
+  order: number;
+  uniqueStarts: number;
+  uniqueCompletes: number;
+  completionRate: number;
+  dropOffRate: number;
+  isPreview?: boolean;
+  isPaidChapter?: boolean;
+}
+
+export interface CreatorCourseChaptersFunnelResponse {
+  contentMeta: {
+    courseId: string;
+    courseTitle: string;
+    communityId?: string;
+    totalChapters: number;
+  };
+  items: CreatorCourseChapterFunnelItem[];
+  dropOff: { worstStep: { stepId: string; stepTitle: string; dropOffRate: number; uniqueStarts: number; uniqueCompletes: number } | null };
+  warnings?: string[];
+}
+
+export interface CreatorChallengeTaskFunnelItem {
+  stepId: string;
+  stepTitle: string;
+  order: number;
+  uniqueStarts: number;
+  uniqueCompletes: number;
+  completionRate: number;
+  dropOffRate: number;
+}
+
+export interface CreatorChallengeTasksFunnelResponse {
+  contentMeta: {
+    challengeId: string;
+    challengeTitle: string;
+    communityId?: string;
+    totalTasks: number;
+  };
+  items: CreatorChallengeTaskFunnelItem[];
+  dropOff: { worstStep: { stepId: string; stepTitle: string; dropOffRate: number; uniqueStarts: number; uniqueCompletes: number } | null };
+  warnings?: string[];
+}
+
+export type CreatorInsightsConfidence = 'low' | 'med' | 'high';
+
+export interface CreatorInsightsResponse {
+  summary: string;
+  topIssues: Array<{
+    stepId: string;
+    stepTitle: string;
+    metricEvidence: string[];
+    hypothesis: string;
+    confidence: CreatorInsightsConfidence;
+  }>;
+  fixes: Array<{
+    title: string;
+    whyItHelps: string;
+    exactCreatorAction: string;
+    expectedMetricLift: string;
+    risk: string;
+  }>;
+  rewriteSuggestions: Array<{
+    target: 'intro' | 'cta' | 'structure';
+    stepId: string;
+    text: string;
+  }>;
+  experiments: Array<{
+    name: string;
+    variantA: string;
+    variantB: string;
+    successMetric: string;
+    runForDays: number;
+  }>;
+  warnings: string[];
+}
+
 export interface CreatorAnalyticsExportParams extends CreatorAnalyticsParams {
   scope: CreatorAnalyticsExportScope;
 }
@@ -116,6 +233,34 @@ export const creatorAnalyticsApi = {
   },
   exportCsv: async (params: CreatorAnalyticsExportParams): Promise<ApiSuccessResponse<{ filename: string; csv: string }>> => {
     return apiClient.get<ApiSuccessResponse<{ filename: string; csv: string }>>('/analytics/creator/export', params);
+  },
+
+  // Funnels + AI insights
+  getFunnel: async (params: CreatorAnalyticsParams & { contentType: CreatorFunnelContentType; contentId: string }): Promise<ApiSuccessResponse<CreatorFunnelResponse>> => {
+    return apiClient.get<ApiSuccessResponse<CreatorFunnelResponse>>('/analytics/creator/funnel', params);
+  },
+  getCourseChaptersFunnel: async (
+    courseId: string,
+    params: CreatorAnalyticsParams,
+  ): Promise<ApiSuccessResponse<CreatorCourseChaptersFunnelResponse>> => {
+    return apiClient.get<ApiSuccessResponse<CreatorCourseChaptersFunnelResponse>>(`/analytics/creator/course/${courseId}/chapters/funnel`, params);
+  },
+  getChallengeTasksFunnel: async (
+    challengeId: string,
+    params: CreatorAnalyticsParams,
+  ): Promise<ApiSuccessResponse<CreatorChallengeTasksFunnelResponse>> => {
+    return apiClient.get<ApiSuccessResponse<CreatorChallengeTasksFunnelResponse>>(`/analytics/creator/challenge/${challengeId}/tasks/funnel`, params);
+  },
+  generateInsights: async (payload: {
+    contentType: CreatorFunnelContentType;
+    contentId: string;
+    from: string;
+    to: string;
+    communityId?: string;
+    communitySlug?: string;
+    focusStepId?: string;
+  }): Promise<ApiSuccessResponse<{ success: true; data: CreatorInsightsResponse; cached: boolean; model?: string }>> => {
+    return apiClient.post<ApiSuccessResponse<{ success: true; data: CreatorInsightsResponse; cached: boolean; model?: string }>>('/analytics/creator/insights', payload);
   },
 
   // Payouts

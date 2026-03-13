@@ -6,6 +6,7 @@ import ProductPageContent from "@/app/(community)/[creator]/[feature]/(loggedUse
 import { productsCommunityApi, ProductWithDetails, ProductPurchase } from "@/lib/api/products-community.api"
 import { getMe } from "@/lib/api/user.api"
 import { useToast } from "@/components/ui/use-toast"
+import { trackingApi } from "@/lib/api/tracking.api"
 
 function normalizeId(value: any): string {
   if (!value) return ""
@@ -40,6 +41,7 @@ export default function ProductPage() {
   const [purchase, setPurchase] = useState<ProductPurchase | null>(null)
   const [isCreator, setIsCreator] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [hasTrackedView, setHasTrackedView] = useState(false)
 
   useEffect(() => {
     if (!productId) return
@@ -91,6 +93,14 @@ export default function ProductPage() {
       active = false
     }
   }, [creator, feature, productId, router, toast])
+
+  useEffect(() => {
+    if (!product || hasTrackedView) return
+    const trackingId = normalizeId((product as any)?._id || (product as any)?.id || productId)
+    if (!trackingId) return
+    setHasTrackedView(true)
+    void trackingApi.trackView("product", trackingId, { source: "product_detail_page" }).catch(() => undefined)
+  }, [hasTrackedView, product, productId])
 
   if (loading) {
     return (

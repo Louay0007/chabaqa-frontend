@@ -45,6 +45,7 @@ import { PostCard } from "@/app/(community)/components/post-card"
 import { useToast } from "@/hooks/use-toast"
 import { useSearchParams } from "next/navigation"
 import { getUserProfileHref } from "@/lib/profile-handle"
+import { trackingApi } from "@/lib/api/tracking.api"
 
 const POSTS_PAGE = 1
 const POSTS_LIMIT = 10
@@ -172,6 +173,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const focusedSharedPostIdsRef = useRef<Set<string>>(new Set())
   const fetchedSharedPostIdsRef = useRef<Set<string>>(new Set())
+  const hasTrackedCommunityViewRef = useRef(false)
 
   const COMMON_EMOJIS = ["😀", "😂", "😍", "🎉", "🔥", "👍", "❤️", "🚀", "✨", "💯"]
 
@@ -237,6 +239,14 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
       setLoading(false)
     }
   }, [feature])
+
+  useEffect(() => {
+    if (!data || hasTrackedCommunityViewRef.current) return
+    const trackingId = String((data as any)?.community?._id || (data as any)?.community?.id || (data as any)?.communityId || "").trim()
+    if (!trackingId) return
+    hasTrackedCommunityViewRef.current = true
+    void trackingApi.trackView("community", trackingId, { source: "community_home_page" }).catch(() => undefined)
+  }, [data])
 
   const loadSavedPosts = useCallback(
     async (page = 1, append = false) => {

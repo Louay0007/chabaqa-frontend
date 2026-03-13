@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { eventsApi } from "@/lib/api/events.api";
+import { trackingApi } from "@/lib/api/tracking.api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { computeEventStartAt } from "@/lib/utils/event-time";
 
@@ -67,6 +68,10 @@ export default function AvailableEventsTab({
     setSelectedTicket(event.tickets?.[0]?.id || "");
     setNotes("");
     setPromoCode("");
+    const trackingId = String((event as any)?._id || event.id || "").trim();
+    if (trackingId) {
+      void trackingApi.trackView("event", trackingId, { source: "event_registration_open" }).catch(() => undefined);
+    }
   };
 
   const isAlreadyRegisteredError = (error: any): boolean => {

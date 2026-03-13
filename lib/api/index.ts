@@ -32,6 +32,7 @@ export * from './community-page-content';
 export * from './feedback.api';
 export * from './dm.api';
 export * from './live-support.api';
+export * from './tracking.api';
 
 // Re-export to avoid ambiguity
 export type { PaginationParams } from './client';
@@ -59,6 +60,7 @@ import { dmApi } from './dm.api';
 import { liveSupportApi } from './live-support.api';
 import { learningPathApi } from './learning-path.api';
 import { resourcesApi } from './resources.api';
+import { trackingApi } from './tracking.api';
 
 export const api = {
   auth: authApi,
@@ -83,4 +85,5 @@ export const api = {
   liveSupport: liveSupportApi,
   learningPath: learningPathApi,
   resources: resourcesApi,
+  tracking: trackingApi,
 };

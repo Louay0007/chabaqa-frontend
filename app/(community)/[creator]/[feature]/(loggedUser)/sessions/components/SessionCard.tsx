@@ -26,6 +26,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { tokenStorage } from "@/lib/token-storage"
 import { sessionsApi } from "@/lib/api/sessions.api"
 import { feedbackApi, type Feedback, type FeedbackStats } from "@/lib/api/feedback.api"
+import { trackingApi } from "@/lib/api/tracking.api"
 import { ReviewsList } from "@/components/reviews/reviews-list"
 import { StarRating } from "@/components/reviews/star-rating"
 import { resolveImageUrl } from "@/lib/resolve-image-url"
@@ -68,6 +69,7 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const pendingToastShown = useRef(false)
+  const hasTrackedViewRef = useRef(false)
 
   const isPaidSession = useMemo(() => Number(session?.price ?? 0) > 0, [session])
   const pendingOrderId = searchParams.get("orderId")
@@ -110,6 +112,17 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
       fetchAvailableSlots()
     }
   }, [dialogOpen, session?.id])
+
+  useEffect(() => {
+    if (!dialogOpen) return
+    if (hasTrackedViewRef.current) return
+
+    const trackingId = String(session?._id || session?.id || "").trim()
+    if (!trackingId) return
+
+    hasTrackedViewRef.current = true
+    void trackingApi.trackView("session", trackingId, { source: "session_dialog_open" }).catch(() => undefined)
+  }, [dialogOpen, session?._id, session?.id])
 
   useEffect(() => {
     if (!reviewsDialogOpen || !sessionFeedbackId) {

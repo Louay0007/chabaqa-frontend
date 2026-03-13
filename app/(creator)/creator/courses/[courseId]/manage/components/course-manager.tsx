@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { coursesApi } from "@/lib/api/courses.api"
 import { Course } from "@/lib/models"
 import { toast } from "sonner"
@@ -18,7 +18,9 @@ import { getCreatorVideoUrlError, normalizeVideoUrl } from "@/lib/utils/video-so
 
 export function CourseManager({ courseId }: { courseId: string }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("details")
+  const [highlightChapterId, setHighlightChapterId] = useState<string | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(false)
   const [course, setCourse] = useState<Course | null>(null)
   const [loading, setLoading] = useState(true)
@@ -113,6 +115,34 @@ export function CourseManager({ courseId }: { courseId: string }) {
 
     void run()
   }, [courseId, router])
+
+  useEffect(() => {
+    const tab = (searchParams.get("tab") || "").trim()
+    const chapterId = (searchParams.get("chapterId") || "").trim()
+
+    if (chapterId && chapterId !== highlightChapterId) {
+      setHighlightChapterId(chapterId)
+    }
+
+    const allowedTabs = new Set([
+      "details",
+      "content",
+      "pricing",
+      "resources",
+      "reviews",
+      "analytics",
+      "settings",
+    ])
+
+    if (tab && allowedTabs.has(tab) && tab !== activeTab) {
+      setActiveTab(tab)
+      return
+    }
+
+    if (!tab && chapterId && activeTab !== "content") {
+      setActiveTab("content")
+    }
+  }, [activeTab, highlightChapterId, searchParams])
 
   const [formData, setFormData] = useState({
     title: "",
@@ -420,6 +450,7 @@ export function CourseManager({ courseId }: { courseId: string }) {
           <ContentTab
             course={course}
             courseId={String(course.mongoId || course.id)}
+            highlightChapterId={highlightChapterId}
             onRefreshCourse={fetchCourse}
             onAddSection={handleAddSection}
             onAddChapter={handleAddChapter}

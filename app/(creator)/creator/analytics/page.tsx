@@ -31,7 +31,15 @@ import { useToast } from "@/hooks/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import { useRouter } from "next/navigation"
-import type { CreatorAnalyticsParams, CreatorAnalyticsExportScope } from "@/lib/api/creator-analytics.api"
+import type {
+  CreatorAnalyticsParams,
+  CreatorAnalyticsExportScope,
+  CreatorFunnelContentType,
+  CreatorFunnelResponse,
+  CreatorCourseChaptersFunnelResponse,
+  CreatorChallengeTasksFunnelResponse,
+  CreatorInsightsResponse,
+} from "@/lib/api/creator-analytics.api"
 
 type AnalyticsFeature = Exclude<CreatorAnalyticsExportScope, "overview">
 type AnalyticsTimeRange = "7d" | "28d" | "90d" | "1y"
@@ -212,6 +220,15 @@ const getTopLoader = (feature: AnalyticsFeature) => {
   if (feature === "events") return api.creatorAnalytics.getEvents
   if (feature === "posts") return api.creatorAnalytics.getPosts
   return api.creatorAnalytics.getProducts
+}
+
+const featureToContentType = (feature: AnalyticsFeature): CreatorFunnelContentType => {
+  if (feature === "courses") return "course"
+  if (feature === "challenges") return "challenge"
+  if (feature === "sessions") return "session"
+  if (feature === "events") return "event"
+  if (feature === "products") return "product"
+  return "post"
 }
 
 const normalizeOverview = (rawOverview: any, timeRange: AnalyticsTimeRange): NormalizedOverview => {
@@ -473,6 +490,18 @@ export default function CommunityAnalyticsPage() {
   const [referrersData, setReferrersData] = useState<ReferrerRow[]>([])
   const [referrersSummary, setReferrersSummary] = useState<ReferrersSummary | null>(null)
   const [topItems, setTopItems] = useState<TopItemRow[]>([])
+  const [detailsTab, setDetailsTab] = useState<"overview" | "details">("overview")
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
+  const [selectedItemTitle, setSelectedItemTitle] = useState<string | null>(null)
+  const [funnelData, setFunnelData] = useState<CreatorFunnelResponse | null>(null)
+  const [stepFunnelData, setStepFunnelData] = useState<
+    CreatorCourseChaptersFunnelResponse | CreatorChallengeTasksFunnelResponse | null
+  >(null)
+  const [focusStepId, setFocusStepId] = useState<string | null>(null)
+  const [aiInsights, setAiInsights] = useState<CreatorInsightsResponse | null>(null)
+  const [isFunnelLoading, setIsFunnelLoading] = useState(false)
+  const [isInsightsLoading, setIsInsightsLoading] = useState(false)
+  const [funnelError, setFunnelError] = useState<string | null>(null)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isSupplementalLoading, setIsSupplementalLoading] = useState(false)
@@ -497,9 +526,47 @@ export default function CommunityAnalyticsPage() {
     setReferrersData([])
     setReferrersSummary(null)
     setTopItems([])
+    setDetailsTab("overview")
+    setSelectedItemId(null)
+    setSelectedItemTitle(null)
+    setFunnelData(null)
+    setStepFunnelData(null)
+    setFocusStepId(null)
+    setAiInsights(null)
+    setFunnelError(null)
     setLastUpdatedAt(null)
     setIsSupplementalLoading(false)
   }, [])
+
+  useEffect(() => {
+    if (!topItems || topItems.length === 0) {
+      setSelectedItemId(null)
+      setSelectedItemTitle(null)
+      setFunnelData(null)
+      setStepFunnelData(null)
+      setFocusStepId(null)
+      setAiInsights(null)
+      setFunnelError(null)
+      return
+    }
+
+    const resolveRowId = (row: TopItemRow) => String(row.contentId || row.id || "").trim()
+    const resolveRowTitle = (row: TopItemRow) => String(row.title || row.name || "").trim()
+    const ids = topItems.map(resolveRowId).filter(Boolean)
+    const isValidSelection = selectedItemId ? ids.includes(selectedItemId) : false
+
+    if (!isValidSelection) {
+      const firstRow = topItems.find((row) => Boolean(resolveRowId(row)))
+      if (!firstRow) return
+      setSelectedItemId(resolveRowId(firstRow))
+      setSelectedItemTitle(resolveRowTitle(firstRow) || null)
+      setFunnelData(null)
+      setStepFunnelData(null)
+      setFocusStepId(null)
+      setAiInsights(null)
+      setFunnelError(null)
+    }
+  }, [selectedFeature, selectedItemId, topItems])
 
   const showLoadErrorToast = useCallback((message: string) => {
     const now = Date.now()
@@ -988,6 +1055,108 @@ export default function CommunityAnalyticsPage() {
       { title: "Revenue", value: `${toNumber(o.totalRevenue ?? o.revenue?.total).toLocaleString()} TND`, change: change(o.revenueChange), icon: Coins },
     ]
   }, [overview, selectedFeature])
+
+  const selectedContentType = useMemo(() => featureToContentType(selectedFeature), [selectedFeature])
+
+  const loadSelectedFunnel = useCallback(async () => {
+    if (!selectedItemId || !selectedCommunityId || !isAuthenticated) {
+      setFunnelData(null)
+      setStepFunnelData(null)
+      setFunnelError(null)
+      return
+    }
+
+    const { from, to } = getRangeFromTimeRange(timeRange)
+    setIsFunnelLoading(true)
+    setFunnelError(null)
+    setAiInsights(null)
+
+    try {
+      const funnelResponse = await api.creatorAnalytics.getFunnel({
+        contentType: selectedContentType,
+        contentId: selectedItemId,
+        from,
+        to,
+        communityId: selectedCommunityId,
+        communitySlug: selectedCommunity?.slug,
+      } as any)
+
+      const funnelPayload = (funnelResponse as any)?.data || funnelResponse
+      setFunnelData(funnelPayload)
+
+      if (selectedContentType === "course") {
+        const chaptersResponse = await api.creatorAnalytics.getCourseChaptersFunnel(selectedItemId, {
+          from,
+          to,
+          communityId: selectedCommunityId,
+          communitySlug: selectedCommunity?.slug,
+        })
+        const chaptersPayload = (chaptersResponse as any)?.data || chaptersResponse
+        setStepFunnelData(chaptersPayload)
+        const worst = chaptersPayload?.dropOff?.worstStep?.stepId
+        setFocusStepId((prev) => prev || (worst ? String(worst) : null))
+      } else if (selectedContentType === "challenge") {
+        const tasksResponse = await api.creatorAnalytics.getChallengeTasksFunnel(selectedItemId, {
+          from,
+          to,
+          communityId: selectedCommunityId,
+          communitySlug: selectedCommunity?.slug,
+        })
+        const tasksPayload = (tasksResponse as any)?.data || tasksResponse
+        setStepFunnelData(tasksPayload)
+        const worst = tasksPayload?.dropOff?.worstStep?.stepId
+        setFocusStepId((prev) => prev || (worst ? String(worst) : null))
+      } else {
+        setStepFunnelData(null)
+        setFocusStepId(null)
+      }
+    } catch (error: any) {
+      console.error("[Analytics] funnel load failed:", error)
+      setFunnelError(typeof error?.message === "string" ? error.message : "Failed to load funnel.")
+      setFunnelData(null)
+      setStepFunnelData(null)
+    } finally {
+      setIsFunnelLoading(false)
+    }
+  }, [isAuthenticated, selectedCommunityId, selectedCommunity?.slug, selectedContentType, selectedItemId, timeRange])
+
+  useEffect(() => {
+    void loadSelectedFunnel()
+  }, [loadSelectedFunnel])
+
+  const handleGenerateInsights = useCallback(async () => {
+    if (!selectedItemId || !selectedCommunityId) return
+    const { from, to } = getRangeFromTimeRange(timeRange)
+
+    setIsInsightsLoading(true)
+    try {
+      const response = await api.creatorAnalytics.generateInsights({
+        contentType: selectedContentType,
+        contentId: selectedItemId,
+        from,
+        to,
+        communityId: selectedCommunityId,
+        communitySlug: selectedCommunity?.slug,
+        focusStepId: focusStepId || undefined,
+      })
+      const payload = (response as any)?.data || response
+      const data = payload?.data || payload
+      setAiInsights(data)
+      toast({
+        title: "AI insights ready",
+        description: payload?.cached ? "Loaded from cache." : "Generated from your latest metrics.",
+      })
+    } catch (error: any) {
+      console.error("[Analytics] insights failed:", error)
+      toast({
+        variant: "destructive",
+        title: "AI insights failed",
+        description: typeof error?.message === "string" ? error.message : "Could not generate insights.",
+      })
+    } finally {
+      setIsInsightsLoading(false)
+    }
+  }, [focusStepId, selectedCommunityId, selectedCommunity?.slug, selectedContentType, selectedItemId, timeRange, toast])
 
   if (communityLoading) {
     return (
@@ -1615,7 +1784,7 @@ export default function CommunityAnalyticsPage() {
 
         {/* Detailed Analytics */}
         <Card>
-          <Tabs defaultValue="overview" className="w-full">
+          <Tabs value={detailsTab} onValueChange={(value) => setDetailsTab(value as "overview" | "details")} className="w-full">
             <CardHeader className="p-4 sm:p-6 pb-0">
               <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:inline-grid">
                 <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
@@ -1640,10 +1809,31 @@ export default function CommunityAnalyticsPage() {
                     <div className="w-20 text-right">Conv. Rate</div>
                   </div>
                   {topItems.length > 0 ? (
-                    topItems.map((item, index) => (
-                      <div key={item.id || index} className="flex items-center p-4 border-b last:border-0 hover:bg-gray-50 transition-colors">
+                    topItems.map((item, index) => {
+                      const rowId = String(item.contentId || item.id || "").trim()
+                      const rowTitle = String(item.title || item.name || `Item ${index + 1}`)
+                      const isSelected = Boolean(rowId && selectedItemId && rowId === selectedItemId)
+
+                      return (
+                      <div
+                        key={rowId || item.id || index}
+                        className={`flex items-center p-4 border-b last:border-0 transition-colors cursor-pointer ${
+                          isSelected ? "bg-blue-50" : "hover:bg-gray-50"
+                        }`}
+                        onClick={() => {
+                          if (!rowId) return
+                          setSelectedItemId(rowId)
+                          setSelectedItemTitle(rowTitle)
+                          setFunnelData(null)
+                          setStepFunnelData(null)
+                          setFocusStepId(null)
+                          setAiInsights(null)
+                          setFunnelError(null)
+                          setDetailsTab("details")
+                        }}
+                      >
                         <div className="flex-1 min-w-0 pr-4">
-                          <h4 className="text-sm font-medium text-gray-900 truncate">{item.title || item.name || `Item ${index + 1}`}</h4>
+                          <h4 className="text-sm font-medium text-gray-900 truncate">{rowTitle}</h4>
                           <p className="text-xs text-gray-500 mt-0.5">
                             ID: {item.contentId || item.id || 'N/A'}
                           </p>
@@ -1658,7 +1848,8 @@ export default function CommunityAnalyticsPage() {
                           {item.completionRate ? `${Math.round(item.completionRate)}%` : '0%'}
                         </div>
                       </div>
-                    ))
+                      )
+                    })
                   ) : (
                     <div className="text-center py-12 text-gray-500">
                       No top {selectedFeature} found for this time period.
@@ -1743,6 +1934,260 @@ export default function CommunityAnalyticsPage() {
                       </div>
                     </>
                   )}
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900">Drop-off & Conversion Insights</h4>
+                      <p className="text-xs text-gray-500">Explainable funnels + step drop-off + on-demand AI explainer.</p>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                      <Select
+                        value={selectedItemId || ""}
+                        onValueChange={(value) => {
+                          const nextId = String(value || "").trim()
+                          if (!nextId) return
+                          const row = topItems.find((it) => String(it.contentId || it.id || "").trim() === nextId)
+                          setSelectedItemId(nextId)
+                          setSelectedItemTitle(row ? String(row.title || row.name || "").trim() : null)
+                          setFunnelData(null)
+                          setStepFunnelData(null)
+                          setFocusStepId(null)
+                          setAiInsights(null)
+                          setFunnelError(null)
+                        }}
+                      >
+                        <SelectTrigger className="w-full sm:w-[280px]">
+                          <SelectValue placeholder="Select item" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {topItems
+                            .map((item, idx) => ({
+                              id: String(item.contentId || item.id || "").trim(),
+                              label: String(item.title || item.name || `Item ${idx + 1}`),
+                            }))
+                            .filter((row) => Boolean(row.id))
+                            .map((row) => (
+                              <SelectItem key={row.id} value={row.id}>
+                                {row.label}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Button onClick={handleGenerateInsights} disabled={!selectedItemId || isInsightsLoading} className="gap-2">
+                        <RefreshCw className={`h-4 w-4 ${isInsightsLoading ? "animate-spin" : ""}`} />
+                        {isInsightsLoading ? "Generating" : "Generate AI Insights"}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    <div className="border rounded-lg bg-white p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-medium text-gray-900">
+                          Funnel{selectedItemTitle ? `: ${selectedItemTitle}` : ""}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void loadSelectedFunnel()}
+                          disabled={!selectedItemId || isFunnelLoading}
+                          className="gap-2"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${isFunnelLoading ? "animate-spin" : ""}`} />
+                          Refresh
+                        </Button>
+                      </div>
+
+                      {funnelError ? (
+                        <div className="text-sm text-red-600">{funnelError}</div>
+                      ) : isFunnelLoading ? (
+                        <div className="text-sm text-gray-600 flex items-center gap-2">
+                          <RefreshCw className="h-4 w-4 animate-spin" /> Loading funnel...
+                        </div>
+                      ) : funnelData ? (
+                        <>
+                          <div className="h-[220px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart
+                                data={(funnelData.funnel || []).map((step) => ({
+                                  name: step.stepLabel,
+                                  users: Number(step.uniqueUsers ?? 0),
+                                }))}
+                              >
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                                <YAxis tick={{ fontSize: 12 }} />
+                                <Tooltip />
+                                <Bar dataKey="users" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+
+                          <div className="mt-4 space-y-2">
+                            {(funnelData.funnel || []).map((step) => {
+                              const isRevenue = step.stepKey === "revenue"
+                              const primaryValue = isRevenue
+                                ? `${Number(step.events || 0).toLocaleString()} ${funnelData.contentMeta?.currency || "TND"}`
+                                : Number(step.uniqueUsers ?? 0).toLocaleString()
+                              const rate = step.rateFromPrev == null ? null : `${Math.round(step.rateFromPrev * 100)}%`
+                              return (
+                                <div key={step.stepKey} className="flex items-center justify-between text-sm">
+                                  <div className="text-gray-700">{step.stepLabel}</div>
+                                  <div className="flex items-center gap-3">
+                                    <span className="font-medium text-gray-900">{primaryValue}</span>
+                                    <span className="text-xs text-gray-500 w-12 text-right">{rate || "—"}</span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+
+                          {Array.isArray(funnelData.warnings) && funnelData.warnings.length > 0 ? (
+                            <div className="mt-4 space-y-1">
+                              {funnelData.warnings.slice(0, 4).map((w) => (
+                                <p key={w} className="text-xs text-amber-700">
+                                  {w}
+                                </p>
+                              ))}
+                            </div>
+                          ) : null}
+                        </>
+                      ) : (
+                        <div className="text-sm text-gray-600">Select an item to load a funnel.</div>
+                      )}
+                    </div>
+
+                    <div className="border rounded-lg bg-white p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-medium text-gray-900">Step drop-off</p>
+                        {selectedContentType === "course" && focusStepId ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/creator/courses/${encodeURIComponent(String(selectedItemId || ""))}/manage?tab=content&chapterId=${encodeURIComponent(String(focusStepId))}`)}
+                          >
+                            Open in Course Manager
+                          </Button>
+                        ) : null}
+                      </div>
+
+                      {selectedContentType === "course" || selectedContentType === "challenge" ? (
+                        stepFunnelData && Array.isArray((stepFunnelData as any).items) ? (
+                          <>
+                            <div className="space-y-2">
+                              {(stepFunnelData as any).items
+                                .filter((it: any) => Number(it.uniqueStarts || 0) > 0)
+                                .sort((a: any, b: any) => Number(b.dropOffRate || 0) - Number(a.dropOffRate || 0))
+                                .slice(0, 5)
+                                .map((it: any) => {
+                                  const isFocused = focusStepId && String(focusStepId) === String(it.stepId)
+                                  return (
+                                    <div
+                                      key={it.stepId}
+                                      className={`flex items-center justify-between rounded-md border p-2 text-sm cursor-pointer ${
+                                        isFocused ? "border-blue-400 bg-blue-50" : "hover:bg-gray-50"
+                                      }`}
+                                      onClick={() => {
+                                        setFocusStepId(String(it.stepId))
+                                        setAiInsights(null)
+                                      }}
+                                    >
+                                      <div className="min-w-0 pr-3">
+                                        <p className="font-medium text-gray-900 truncate">{it.stepTitle}</p>
+                                        <p className="text-xs text-gray-500">
+                                          Starts: {Number(it.uniqueStarts || 0).toLocaleString()} · Completes:{" "}
+                                          {Number(it.uniqueCompletes || 0).toLocaleString()}
+                                        </p>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="font-semibold text-gray-900">
+                                          {Math.round(Number(it.dropOffRate || 0) * 100)}%
+                                        </p>
+                                        <p className="text-xs text-gray-500">drop</p>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                            </div>
+
+                            {Array.isArray((stepFunnelData as any).warnings) && (stepFunnelData as any).warnings.length > 0 ? (
+                              <div className="mt-3 space-y-1">
+                                {(stepFunnelData as any).warnings.slice(0, 4).map((w: string) => (
+                                  <p key={w} className="text-xs text-amber-700">
+                                    {w}
+                                  </p>
+                                ))}
+                              </div>
+                            ) : null}
+                          </>
+                        ) : (
+                          <div className="text-sm text-gray-600">No step-level data yet.</div>
+                        )
+                      ) : (
+                        <div className="text-sm text-gray-600">Step drop-off is available for courses and challenges.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {aiInsights ? (
+                    <div className="border rounded-lg bg-white p-4 space-y-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900">AI Explainer</p>
+                          <p className="text-xs text-gray-500">
+                            {selectedItemTitle ? selectedItemTitle : selectedItemId}
+                            {focusStepId ? ` · Focus step: ${focusStepId}` : ""}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-gray-800 whitespace-pre-line">{aiInsights.summary}</p>
+
+                      {Array.isArray(aiInsights.warnings) && aiInsights.warnings.length > 0 ? (
+                        <div className="space-y-1">
+                          {aiInsights.warnings.slice(0, 6).map((w) => (
+                            <p key={w} className="text-xs text-amber-700">
+                              {w}
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      {aiInsights.fixes?.length ? (
+                        <div className="space-y-2">
+                          <p className="text-sm font-semibold text-gray-900">Top fixes</p>
+                          <div className="space-y-2">
+                            {aiInsights.fixes.slice(0, 3).map((fix) => (
+                              <div key={fix.title} className="rounded-md border p-3">
+                                <p className="text-sm font-medium text-gray-900">{fix.title}</p>
+                                <p className="text-xs text-gray-600 mt-1">{fix.exactCreatorAction}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {aiInsights.rewriteSuggestions?.length ? (
+                        <div className="space-y-2">
+                          <p className="text-sm font-semibold text-gray-900">Rewrite suggestions</p>
+                          <div className="space-y-2">
+                            {aiInsights.rewriteSuggestions.slice(0, 2).map((rw, idx) => (
+                              <div key={`${rw.stepId}-${rw.target}-${idx}`} className="rounded-md border p-3">
+                                <p className="text-xs text-gray-500 mb-1">
+                                  {rw.target} · step {rw.stepId}
+                                </p>
+                                <p className="text-sm text-gray-800 whitespace-pre-line">{rw.text}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </TabsContent>

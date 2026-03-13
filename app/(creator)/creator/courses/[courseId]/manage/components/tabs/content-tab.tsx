@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Course } from "@/lib/models"
 import { coursesApi } from "@/lib/api/courses.api"
 import { mediaApi } from "@/lib/api/media.api"
@@ -27,6 +27,7 @@ import { getCreatorVideoUrlError, normalizeVideoUrl } from "@/lib/utils/video-so
 type ContentTabProps = {
   course: Course
   courseId: string
+  highlightChapterId?: string
   onRefreshCourse?: () => Promise<void>
   onAddSection: (payload: { titre: string; description?: string }) => Promise<void>
   onAddChapter: (sectionId: string, payload: any) => Promise<void>
@@ -61,6 +62,7 @@ function ensureAbsoluteUploadUrl(value: unknown): string {
 export function ContentTab({
   course,
   courseId,
+  highlightChapterId,
   onRefreshCourse,
   onAddSection,
   onAddChapter,
@@ -254,6 +256,14 @@ export function ContentTab({
     setNewChapterVideoUrlError(null)
   }
 
+  useEffect(() => {
+    if (!highlightChapterId || typeof window === "undefined") return
+    const target = document.getElementById(`chapter-${highlightChapterId}`)
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+  }, [highlightChapterId, course?.sections?.length])
+
   return (
     <EnhancedCard>
       <CardHeader>
@@ -435,7 +445,15 @@ export function ContentTab({
 
               <div className="space-y-3">
                 {section.chapters.map((chapter, chapterIndex) => (
-                  <div key={chapter.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div
+                    key={chapter.id}
+                    id={`chapter-${chapter.id}`}
+                    className={`flex items-center justify-between p-4 bg-gray-50 rounded-lg ${
+                      highlightChapterId && String(chapter.id) === String(highlightChapterId)
+                        ? "ring-2 ring-blue-400 bg-blue-50"
+                        : ""
+                    }`}
+                  >
                     <div className="flex items-center space-x-3">
                       <div className="flex items-center space-x-2">
                         {chapter.isPreview ? (

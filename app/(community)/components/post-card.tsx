@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -33,6 +33,7 @@ import {
 } from "lucide-react"
 import { postsApi } from "@/lib/api/posts.api"
 import type { Post, PostComment, PostStats, User } from "@/lib/api/types"
+import { trackingApi } from "@/lib/api/tracking.api"
 import { resolveImageUrl } from "@/lib/hooks/useUser"
 import { getUserProfileHref } from "@/lib/profile-handle"
 import { useToast } from "@/hooks/use-toast"
@@ -66,6 +67,7 @@ export function PostCard({
   // Local state for interactions
   const [isLiking, setIsLiking] = useState(false)
   const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const hasTrackedViewRef = useRef(false)
 
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<PostComment[]>([])
@@ -168,6 +170,11 @@ export function PostCard({
       return
     }
 
+    if (!hasTrackedViewRef.current) {
+      hasTrackedViewRef.current = true
+      void trackingApi.trackView("post", post.id, { source: "post_share_open" }).catch(() => undefined)
+    }
+
     setShareDialogOpen(true)
   }
 
@@ -185,6 +192,10 @@ export function PostCard({
 
   const handleToggleComments = async () => {
     if (!showComments) {
+      if (!hasTrackedViewRef.current) {
+        hasTrackedViewRef.current = true
+        void trackingApi.trackView("post", post.id, { source: "post_comments_open" }).catch(() => undefined)
+      }
       setShowComments(true)
       if (comments.length === 0) {
         setIsLoadingComments(true)
