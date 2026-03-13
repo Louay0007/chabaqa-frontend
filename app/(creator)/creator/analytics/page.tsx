@@ -225,6 +225,76 @@ const tryParseJsonObject = (input: unknown): Record<string, unknown> | null => {
   }
 }
 
+const extractJsonStringField = (input: string, fieldName: string): string | null => {
+  const needle = `"${fieldName}"`
+  const idx = input.indexOf(needle)
+  if (idx < 0) return null
+  let i = idx + needle.length
+  while (i < input.length && /\s/.test(input[i])) i++
+  if (input[i] !== ":") return null
+  i++
+  while (i < input.length && /\s/.test(input[i])) i++
+  if (input[i] !== "\"") return null
+
+  const start = i
+  i++
+  let escaped = false
+  while (i < input.length) {
+    const ch = input[i]
+    if (escaped) {
+      escaped = false
+      i++
+      continue
+    }
+    if (ch === "\\") {
+      escaped = true
+      i++
+      continue
+    }
+    if (ch === "\"") {
+      const jsonStringLiteral = input.slice(start, i + 1)
+      try {
+        const decoded = JSON.parse(jsonStringLiteral)
+        return typeof decoded === "string" ? decoded : null
+      } catch {
+        return null
+      }
+    }
+    i++
+  }
+  return null
+}
+
+const toHumanParagraph = (input: unknown): string => {
+  if (typeof input !== "string") return ""
+  const trimmed = input.trim()
+  if (!trimmed) return ""
+
+  const extracted = extractJsonStringField(trimmed, "summary")
+  if (extracted && extracted.trim().length > 0) return extracted.trim()
+
+  const withoutTruncated = trimmed.replace(/\n?\[truncated\]\s*$/i, "").trim()
+  const stopAt = (() => {
+    const markers = ["\"topIssues\"", "\"fixes\"", "\"rewriteSuggestions\"", "\"experiments\""]
+    const indices = markers.map((m) => withoutTruncated.indexOf(m)).filter((n) => n > 0)
+    return indices.length ? Math.min(...indices) : -1
+  })()
+
+  const candidate = (stopAt > 0 ? withoutTruncated.slice(0, stopAt) : withoutTruncated)
+    .replace(/^\{+/, "")
+    .replace(/,+\s*$/, "")
+    .replace(/"summary"\s*:\s*/i, "")
+    .trim()
+
+  if (!candidate) return ""
+
+  return candidate
+    .replace(/^"+|"+$/g, "")
+    .replace(/\\n/g, "\n")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
 const getRangeFromTimeRange = (timeRange: AnalyticsTimeRange): { from: string; to: string } => {
   const now = new Date()
   const to = now.toISOString()
@@ -2230,10 +2300,8 @@ export default function CommunityAnalyticsPage() {
 
                         const warnings = Array.isArray(effectiveInsights.warnings) ? effectiveInsights.warnings : []
                         const hasFallbackWarning = warnings.some((w) => /not valid json|fallback/i.test(String(w)))
-                        const hasParsedFromSummary = Boolean(derived)
-                        const rawJson = JSON.stringify(effectiveInsights, null, 2)
                         const summaryText = String(effectiveInsights.summary || "")
-                        const summaryLooksLikeJson = summaryText.trim().startsWith("{")
+                        const humanSummary = toHumanParagraph(summaryText) || "No summary returned."
 
                         const renderConfidence = (confidence: any) => {
                           const value = String(confidence || "").toLowerCase()
@@ -2264,8 +2332,8 @@ export default function CommunityAnalyticsPage() {
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm" onClick={() => copyToClipboard(rawJson, "Copied AI JSON")}>
-                                  Copy JSON
+                                <Button variant="outline" size="sm" onClick={() => copyToClipboard(humanSummary, "Copied summary")}>
+                                  Copy summary
                                 </Button>
                                 <Button
                                   variant="outline"
@@ -2284,17 +2352,7 @@ export default function CommunityAnalyticsPage() {
                             {hasFallbackWarning ? (
                               <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
                                 <p className="text-xs font-medium text-amber-800">AI returned a fallback response</p>
-                                <p className="text-xs text-amber-800 mt-0.5">
-                                  Some parts may be incomplete. Use the Raw tab to copy the full payload.
-                                </p>
-                              </div>
-                            ) : null}
-
-                            {hasParsedFromSummary ? (
-                              <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2">
-                                <p className="text-xs text-blue-800">
-                                  Detected a structured JSON payload inside the summary and rendered it in a readable format.
-                                </p>
+                                <p className="text-xs text-amber-800 mt-0.5">Some parts may be incomplete.</p>
                               </div>
                             ) : null}
 
@@ -2315,20 +2373,13 @@ export default function CommunityAnalyticsPage() {
                                 <TabsTrigger value="fixes">Fixes</TabsTrigger>
                                 <TabsTrigger value="rewrites">Rewrites</TabsTrigger>
                                 <TabsTrigger value="experiments">Experiments</TabsTrigger>
-                                <TabsTrigger value="raw">Raw</TabsTrigger>
                               </TabsList>
 
                               <TabsContent value="summary" className="mt-3">
                                 <div className="rounded-md border bg-gray-50 p-3 max-h-[240px] overflow-auto">
-                                  {summaryLooksLikeJson ? (
-                                    <pre className="text-xs text-gray-900 whitespace-pre-wrap" dir="auto">
-                                      {summaryText || "No summary returned."}
-                                    </pre>
-                                  ) : (
-                                    <p className="text-sm text-gray-900 whitespace-pre-line" dir="auto">
-                                      {summaryText || "No summary returned."}
-                                    </p>
-                                  )}
+                                  <p className="text-sm text-gray-900 whitespace-pre-line" dir="auto">
+                                    {humanSummary}
+                                  </p>
                                 </div>
                               </TabsContent>
 
@@ -2481,17 +2532,6 @@ export default function CommunityAnalyticsPage() {
                                 ) : (
                                   <p className="text-sm text-gray-600">No experiments returned.</p>
                                 )}
-                              </TabsContent>
-
-                              <TabsContent value="raw" className="mt-3">
-                                <div className="flex items-center justify-end mb-2">
-                                  <Button variant="outline" size="sm" onClick={() => copyToClipboard(rawJson, "Copied raw JSON")}>
-                                    Copy
-                                  </Button>
-                                </div>
-                                <pre className="rounded-md border bg-gray-50 p-3 text-xs overflow-auto max-h-[420px]" dir="auto">
-                                  {rawJson}
-                                </pre>
                               </TabsContent>
                             </Tabs>
                           </>
