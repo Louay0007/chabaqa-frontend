@@ -106,6 +106,9 @@ export function AppHeader({ userType, currentCommunity, showCommunitySelector = 
       message: "Mike Chen enrolled in your React course",
       time: "2 hours ago",
       unread: true,
+      icon: GraduationCap,
+      tone: "from-[#47c7ea]/30 to-[#47c7ea]/5",
+      iconColor: "text-[#47c7ea]",
     },
     {
       id: "2",
@@ -113,6 +116,9 @@ export function AppHeader({ userType, currentCommunity, showCommunitySelector = 
       message: "Day 18 of 30-Day Coding Challenge is live",
       time: "4 hours ago",
       unread: true,
+      icon: Target,
+      tone: "from-[#ff9b28]/30 to-[#ff9b28]/5",
+      iconColor: "text-[#ff9b28]",
     },
     {
       id: "3",
@@ -120,6 +126,9 @@ export function AppHeader({ userType, currentCommunity, showCommunitySelector = 
       message: "1-on-1 session with Sarah starts in 30 minutes",
       time: "6 hours ago",
       unread: false,
+      icon: Calendar,
+      tone: "from-[#f65887]/30 to-[#f65887]/5",
+      iconColor: "text-[#f65887]",
     },
   ]
 
@@ -296,30 +305,62 @@ export function AppHeader({ userType, currentCommunity, showCommunitySelector = 
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>Notifications</SheetTitle>
-                <SheetDescription>Stay updated with your community activity</SheetDescription>
-              </SheetHeader>
-              <div className="mt-6 space-y-4">
-                {notifications.map((notification) => (
+          <SheetContent className="bg-gradient-to-b from-white via-white to-[#f7f5ff]">
+            <SheetHeader className="space-y-2">
+              <SheetTitle className="text-xl">Notifications</SheetTitle>
+              <SheetDescription className="text-sm">Stay updated with your community activity</SheetDescription>
+              <div className="flex items-center justify-between pt-2">
+                <div className="text-xs font-medium text-muted-foreground">
+                  {notifications.filter((n) => n.unread).length} unread
+                </div>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                  Mark all read
+                </Button>
+              </div>
+            </SheetHeader>
+            <div className="mt-6 space-y-3">
+              {notifications.length === 0 && (
+                <div className="rounded-xl border border-dashed border-border-color bg-white/80 p-6 text-center text-sm text-muted-foreground">
+                  You&apos;re all caught up.
+                </div>
+              )}
+              {notifications.map((notification) => {
+                const Icon = notification.icon
+                return (
                   <div
                     key={notification.id}
-                    className={`p-3 rounded-lg border ${notification.unread ? "bg-primary-50 border-primary-200" : "bg-muted/50"
-                      }`}
+                    className={cn(
+                      "group relative overflow-hidden rounded-xl border bg-white/80 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+                      notification.unread ? "border-[#8e78fb]/30" : "border-border-color",
+                    )}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="text-sm font-medium">{notification.title}</h4>
-                        <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
-                        <p className="text-xs text-muted-foreground mt-2">{notification.time}</p>
+                    {notification.unread && (
+                      <span className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-[#8e78fb] to-[#86e4fd]" />
+                    )}
+                    <div className="flex items-start gap-3">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${notification.tone}`}>
+                        <Icon className={`h-5 w-5 ${notification.iconColor}`} />
                       </div>
-                      {notification.unread && <div className="w-2 h-2 bg-primary-500 rounded-full mt-1" />}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-900">{notification.title}</h4>
+                            <p className="mt-1 text-sm text-muted-foreground">{notification.message}</p>
+                          </div>
+                          {notification.unread && <div className="mt-1 h-2 w-2 rounded-full bg-[#8e78fb]" />}
+                        </div>
+                        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>{notification.time}</span>
+                          <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                          <span>Chabaqa</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </SheetContent>
+                )
+              })}
+            </div>
+          </SheetContent>
           </Sheet>
 
           {/* Mobile Menu */}
