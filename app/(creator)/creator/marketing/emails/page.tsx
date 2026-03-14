@@ -26,7 +26,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 import { CampaignStats } from "../components/campaign-stats"
-import { CreateCampaignDialog } from "../components/create-campaign-dialog"
+import { CampaignBuilderDialog } from "../components/campaign-builder-dialog"
 import { EmailCampaignList } from "../components/email-campaign-list"
 import { EmailTemplateCards } from "../components/email-template-cards"
 import {
@@ -401,7 +401,7 @@ export default function EmailCampaignsPage() {
         </div>
       </div>
 
-      <EmailTemplateCards />
+      <EmailTemplateCards onCampaignCreated={refreshCurrentPage} />
 
       {campaignsError && (
         <Alert variant="destructive">
@@ -439,10 +439,10 @@ export default function EmailCampaignsPage() {
         onSendTestEmail={(campaign) => setTestCampaign(campaign)}
       />
 
-      <CreateCampaignDialog
+      <CampaignBuilderDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
-        onCampaignCreated={refreshCurrentPage}
+        onSuccess={refreshCurrentPage}
       />
 
       <Dialog open={!!editCampaign} onOpenChange={(open) => !open && setEditCampaign(null)}>

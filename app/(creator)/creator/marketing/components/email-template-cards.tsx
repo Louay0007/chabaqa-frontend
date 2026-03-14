@@ -4,28 +4,8 @@ import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Star, StarOff, Edit, Send } from "lucide-react"
-import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
-import { emailCampaignsApi } from "@/lib/api/email-campaigns.api"
-import { useToast } from "@/components/ui/use-toast"
-import { buildCampaignPayload } from "./campaign-form-utils"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Star, StarOff, Edit } from "lucide-react"
+import { CampaignBuilderDialog } from "./campaign-builder-dialog"
 
 interface EmailTemplate {
   id: string
@@ -232,128 +212,28 @@ const emailTemplates: EmailTemplate[] = [
   }
 ]
 
-export function EmailTemplateCards() {
-  const { selectedCommunityId } = useCreatorCommunity()
-  const { toast } = useToast()
+export function EmailTemplateCards(props: { onCampaignCreated?: () => void }) {
+  const { onCampaignCreated } = props
 
-  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [builderOpen, setBuilderOpen] = useState(false)
+  const [builderSeed, setBuilderSeed] = useState<any>(null)
   const [isViewAllOpen, setIsViewAllOpen] = useState(false)
-  const [isSending, setIsSending] = useState(false)
-
-  const [campaignName, setCampaignName] = useState("")
-  const [campaignType, setCampaignType] = useState("announcement")
-  const [subject, setSubject] = useState("")
-  const [content, setContent] = useState("")
-  const [sendingTime, setSendingTime] = useState("now")
-  const [scheduledDate, setScheduledDate] = useState("")
-  const [scheduledTime, setScheduledTime] = useState("")
-  const [inactiveDays, setInactiveDays] = useState("")
-  const [contentType, setContentType] = useState("")
-  const [contentId, setContentId] = useState("")
 
   const displayLimit = 4
 
   const handleUseTemplate = (template: EmailTemplate) => {
-    setSelectedTemplate(template)
-    setCampaignName(`Campaign: ${template.name}`)
-    setCampaignType(template.type || "announcement")
-    setSubject(template.subject)
-    setContent(template.fullContent)
-    setSendingTime("now")
-    setScheduledDate("")
-    setScheduledTime("")
-    setInactiveDays(template.inactivityPeriod || "")
-    setContentType(template.contentType || "")
-    setContentId("")
-    setIsEditDialogOpen(true)
-  }
-
-  const handleSendCampaign = async () => {
-    if (!selectedCommunityId) {
-      toast({
-        title: "Error",
-        description: "No community selected",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!campaignName || !subject || !content) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsSending(true)
-    try {
-      console.log('[EmailTemplate] submit payload', {
-        campaignName,
-        campaignType,
-        subject,
-        content,
-        sendingTime,
-        scheduledDate,
-        scheduledTime,
-        inactiveDays,
-        contentType,
-        contentId,
-        communityId: selectedCommunityId,
-      })
-
-      const payload = buildCampaignPayload(
-        {
-          title: campaignName,
-          type: campaignType as any,
-          subject,
-          content,
-          sendingTime: sendingTime as any,
-          scheduledDate,
-          scheduledTime,
-          inactivityPeriod: inactiveDays as any,
-          contentType: contentType as any,
-          contentId,
-          isHtml: true,
-          trackOpens: true,
-          trackClicks: true,
-        },
-        selectedCommunityId,
-      )
-
-      if (payload.request === "createCampaign") {
-        await emailCampaignsApi.createCampaign(payload.data)
-      } else if (payload.request === "createInactiveUserCampaign") {
-        await emailCampaignsApi.createInactiveUserCampaign(payload.data)
-      } else {
-        await emailCampaignsApi.createContentReminder(payload.data)
-      }
-
-      toast({
-        title: "Success",
-        description: "Campaign created successfully",
-      })
-
-      setIsEditDialogOpen(false)
-      setCampaignName("")
-      setSubject("")
-      setContent("")
-      setInactiveDays("")
-      setContentType("")
-      setContentId("")
-    } catch (error: any) {
-      console.error("Error creating campaign:", error?.response || error)
-      console.log("Error payload:", error?.response?.data || error?.message || error)
-      toast({
-        title: "Error",
-        description: error?.response?.data?.message || error?.response?.data?.error?.message || error.message || "Failed to create campaign",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSending(false)
-    }
+    setBuilderSeed({
+      title: `Campaign: ${template.name}`,
+      kind: (template.type || "announcement") as any,
+      subject: template.subject,
+      content: template.fullContent,
+      isHtml: true,
+      trackOpens: true,
+      trackClicks: true,
+      inactivityPeriod: template.inactivityPeriod as any,
+      contentType: template.contentType as any,
+    })
+    setBuilderOpen(true)
   }
 
   const displayedTemplates = isViewAllOpen ? emailTemplates : emailTemplates.slice(0, displayLimit)
@@ -421,175 +301,15 @@ export function EmailTemplateCards() {
         ))}
       </div>
 
-      {/* Create Campaign Dialog with Template */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create Campaign from Template</DialogTitle>
-            <DialogDescription>
-              {selectedTemplate && `Using template: ${selectedTemplate.name}`}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Campaign Name</label>
-              <Input 
-                placeholder="Enter campaign name..." 
-                value={campaignName}
-                onChange={(e) => setCampaignName(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Campaign Type</label>
-              <Select value={campaignType} onValueChange={setCampaignType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select campaign type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="announcement">Regular Announcement</SelectItem>
-                  <SelectItem value="content-reminder">Content Reminder</SelectItem>
-                  <SelectItem value="inactive-users">Inactive Users</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500">Choose the type of campaign you want to send</p>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Subject Line</label>
-              <Input 
-                placeholder="Enter email subject..." 
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-              />
-              <p className="text-xs text-gray-500">
-                Available variables: &#123;&#123;userName&#125;&#125;, &#123;&#123;communityName&#125;&#125;, &#123;&#123;currentDate&#125;&#125;, &#123;&#123;currentYear&#125;&#125;, &#123;&#123;daysThreshold&#125;&#125;, &#123;&#123;inactivityPeriod&#125;&#125;, &#123;&#123;contentTypeLabel&#125;&#125;
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Email Content</label>
-              <Textarea
-                placeholder="Write your email content..."
-                className="h-40"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">When to send</label>
-              <Select value={sendingTime} onValueChange={setSendingTime}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select when to send" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="now">Send Now</SelectItem>
-                  <SelectItem value="scheduled">Schedule for Later</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {sendingTime === "scheduled" && (
-              <div className="flex gap-4">
-                <div className="flex-1 space-y-2">
-                  <label className="text-sm font-medium">Date</label>
-                  <Input 
-                    type="date" 
-                    value={scheduledDate}
-                    onChange={(e) => setScheduledDate(e.target.value)}
-                  />
-                </div>
-                <div className="flex-1 space-y-2">
-                  <label className="text-sm font-medium">Time</label>
-                  <Input 
-                    type="time" 
-                    value={scheduledTime}
-                    onChange={(e) => setScheduledTime(e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
-
-            {campaignType === "inactive-users" && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Inactive for</label>
-                <Select value={inactiveDays} onValueChange={setInactiveDays}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select inactive period" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="last_7_days">7 days</SelectItem>
-                    <SelectItem value="last_15_days">15 days</SelectItem>
-                    <SelectItem value="last_30_days">30 days</SelectItem>
-                    <SelectItem value="last_60_days">60 days</SelectItem>
-                    <SelectItem value="more_than_60_days">60+ days</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-gray-500">
-                  Target users who have not been active for the selected period
-                </p>
-              </div>
-            )}
-
-            {campaignType === "content-reminder" && (
-              <>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Content Type</label>
-                  <Select value={contentType} onValueChange={setContentType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select content type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="event">Event</SelectItem>
-                      <SelectItem value="challenge">Challenge</SelectItem>
-                      <SelectItem value="cours">Course</SelectItem>
-                      <SelectItem value="product">Product</SelectItem>
-                      <SelectItem value="session">Session</SelectItem>
-                      <SelectItem value="all">General Content</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-500">Choose the type of content to remind members about</p>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Content ID (Optional)</label>
-                  <Input
-                    placeholder="Enter specific content ID..."
-                    value={contentId}
-                    onChange={(e) => setContentId(e.target.value)}
-                  />
-                  <p className="text-xs text-gray-500">Optional: specify a particular content item to highlight</p>
-                </div>
-              </>
-            )}
-          </div>
-
-          <DialogFooter className="gap-2 mt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSendCampaign}
-              className="bg-chabaqa-primary hover:bg-chabaqa-primary/90"
-              disabled={isSending}
-            >
-              {isSending ? (
-                "Creating..."
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Create Campaign
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CampaignBuilderDialog
+        open={builderOpen}
+        onOpenChange={(next) => {
+          setBuilderOpen(next)
+          if (!next) setBuilderSeed(null)
+        }}
+        initialValues={builderSeed || undefined}
+        onSuccess={onCampaignCreated}
+      />
     </div>
   )
 }

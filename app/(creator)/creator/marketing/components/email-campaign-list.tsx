@@ -128,6 +128,11 @@ export function EmailCampaignList({
                 campaign.status === "draft" || campaign.status === "scheduled" || canRetryFailedRecipients
               const canCancel = campaign.status === "scheduled"
               const canDelete = campaign.status === "draft" || campaign.status === "scheduled"
+              const sendTitle = (() => {
+                if (canRetryFailedRecipients) return "Retry failed recipients (queues a send job)"
+                if (campaign.status === "scheduled") return "Send now (overrides the scheduled time)"
+                return "Send now (queues a send job)"
+              })()
 
               return (
                 <TableRow key={campaign._id}>
@@ -208,7 +213,7 @@ export function EmailCampaignList({
                           className="h-8 w-8"
                           onClick={() => onSendCampaign?.(campaign)}
                           disabled={isMutating}
-                          title={canRetryFailedRecipients ? "Retry Failed Recipients" : "Send Now"}
+                          title={sendTitle}
                         >
                           {isMutating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                         </Button>
