@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { Loader2 } from "lucide-react"
+import { Loader2, Mail, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,6 +16,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { communityInvitationsApi } from "@/lib/api/community-invitations.api"
+import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { TemplatePicker } from "./template-picker"
+import { fillTemplate, type InvitationTemplate } from "@/lib/invitation-templates"
 
 interface SingleInviteDialogProps {
   open: boolean
@@ -26,6 +29,12 @@ interface SingleInviteDialogProps {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+const EXPIRY_OPTIONS = [
+  { label: "7 days", value: 7 },
+  { label: "14 days", value: 14 },
+  { label: "30 days", value: 30 },
+] as const
+
 export function SingleInviteDialog({
   open,
   onOpenChange,
@@ -33,13 +42,30 @@ export function SingleInviteDialog({
   onSuccess,
 }: SingleInviteDialogProps) {
   const { toast } = useToast()
+  const { selectedCommunity } = useCreatorCommunity()
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
   const [personalMessage, setPersonalMessage] = useState("")
   const [sending, setSending] = useState(false)
   const [emailError, setEmailError] = useState("")
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+  const [expiryDays, setExpiryDays] = useState<number>(30) // TODO: wire to backend
 
   const isValid = EMAIL_REGEX.test(email.trim())
+  const charPercent = Math.min((personalMessage.length / 500) * 100, 100)
+
+  const handleTemplateSelect = useCallback(
+    (template: InvitationTemplate) => {
+      setSelectedTemplateId(template.id)
+      const communityName = selectedCommunity?.name || selectedCommunity?.nom || ""
+      const filled = fillTemplate(template.body, {
+        name: name.trim() || undefined,
+        community: communityName || undefined,
+      })
+      setPersonalMessage(filled)
+    },
+    [name, selectedCommunity],
+  )
 
   const handleSubmit = useCallback(async () => {
     if (!isValid) {
@@ -62,6 +88,8 @@ export function SingleInviteDialog({
       setEmail("")
       setName("")
       setPersonalMessage("")
+      setSelectedTemplateId(null)
+      setExpiryDays(30)
       onOpenChange(false)
       onSuccess()
     } catch (error: any) {
@@ -82,6 +110,8 @@ export function SingleInviteDialog({
         setName("")
         setPersonalMessage("")
         setEmailError("")
+        setSelectedTemplateId(null)
+        setExpiryDays(30)
       }
       onOpenChange(open)
     },
@@ -90,78 +120,165 @@ export function SingleInviteDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[460px]">
-        <DialogHeader>
-          <DialogTitle>Invite a Contact</DialogTitle>
+      <DialogContent className="sm:max-w-[580px] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-4">
+          <div className="flex items-center gap-2">
+            <Mail className="w-5 h-5 text-purple-500" />
+            <DialogTitle className="text-lg">Send Invitation</DialogTitle>
+          </div>
           <DialogDescription>
-            Send an invitation email to someone outside your community.
+            Invite someone to join your community with a personalized message.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="invite-email">
-              Email address <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="invite-email"
-              type="email"
-              placeholder="user@example.com"
-              className="mt-1.5"
-              value={email}
+        <div className="flex-1 overflow-y-auto px-6 space-y-5 pb-2">
+          {/* Section 1: Contact details */}
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Contact details
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="invite-email" className="text-sm">
+                  Email <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="invite-email"
+                  type="email"
+                  placeholder="user@example.com"
+                  className="mt-1"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    if (emailError) setEmailError("")
+                  }}
+                />
+                {emailError && (
+                  <p className="text-xs text-red-500 mt-1">{emailError}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="invite-name" className="text-sm">
+                  Name <span className="text-muted-foreground text-xs">(optional)</span>
+                </Label>
+                <Input
+                  id="invite-name"
+                  placeholder="John Doe"
+                  className="mt-1"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t" />
+
+          {/* Section 2: Template picker */}
+          <TemplatePicker
+            selectedId={selectedTemplateId}
+            onSelect={handleTemplateSelect}
+          />
+
+          {/* Section 3: Message */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="invite-message" className="text-sm">
+                Your message <span className="text-muted-foreground text-xs">(optional)</span>
+              </Label>
+              <div className="flex items-center gap-1.5">
+                <svg viewBox="0 0 20 20" className="w-4 h-4 -rotate-90">
+                  <circle
+                    cx="10"
+                    cy="10"
+                    r="8"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="text-muted/30"
+                  />
+                  <circle
+                    cx="10"
+                    cy="10"
+                    r="8"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeDasharray={`${charPercent * 0.5027} 50.27`}
+                    className={
+                      charPercent > 90
+                        ? "text-red-500"
+                        : charPercent > 70
+                          ? "text-amber-500"
+                          : "text-emerald-500"
+                    }
+                  />
+                </svg>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {personalMessage.length}/500
+                </span>
+              </div>
+            </div>
+            <Textarea
+              id="invite-message"
+              placeholder="Write a personal note or select a template above..."
+              className="min-h-[100px] text-sm leading-relaxed resize-none"
+              maxLength={500}
+              value={personalMessage}
               onChange={(e) => {
-                setEmail(e.target.value)
-                if (emailError) setEmailError("")
+                setPersonalMessage(e.target.value)
+                // Clear template selection when user edits manually
+                if (selectedTemplateId) setSelectedTemplateId(null)
               }}
             />
-            {emailError && (
-              <p className="text-xs text-red-500 mt-1">{emailError}</p>
+            {personalMessage.length > 0 && (
+              <p className="text-xs text-muted-foreground italic truncate">
+                Preview: &ldquo;{personalMessage.slice(0, 80)}
+                {personalMessage.length > 80 ? "..." : ""}&rdquo;
+              </p>
             )}
           </div>
 
-          <div>
-            <Label htmlFor="invite-name">
-              Name <span className="text-gray-400">(optional)</span>
-            </Label>
-            <Input
-              id="invite-name"
-              placeholder="John Doe"
-              className="mt-1.5"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="invite-message">
-              Personal message <span className="text-gray-400">(optional)</span>
-            </Label>
-            <Textarea
-              id="invite-message"
-              placeholder="Write a personal note..."
-              className="mt-1.5 min-h-[80px]"
-              maxLength={500}
-              value={personalMessage}
-              onChange={(e) => setPersonalMessage(e.target.value)}
-            />
-            <p className="text-xs text-gray-400 text-right mt-1">
-              {personalMessage.length}/500
+          {/* Section 4: Options */}
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Expires in
             </p>
+            <div className="flex gap-1.5">
+              {EXPIRY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setExpiryDays(opt.value)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
+                    expiryDays === opt.value
+                      ? "bg-purple-50 border-purple-400 text-purple-700 ring-1 ring-purple-400/30"
+                      : "border-border text-muted-foreground hover:border-purple-300 hover:text-foreground"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleClose(false)} disabled={sending}>
+        <DialogFooter className="px-6 py-4 border-t bg-muted/30">
+          <Button variant="outline" size="sm" onClick={() => handleClose(false)} disabled={sending}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!isValid || sending}>
+          <Button size="sm" onClick={handleSubmit} disabled={!isValid || sending}>
             {sending ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
                 Sending...
               </>
             ) : (
-              "Send Invitation"
+              <>
+                <Send className="w-3.5 h-3.5 mr-1.5" />
+                Send Invitation
+              </>
             )}
           </Button>
         </DialogFooter>

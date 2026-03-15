@@ -1,16 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { Plus, Upload, Search } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { Plus, Upload, Search, RefreshCw, AlertTriangle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 import { InvitationStatsCards } from "./components/invitation-stats-cards"
@@ -26,12 +19,15 @@ import {
 
 const PAGE_LIMIT = 20
 
-type FilterState = {
-  status: "all" | InvitationStatus
-  search: string
-}
+type StatusFilter = "all" | InvitationStatus
 
-const DEFAULT_FILTERS: FilterState = { status: "all", search: "" }
+const STATUS_TABS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "pending", label: "Pending" },
+  { value: "accepted", label: "Accepted" },
+  { value: "expired", label: "Expired" },
+  { value: "revoked", label: "Revoked" },
+]
 
 export default function ContactsPage() {
   const { selectedCommunity, selectedCommunityId } = useCreatorCommunity()
@@ -53,15 +49,22 @@ export default function ContactsPage() {
   const [stats, setStats] = useState<InvitationStats | null>(null)
   const [statsLoading, setStatsLoading] = useState(true)
   const [statsError, setStatsError] = useState<string | null>(null)
+  const [expiredDismissed, setExpiredDismissed] = useState(false)
 
   // Filters
-  const [pendingFilters, setPendingFilters] = useState<FilterState>(DEFAULT_FILTERS)
-  const [activeFilters, setActiveFilters] = useState<FilterState>(DEFAULT_FILTERS)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
+  const [searchQuery, setSearchQuery] = useState("")
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ---- Data fetching ----
 
   const fetchInvitations = useCallback(
-    async (page = 1, filters: FilterState, options?: { silent?: boolean }) => {
+    async (
+      page = 1,
+      status: StatusFilter = "all",
+      search = "",
+      options?: { silent?: boolean },
+    ) => {
       if (!selectedCommunityId) return
       const isSilent = options?.silent === true
       try {
@@ -69,8 +72,8 @@ export default function ContactsPage() {
         const response = await communityInvitationsApi.getInvitations(selectedCommunityId, {
           page,
           limit: PAGE_LIMIT,
-          status: filters.status === "all" ? undefined : filters.status,
-          search: filters.search.trim() || undefined,
+          status: status === "all" ? undefined : status,
+          search: search.trim() || undefined,
         })
         setInvitations(response.invitations || [])
         setCurrentPage(response.page || page)
@@ -107,30 +110,51 @@ export default function ContactsPage() {
   // Reset + load when community changes
   useEffect(() => {
     if (!selectedCommunityId) return
-    setActiveFilters(DEFAULT_FILTERS)
-    setPendingFilters(DEFAULT_FILTERS)
-    fetchInvitations(1, DEFAULT_FILTERS)
+    setStatusFilter("all")
+    setSearchQuery("")
+    setExpiredDismissed(false)
+    fetchInvitations(1, "all", "")
     fetchStats()
   }, [fetchInvitations, fetchStats, selectedCommunityId])
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([fetchInvitations(currentPage, activeFilters), fetchStats()])
-  }, [currentPage, activeFilters, fetchInvitations, fetchStats])
+    await Promise.all([
+      fetchInvitations(currentPage, statusFilter, searchQuery),
+      fetchStats(),
+    ])
+  }, [currentPage, statusFilter, searchQuery, fetchInvitations, fetchStats])
 
-  // ---- Filter handlers ----
+  // ---- Debounced search ----
 
-  const applyFilters = useCallback(() => {
-    setActiveFilters(pendingFilters)
-    setCurrentPage(1)
-    fetchInvitations(1, pendingFilters)
-  }, [pendingFilters, fetchInvitations])
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchQuery(value)
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => {
+        setCurrentPage(1)
+        fetchInvitations(1, statusFilter, value)
+      }, 250)
+    },
+    [statusFilter, fetchInvitations],
+  )
+
+  // ---- Status tab change ----
+
+  const handleStatusChange = useCallback(
+    (status: StatusFilter) => {
+      setStatusFilter(status)
+      setCurrentPage(1)
+      fetchInvitations(1, status, searchQuery)
+    },
+    [searchQuery, fetchInvitations],
+  )
 
   const handlePageChange = useCallback(
     (page: number) => {
       setCurrentPage(page)
-      fetchInvitations(page, activeFilters)
+      fetchInvitations(page, statusFilter, searchQuery)
     },
-    [activeFilters, fetchInvitations],
+    [statusFilter, searchQuery, fetchInvitations],
   )
 
   // ---- Action handlers ----
@@ -207,6 +231,8 @@ export default function ContactsPage() {
     )
   }
 
+  const expiredCount = Number(stats?.expired ?? 0)
+
   return (
     <div className="px-4 sm:px-6 py-4 sm:py-6 max-w-7xl mx-auto space-y-4">
       {/* Header */}
@@ -232,42 +258,62 @@ export default function ContactsPage() {
       {/* Stats */}
       <InvitationStatsCards stats={stats} loading={statsLoading} error={statsError} />
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-2">
+      {/* Expired callout */}
+      {expiredCount > 0 && !expiredDismissed && (
+        <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-2.5">
+          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+          <p className="text-sm text-amber-800 flex-1">
+            You have <span className="font-semibold">{expiredCount}</span> expired invitation
+            {expiredCount !== 1 && "s"}. Resend them to re-engage your contacts.
+          </p>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-amber-700 hover:text-amber-900 hover:bg-amber-100"
+              onClick={() => handleStatusChange("expired")}
+            >
+              <RefreshCw className="w-3 h-3 mr-1" />
+              View expired
+            </Button>
+            <button
+              type="button"
+              onClick={() => setExpiredDismissed(true)}
+              className="text-amber-400 hover:text-amber-600 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Filters: search + status tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input
             placeholder="Search by email or name..."
             className="pl-9 h-9 text-sm"
-            value={pendingFilters.search}
-            onChange={(e) =>
-              setPendingFilters((f) => ({ ...f, search: e.target.value }))
-            }
-            onKeyDown={(e) => {
-              if (e.key === "Enter") applyFilters()
-            }}
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
-        <Select
-          value={pendingFilters.status}
-          onValueChange={(v) =>
-            setPendingFilters((f) => ({ ...f, status: v as any }))
-          }
-        >
-          <SelectTrigger className="w-[148px] h-9 text-sm">
-            <SelectValue placeholder="All statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="accepted">Accepted</SelectItem>
-            <SelectItem value="expired">Expired</SelectItem>
-            <SelectItem value="revoked">Revoked</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="secondary" size="sm" onClick={applyFilters}>
-          Apply
-        </Button>
+        <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => handleStatusChange(tab.value)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                statusFilter === tab.value
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* List */}
