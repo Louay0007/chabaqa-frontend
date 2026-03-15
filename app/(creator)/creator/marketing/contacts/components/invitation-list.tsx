@@ -96,10 +96,10 @@ export function InvitationList({
 }: InvitationListProps) {
   if (loading) {
     return (
-      <Card className="p-8">
+      <Card className="p-6">
         <div className="flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-muted-foreground">Loading invitations...</span>
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-sm text-muted-foreground">Loading invitations...</span>
         </div>
       </Card>
     )
@@ -107,12 +107,12 @@ export function InvitationList({
 
   if (!invitations.length) {
     return (
-      <Card className="p-12">
+      <Card className="p-8">
         <div className="flex flex-col items-center justify-center text-center">
-          <div className="bg-purple-50 p-4 rounded-full mb-4">
-            <Mail className="w-8 h-8 text-purple-400" />
+          <div className="bg-purple-600 p-3.5 rounded-xl mb-3">
+            <Mail className="w-6 h-6 text-white" />
           </div>
-          <h3 className="font-semibold text-lg mb-1">No invitations yet</h3>
+          <h3 className="font-semibold text-base mb-1">No invitations yet</h3>
           <p className="text-sm text-muted-foreground max-w-sm">
             Start inviting contacts to grow your community. Import a list or invite them one by one.
           </p>
@@ -142,8 +142,8 @@ export function InvitationList({
               <TableRow key={inv._id}>
                 {/* Contact */}
                 <TableCell>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-xs font-bold text-purple-700 uppercase shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center text-xs font-bold text-white uppercase shrink-0">
                       {(inv.name || inv.email)[0]}
                     </div>
                     <div className="min-w-0">

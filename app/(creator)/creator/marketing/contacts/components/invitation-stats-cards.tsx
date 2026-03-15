@@ -13,11 +13,11 @@ interface InvitationStatsCardsProps {
 export function InvitationStatsCards({ stats, loading, error }: InvitationStatsCardsProps) {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[1, 2, 3, 4].map((i) => (
           <Card key={i} className="p-4">
-            <div className="flex items-center justify-center h-24">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center h-16">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             </div>
           </Card>
         ))}
@@ -27,11 +27,11 @@ export function InvitationStatsCards({ stats, loading, error }: InvitationStatsC
 
   if (error || !stats) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[1, 2, 3, 4].map((i) => (
           <Card key={i} className="p-4">
-            <div className="flex items-center justify-center h-24 text-muted-foreground">
-              <p className="text-sm">No data</p>
+            <div className="flex items-center justify-center h-16 text-muted-foreground">
+              <p className="text-xs">No data</p>
             </div>
           </Card>
         ))}
@@ -51,47 +51,48 @@ export function InvitationStatsCards({ stats, loading, error }: InvitationStatsC
       name: "Total Sent",
       value: total.toLocaleString(),
       icon: Mail,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100",
+      iconBg: "bg-blue-600",
     },
     {
       name: "Pending",
       value: pending.toLocaleString(),
       icon: Clock,
-      color: "text-yellow-600",
-      bgColor: "bg-yellow-100",
+      iconBg: "bg-amber-500",
     },
     {
       name: "Accepted",
       value: accepted.toLocaleString(),
       icon: UserCheck,
-      color: "text-green-600",
-      bgColor: "bg-green-100",
+      iconBg: "bg-emerald-600",
       subtitle: total > 0 ? `${conversionRate}% conversion` : undefined,
     },
     {
       name: "Expired / Revoked",
       value: (expired + revoked).toLocaleString(),
       icon: XCircle,
-      color: "text-gray-500",
-      bgColor: "bg-gray-100",
+      iconBg: "bg-slate-500",
     },
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {statItems.map((stat) => (
-        <Card key={stat.name} className="p-4 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm text-gray-500 font-medium">{stat.name}</p>
-              <h3 className="text-2xl font-bold mt-1">{stat.value}</h3>
+        <Card
+          key={stat.name}
+          className="p-4 hover:shadow-md transition-all duration-200 border border-border/60"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide truncate">
+                {stat.name}
+              </p>
+              <h3 className="text-2xl font-bold mt-1 tabular-nums leading-tight">{stat.value}</h3>
               {"subtitle" in stat && stat.subtitle && (
-                <p className="text-xs text-muted-foreground mt-1">{stat.subtitle}</p>
+                <p className="text-xs text-emerald-600 font-medium mt-0.5">{stat.subtitle}</p>
               )}
             </div>
-            <div className={`${stat.bgColor} p-3 rounded-full`}>
-              <stat.icon className={`w-5 h-5 ${stat.color}`} />
+            <div className={`${stat.iconBg} p-2.5 rounded-lg shrink-0`}>
+              <stat.icon className="w-4 h-4 text-white" />
             </div>
           </div>
         </Card>

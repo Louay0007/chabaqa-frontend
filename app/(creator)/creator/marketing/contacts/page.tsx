@@ -199,29 +199,31 @@ export default function ContactsPage() {
 
   if (!selectedCommunityId) {
     return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
-        <p>Please select a community to manage invitations.</p>
+      <div className="px-4 sm:px-6 py-4 sm:py-6 max-w-7xl mx-auto">
+        <div className="flex items-center justify-center h-48 text-muted-foreground rounded-lg border border-dashed">
+          <p className="text-sm">Please select a community to manage invitations.</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="px-4 sm:px-6 py-4 sm:py-6 max-w-7xl mx-auto space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Contacts & Invitations</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl font-bold tracking-tight">Contacts & Invitations</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
             Invite external contacts to join your community on Chabaqa.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setIsSingleDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
+        <div className="flex items-center gap-2 shrink-0">
+          <Button variant="outline" size="sm" onClick={() => setIsSingleDialogOpen(true)}>
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
             Invite One
           </Button>
-          <Button onClick={() => setIsImportDialogOpen(true)}>
-            <Upload className="w-4 h-4 mr-2" />
+          <Button size="sm" onClick={() => setIsImportDialogOpen(true)}>
+            <Upload className="w-3.5 h-3.5 mr-1.5" />
             Import Contacts
           </Button>
         </div>
@@ -231,12 +233,12 @@ export default function ContactsPage() {
       <InvitationStatsCards stats={stats} loading={statsLoading} error={statsError} />
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input
             placeholder="Search by email or name..."
-            className="pl-9"
+            className="pl-9 h-9 text-sm"
             value={pendingFilters.search}
             onChange={(e) =>
               setPendingFilters((f) => ({ ...f, search: e.target.value }))
@@ -252,7 +254,7 @@ export default function ContactsPage() {
             setPendingFilters((f) => ({ ...f, status: v as any }))
           }
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-[148px] h-9 text-sm">
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -263,7 +265,7 @@ export default function ContactsPage() {
             <SelectItem value="revoked">Revoked</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="secondary" onClick={applyFilters}>
+        <Button variant="secondary" size="sm" onClick={applyFilters}>
           Apply
         </Button>
       </div>
