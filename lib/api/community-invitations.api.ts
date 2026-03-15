@@ -1,4 +1,4 @@
-import { apiClient, PaginationParams } from './client';
+import { apiClient } from './client';
 
 // ============================================================================
 // Type Definitions
@@ -99,6 +99,32 @@ export interface AcceptInvitationResult {
 
 const BASE = '/community-invitations';
 
+const unwrapPayload = <T>(raw: any): T => {
+  if (raw?.data?.data !== undefined) return raw.data.data as T;
+  if (raw?.success !== undefined && raw?.data !== undefined) return raw.data as T;
+  if (raw?.data !== undefined && raw?.invitations === undefined && raw?.total === undefined) {
+    return raw.data as T;
+  }
+  return raw as T;
+};
+
+const normalizeStats = (payload: any): InvitationStats => ({
+  total: Number(payload?.total ?? 0),
+  pending: Number(payload?.pending ?? 0),
+  accepted: Number(payload?.accepted ?? 0),
+  expired: Number(payload?.expired ?? 0),
+  revoked: Number(payload?.revoked ?? 0),
+  conversionRate: Number(payload?.conversionRate ?? 0),
+});
+
+const normalizeInvitationList = (payload: any): InvitationListResponse => ({
+  invitations: Array.isArray(payload?.invitations) ? payload.invitations : [],
+  total: Number(payload?.total ?? 0),
+  page: Number(payload?.page ?? 1),
+  limit: Number(payload?.limit ?? 20),
+  totalPages: Number(payload?.totalPages ?? 1),
+});
+
 export const communityInvitationsApi = {
   // ---- Creator actions ----
 
@@ -111,12 +137,18 @@ export const communityInvitationsApi = {
     apiClient.post<CommunityInvitation>(`${BASE}/single`, dto),
 
   /** List invitations for a community (paginated + filterable) */
-  getInvitations: (communityId: string, params?: InvitationQueryParams) =>
-    apiClient.get<InvitationListResponse>(`${BASE}/${communityId}`, params),
+  getInvitations: async (communityId: string, params?: InvitationQueryParams) => {
+    const response = await apiClient.get<any>(`${BASE}/${communityId}`, params)
+    const payload = unwrapPayload<any>(response)
+    return normalizeInvitationList(payload)
+  },
 
   /** Get invitation statistics for a community */
-  getStats: (communityId: string) =>
-    apiClient.get<InvitationStats>(`${BASE}/${communityId}/stats`),
+  getStats: async (communityId: string) => {
+    const response = await apiClient.get<any>(`${BASE}/${communityId}/stats`)
+    const payload = unwrapPayload<any>(response)
+    return normalizeStats(payload)
+  },
 
   /** Resend an invitation email */
   resendInvitation: (invitationId: string) =>

@@ -39,32 +39,39 @@ export function InvitationStatsCards({ stats, loading, error }: InvitationStatsC
     )
   }
 
+  const total = Number(stats.total ?? 0)
+  const pending = Number(stats.pending ?? 0)
+  const accepted = Number(stats.accepted ?? 0)
+  const expired = Number(stats.expired ?? 0)
+  const revoked = Number(stats.revoked ?? 0)
+  const conversionRate = Number(stats.conversionRate ?? 0)
+
   const statItems = [
     {
       name: "Total Sent",
-      value: stats.total.toLocaleString(),
+      value: total.toLocaleString(),
       icon: Mail,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
     },
     {
       name: "Pending",
-      value: stats.pending.toLocaleString(),
+      value: pending.toLocaleString(),
       icon: Clock,
       color: "text-yellow-600",
       bgColor: "bg-yellow-100",
     },
     {
       name: "Accepted",
-      value: stats.accepted.toLocaleString(),
+      value: accepted.toLocaleString(),
       icon: UserCheck,
       color: "text-green-600",
       bgColor: "bg-green-100",
-      subtitle: stats.total > 0 ? `${stats.conversionRate}% conversion` : undefined,
+      subtitle: total > 0 ? `${conversionRate}% conversion` : undefined,
     },
     {
       name: "Expired / Revoked",
-      value: (stats.expired + stats.revoked).toLocaleString(),
+      value: (expired + revoked).toLocaleString(),
       icon: XCircle,
       color: "text-gray-500",
       bgColor: "bg-gray-100",
