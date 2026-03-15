@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Loader2, ChevronDown, Check, ArrowLeft, ArrowRight } from "lucide-react"
+import { Loader2, ChevronDown, Check, ArrowLeft, ArrowRight, Mail, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -21,8 +21,10 @@ import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-com
 import { challengesApi, coursesApi, emailCampaignsApi, eventsApi, productsApi, sessionsApi } from "@/lib/api"
 import type { InactivityPeriod, InactiveUserStats, ContentType } from "@/lib/api/email-campaigns.api"
 import { resolveScheduledAt } from "./campaign-form-utils"
+import { SingleInviteDialog } from "../contacts/components/single-invite-dialog"
+import { ImportContactsDialog } from "../contacts/components/import-contacts-dialog"
 
-type CampaignKind = "announcement" | "inactive-users" | "content-reminder"
+type CampaignKind = "announcement" | "inactive-users" | "content-reminder" | "custom-invitation"
 type SendingTime = "now" | "scheduled"
 
 type BuilderSeed = Partial<{
@@ -145,6 +147,14 @@ export function CampaignBuilderDialog(props: {
   const [contentItemsError, setContentItemsError] = useState<string | null>(null)
 
   const [contentPickerOpen, setContentPickerOpen] = useState(false)
+
+  const [isSingleInviteOpen, setIsSingleInviteOpen] = useState(false)
+  const [isImportOpen, setIsImportOpen] = useState(false)
+
+  const handleInvitationSuccess = useCallback(() => {
+    onOpenChange(false)
+    onSuccess?.()
+  }, [onOpenChange, onSuccess])
 
   const subjectRef = useRef<HTMLInputElement>(null)
   const contentRef = useRef<HTMLTextAreaElement>(null)
@@ -366,6 +376,7 @@ export function CampaignBuilderDialog(props: {
     if (!selectedCommunityId) return "Select a community first."
 
     if (step === 1) {
+      if (kind === "custom-invitation") return null
       if (kind === "inactive-users" && !inactivityPeriod) return "Pick an inactivity period."
       if (kind === "content-reminder" && !contentType) return "Pick a content type."
       return null
@@ -423,13 +434,14 @@ export function CampaignBuilderDialog(props: {
   ])
 
   const goNext = useCallback(() => {
+    if (kind === "custom-invitation") return
     const error = validateStep()
     if (error) {
       toast({ title: "Fix required fields", description: error, variant: "destructive" })
       return
     }
     setStep((prev) => (prev === 1 ? 2 : prev === 2 ? 3 : 3))
-  }, [toast, validateStep])
+  }, [kind, toast, validateStep])
 
   const goBack = useCallback(() => {
     setStep((prev) => (prev === 3 ? 2 : prev === 2 ? 1 : 1))
@@ -602,6 +614,7 @@ export function CampaignBuilderDialog(props: {
   const canSubmit = step === 3 && !isSubmitting
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[980px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -685,6 +698,17 @@ export function CampaignBuilderDialog(props: {
                     >
                       <p className="text-sm font-semibold text-gray-900">Content reminder</p>
                       <p className="text-xs text-gray-600 mt-1">Remind members about a content type or item.</p>
+                    </button>
+                    <button
+                      type="button"
+                      className={cn(
+                        "rounded-lg border p-3 text-left hover:bg-gray-50 transition-colors",
+                        kind === "custom-invitation" ? "border-chabaqa-primary bg-chabaqa-primary/5" : "border-gray-200",
+                      )}
+                      onClick={() => setKind("custom-invitation")}
+                    >
+                      <p className="text-sm font-semibold text-gray-900">Custom invitation</p>
+                      <p className="text-xs text-gray-600 mt-1">Invite people outside your community via email.</p>
                     </button>
                   </div>
                 </div>
@@ -800,6 +824,45 @@ export function CampaignBuilderDialog(props: {
                         {contentId ? <p className="text-xs text-gray-500">Selected ID: {contentId}</p> : null}
                       </div>
                     ) : null}
+                  </div>
+                ) : null}
+
+                {kind === "custom-invitation" ? (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600">Choose how you'd like to send invitations:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        className="rounded-lg border border-gray-200 p-4 text-left hover:border-chabaqa-primary hover:bg-chabaqa-primary/5 transition-colors group"
+                        onClick={() => setIsSingleInviteOpen(true)}
+                      >
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="rounded-full bg-chabaqa-primary/10 p-2 group-hover:bg-chabaqa-primary/20 transition-colors">
+                            <Mail className="h-5 w-5 text-chabaqa-primary" />
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900">Invite one person</p>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Send a personalised invitation email to a single person with a custom message.
+                        </p>
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-gray-200 p-4 text-left hover:border-chabaqa-primary hover:bg-chabaqa-primary/5 transition-colors group"
+                        onClick={() => setIsImportOpen(true)}
+                      >
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="rounded-full bg-chabaqa-primary/10 p-2 group-hover:bg-chabaqa-primary/20 transition-colors">
+                            <UserPlus className="h-5 w-5 text-chabaqa-primary" />
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900">Import contacts</p>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Bulk-import contacts from a CSV file or paste a list of emails.
+                        </p>
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400">Invitations are sent immediately and tracked in your dashboard.</p>
                   </div>
                 ) : null}
               </div>
@@ -974,7 +1037,7 @@ export function CampaignBuilderDialog(props: {
                 {step === 1 ? "Cancel" : "Back"}
               </Button>
 
-              {step < 3 ? (
+              {kind === "custom-invitation" ? null : step < 3 ? (
                 <Button type="button" onClick={goNext} disabled={isSubmitting}>
                   Next
                   <ArrowRight className="h-4 w-4 ml-2" />
@@ -1033,5 +1096,23 @@ export function CampaignBuilderDialog(props: {
         </div>
       </DialogContent>
     </Dialog>
+
+    {selectedCommunityId ? (
+      <>
+        <SingleInviteDialog
+          open={isSingleInviteOpen}
+          onOpenChange={setIsSingleInviteOpen}
+          communityId={selectedCommunityId}
+          onSuccess={handleInvitationSuccess}
+        />
+        <ImportContactsDialog
+          open={isImportOpen}
+          onOpenChange={setIsImportOpen}
+          communityId={selectedCommunityId}
+          onSuccess={handleInvitationSuccess}
+        />
+      </>
+    ) : null}
+  </>
   )
 }
