@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 interface VerifyEmailPageProps {
   searchParams: Promise<{
     email?: string
+    inviteToken?: string
   }>
 }
 
@@ -22,6 +23,7 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
 
   const params = await searchParams
   const email = params.email || ""
+  const inviteToken = params.inviteToken || ""
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -42,7 +44,7 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
 
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-20 sm:py-24">
         <div className="w-full max-w-lg">
-          <VerifyEmailForm email={email} />
+          <VerifyEmailForm email={email} inviteToken={inviteToken} />
 
           <div className="text-center mt-8 animate-fade-in-delay-1400">
             <p className="text-xs text-gray-600 drop-shadow-sm">{t("footer")}</p>

@@ -61,6 +61,7 @@ import { liveSupportApi } from './live-support.api';
 import { learningPathApi } from './learning-path.api';
 import { resourcesApi } from './resources.api';
 import { trackingApi } from './tracking.api';
+import { communityInvitationsApi } from './community-invitations.api';
 
 export const api = {
   auth: authApi,
@@ -86,4 +87,5 @@ export const api = {
   learningPath: learningPathApi,
   resources: resourcesApi,
   tracking: trackingApi,
+  communityInvitations: communityInvitationsApi,
 };

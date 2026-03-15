@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Loader2, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { signupAction } from "../signup/actions"
 import { signUpSchema, validatePasswordStrength, getPasswordStrengthLabel, getPasswordStrengthColor } from "@/lib/validation/auth.validation"
@@ -33,7 +33,16 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, feedback: [] as string[] })
   const router = useRouter()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const t = useTranslations("auth.signupForm")
+
+  // Pre-fill email from invite link
+  useEffect(() => {
+    const inviteEmail = searchParams.get("email")
+    if (inviteEmail && !email) {
+      setEmail(inviteEmail)
+    }
+  }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (password) {
@@ -93,7 +102,9 @@ export default function SignUpForm({ onSuccess }: SignUpFormProps = {}) {
           onSuccess()
         } else {
           const nextEmail = encodeURIComponent(result.email || email)
-          router.push(`${localizeHref(pathname, "/verify-email")}?email=${nextEmail}`)
+          const inviteToken = searchParams.get("inviteToken")
+          const inviteParam = inviteToken ? `&inviteToken=${encodeURIComponent(inviteToken)}` : ""
+          router.push(`${localizeHref(pathname, "/verify-email")}?email=${nextEmail}${inviteParam}`)
         }
       } else {
         setError(result.error || t("unknownError"))

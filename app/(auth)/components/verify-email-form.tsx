@@ -13,9 +13,10 @@ import { localizeHref } from "@/lib/i18n/client"
 
 interface VerifyEmailFormProps {
   email: string
+  inviteToken?: string
 }
 
-export default function VerifyEmailForm({ email }: VerifyEmailFormProps) {
+export default function VerifyEmailForm({ email, inviteToken }: VerifyEmailFormProps) {
   const t = useTranslations("auth.verifyEmailForm")
   const [verificationDigits, setVerificationDigits] = useState(["", "", "", "", "", ""])
   const [isLoading, setIsLoading] = useState(false)
@@ -64,8 +65,14 @@ export default function VerifyEmailForm({ email }: VerifyEmailFormProps) {
       setIsSuccess(true)
       setInfo(result.message || t("successTitle"))
       setTimeout(() => {
-        const redirect = `${localizeHref(pathname, "/signin")}?message=${encodeURIComponent(t("signInNotice"))}`
-        router.push(redirect)
+        if (inviteToken) {
+          // After verification, redirect to sign-in with invite redirect
+          const redirect = `${localizeHref(pathname, "/signin")}?message=${encodeURIComponent(t("signInNotice"))}&redirect=${encodeURIComponent(`/invitation/${inviteToken}`)}`
+          router.push(redirect)
+        } else {
+          const redirect = `${localizeHref(pathname, "/signin")}?message=${encodeURIComponent(t("signInNotice"))}`
+          router.push(redirect)
+        }
       }, 1400)
     } catch {
       setError(t("errors.verifyFailed"))
