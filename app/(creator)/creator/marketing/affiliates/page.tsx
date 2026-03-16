@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
 import { affiliateApi, communitiesApi, coursesApi, challengesApi, eventsApi, productsApi, sessionsApi } from "@/lib/api"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { useAuthContext } from "@/app/providers/auth-provider"
 import { StatusChip } from "./components/status-chip"
 import { AffiliateLinkBuilder, type AffiliateTargetType, type PartnerOption, type TargetOption } from "./components/affiliate-link-builder"
 
@@ -37,6 +38,7 @@ const isMongoObjectId = (value?: string | null): boolean => Boolean(value && /^[
 
 export default function CreatorAffiliatesPage() {
   const { selectedCommunity, selectedCommunityId } = useCreatorCommunity()
+  const { user: authUser } = useAuthContext()
   const { toast } = useToast()
 
   const [loading, setLoading] = useState(true)
@@ -47,7 +49,6 @@ export default function CreatorAffiliatesPage() {
   const [links, setLinks] = useState<any[]>([])
   const [stats, setStats] = useState<any>(null)
   const [payouts, setPayouts] = useState<any[]>([])
-  const [canReviewPayouts, setCanReviewPayouts] = useState(true)
 
   const [programForm, setProgramForm] = useState<ProgramForm>({
     scopeType: 'community',
@@ -72,6 +73,11 @@ export default function CreatorAffiliatesPage() {
   const [linkProgramId, setLinkProgramId] = useState<string>("")
   const [lastLinkCode, setLastLinkCode] = useState<string | undefined>(undefined)
   const [busy, setBusy] = useState<string | null>(null)
+
+  const canReviewPayouts = useMemo(() => {
+    const role = String(authUser?.role || "").toLowerCase().trim()
+    return role === "admin" || role === "superadmin" || role.includes("admin")
+  }, [authUser?.role])
 
   const loadTargets = useCallback(async () => {
     const [communitiesRes, coursesRes, productsRes, eventsRes, challengesRes, sessionsRes] = await Promise.all([
@@ -168,12 +174,14 @@ export default function CreatorAffiliatesPage() {
       setStats(statsRes)
       setLinks(linksRes || [])
 
-      try {
-        const payoutRes = await affiliateApi.admin.listPayouts('pending')
-        setPayouts(payoutRes || [])
-        setCanReviewPayouts(true)
-      } catch {
-        setCanReviewPayouts(false)
+      if (canReviewPayouts) {
+        try {
+          const payoutRes = await affiliateApi.admin.listPayouts('pending')
+          setPayouts(payoutRes || [])
+        } catch {
+          setPayouts([])
+        }
+      } else {
         setPayouts([])
       }
 
@@ -184,7 +192,7 @@ export default function CreatorAffiliatesPage() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [loadTargets, toast])
+  }, [canReviewPayouts, loadTargets, toast])
 
   useEffect(() => {
     void load()
