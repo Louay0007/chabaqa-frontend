@@ -813,13 +813,13 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                     <div className="flex items-center gap-3 px-4 py-3 sm:px-5 sm:py-3.5">
                       {/* Avatar with online dot */}
                       <div className="relative flex-shrink-0">
-                        <Avatar className="h-10 w-10 ring-2 ring-primary-100">
-                          <AvatarImage src={currentUser?.avatar || "/placeholder.svg?height=40&width=40"} />
-                          <AvatarFallback className="bg-primary-100 text-primary-700 font-semibold text-sm">
+                        <Avatar className="h-12 w-12 ring-2 ring-primary-100">
+                          <AvatarImage src={currentUser?.avatar || "/placeholder.svg?height=48&width=48"} className="object-cover" />
+                          <AvatarFallback className="bg-primary-100 text-primary-700 font-semibold text-base">
                             {(currentUser?.username || currentUser?.firstName || "U").charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-400 border-2 border-white" />
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-white" />
                       </div>
 
                       {/* Pill trigger */}
@@ -888,9 +888,9 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                         {/* User row */}
                         <div className="flex items-center gap-3">
                           <div className="relative flex-shrink-0">
-                            <Avatar className="h-10 w-10 ring-2 ring-primary-100">
-                              <AvatarImage src={currentUser?.avatar || "/placeholder.svg?height=40&width=40"} />
-                              <AvatarFallback className="bg-primary-100 text-primary-700 font-semibold text-sm">
+                            <Avatar className="h-12 w-12 ring-2 ring-primary-100">
+                              <AvatarImage src={currentUser?.avatar || "/placeholder.svg?height=48&width=48"} className="object-cover" />
+                              <AvatarFallback className="bg-primary-100 text-primary-700 font-semibold text-base">
                                 {(currentUser?.username || currentUser?.firstName || "U").charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
@@ -1311,9 +1311,9 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                 <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
                   {/* Creator Info */}
                   <Link href={communityCreatorProfileHref} className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-                    <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                      <AvatarImage src={community.creator.avatar || "/placeholder.svg"} />
-                      <AvatarFallback>
+                    <Avatar className="h-14 w-14 sm:h-16 sm:w-16 ring-2 ring-slate-200 flex-shrink-0">
+                      <AvatarImage src={community.creator.avatar || "/placeholder.svg"} className="object-cover" />
+                      <AvatarFallback className="text-base font-semibold">
                         {community.creator.name
                           .split(" ")
                           .map((n) => n[0])
