@@ -80,11 +80,22 @@ function resolveNotificationHref(
     }
   }
 
+  if (notification.type === "comment_mention" || notification.type === "post_mention") {
+    const postId = notification?.data?.postId
+    if (typeof postId === "string" && postId.trim()) {
+      return `/${encodeURIComponent(context.creatorSlug)}/${encodeURIComponent(context.communitySlug)}/home?post=${encodeURIComponent(postId.trim())}`
+    }
+    return `/${encodeURIComponent(context.creatorSlug)}/${encodeURIComponent(context.communitySlug)}/home`
+  }
+
   return null
 }
 
 function getNotificationIcon(type: string) {
   switch (type) {
+    case "comment_mention":
+    case "post_mention":
+      return MessageSquare
     case "user_joined":
     case "member_joined":
     case "new_community_member":
@@ -117,6 +128,9 @@ function getNotificationIcon(type: string) {
 
 function getIconTone(type: string) {
   switch (type) {
+    case "comment_mention":
+    case "post_mention":
+      return "from-blue-500/20 to-blue-500/5 text-blue-700"
     case "new_dm_message":
       return "from-sky-500/20 to-sky-500/5 text-sky-700"
     case "new_community_member":
