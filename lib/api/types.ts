@@ -552,6 +552,14 @@ export interface PostReaction {
   emoji: string;
   count: number;
   usersIncludeMe: boolean;
+  usernames?: string[];
+  userNames?: string[];
+  users?: Array<{
+    id?: string;
+    username?: string;
+    firstName?: string;
+    name?: string;
+  }>;
 }
 
 export interface Comment {

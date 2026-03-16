@@ -88,6 +88,21 @@ function renderMentions(text: string) {
   )
 }
 
+function getReactionUsernames(reaction: any): string[] {
+  const fromFlat = [
+    ...(Array.isArray(reaction?.usernames) ? reaction.usernames : []),
+    ...(Array.isArray(reaction?.userNames) ? reaction.userNames : []),
+  ]
+
+  const fromUsers = Array.isArray(reaction?.users)
+    ? reaction.users
+        .map((u: any) => u?.username || u?.name || u?.firstName)
+        .filter((v: unknown): v is string => typeof v === "string" && v.trim().length > 0)
+    : []
+
+  return Array.from(new Set([...fromFlat, ...fromUsers]))
+}
+
 // ─── MentionInput ─────────────────────────────────────────────────────────────
 // Self-contained textarea with live @mention autocomplete dropdown.
 
@@ -548,6 +563,25 @@ export function PostCard({
 
   // ── Derived reaction data ────────────────────────────────────────────────────
   const visibleReactions = (post.reactions || []).filter((r) => r.count > 0)
+  const myReaction = visibleReactions.find((r) => r.usersIncludeMe)
+  const reactionTriggerEmoji = myReaction?.emoji || "🙂"
+  const reactionTotalCount = visibleReactions.reduce((sum, r) => sum + (r.count || 0), 0)
+  const reactionHoverText = useMemo(() => {
+    if (visibleReactions.length === 0) return "React to this post"
+
+    const lines = visibleReactions.map((r) => {
+      const names = getReactionUsernames(r)
+      const people = names.length > 0 ? names.join(", ") : `${r.count} reaction${r.count > 1 ? "s" : ""}`
+      return `${r.emoji} ${people}`
+    })
+
+    const hasAnyNames = visibleReactions.some((r) => getReactionUsernames(r).length > 0)
+    if (!hasAnyNames) {
+      lines.push("(Usernames unavailable in current payload)")
+    }
+
+    return lines.join("\n")
+  }, [visibleReactions])
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
@@ -754,28 +788,6 @@ export function PostCard({
           </div>
         )}
 
-        {/* ── Reaction chips ─────────────────────────────────────────────────── */}
-        {visibleReactions.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pb-3">
-            {visibleReactions.map((r) => (
-              <button
-                key={r.emoji}
-                type="button"
-                onClick={() => handleReact(r.emoji)}
-                disabled={isReacting}
-                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all disabled:opacity-50 ${
-                  r.usersIncludeMe
-                    ? "bg-primary-50 border-primary-300 text-primary-700 hover:bg-primary-100"
-                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300"
-                }`}
-              >
-                <span>{r.emoji}</span>
-                <span>{r.count}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
         {/* ── Action bar ────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between pt-3 border-t border-slate-100">
           <div className="flex items-center gap-0.5">
@@ -800,6 +812,43 @@ export function PostCard({
               <span>{post.likes}</span>
             </Button>
 
+            {/* Emoji reaction picker trigger */}
+            <div className="relative" ref={reactionPickerRef}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowReactionPicker((v) => !v)}
+                disabled={isReacting}
+                title={reactionHoverText}
+                className={`h-8 px-2.5 rounded-full text-xs gap-1.5 transition-all ${
+                  showReactionPicker
+                    ? "text-amber-600 bg-amber-50 hover:bg-amber-100"
+                    : myReaction
+                      ? "text-amber-700 bg-amber-50 hover:bg-amber-100"
+                      : "text-slate-500 hover:text-amber-600 hover:bg-amber-50"
+                }`}
+              >
+                <span className="text-sm leading-none">{reactionTriggerEmoji}</span>
+                {reactionTotalCount > 0 && <span>{reactionTotalCount}</span>}
+              </Button>
+              {showReactionPicker && (
+                <div className="absolute left-0 bottom-full mb-2 z-20 bg-white border border-slate-200 rounded-2xl shadow-xl px-3 py-2">
+                  <div className="flex items-center gap-0.5">
+                    {QUICK_REACTIONS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => handleReact(emoji)}
+                        className="text-xl p-1.5 rounded-xl hover:bg-slate-100 transition-all hover:scale-125 active:scale-100"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Comment */}
             <Button
               variant="ghost"
@@ -819,39 +868,6 @@ export function PostCard({
               )}
               <span>{post.commentsCount}</span>
             </Button>
-
-            {/* Emoji reaction picker trigger */}
-            <div className="relative" ref={reactionPickerRef}>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowReactionPicker((v) => !v)}
-                disabled={isReacting}
-                className={`h-8 px-2.5 rounded-full text-xs gap-1.5 transition-all ${
-                  showReactionPicker
-                    ? "text-amber-600 bg-amber-50 hover:bg-amber-100"
-                    : "text-slate-500 hover:text-amber-600 hover:bg-amber-50"
-                }`}
-              >
-                <Smile className="h-3.5 w-3.5" />
-              </Button>
-              {showReactionPicker && (
-                <div className="absolute left-0 bottom-full mb-2 z-20 bg-white border border-slate-200 rounded-2xl shadow-xl px-3 py-2">
-                  <div className="flex items-center gap-0.5">
-                    {QUICK_REACTIONS.map((emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() => handleReact(emoji)}
-                        className="text-xl p-1.5 rounded-xl hover:bg-slate-100 transition-all hover:scale-125 active:scale-100"
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
 
             {/* Share */}
             <Button
