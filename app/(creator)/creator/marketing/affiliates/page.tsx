@@ -33,6 +33,7 @@ const extractArray = <T,>(value: any): T[] => {
 }
 
 const firstId = (item: any): string => String(item?._id || item?.id || "")
+const isMongoObjectId = (value?: string | null): boolean => Boolean(value && /^[a-f\d]{24}$/i.test(value))
 
 export default function CreatorAffiliatesPage() {
   const { selectedCommunity, selectedCommunityId } = useCreatorCommunity()
@@ -297,7 +298,7 @@ export default function CreatorAffiliatesPage() {
         targetPath: payload.targetPath,
         targetContentType: payload.targetType,
         targetContentId: payload.targetId,
-        communityId: selectedCommunityId || undefined,
+        communityId: isMongoObjectId(selectedCommunityId) ? selectedCommunityId! : undefined,
       })
       setLastLinkCode(link?.code)
       toast({ title: 'Link generated', description: 'Share it with your affiliate partner.' })
