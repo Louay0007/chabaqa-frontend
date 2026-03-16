@@ -39,6 +39,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { communityHomeApi, type CommunityHomeData } from "@/lib/api/community-home.api"
+import { communityMembersApi, type CommunityMentionMember } from "@/lib/api/community-members.api"
 import { postsApi } from "@/lib/api/posts.api"
 import type { Post, PostLink } from "@/lib/api/types"
 import { PostCard } from "@/app/(community)/components/post-card"
@@ -157,6 +158,11 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   const [showLinks, setShowLinks] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isComposerExpanded, setIsComposerExpanded] = useState(false)
+  const [composerCaretPosition, setComposerCaretPosition] = useState(0)
+  const [composerMentionQuery, setComposerMentionQuery] = useState<string | null>(null)
+  const [composerMentionStart, setComposerMentionStart] = useState<number | null>(null)
+  const [composerMentionSuggestions, setComposerMentionSuggestions] = useState<CommunityMentionMember[]>([])
+  const [isComposerMentionLoading, setIsComposerMentionLoading] = useState(false)
 
   const [deletePostId, setDeletePostId] = useState<string | null>(null)
   const [isDeletingPost, setIsDeletingPost] = useState(false)
@@ -172,6 +178,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   const videoInputRef = useRef<HTMLInputElement>(null)
   const postTextareaRef = useRef<HTMLTextAreaElement>(null)
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const composerMentionRequestRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const focusedSharedPostIdsRef = useRef<Set<string>>(new Set())
   const fetchedSharedPostIdsRef = useRef<Set<string>>(new Set())
   const hasTrackedCommunityViewRef = useRef(false)
@@ -193,6 +200,10 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
     setShowEmojiPicker(false)
     setShowMetadata(false)
     setIsComposerExpanded(false)
+    setComposerMentionQuery(null)
+    setComposerMentionStart(null)
+    setComposerMentionSuggestions([])
+    setComposerCaretPosition(0)
   }, [])
 
   const openComposer = useCallback(() => {
@@ -342,8 +353,47 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
       if (highlightTimerRef.current) {
         clearTimeout(highlightTimerRef.current)
       }
+      if (composerMentionRequestRef.current) {
+        clearTimeout(composerMentionRequestRef.current)
+      }
     }
   }, [])
+
+  useEffect(() => {
+    const communityId = String(data?.community?.id || "")
+    const query = (composerMentionQuery || "").trim()
+
+    if (!communityId || !query) {
+      setComposerMentionSuggestions([])
+      setIsComposerMentionLoading(false)
+      return
+    }
+
+    if (composerMentionRequestRef.current) {
+      clearTimeout(composerMentionRequestRef.current)
+    }
+
+    setIsComposerMentionLoading(true)
+    composerMentionRequestRef.current = setTimeout(() => {
+      void communityMembersApi
+        .searchMembersForMention(communityId, query, 6)
+        .then((results) => {
+          setComposerMentionSuggestions(results)
+        })
+        .catch(() => {
+          setComposerMentionSuggestions([])
+        })
+        .finally(() => {
+          setIsComposerMentionLoading(false)
+        })
+    }, 180)
+
+    return () => {
+      if (composerMentionRequestRef.current) {
+        clearTimeout(composerMentionRequestRef.current)
+      }
+    }
+  }, [composerMentionQuery, data?.community?.id])
 
   useEffect(() => {
     if (!sharedPostId || !data?.community?.id) return
@@ -416,6 +466,54 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
       el.focus()
       const pos = start + emoji.length
       el.setSelectionRange(pos, pos)
+    })
+  }
+
+  const updateComposerMentionContext = useCallback((value: string, caretPosition: number) => {
+    const beforeCaret = value.slice(0, Math.max(0, caretPosition))
+    const mentionMatch = beforeCaret.match(/(^|\s)@([a-zA-Z0-9._-]{1,30})$/)
+
+    if (!mentionMatch) {
+      setComposerMentionQuery(null)
+      setComposerMentionStart(null)
+      return
+    }
+
+    const query = mentionMatch[2] || ""
+    if (!query) {
+      setComposerMentionQuery(null)
+      setComposerMentionStart(null)
+      return
+    }
+
+    setComposerMentionQuery(query)
+    setComposerMentionStart(caretPosition - query.length - 1)
+  }, [])
+
+  const handleComposerTextChange = (value: string, caretPosition?: number) => {
+    setNewPost(value)
+    const nextCaretPosition = Math.max(0, Math.min(caretPosition ?? value.length, value.length))
+    setComposerCaretPosition(nextCaretPosition)
+    updateComposerMentionContext(value, nextCaretPosition)
+  }
+
+  const handleComposerMentionSelect = (member: CommunityMentionMember) => {
+    if (composerMentionStart === null) return
+
+    const caretPosition = composerCaretPosition
+    const mentionEnd = Math.max(composerMentionStart + 1, caretPosition)
+    const nextValue = `${newPost.slice(0, composerMentionStart)}@${member.username} ${newPost.slice(mentionEnd)}`
+    const nextCaret = composerMentionStart + member.username.length + 2
+
+    setNewPost(nextValue)
+    setComposerMentionQuery(null)
+    setComposerMentionStart(null)
+    setComposerMentionSuggestions([])
+    setComposerCaretPosition(nextCaret)
+
+    requestAnimationFrame(() => {
+      postTextareaRef.current?.focus()
+      postTextareaRef.current?.setSelectionRange(nextCaret, nextCaret)
     })
   }
 
@@ -798,6 +896,9 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
   const composerHasContent = newPost.trim().length > 0
   const composerMediaCount = uploadedImages.length + uploadedVideos.length
   const composerLinkCount = links.length
+  const currentUserId = String((currentUser as any)?.id || (currentUser as any)?._id || "")
+  const creatorId = String((community.creator as any)?.id || (community.creator as any)?._id || "")
+  const canPinPost = Boolean(currentUserId && creatorId && currentUserId === creatorId)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -929,10 +1030,60 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                           <Textarea
                             placeholder="Share your progress, ask questions, or celebrate wins…"
                             value={newPost}
-                            onChange={(e) => setNewPost(e.target.value)}
+                            onChange={(e) => {
+                              handleComposerTextChange(e.target.value, e.target.selectionStart ?? e.target.value.length)
+                            }}
+                            onClick={(e) => {
+                              const target = e.currentTarget
+                              const nextCaret = target.selectionStart ?? newPost.length
+                              setComposerCaretPosition(nextCaret)
+                              updateComposerMentionContext(newPost, nextCaret)
+                            }}
+                            onKeyUp={(e) => {
+                              const target = e.currentTarget
+                              const nextCaret = target.selectionStart ?? newPost.length
+                              setComposerCaretPosition(nextCaret)
+                              updateComposerMentionContext(newPost, nextCaret)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Tab" && composerMentionSuggestions.length > 0 && composerMentionQuery) {
+                                e.preventDefault()
+                                handleComposerMentionSelect(composerMentionSuggestions[0])
+                              }
+                            }}
                             ref={postTextareaRef}
                             className="min-h-[120px] sm:min-h-[140px] resize-none border border-slate-200 bg-slate-50/50 rounded-xl px-4 py-3 focus-visible:ring-2 focus-visible:ring-primary-300 focus-visible:border-primary-300 text-sm sm:text-[15px] leading-6 text-slate-700 placeholder:text-slate-400 transition-colors"
                           />
+                          {composerMentionQuery && (composerMentionSuggestions.length > 0 || isComposerMentionLoading) && (
+                            <div className="absolute left-2 right-2 bottom-12 z-20 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                              {isComposerMentionLoading ? (
+                                <div className="px-3 py-2 text-xs text-slate-500">Searching members...</div>
+                              ) : (
+                                <ul className="max-h-52 overflow-y-auto py-1">
+                                  {composerMentionSuggestions.map((member) => (
+                                    <li key={member.id}>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleComposerMentionSelect(member)}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-slate-50"
+                                      >
+                                        <Avatar className="h-7 w-7">
+                                          <AvatarImage src={member.avatar || "/placeholder.svg?height=28&width=28"} className="object-cover" />
+                                          <AvatarFallback className="text-[11px]">
+                                            {(member.username || member.firstName || "U").charAt(0).toUpperCase()}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                        <div className="min-w-0">
+                                          <p className="truncate text-sm font-medium text-slate-800">@{member.username}</p>
+                                          <p className="truncate text-xs text-slate-500">{[member.firstName, member.lastName].filter(Boolean).join(" ")}</p>
+                                        </div>
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          )}
                           {newPost.length > 0 && (
                             <div className="absolute bottom-2.5 right-3 text-[10px] font-medium text-slate-400 select-none">
                               {newPost.length}
@@ -1235,6 +1386,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                       <PostCard
                         key={post.id}
                         post={post}
+                        canPinPost={canPinPost}
                         currentUser={currentUser}
                         isHighlighted={highlightedPostId === post.id}
                         isBookmarked={Boolean(post.isBookmarkedByUser)}

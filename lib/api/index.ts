@@ -29,6 +29,7 @@ export * from './learning-path.api';
 export * from './resources.api';
 export * from './achievements.api';
 export * from './community-page-content';
+export * from './community-members.api';
 export * from './feedback.api';
 export * from './dm.api';
 export * from './live-support.api';
@@ -62,6 +63,7 @@ import { learningPathApi } from './learning-path.api';
 import { resourcesApi } from './resources.api';
 import { trackingApi } from './tracking.api';
 import { communityInvitationsApi } from './community-invitations.api';
+import { communityMembersApi } from './community-members.api';
 
 export const api = {
   auth: authApi,
@@ -88,4 +90,5 @@ export const api = {
   resources: resourcesApi,
   tracking: trackingApi,
   communityInvitations: communityInvitationsApi,
+  communityMembers: communityMembersApi,
 };

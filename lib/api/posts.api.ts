@@ -17,6 +17,11 @@ export interface UpdatePostData extends Partial<CreatePostData> { }
 
 export interface CreateCommentData {
   content: string;
+  parentId?: string;
+}
+
+export interface ReactPostData {
+  emoji: string;
 }
 
 export interface SharePostData {
@@ -122,6 +127,21 @@ export const postsApi = {
   // Unlike post
   unlike: async (id: string): Promise<ApiSuccessResponse<PostStats>> => {
     return apiClient.post<ApiSuccessResponse<PostStats>>(`/posts/${id}/unlike`);
+  },
+
+  // React with emoji (toggle)
+  react: async (id: string, data: ReactPostData): Promise<ApiSuccessResponse<Post>> => {
+    return apiClient.post<ApiSuccessResponse<Post>>(`/posts/${id}/react`, data);
+  },
+
+  // Pin post (creator only)
+  pinPost: async (id: string): Promise<ApiSuccessResponse<Post>> => {
+    return apiClient.patch<ApiSuccessResponse<Post>>(`/posts/${id}/pin`);
+  },
+
+  // Unpin post (creator only)
+  unpinPost: async (id: string): Promise<ApiSuccessResponse<Post>> => {
+    return apiClient.patch<ApiSuccessResponse<Post>>(`/posts/${id}/unpin`);
   },
 
   // Share post

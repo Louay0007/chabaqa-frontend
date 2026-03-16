@@ -484,11 +484,14 @@ export interface Post {
   thumbnail?: string;
   isPublished: boolean;
   likes: number;
+  reactions?: PostReaction[];
   commentsCount: number;
   shareCount: number;
   isLikedByUser?: boolean;
   isSharedByUser?: boolean;
   isBookmarkedByUser?: boolean;
+  isPinned?: boolean;
+  pinnedAt?: string;
   comments?: PostComment[];
   images?: string[];
   videos?: string[];
@@ -539,8 +542,16 @@ export interface PostComment {
   userId: string;
   userName: string;
   userAvatar?: string;
+  parentId?: string;
+  replies?: PostComment[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PostReaction {
+  emoji: string;
+  count: number;
+  usersIncludeMe: boolean;
 }
 
 export interface Comment {
