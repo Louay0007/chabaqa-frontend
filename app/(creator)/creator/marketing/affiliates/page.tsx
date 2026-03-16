@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Users, Link2, Wallet, TrendingUp, RefreshCw, Plus } from "lucide-react"
+import { Users, Link2, Wallet, TrendingUp, RefreshCw, Plus, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -307,6 +307,16 @@ export default function CreatorAffiliatesPage() {
       toast({ title: 'Link creation failed', description: error?.message || 'Could not create link.', variant: 'destructive' })
     } finally {
       setBusy(null)
+    }
+  }
+
+  const copyFullAffiliateLink = async (code: string) => {
+    const fullLink = `${baseUrl.replace(/\/$/, "")}/r/${code}`
+    try {
+      await navigator.clipboard.writeText(fullLink)
+      toast({ title: 'Link copied', description: 'Full affiliate link copied to clipboard.' })
+    } catch {
+      toast({ title: 'Copy failed', description: 'Unable to copy link. Please try again.', variant: 'destructive' })
     }
   }
 
@@ -620,16 +630,31 @@ export default function CreatorAffiliatesPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Code</TableHead>
+                          <TableHead>Full link</TableHead>
                           <TableHead>Target</TableHead>
                           <TableHead>Partner</TableHead>
+                          <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {links.slice(0, 10).map((link) => (
                           <TableRow key={link._id}>
                             <TableCell className="font-medium">{link.code}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground max-w-[320px] truncate">
+                              {`${baseUrl.replace(/\/$/, "")}/r/${link.code}`}
+                            </TableCell>
                             <TableCell className="text-xs text-muted-foreground">{link.targetPath}</TableCell>
                             <TableCell className="text-xs text-muted-foreground">{String(link.partnerUserId || '').slice(-8)}</TableCell>
+                            <TableCell>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => void copyFullAffiliateLink(link.code)}
+                              >
+                                <Copy className="h-4 w-4 mr-2" />
+                                Copy full link
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
