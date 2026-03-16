@@ -51,7 +51,7 @@ import { useToast } from "@/hooks/use-toast"
 import { PostShareDialog } from "@/app/(community)/components/post-share-dialog"
 
 // ─── Emoji quick-pick list ────────────────────────────────────────────────────
-const QUICK_REACTIONS = ["👍", "❤️", "🔥", "😂", "😮", "👏", "🎉", "💯"]
+const QUICK_REACTIONS = ["👍", "🔥", "😂", "😮", "👏", "🎉", "💯"]
 
 // ─── Standalone helpers (defined once, outside the component) ─────────────────
 
