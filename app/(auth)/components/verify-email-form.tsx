@@ -39,6 +39,12 @@ export default function VerifyEmailForm({ email, inviteToken }: VerifyEmailFormP
     return () => clearInterval(timer)
   }, [resendCooldown])
 
+  useEffect(() => {
+    if (!email) {
+      setError(t("errors.missingEmail"))
+    }
+  }, [email, t])
+
   const handleVerify = async (event: React.FormEvent) => {
     event.preventDefault()
     setError("")
