@@ -83,7 +83,7 @@ function renderMentions(text: string) {
   const parts = text.split(/(@[a-zA-Z0-9._-]+)/g)
   return parts.map((part, i) =>
     /^@[a-zA-Z0-9._-]+$/.test(part)
-      ? <span key={i} className="text-primary-600 font-medium hover:underline">{part}</span>
+      ? <span key={i} className="text-blue-600 font-medium hover:underline">{part}</span>
       : <React.Fragment key={i}>{part}</React.Fragment>,
   )
 }
