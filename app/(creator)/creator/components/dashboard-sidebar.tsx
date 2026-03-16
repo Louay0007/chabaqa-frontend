@@ -183,6 +183,8 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
       section: "marketing",
       items: [
         { title: "Email Campaigns", href: "/creator/marketing/emails", badge: null },
+        { title: "Affiliates", href: "/creator/marketing/affiliates", badge: null },
+        { title: "Affiliate Portal", href: "/dashboard/affiliate", badge: null },
         { title: "Messages", href: "/creator/marketing/messages", badge: "soon" },
         { title: "WhatsApp", href: "/creator/marketing/whatsapp", badge: "soon" },
       ],
