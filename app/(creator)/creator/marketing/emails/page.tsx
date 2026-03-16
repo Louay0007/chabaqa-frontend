@@ -25,6 +25,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { AutomationsTab } from "../components/automations-tab"
 import { CampaignStats } from "../components/campaign-stats"
 import { CampaignBuilderDialog } from "../components/campaign-builder-dialog"
 import { EmailCampaignList } from "../components/email-campaign-list"
@@ -325,14 +327,22 @@ export default function EmailCampaignsPage() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Email Campaigns</h1>
-          <p className="text-gray-500">Create, schedule, and track campaigns for {selectedCommunity.name}</p>
+          <h1 className="text-2xl font-bold">Email Marketing</h1>
+          <p className="text-gray-500">Campaigns &amp; automations for {selectedCommunity.name}</p>
         </div>
         <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-chabaqa-primary hover:bg-chabaqa-primary/90">
           <Plus className="w-4 h-4 mr-2" />
           Create Campaign
         </Button>
       </div>
+
+      <Tabs defaultValue="campaigns">
+        <TabsList>
+          <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
+          <TabsTrigger value="automations">Automations</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="campaigns" className="space-y-6 mt-4">
 
       <CampaignStats stats={stats} loading={statsLoading} error={statsError} />
 
@@ -444,6 +454,13 @@ export default function EmailCampaignsPage() {
         onOpenChange={setIsCreateDialogOpen}
         onSuccess={refreshCurrentPage}
       />
+
+        </TabsContent>
+
+        <TabsContent value="automations" className="mt-4">
+          <AutomationsTab />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={!!editCampaign} onOpenChange={(open) => !open && setEditCampaign(null)}>
         <DialogContent className="sm:max-w-[640px]">

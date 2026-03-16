@@ -24,7 +24,7 @@ import { resolveScheduledAt } from "./campaign-form-utils"
 import { SingleInviteDialog } from "../contacts/components/single-invite-dialog"
 import { ImportContactsDialog } from "../contacts/components/import-contacts-dialog"
 
-type CampaignKind = "announcement" | "inactive-users" | "content-reminder" | "custom-invitation"
+type CampaignKind = "announcement" | "inactive-users" | "content-reminder" | "course-progress" | "custom-invitation"
 type SendingTime = "now" | "scheduled"
 
 type BuilderSeed = Partial<{
@@ -57,6 +57,8 @@ const VARIABLE_DEFS: Array<{
   { key: "inactivityPeriod", label: "Inactivity period", description: "Selected inactive period label", showFor: ["inactive"] },
   { key: "contentTypeLabel", label: "Content type label", description: "Selected content type label (content reminder)", showFor: ["content"] },
   { key: "contentType", label: "Content type", description: "Selected content type key", showFor: ["content"] },
+  { key: "progressPct", label: "Progress %", description: "Learner's current course completion %", showFor: ["course"] },
+  { key: "enrolledDays", label: "Enrolled days", description: "Days since the learner enrolled", showFor: ["course"] },
 ]
 
 const renderTemplate = (template: string, variables: Record<string, string | number | boolean | null | undefined>): string => {
@@ -130,6 +132,17 @@ export function CampaignBuilderDialog(props: {
   const [contentId, setContentId] = useState("")
   const [contentLabelValue, setContentLabelValue] = useState("")
 
+  // course-progress specific
+  const [targetCourseId, setTargetCourseId] = useState("")
+  const [targetCourseName, setTargetCourseName] = useState("")
+  const [targetMaxProgressPct, setTargetMaxProgressPct] = useState("20")
+  const [targetMinEnrolledDays, setTargetMinEnrolledDays] = useState("15")
+  const [coursePickerOpen, setCoursePickerOpen] = useState(false)
+  const [courseItems, setCourseItems] = useState<ContentPick[]>([])
+  const [courseItemsLoading, setCourseItemsLoading] = useState(false)
+  const [audiencePreview, setAudiencePreview] = useState<{ total: number; sample: any[] } | null>(null)
+  const [previewingAudience, setPreviewingAudience] = useState(false)
+
   const [sendingTime, setSendingTime] = useState<SendingTime>("now")
   const [scheduledDate, setScheduledDate] = useState("")
   const [scheduledTime, setScheduledTime] = useState("")
@@ -173,6 +186,16 @@ export function CampaignBuilderDialog(props: {
     setContentTypeState(initialValues?.contentType || "")
     setContentId(initialValues?.contentId || "")
     setContentLabelValue(initialValues?.contentLabel || "")
+
+    setTargetCourseId("")
+    setTargetCourseName("")
+    setTargetMaxProgressPct("20")
+    setTargetMinEnrolledDays("15")
+    setCoursePickerOpen(false)
+    setCourseItems([])
+    setCourseItemsLoading(false)
+    setAudiencePreview(null)
+    setPreviewingAudience(false)
 
     setSendingTime("now")
     setScheduledDate("")
@@ -218,6 +241,48 @@ export function CampaignBuilderDialog(props: {
     }
   }, [open, selectedCommunityId])
 
+  // Fetch course list for course-progress picker
+  useEffect(() => {
+    if (!open || kind !== "course-progress" || !selectedCommunityId) return
+    let cancelled = false
+    setCourseItemsLoading(true)
+    ;(async () => {
+      try {
+        const slug = typeof selectedCommunity?.slug === "string" ? selectedCommunity.slug : ""
+        if (!slug) return
+        const response = await coursesApi.getByCommunity(slug, { page: 1, limit: 100, published: true })
+        const normalize = (items: any[]): ContentPick[] =>
+          items
+            .map((it) => ({ id: String(it?.id || it?._id || "").trim(), title: String(it?.title || it?.name || it?.titre || "").trim() }))
+            .filter((it) => it.id && it.title)
+        if (!cancelled) setCourseItems(normalize(extractList(response)))
+      } catch { if (!cancelled) setCourseItems([]) }
+      finally { if (!cancelled) setCourseItemsLoading(false) }
+    })()
+    return () => { cancelled = true }
+  }, [kind, open, selectedCommunity?.slug, selectedCommunityId])
+
+  const handlePreviewCourseAudience = useCallback(async () => {
+    if (!selectedCommunityId || !targetCourseId) return
+    const maxPct = parseInt(targetMaxProgressPct, 10)
+    const minDays = parseInt(targetMinEnrolledDays, 10)
+    if (isNaN(maxPct) || isNaN(minDays)) return
+    setPreviewingAudience(true)
+    setAudiencePreview(null)
+    try {
+      const result = await emailCampaignsApi.previewAudience({
+        communityId: selectedCommunityId,
+        filterType: "course_progress",
+        courseProgressFilter: { courseId: targetCourseId, maxProgressPct: maxPct, minEnrolledDays: minDays },
+      })
+      setAudiencePreview({ total: result.total, sample: result.sample })
+    } catch (err: any) {
+      toast({ title: "Preview failed", description: err?.message ?? "Could not estimate audience", variant: "destructive" })
+    } finally {
+      setPreviewingAudience(false)
+    }
+  }, [selectedCommunityId, targetCourseId, targetMaxProgressPct, targetMinEnrolledDays, toast])
+
   const recipientsEstimate = useMemo(() => {
     if (!inactiveStats) return null
     if (kind === "inactive-users") {
@@ -239,10 +304,11 @@ export function CampaignBuilderDialog(props: {
   }, [inactivityPeriod, kind])
 
   const availableVariables = useMemo(() => {
-    const buckets: Array<"base" | "inactive" | "content"> = ["base"]
+    const buckets: Array<"base" | "inactive" | "content" | "course"> = ["base"]
     if (kind === "inactive-users") buckets.push("inactive")
     if (kind === "content-reminder") buckets.push("content")
-    return VARIABLE_DEFS.filter((v) => v.showFor.some((b) => buckets.includes(b)))
+    if (kind === "course-progress") buckets.push("course")
+    return VARIABLE_DEFS.filter((v) => v.showFor.some((b) => (buckets as string[]).includes(b)))
   }, [kind])
 
   const previewVariables = useMemo(() => {
@@ -379,6 +445,13 @@ export function CampaignBuilderDialog(props: {
       if (kind === "custom-invitation") return null
       if (kind === "inactive-users" && !inactivityPeriod) return "Pick an inactivity period."
       if (kind === "content-reminder" && !contentType) return "Pick a content type."
+      if (kind === "course-progress") {
+        if (!targetCourseId) return "Select a course to target."
+        const maxPct = parseInt(targetMaxProgressPct, 10)
+        const minDays = parseInt(targetMinEnrolledDays, 10)
+        if (isNaN(maxPct) || maxPct < 1 || maxPct > 99) return "Max progress must be between 1 and 99%."
+        if (isNaN(minDays) || minDays < 1) return "Enrolled days must be at least 1."
+      }
       return null
     }
 
@@ -498,6 +571,36 @@ export function CampaignBuilderDialog(props: {
         onOpenChange(false)
         onSuccess?.()
         return response
+      }
+
+      if (kind === "course-progress") {
+        const created = await emailCampaignsApi.createCourseProgressCampaign({
+          title: title.trim(),
+          subject: subject.trim(),
+          content,
+          communityId: selectedCommunityId,
+          targetCourseId,
+          targetMaxProgressPct: parseInt(targetMaxProgressPct, 10),
+          targetMinEnrolledDays: parseInt(targetMinEnrolledDays, 10),
+          scheduledAt,
+          isHtml,
+          trackOpens,
+          trackClicks,
+        })
+
+        if (!scheduledAt && sendingTime === "now") {
+          try {
+            await emailCampaignsApi.sendCampaign(created._id)
+            toast({ title: "Campaign created & queued", description: "Course progress reminder queued for sending." })
+          } catch (sendError: any) {
+            toast({ title: "Campaign created (not sent)", description: sendError?.message || "Campaign created as draft.", variant: "destructive" })
+          }
+        } else {
+          toast({ title: scheduledAt ? "Campaign scheduled" : "Campaign created", description: scheduledAt ? "Will be sent at the scheduled time." : "Saved as draft." })
+        }
+        onOpenChange(false)
+        onSuccess?.()
+        return created
       }
 
       if (kind === "inactive-users") {
@@ -703,6 +806,17 @@ export function CampaignBuilderDialog(props: {
                       type="button"
                       className={cn(
                         "rounded-lg border p-3 text-left hover:bg-gray-50 transition-colors",
+                        kind === "course-progress" ? "border-chabaqa-primary bg-chabaqa-primary/5" : "border-gray-200",
+                      )}
+                      onClick={() => { setKind("course-progress"); setAudiencePreview(null) }}
+                    >
+                      <p className="text-sm font-semibold text-gray-900">Course progress</p>
+                      <p className="text-xs text-gray-600 mt-1">Remind learners who haven't completed a course yet.</p>
+                    </button>
+                    <button
+                      type="button"
+                      className={cn(
+                        "rounded-lg border p-3 text-left hover:bg-gray-50 transition-colors",
                         kind === "custom-invitation" ? "border-chabaqa-primary bg-chabaqa-primary/5" : "border-gray-200",
                       )}
                       onClick={() => setKind("custom-invitation")}
@@ -824,6 +938,72 @@ export function CampaignBuilderDialog(props: {
                         {contentId ? <p className="text-xs text-gray-500">Selected ID: {contentId}</p> : null}
                       </div>
                     ) : null}
+                  </div>
+                ) : null}
+
+                {kind === "course-progress" ? (
+                  <div className="space-y-4">
+                    {/* Course picker */}
+                    <div className="space-y-2">
+                      <Label>Select course</Label>
+                      <Popover open={coursePickerOpen} onOpenChange={setCoursePickerOpen}>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="w-full justify-between">
+                            <span className="truncate">{targetCourseName || "Pick a course…"}</span>
+                            <ChevronDown className="h-4 w-4 opacity-60" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[420px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Search course…" />
+                            <CommandList>
+                              <CommandEmpty>{courseItemsLoading ? "Loading…" : "No courses found."}</CommandEmpty>
+                              <CommandGroup heading="Courses">
+                                {courseItems.map((c) => (
+                                  <CommandItem key={c.id} value={c.title} onSelect={() => { setTargetCourseId(c.id); setTargetCourseName(c.title); setCoursePickerOpen(false); setAudiencePreview(null) }}>
+                                    <span className="truncate">{c.title}</span>
+                                    {targetCourseId === c.id && <Check className="ml-auto h-4 w-4" />}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    {/* Thresholds */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="cp-max-pct">Max progress %</Label>
+                        <Input id="cp-max-pct" type="number" min={1} max={99} value={targetMaxProgressPct} onChange={(e) => { setTargetMaxProgressPct(e.target.value); setAudiencePreview(null) }} placeholder="20" />
+                        <p className="text-xs text-gray-400">Email learners below this completion</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="cp-min-days">Min enrolled days</Label>
+                        <Input id="cp-min-days" type="number" min={1} value={targetMinEnrolledDays} onChange={(e) => { setTargetMinEnrolledDays(e.target.value); setAudiencePreview(null) }} placeholder="15" />
+                        <p className="text-xs text-gray-400">Only target users enrolled ≥ N days</p>
+                      </div>
+                    </div>
+                    {/* Audience preview */}
+                    <div className="flex items-center gap-3">
+                      <Button type="button" variant="outline" size="sm" onClick={handlePreviewCourseAudience} disabled={previewingAudience || !targetCourseId}>
+                        {previewingAudience ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : null}
+                        Preview audience
+                      </Button>
+                      {audiencePreview && (
+                        <span className="text-sm font-medium text-gray-700">
+                          {audiencePreview.total} matching learner{audiencePreview.total !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
+                    {audiencePreview && audiencePreview.sample.length > 0 && (
+                      <div className="rounded-lg border bg-gray-50 px-3 py-2 text-xs text-gray-600 space-y-1">
+                        <p className="font-medium text-gray-700 mb-1">Sample (up to 10)</p>
+                        {audiencePreview.sample.map((u, i) => (
+                          <p key={i}>{u.name} — {u.email}</p>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ) : null}
 

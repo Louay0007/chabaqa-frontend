@@ -19,6 +19,8 @@ export type EmailCampaignType =
     | 'event_reminder'
     | 'course_update'
     | 'inactive_user_reactivation'
+    | 'course_progress_reminder'
+    | 'welcome'
     | 'custom';
 
 export type InactivityPeriod =
@@ -79,6 +81,15 @@ export interface EmailCampaign {
     targetInactivityPeriod?: InactivityPeriod;
     targetDaysThreshold?: number;
     targetAllInactive?: boolean;
+    // Course progress fields
+    isCourseProgressCampaign?: boolean;
+    targetCourseId?: string;
+    targetMaxProgressPct?: number;
+    targetMinEnrolledDays?: number;
+    // Automation template fields
+    isAutomationTemplate?: boolean;
+    eventTrigger?: string;
+    automationActive?: boolean;
     scheduledAt?: string;
     sentAt?: string;
     createdAt: string;
@@ -172,6 +183,60 @@ export interface CreateContentReminderDto {
     trackOpens?: boolean;
     trackClicks?: boolean;
     metadata?: Record<string, any>;
+}
+
+export interface CreateCourseProgressCampaignDto {
+    title: string;
+    subject: string;
+    content: string;
+    communityId: string;
+    targetCourseId: string;
+    targetMaxProgressPct: number;
+    targetMinEnrolledDays: number;
+    scheduledAt?: string;
+    isHtml?: boolean;
+    trackOpens?: boolean;
+    trackClicks?: boolean;
+    maxRecipients?: number;
+}
+
+export interface CreateWelcomeTemplateDto {
+    subject: string;
+    content: string;
+    isHtml?: boolean;
+    automationActive?: boolean;
+}
+
+export interface UpdateWelcomeTemplateDto {
+    subject?: string;
+    content?: string;
+    isHtml?: boolean;
+}
+
+export interface CreateInactivityAutomationDto {
+    title: string;
+    subject: string;
+    content: string;
+    communityId: string;
+    minInactiveDays: number;
+    isHtml?: boolean;
+}
+
+export interface PreviewAudienceDto {
+    communityId: string;
+    filterType: 'inactivity' | 'course_progress';
+    inactiveFilter?: { minInactiveDays: number };
+    courseProgressFilter?: {
+        courseId: string;
+        maxProgressPct: number;
+        minEnrolledDays: number;
+    };
+}
+
+export interface PreviewAudienceResponse {
+    total: number;
+    sample: Array<{ userId: string; email: string; name: string }>;
+    filterType: string;
 }
 
 export interface UpdateEmailCampaignDto {
@@ -452,5 +517,67 @@ export const emailCampaignsApi = {
             '/email-campaigns/inactivity-periods'
         );
         return this.unwrapData<GetInactivityPeriodsResponse>(response);
+    },
+
+    // ── Course Progress Campaigns ──────────────────────────────────────────────
+
+    async createCourseProgressCampaign(data: CreateCourseProgressCampaignDto): Promise<EmailCampaign> {
+        const response = await apiClient.post<any>('/email-campaigns/course-progress', data);
+        return this.unwrapData<EmailCampaign>(response);
+    },
+
+    async previewAudience(data: PreviewAudienceDto): Promise<PreviewAudienceResponse> {
+        const response = await apiClient.post<any>('/email-campaigns/preview-audience', data);
+        return this.unwrapData<PreviewAudienceResponse>(response);
+    },
+
+    // ── Welcome Email Automation ───────────────────────────────────────────────
+
+    async createWelcomeTemplate(communityId: string, data: CreateWelcomeTemplateDto): Promise<EmailCampaign> {
+        const response = await apiClient.post<any>(`/email-campaigns/welcome-template/${communityId}`, data);
+        return this.unwrapData<EmailCampaign>(response);
+    },
+
+    async getWelcomeTemplate(communityId: string): Promise<EmailCampaign | null> {
+        try {
+            const response = await apiClient.get<any>(`/email-campaigns/welcome-template/${communityId}`);
+            return this.unwrapData<EmailCampaign | null>(response);
+        } catch {
+            return null;
+        }
+    },
+
+    async updateWelcomeTemplate(communityId: string, data: UpdateWelcomeTemplateDto): Promise<EmailCampaign> {
+        const response = await apiClient.put<any>(`/email-campaigns/welcome-template/${communityId}`, data);
+        return this.unwrapData<EmailCampaign>(response);
+    },
+
+    async deleteWelcomeTemplate(communityId: string): Promise<void> {
+        await apiClient.delete<void>(`/email-campaigns/welcome-template/${communityId}`);
+    },
+
+    async toggleWelcomeTemplate(communityId: string, active: boolean): Promise<EmailCampaign> {
+        const response = await apiClient.patch<any>(`/email-campaigns/welcome-template/${communityId}/toggle`, { active });
+        return this.unwrapData<EmailCampaign>(response);
+    },
+
+    // ── Inactivity Automations ─────────────────────────────────────────────────
+
+    async createInactivityAutomation(data: CreateInactivityAutomationDto): Promise<EmailCampaign> {
+        const response = await apiClient.post<any>('/email-campaigns/inactivity-automation', data);
+        return this.unwrapData<EmailCampaign>(response);
+    },
+
+    async getInactivityAutomations(communityId: string): Promise<EmailCampaign[]> {
+        const response = await apiClient.get<any>(`/email-campaigns/inactivity-automation/${communityId}`);
+        const data = this.unwrapData<EmailCampaign[] | any>(response);
+        if (Array.isArray(data)) return data;
+        if (Array.isArray(data?.data)) return data.data;
+        return [];
+    },
+
+    async toggleInactivityAutomation(automationId: string, active: boolean): Promise<EmailCampaign> {
+        const response = await apiClient.patch<any>(`/email-campaigns/inactivity-automation/${automationId}/toggle`, { active });
+        return this.unwrapData<EmailCampaign>(response);
     },
 };

@@ -17,7 +17,7 @@ interface EmailTemplate {
   preview: string
   subject: string
   fullContent: string
-  type?: 'announcement' | 'inactive-users' | 'content-reminder'
+  type?: 'announcement' | 'inactive-users' | 'content-reminder' | 'course-progress'
   inactivityPeriod?: 'last_7_days' | 'last_15_days' | 'last_30_days' | 'last_60_days' | 'more_than_60_days'
   contentType?: 'event' | 'challenge' | 'cours' | 'product' | 'session' | 'all'
 }
@@ -206,6 +206,36 @@ const emailTemplates: EmailTemplate[] = [
             <p style="margin:0;font-weight:600;color:#581c87;">Expect practical lessons, useful examples, and immediate takeaways.</p>
           </div>
           <a href="https://chabaqa.io/explore" style="display:inline-block;background:#7e22ce;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Access New Content</a>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: "7",
+    name: "Course Progress Reminder",
+    description: "Re-engage learners who haven't finished a course",
+    segment: "Course Learners",
+    useCount: 0,
+    isStarred: true,
+    type: "course-progress" as const,
+    preview: "Motivational nudge email that highlights how close the learner is to finishing.",
+    subject: "{{userName}}, you're {{progressPct}}% done — keep going!",
+    fullContent: `
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+        <div style="padding:18px 22px;background:linear-gradient(120deg,#f0fdf4 0%,#ecfeff 100%);border-bottom:1px solid #a7f3d0;">
+          <p style="margin:0;font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:#065f46;font-weight:700;">Course Progress</p>
+          <h2 style="margin:8px 0 0 0;font-size:22px;line-height:1.3;color:#064e3b;">You're so close, {{userName}}.</h2>
+        </div>
+        <div style="padding:22px;color:#1f2937;font-size:15px;line-height:1.75;">
+          <p style="margin:0 0 14px 0;">You've already completed <strong>{{progressPct}}%</strong> of the course in <strong>{{communityName}}</strong>. You've been enrolled for {{enrolledDays}} days — finish strong.</p>
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+            <div style="height:10px;background:#d1fae5;border-radius:999px;overflow:hidden;">
+              <div style="height:100%;width:{{progressPct}}%;background:#10b981;border-radius:999px;"></div>
+            </div>
+            <p style="margin:8px 0 0 0;font-size:13px;color:#059669;"><strong>{{progressPct}}% complete</strong> — keep it up!</p>
+          </div>
+          <a href="https://chabaqa.io/explore" style="display:inline-block;background:#059669;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">Continue Learning</a>
+          <p style="margin:14px 0 0 0;color:#6b7280;font-size:13px;">Sent on {{currentDate}}</p>
         </div>
       </div>
     `
