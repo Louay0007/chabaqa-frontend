@@ -51,8 +51,6 @@ export const ROLE_PERMISSIONS: Record<CommunityRole, readonly CommunityPermissio
   moderator: [
     CommunityPermission.MEMBERS_VIEW,
     CommunityPermission.POSTS_MODERATE,
-    CommunityPermission.CONTENT_MANAGE,
-    CommunityPermission.SUPPORT_MANAGE,
   ],
   support: [
     CommunityPermission.MEMBERS_VIEW,
