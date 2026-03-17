@@ -43,6 +43,37 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 const CACHE_TTL = 30_000; // 30s
 
+function normalizePermissionList(value: unknown): CommunityPermissionValue[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((permission) => String(permission || "").trim())
+      .filter(Boolean) as CommunityPermissionValue[];
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim();
+    return normalized ? ([normalized] as CommunityPermissionValue[]) : [];
+  }
+
+  if (value && typeof value === "object") {
+    const fromKnownField = (value as any).permissions;
+    if (Array.isArray(fromKnownField)) {
+      return fromKnownField
+        .map((permission: unknown) => String(permission || "").trim())
+        .filter(Boolean) as CommunityPermissionValue[];
+    }
+
+    // Defensive fallback for unexpected object payloads from older API shapes.
+    return Object.entries(value as Record<string, unknown>)
+      .filter(([, entry]) => entry === true)
+      .map(([key]) => key)
+      .map((permission) => String(permission || "").trim())
+      .filter(Boolean) as CommunityPermissionValue[];
+  }
+
+  return [];
+}
+
 // ── Hook ───────────────────────────────────────────────────────────────────
 
 /**
@@ -100,11 +131,14 @@ export function useCommunityPermissions(
         if (latestId.current !== communityId) return;
 
         const r = access.role ?? "none";
-        const p = access.permissions ?? ROLE_PERMISSIONS[r] ?? [];
+        const p = normalizePermissionList(access.permissions);
+        const nextPermissions = p.length > 0
+          ? p
+          : [...(ROLE_PERMISSIONS[r] ?? [])];
 
-        cache.set(communityId, { role: r, permissions: p, ts: Date.now() });
+        cache.set(communityId, { role: r, permissions: nextPermissions, ts: Date.now() });
         setRole(r);
-        setPermissions(p);
+        setPermissions(nextPermissions);
       } catch (e: any) {
         if (latestId.current !== communityId) return;
         setRole("none");

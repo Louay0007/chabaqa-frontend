@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/app/(creator)/creator/components/dashboard-la
 import { CreatorCommunityProvider } from "@/app/(creator)/creator/context/creator-community-context"
 import { Toaster } from "@/components/ui/toaster"
 import { CreatorNotificationListener } from "@/app/(creator)/creator/components/creator-notification-listener"
+import { ExtensionErrorGuard } from "@/app/(auth)/components/extension-error-guard"
 
 export default function CreatorClientLayout({ children }: { children: React.ReactNode }) {
   const [isMobile, setIsMobile] = useState(false)
@@ -34,6 +35,7 @@ export default function CreatorClientLayout({ children }: { children: React.Reac
 
   return (
     <CreatorCommunityProvider>
+      <ExtensionErrorGuard />
       <CreatorNotificationListener />
       <DashboardLayout>{children}</DashboardLayout>
       <Toaster
