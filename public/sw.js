@@ -22,23 +22,37 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const targetPath =
-    (event.notification && event.notification.data && event.notification.data.url) ||
-    '/creator/notifications';
+  const data = (event.notification && event.notification.data) || {};
+  const targetPath = data.url || '/creator/notifications';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientsArr) => {
+      // Try to find an existing window/tab with the same origin
       for (const client of clientsArr) {
-        if ('focus' in client) {
-          if (client.url && targetPath) {
-            client.navigate(targetPath);
+        try {
+          const clientUrl = new URL(client.url);
+          const targetUrl = new URL(targetPath, clientUrl.origin);
+
+          // If a window is already on the same path, just focus it
+          if (clientUrl.pathname === targetUrl.pathname && 'focus' in client) {
+            return client.focus();
           }
-          return client.focus();
+        } catch (_) {
+          // URL parsing failed, skip this client
         }
       }
+
+      // Navigate an existing window to the deep link, or open a new one
+      for (const client of clientsArr) {
+        if ('focus' in client && 'navigate' in client) {
+          return client.navigate(targetPath).then(() => client.focus());
+        }
+      }
+
       if (self.clients.openWindow) {
         return self.clients.openWindow(targetPath);
       }
+
       return null;
     }),
   );

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Bell,
   Search,
@@ -24,12 +25,16 @@ import {
   Info,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  Settings
 } from "lucide-react"
 import { notificationsApi, Notification } from "@/lib/api"
 import { formatDistanceToNow } from "date-fns"
 import { fr } from "date-fns/locale"
 import { useAuth } from "@/hooks/use-auth"
+import { PushSettings } from "@/components/notifications/push-settings"
+import { NotificationPreferences } from "@/components/notifications/notification-preferences"
+import { MutesList } from "@/components/notifications/mute-actions"
 
 const getNotificationIcon = (type: string) => {
   switch (type) {
@@ -247,6 +252,20 @@ export default function NotificationsPage() {
         )}
       </div>
 
+      <Tabs defaultValue="notifications" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            Notifications
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Settings
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="notifications" className="space-y-6">
+
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-4">
@@ -451,6 +470,15 @@ export default function NotificationsPage() {
           </Button>
         </div>
       )}
+
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <PushSettings userId={user?._id} />
+          <NotificationPreferences />
+          <MutesList />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
