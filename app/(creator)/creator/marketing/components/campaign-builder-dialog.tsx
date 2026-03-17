@@ -43,11 +43,13 @@ type BuilderSeed = Partial<{
 
 type ContentPick = { id: string; title: string }
 
+type VariableBucket = "base" | "inactive" | "content" | "course"
+
 const VARIABLE_DEFS: Array<{
   key: string
   label: string
   description: string
-  showFor: Array<"base" | "inactive" | "content">
+  showFor: Array<VariableBucket>
 }> = [
   { key: "userName", label: "User name", description: "Member’s name", showFor: ["base"] },
   { key: "communityName", label: "Community name", description: "Your community’s name", showFor: ["base"] },
@@ -304,11 +306,11 @@ export function CampaignBuilderDialog(props: {
   }, [inactivityPeriod, kind])
 
   const availableVariables = useMemo(() => {
-    const buckets: Array<"base" | "inactive" | "content" | "course"> = ["base"]
+    const buckets: Array<VariableBucket> = ["base"]
     if (kind === "inactive-users") buckets.push("inactive")
     if (kind === "content-reminder") buckets.push("content")
     if (kind === "course-progress") buckets.push("course")
-    return VARIABLE_DEFS.filter((v) => v.showFor.some((b) => (buckets as string[]).includes(b)))
+    return VARIABLE_DEFS.filter((v) => v.showFor.some((b) => buckets.includes(b)))
   }, [kind])
 
   const previewVariables = useMemo(() => {

@@ -13,6 +13,7 @@ import { communitiesApi } from '@/lib/api/communities.api'
 import { useAuthContext } from '@/app/providers/auth-provider'
 import type { CommunityMember } from '@/lib/api/types'
 import { getUserProfileHref } from '@/lib/profile-handle'
+import { ROLE_LABELS, ROLE_COLORS, type CommunityRole } from '@/lib/permissions'
 
 interface Community {
   id: string
@@ -123,13 +124,11 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
 
   const membersStats = useMemo(() => {
     const total = members.length
-    const admins = members.filter((member) => member.role === 'admin').length
-    const moderators = members.filter((member) => member.role === 'moderator').length
-    return {
-      total,
-      admins,
-      moderators,
-    }
+    const owners = members.filter((m) => m.role === 'owner').length
+    const admins = members.filter((m) => m.role === 'admin').length
+    const moderators = members.filter((m) => m.role === 'moderator').length
+    const support = members.filter((m) => m.role === 'support').length
+    return { total, owners, admins, moderators, support }
   }, [members])
 
   const myMembership = useMemo(
@@ -223,6 +222,12 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
                 <div className="text-xl font-bold">{membersStats.total}</div>
                 <div className="text-cyan-100 text-xs">Members</div>
               </div>
+              {membersStats.owners > 0 && (
+                <div className="text-center">
+                  <div className="text-xl font-bold">{membersStats.owners}</div>
+                  <div className="text-cyan-100 text-xs">Owner</div>
+                </div>
+              )}
               <div className="text-center">
                 <div className="text-xl font-bold">{membersStats.admins}</div>
                 <div className="text-cyan-100 text-xs">Admins</div>
@@ -231,6 +236,12 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
                 <div className="text-xl font-bold">{membersStats.moderators}</div>
                 <div className="text-cyan-100 text-xs">Moderators</div>
               </div>
+              {membersStats.support > 0 && (
+                <div className="text-center">
+                  <div className="text-xl font-bold">{membersStats.support}</div>
+                  <div className="text-cyan-100 text-xs">Support</div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -306,9 +317,9 @@ export default function CommunityMembersPage({ params }: { params: Promise<{ cre
                       {isSelf && (
                         <Badge variant="secondary">You</Badge>
                       )}
-                      <Badge variant={member.role === 'admin' ? 'default' : member.role === 'moderator' ? 'secondary' : 'outline'}>
-                        {member.role}
-                      </Badge>
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ROLE_COLORS[(member.role as CommunityRole) || 'member']}`}>
+                        {ROLE_LABELS[(member.role as CommunityRole) || 'member']}
+                      </span>
                     </div>
                   </div>
 

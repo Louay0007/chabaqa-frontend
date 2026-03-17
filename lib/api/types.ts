@@ -132,7 +132,7 @@ export interface CommunityMember {
   id: string;
   userId: string;
   communityId: string;
-  role: 'admin' | 'moderator' | 'member';
+  role: 'owner' | 'admin' | 'moderator' | 'support' | 'member';
   joinedAt: string;
   user: User;
 }

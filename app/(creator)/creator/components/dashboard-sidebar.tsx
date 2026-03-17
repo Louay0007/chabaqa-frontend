@@ -42,6 +42,8 @@ import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-com
 import { prefetchCommunity } from "@/app/(creator)/creator/context/community-switch-cache"
 import type { Community } from "@/lib/api/types"
 import { api } from "@/lib/api"
+import { useCommunityPermissions } from "@/hooks/use-community-permissions"
+import { CommunityPermission, type CommunityPermissionValue } from "@/lib/permissions"
 
 interface DashboardSidebarProps {
   user: any
@@ -67,6 +69,9 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
     error: communitiesError,
     setSelectedCommunityId,
   } = useCreatorCommunity()
+
+  // RBAC: fetch current user's permissions for the selected community
+  const { can: canPermission, isAdmin: isRbacAdmin } = useCommunityPermissions(selectedCommunityId)
 
   // State for unread notifications count
   const [unreadCount, setUnreadCount] = useState(0)
@@ -142,7 +147,8 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
       title: "Analytics",
       href: "/creator/analytics",
       icon: ChartSpline,
-      badge: null
+      badge: null,
+      requiredPermission: CommunityPermission.ANALYTICS_VIEW as CommunityPermissionValue | undefined,
     },
 
     {
@@ -150,6 +156,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
       icon: FileText,
       expandable: true,
       section: "content",
+      requiredPermission: CommunityPermission.CONTENT_MANAGE as CommunityPermissionValue | undefined,
       items: [
         { title: "Course", href: "/creator/courses", badge: null },
         { title: "Challenge", href: "/creator/challenges", badge: null },
@@ -170,6 +177,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
       icon: CreditCard,
       expandable: true,
       section: "monetization",
+      requiredPermission: CommunityPermission.FINANCE_VIEW as CommunityPermissionValue | undefined,
       items: [
         { title: "Subscriptions", href: "/creator/monetization/subscriptions", badge: null },
         { title: "Payouts", href: "/creator/monetization/payouts", badge: null },
@@ -181,6 +189,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
       icon: Zap,
       expandable: true,
       section: "marketing",
+      requiredPermission: CommunityPermission.MARKETING_MANAGE as CommunityPermissionValue | undefined,
       items: [
         { title: "Email Campaigns", href: "/creator/marketing/emails", badge: null },
         { title: "Affiliates", href: "/creator/marketing/affiliates", badge: null },
@@ -196,6 +205,13 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
       badge: 'soon',
     },
     {
+      title: "Team & Roles",
+      icon: Shield,
+      href: "/creator/team",
+      badge: null,
+      requiredPermission: CommunityPermission.ROLES_MANAGE as CommunityPermissionValue | undefined,
+    },
+    {
       title: "Notifications",
       icon: Bell,
       href: "/creator/notifications",
@@ -209,10 +225,16 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
     },
   ]
 
+  // Filter menu items by permission — items without requiredPermission are always visible
+  const visibleMenuItems = menuItems.filter((item) => {
+    if (!item.requiredPermission) return true
+    return canPermission(item.requiredPermission)
+  })
+
   const getInitialExpandedSections = () => {
     const activeSections: string[] = []
 
-    for (const item of menuItems) {
+    for (const item of visibleMenuItems) {
       if (item.expandable && item.items) {
         for (const subItem of item.items) {
           if (pathname.startsWith(subItem.href)) {
@@ -327,7 +349,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-        {menuItems.map((item) => (
+        {visibleMenuItems.map((item) => (
           <div key={item.title}>
             {item.expandable ? (
               <Collapsible

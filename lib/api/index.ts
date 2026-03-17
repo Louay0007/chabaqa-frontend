@@ -35,6 +35,7 @@ export * from './dm.api';
 export * from './live-support.api';
 export * from './tracking.api';
 export * from './affiliate.api';
+export * from './community-access.api';
 
 // Re-export to avoid ambiguity
 export type { PaginationParams } from './client';
@@ -66,6 +67,7 @@ import { trackingApi } from './tracking.api';
 import { affiliateApi } from './affiliate.api';
 import { communityInvitationsApi } from './community-invitations.api';
 import { communityMembersApi } from './community-members.api';
+import { communityAccessApi } from './community-access.api';
 
 export const api = {
   auth: authApi,
@@ -94,4 +96,5 @@ export const api = {
   affiliate: affiliateApi,
   communityInvitations: communityInvitationsApi,
   communityMembers: communityMembersApi,
+  communityAccess: communityAccessApi,
 };
