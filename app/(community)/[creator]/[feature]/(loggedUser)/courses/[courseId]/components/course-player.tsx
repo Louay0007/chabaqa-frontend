@@ -795,40 +795,11 @@ export default function CoursePlayer({
       .catch((error) => {
         console.error("[CourseNextFlow] Requested chapter selection failed", error)
       })
-  }, [requestedChapterId, allChapters, attemptSelectChapter, onRequestedChapterConsumed, isUserEnrolled])
+	  }, [requestedChapterId, allChapters, attemptSelectChapter, onRequestedChapterConsumed, isUserEnrolled])
 
-  const handleCompleteChapter = async (chapterId: string) => {
-    if (!enrollment) return
-    try {
-      await coursesApi.completeChapterEnrollment(resolvedCourseId, String(chapterId))
-      toast({ title: "Chapter completed" })
-      if (onRefreshProgress) {
-        await onRefreshProgress()
-      }
-      if (onRefreshUnlockedChapters) {
-        await onRefreshUnlockedChapters()
-      }
-
-      // Re-check access after completion (sequential unlock)
-      setAccessibleChapters({})
-      setChapterAccessReason({})
-
-      const movedImmediately = await tryAutoAdvanceToNext(String(chapterId), { refreshBeforeCheck: false })
-      if (!movedImmediately) {
-        await tryAutoAdvanceToNext(String(chapterId), { refreshBeforeCheck: true, delayMs: 400 })
-      }
-    } catch (error) {
-      toast({
-        title: "Could not complete chapter",
-        description: typeof error === "object" && error && "message" in error ? String((error as any).message) : "Please try again.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const isCourseCompleted = useMemo(() => {
-    if (!Array.isArray(allChapters) || allChapters.length === 0) return false
-    return completedChaptersCount >= allChapters.length
+	  const isCourseCompleted = useMemo(() => {
+	    if (!Array.isArray(allChapters) || allChapters.length === 0) return false
+	    return completedChaptersCount >= allChapters.length
   }, [allChapters, completedChaptersCount])
 
   // Compute a single chapter percent to display (prefer optimistic/live values)
@@ -925,25 +896,18 @@ export default function CoursePlayer({
         
         <div className="grid grid-cols-1 lg:grid-cols-7 xl:grid-cols-3 gap-6">
           <div className="lg:col-span-4 xl:col-span-2 space-y-4">
-            {isCourseCompleted ? (
-              <div className="rounded-lg border bg-white p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <div className="text-sm font-medium">You completed all chapters</div>
-                    <div className="text-xs text-muted-foreground">
-                      Course completion is auto-recorded. Use this button only if you want to retry finalization now.
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleCompleteCourse}
-                    className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
-                  >
-                    Complete course
-                  </button>
-                </div>
-              </div>
-            ) : null}
+	            {isCourseCompleted ? (
+	              <div className="rounded-lg border bg-white p-4">
+	                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+	                  <div>
+	                    <div className="text-sm font-medium">You completed all chapters</div>
+	                    <div className="text-xs text-muted-foreground">
+	                      Course completion is auto-recorded. Use this button only if you want to retry finalization now.
+	                    </div>
+	                  </div>
+	                </div>
+	              </div>
+	            ) : null}
 
             <EnhancedVideoPlayer 
               creatorSlug={creatorSlug}
@@ -957,18 +921,16 @@ export default function CoursePlayer({
               onProgressSaved={onRefreshProgress}
             />
 
-            <ChapterTabs 
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              currentChapter={currentChapter}
-              currentChapterIndex={currentChapterIndex}
-              allChapters={allChapters}
-              canComplete={Boolean(enrollment && currentChapter?.id && isChapterAccessible(String(currentChapter.id)))}
-              onCompleteChapter={handleCompleteChapter}
-              isCurrentChapterCompleted={isCurrentChapterCompleted}
-              nextChapterId={nextChapterId}
-              courseId={resolvedCourseId}
-              onRefreshCourse={onRefreshCourse}
+	            <ChapterTabs 
+	              activeTab={activeTab}
+	              setActiveTab={setActiveTab}
+	              currentChapter={currentChapter}
+	              currentChapterIndex={currentChapterIndex}
+	              allChapters={allChapters}
+	              isCurrentChapterCompleted={isCurrentChapterCompleted}
+	              nextChapterId={nextChapterId}
+	              courseId={resolvedCourseId}
+	              onRefreshCourse={onRefreshCourse}
               onGoToNextChapter={async () => {
                 console.info("[CourseNextFlow] onGoToNextChapter invoked from ChapterTabs", {
                   currentChapterId: currentChapter?.id ? String(currentChapter.id) : null,

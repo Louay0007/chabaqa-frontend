@@ -13,8 +13,6 @@ interface ChapterTabsProps {
   currentChapter: any
   currentChapterIndex: number
   allChapters: any[]
-  canComplete?: boolean
-  onCompleteChapter?: (chapterId: string) => void
   isCurrentChapterCompleted?: boolean
   nextChapterId?: string | null
   onGoToNextChapter?: () => void | Promise<void>
@@ -49,8 +47,6 @@ export default function ChapterTabs({
   currentChapter, 
   currentChapterIndex, 
   allChapters,
-  canComplete,
-  onCompleteChapter,
   isCurrentChapterCompleted,
   nextChapterId,
   onGoToNextChapter,
@@ -120,12 +116,6 @@ export default function ChapterTabs({
             )}
 
             <div className="flex flex-wrap gap-3 mt-6 pt-4 border-t">
-              {canComplete && currentChapter?.id && onCompleteChapter && !isCurrentChapterCompleted ? (
-                <Button type="button" onClick={() => onCompleteChapter(String(currentChapter.id))} className="text-sm md:text-base">
-                  Mark as completed
-                </Button>
-              ) : null}
-
               {isCurrentChapterCompleted && nextChapterId && onGoToNextChapter ? (
                 <Button type="button" onClick={() => void handleGoToNextChapterClick()} className="text-sm md:text-base">
                   Next Chapter

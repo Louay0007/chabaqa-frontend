@@ -71,14 +71,12 @@ export function ChabaqaLogoWatermark({
   const stylePreset = useMemo(() => {
     if (strength === "normal") {
       return {
-        tileOpacity: 0.1,
-        movingOpacity: 0.16,
+        movingOpacity: 0.12,
       }
     }
 
     return {
-      tileOpacity: 0.07,
-      movingOpacity: 0.11,
+      movingOpacity: 0.08,
     }
   }, [strength])
 
@@ -90,19 +88,6 @@ export function ChabaqaLogoWatermark({
       data-testid="chabaqa-watermark"
       className="absolute inset-0 z-10 overflow-hidden pointer-events-none select-none"
     >
-      <div
-        className="absolute -inset-1/4"
-        style={{
-          backgroundImage: `url(${resolvedLogoSrc})`,
-          backgroundRepeat: "repeat",
-          backgroundSize: "160px 160px",
-          opacity: stylePreset.tileOpacity,
-          transform: "rotate(-12deg) scale(1.2)",
-          filter: "grayscale(1)",
-          transformOrigin: "center",
-        }}
-      />
-
       <img
         src={resolvedLogoSrc}
         alt=""
