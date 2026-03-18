@@ -9,6 +9,7 @@ import CourseSidebar from "@/app/(community)/[creator]/[feature]/(loggedUser)/co
 import { coursesApi } from "@/lib/api/courses.api"
 import { tokenStorage } from "@/lib/token-storage"
 import { useToast } from "@/components/ui/use-toast"
+import type { CourseSession } from "@/hooks/use-course-session"
 
 interface CoursePlayerProps {
   creatorSlug: string
@@ -19,6 +20,8 @@ interface CoursePlayerProps {
   unlockedChapters: any[] | null
   sequentialProgressionEnabled: boolean
   unlockMessage?: string
+  /** Centralized course session from useCourseSession hook. */
+  courseSession?: CourseSession
   onRefreshCourse?: () => Promise<void>
   onRefreshProgress?: () => Promise<void>
   onRefreshUnlockedChapters?: () => Promise<void>
@@ -43,6 +46,7 @@ export default function CoursePlayer({
   unlockedChapters,
   sequentialProgressionEnabled,
   unlockMessage,
+  courseSession,
   onRefreshCourse,
   onRefreshProgress,
   onRefreshUnlockedChapters,
@@ -148,19 +152,26 @@ export default function CoursePlayer({
     [allChapters, enrollment?.progress, effectiveUnlockMessage],
   )
 
-  // Expose a global hook so the player can notify when it completes a chapter.
-  // This avoids changing many prop signatures; CoursePlayer will refresh progress/unlocked-chapters when notified.
+  // Chapter completion handler: replaces the global window.__onChapterComplete pattern.
+  // When the session hook is available, delegate to it for deterministic state updates.
   useEffect(() => {
-    (window as any).__onChapterComplete = async () => {
+    const onChapterComplete = async () => {
+      if (courseSession) {
+        const currentId = currentChapterRef.current?.id ? String(currentChapterRef.current.id) : null
+        if (currentId) {
+          courseSession.reportChapterComplete(currentId)
+        }
+      }
       if (onRefreshProgress) await onRefreshProgress()
       if (onRefreshUnlockedChapters) await onRefreshUnlockedChapters()
     }
+    ;(window as any).__onChapterComplete = onChapterComplete
     return () => {
       try {
         delete (window as any).__onChapterComplete
       } catch {}
     }
-  }, [onRefreshProgress, onRefreshUnlockedChapters])
+  }, [onRefreshProgress, onRefreshUnlockedChapters, courseSession])
 
   const resolveChapterAccess = useCallback(
     async (chapterId: string): Promise<{ canAccess: boolean; reason?: string }> => {
@@ -256,11 +267,16 @@ export default function CoursePlayer({
         return true
       }
 
+      // Prefer the centralized session's access decisions (backend-authoritative, no stale closure).
+      if (courseSession && courseSession.chapters.length > 0) {
+        return courseSession.isChapterAccessible(key)
+      }
+
       const chapter = allChapters.find((c: any) => String(c.id) === key)
       if (!chapter) return false
 
       if (!isUserEnrolled) {
-        return Boolean(firstChapterId && key === firstChapterId)
+        return Boolean(firstChapterId && key === firstChapterId) || Boolean(chapter.isPreview)
       }
 
       if (effectiveSequentialProgressionEnabled) {
@@ -285,6 +301,7 @@ export default function CoursePlayer({
       accessibleChapters,
       effectiveSequentialProgressionEnabled,
       resolveSequentialAccessLocally,
+      courseSession,
     ],
   )
 
@@ -395,7 +412,12 @@ export default function CoursePlayer({
         setVideoDurationOverride(Math.floor(duration))
       }
 
+      // Report to centralized session hook for automatic threshold-based refresh
       const currentChapterId = currentChapterRef.current?.id ? String(currentChapterRef.current.id) : null
+      if (currentChapterId && courseSession) {
+        courseSession.reportWatchTime(currentChapterId, secs, duration)
+      }
+
       if (currentChapterId && isUserEnrolled && !autoAdvancedFromChapterRef.current[currentChapterId]) {
         const currentChapterIndex = allChapters.findIndex((c: any) => String(c.id) === currentChapterId)
         const hasNextChapter = currentChapterIndex !== -1 && currentChapterIndex < allChapters.length - 1
@@ -919,6 +941,7 @@ export default function CoursePlayer({
               onWatchTimeUpdate={handleWatchTimeUpdate}
               onEnrollNow={handleEnrollNow}
               onProgressSaved={onRefreshProgress}
+              onChapterComplete={courseSession ? (chapterId) => courseSession.reportChapterComplete(chapterId) : undefined}
             />
 
 	            <ChapterTabs 
@@ -963,6 +986,7 @@ export default function CoursePlayer({
             pendingPaidChapterId={pendingPaidChapterId}
             onRetryUnlock={onRetryUnlock}
             onOpenEnrollment={onOpenEnrollment}
+            courseSession={courseSession}
             currentChapterProgress={
               currentChapter?.id
                 ? {

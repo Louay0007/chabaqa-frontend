@@ -21,6 +21,8 @@ interface EnhancedVideoPlayerProps {
   onEnrollNow?: () => void
   /** Called after watch time is saved so parent can refetch progress (e.g. when enrollment was auto-created). */
   onProgressSaved?: () => void
+  /** Called when chapter is marked complete — replaces global window.__onChapterComplete coupling. */
+  onChapterComplete?: (chapterId: string) => void
 }
 
 type YouTubeApiPlayer = {
@@ -148,6 +150,7 @@ export default function EnhancedVideoPlayer({
   onWatchTimeUpdate,
   onEnrollNow,
   onProgressSaved,
+  onChapterComplete,
 }: EnhancedVideoPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [watchTime, setWatchTime] = useState(0)
@@ -490,6 +493,12 @@ export default function EnhancedVideoPlayer({
           )
         }
         await coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
+
+        // Notify via the explicit callback prop (preferred over global coupling).
+        if (onChapterComplete) {
+          onChapterComplete(String(currentChapter.id))
+        }
+
         if (typeof (window as any).__onChapterComplete === "function") {
           ;(window as any).__onChapterComplete()
         }
@@ -508,7 +517,7 @@ export default function EnhancedVideoPlayer({
         completeInFlightRef.current = false
       }
     },
-    [courseId, currentChapter?.id],
+    [courseId, currentChapter?.id, onChapterComplete],
   )
 
   // Initialize YouTube Player

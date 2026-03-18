@@ -77,6 +77,12 @@ export const coursesApi = {
     return apiClient.get(`/cours/${id}/unlocked-chapters`);
   },
 
+  getCourseSession: async (courseId: string, currentChapterId?: string): Promise<any> => {
+    const params: Record<string, string> = {};
+    if (currentChapterId) params.currentChapterId = currentChapterId;
+    return apiClient.get(`/cours/${courseId}/course-session`, params);
+  },
+
   checkChapterAccessPaid: async (courseId: string, chapterId: string): Promise<any> => {
     return apiClient.get(`/cours/${courseId}/chapitres/${chapterId}/access`);
   },

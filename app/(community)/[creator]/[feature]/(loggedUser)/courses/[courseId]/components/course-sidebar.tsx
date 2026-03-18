@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { format } from "date-fns"
 import Link from "next/link"
 import { getUserProfileHref } from "@/lib/profile-handle"
+import type { CourseSession } from "@/hooks/use-course-session"
 
 interface CourseSidebarProps {
   course: any
@@ -38,6 +39,8 @@ interface CourseSidebarProps {
     targetChapterPaid?: boolean
     source?: "sidebar-next" | "player-lock" | "manual"
   }) => void | Promise<void>
+  /** Centralized course session from useCourseSession hook. */
+  courseSession?: CourseSession
 }
 
 export default function CourseSidebar({ 
@@ -56,6 +59,7 @@ export default function CourseSidebar({
   chapterUnlockState = "idle",
   onRetryUnlock,
   onOpenEnrollment,
+  courseSession,
 }: CourseSidebarProps) {
   const [activeTab, setActiveTab] = useState("content")
   const [noteContent, setNoteContent] = useState("")
@@ -256,11 +260,52 @@ export default function CourseSidebar({
       isCurrentChapterCompleted,
       purchasing,
       selectedChapter,
+      usingSession: Boolean(courseSession),
     })
 
     if (purchasing) {
       console.info("[CourseNextFlow] Next chapter click ignored: purchase already in progress", {
         nextChapterId,
+      })
+      return
+    }
+
+    // When the session hook is available, use its deterministic goToNextChapter action.
+    // This bypasses the stale-closure problem because the session fetches fresh access from backend.
+    if (courseSession && isCurrentChapterCompleted) {
+      const result = await courseSession.goToNextChapter()
+      if (result.success) {
+        console.info("[CourseNextFlow] Session-based next chapter navigation succeeded")
+        return
+      }
+
+      // Session says blocked — check if it's a payment/enrollment issue
+      const lockCode = 'lockCode' in result ? result.lockCode : undefined
+      const needsPayment = 'needsPayment' in result ? result.needsPayment : false
+
+      if (needsPayment && onOpenEnrollment) {
+        await onOpenEnrollment({
+          targetChapterId: nextChapterId,
+          targetChapterPaid: true,
+          source: "sidebar-next",
+        })
+        return
+      }
+
+      if (!isUserEnrolled && onOpenEnrollment) {
+        await onOpenEnrollment({
+          targetChapterId: nextChapterId,
+          targetChapterPaid: false,
+          source: "sidebar-next",
+        })
+        return
+      }
+
+      // Show the block reason to the user
+      toast({
+        title: "Next chapter locked",
+        description: 'reason' in result ? result.reason : "Complete the current chapter first.",
+        variant: "destructive",
       })
       return
     }

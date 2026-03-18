@@ -9,6 +9,7 @@ import { transformCourse } from "@/lib/api/courses-community.api"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { useToast } from "@/components/ui/use-toast"
+import { useCourseSession } from "@/hooks/use-course-session"
 
 type CoursePlayerPageProps = {
   params: Promise<{ creator: string; feature: string; courseId: string }>
@@ -44,6 +45,15 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
     if (!response || typeof response !== "object") return response
     return response.data ?? response
   }
+
+  // ── Centralized course session hook ─────────────────────────────────────
+  const resolvedCourseIdForSession = String(course?.mongoId || courseId)
+  const courseSession = useCourseSession(resolvedCourseIdForSession, {
+    initialEnrollment: enrollment,
+    onRefreshEnrollment: async () => {
+      await refreshEnrollmentProgress(resolvedCourseIdForSession, course)
+    },
+  })
 
   const refreshEnrollmentProgress = async (
     resolvedCourseId: string,
@@ -101,6 +111,8 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
   ) => {
     const normalizedEnrollment = await refreshEnrollmentProgress(resolvedCourseId, courseForFallback)
     await refreshUnlockedChapters(resolvedCourseId)
+    // Also refresh the centralized session
+    await courseSession.refreshSession().catch(() => {})
     return normalizedEnrollment
   }
 
@@ -143,6 +155,8 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
       try {
         await refreshEnrollmentProgress(resolvedCourseId, course)
         await refreshUnlockedChapters(resolvedCourseId)
+        // Refresh centralized session to get updated access
+        await courseSession.refreshSession().catch(() => {})
         const paidRaw = await coursesApi.checkChapterAccessPaid(resolvedCourseId, chapterId).catch(() => null)
         const seqRaw = await coursesApi.checkChapterAccessSequential(resolvedCourseId, chapterId).catch(() => null)
         const paid = (paidRaw as any)?.data || paidRaw
@@ -471,6 +485,7 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
         unlockedChapters={unlockedChapters}
         sequentialProgressionEnabled={sequentialProgressionEnabled}
         unlockMessage={unlockMessage}
+        courseSession={courseSession}
         onRefreshCourse={refreshCourse}
         onRefreshProgress={async () => {
           const resolvedCourseId = String(course?.mongoId || courseId)
