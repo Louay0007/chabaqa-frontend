@@ -109,10 +109,21 @@ const nextConfig = {
 
     return [
       {
-        source: '/uploads/:path*',
-        destination: `${backendOrigin}/uploads/:path*`, // Proxy to Backend media
+        // Proxy non-video uploads to backend (images, documents, audio)
+        source: '/uploads/image/:path*',
+        destination: `${backendOrigin}/uploads/image/:path*`,
       },
       {
+        source: '/uploads/document/:path*',
+        destination: `${backendOrigin}/uploads/document/:path*`,
+      },
+      {
+        source: '/uploads/audio/:path*',
+        destination: `${backendOrigin}/uploads/audio/:path*`,
+      },
+      {
+        // Video files are NOT proxied — they go through /api/video/stream/:sessionId
+        // This prevents direct video URL exposure through the frontend domain
         source: '/api/:path*',
         destination: `${backendOrigin}/api/:path*`, // Proxy API requests to Backend
       },

@@ -25,7 +25,6 @@ export interface CoursesPageData {
  * Backend returns courses with sections and chapters nested
  */
 export function transformCourse(backendCourse: any): any {
-  console.log('🔄 transformCourse input:', backendCourse);
   if (!backendCourse) return null;
 
   // Extract inner data if wrapped in 'data' or 'cours' property
@@ -46,31 +45,18 @@ export function transformCourse(backendCourse: any): any {
         ? chapter.contenu
         : chapter.description || '';
 
-      // Extract video URL with fallbacks
-      const videoUrl = chapter.videoUrl ?? chapter.video_url ?? chapter.videoURL ?? chapter.video ?? chapter.url ?? "";
-      
-      // Debug logging for video URL
-      console.log(`📹 [transformCourse] Chapter "${chapter.titre || chapter.title}":`, {
-        id: chapter.id,
-        videoUrl,
-        rawVideoUrl: chapter.videoUrl,
-        hasVideo: Boolean(videoUrl && videoUrl.trim())
-      });
-
- 
-      // Debug logging for video URL
-      console.log(`📹 [transformCourse] Chapter "${chapter.titre || chapter.title}":`, {
-        id: chapter.id,
-        videoUrl,
-        rawVideoUrl: chapter.videoUrl,
-        hasVideo: Boolean(videoUrl && videoUrl.trim())
-      });
+      // Video URL handling: backend now strips videoUrl for premium chapters
+      // and provides hasProtectedVideo + videoStorageKey instead
+      const hasProtectedVideo = Boolean(chapter.hasProtectedVideo);
+      const videoUrl = hasProtectedVideo ? '' : (chapter.videoUrl ?? chapter.video_url ?? chapter.videoURL ?? chapter.video ?? chapter.url ?? "");
 
       return {
         id: chapter.id || '',
         title: chapter.titre || chapter.title || '',
         content,
         videoUrl,
+        hasProtectedVideo,
+        videoStorageKey: chapter.videoStorageKey || null,
         // Handle duration: if duree > 300, it's likely already in seconds (legacy data)
         // Otherwise, duree is in minutes, convert to seconds
         duration: Number(chapter.duree ?? 0) > 300
