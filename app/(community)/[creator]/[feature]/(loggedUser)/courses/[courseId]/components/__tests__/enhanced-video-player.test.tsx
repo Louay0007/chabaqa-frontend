@@ -1,12 +1,20 @@
 import React from "react"
-import { act, render, waitFor } from "@testing-library/react"
+import { act, render, screen, waitFor } from "@testing-library/react"
 import EnhancedVideoPlayer from "@/app/(community)/[creator]/[feature]/(loggedUser)/courses/[courseId]/components/enhanced-video-player"
 import { coursesApi } from "@/lib/api/courses.api"
+import { videoPlaybackApi } from "@/lib/api/video-playback.api"
 
 jest.mock("@/lib/api/courses.api", () => ({
   coursesApi: {
     updateChapterWatchTime: jest.fn().mockResolvedValue({}),
     completeChapterEnrollment: jest.fn().mockResolvedValue({ success: true }),
+  },
+}))
+
+jest.mock("@/lib/api/video-playback.api", () => ({
+  videoPlaybackApi: {
+    createPlaybackSession: jest.fn(),
+    extendSession: jest.fn().mockResolvedValue({}),
   },
 }))
 
@@ -101,6 +109,7 @@ describe("EnhancedVideoPlayer YouTube tracking", () => {
   beforeEach(() => {
     jest.clearAllMocks()
     localStorage.clear()
+    ;(videoPlaybackApi.createPlaybackSession as jest.Mock).mockResolvedValue({ data: null })
   })
 
   afterEach(() => {
@@ -407,5 +416,71 @@ describe("EnhancedVideoPlayer YouTube tracking", () => {
     expect(coursesApi.completeChapterEnrollment).toHaveBeenCalledTimes(1)
     expect(progressUpdatedListener).toHaveBeenCalled()
     window.removeEventListener("course-progress-updated", progressUpdatedListener)
+  })
+})
+
+describe("EnhancedVideoPlayer watermark overlay", () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    localStorage.clear()
+    ;(videoPlaybackApi.createPlaybackSession as jest.Mock).mockResolvedValue({ data: null })
+  })
+
+  it("renders logo watermark overlay for local file video branch", async () => {
+    render(
+      <EnhancedVideoPlayer
+        creatorSlug="creator"
+        slug="community"
+        courseId="course-1"
+        currentChapter={{
+          id: "chapter-local",
+          title: "Local Video",
+          videoUrl: "/uploads/chapter-local.mp4",
+          duration: 120,
+          isPreview: true,
+        }}
+        isChapterAccessible={() => true}
+        enrollment={{ progress: [] }}
+      />,
+    )
+
+    expect(await screen.findByTestId("chabaqa-watermark")).toBeInTheDocument()
+  })
+
+  it("renders logo watermark overlay for YouTube branch", async () => {
+    mockYoutubePlayer()
+    renderYoutubePlayer("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+
+    expect(await screen.findByTestId("chabaqa-watermark")).toBeInTheDocument()
+  })
+
+  it("renders logo watermark overlay for protected playback session branch", async () => {
+    ;(videoPlaybackApi.createPlaybackSession as jest.Mock).mockResolvedValue({
+      data: {
+        sessionId: "session-1",
+        streamUrl: "/api/video/stream/chapter-protected.mp4",
+        streamType: "mp4",
+      },
+    })
+
+    render(
+      <EnhancedVideoPlayer
+        creatorSlug="creator"
+        slug="community"
+        courseId="course-1"
+        currentChapter={{
+          id: "chapter-protected",
+          title: "Protected Video",
+          videoUrl: "",
+          hasProtectedVideo: true,
+          duration: 120,
+          isPreview: false,
+        }}
+        isChapterAccessible={() => true}
+        enrollment={{ progress: [] }}
+      />,
+    )
+
+    expect(await screen.findByTestId("chabaqa-watermark")).toBeInTheDocument()
   })
 })

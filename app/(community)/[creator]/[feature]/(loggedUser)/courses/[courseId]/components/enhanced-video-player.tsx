@@ -8,6 +8,7 @@ import { coursesApi } from "@/lib/api/courses.api"
 import { videoPlaybackApi, type PlaybackSessionResponse } from "@/lib/api/video-playback.api"
 import { detectVideoPlatform, parseVimeoVideoId, parseYouTubeVideoId } from "@/lib/utils/video-source"
 import { tokenStorage } from "@/lib/token-storage"
+import { ChabaqaLogoWatermark } from "@/components/media/chabaqa-logo-watermark"
 
 interface EnhancedVideoPlayerProps {
   creatorSlug: string
@@ -1186,9 +1187,13 @@ export default function EnhancedVideoPlayer({
   return (
     <Card className="border-0 shadow-sm overflow-hidden">
       <div className="relative bg-black aspect-video">
+        {/* Full-surface logo watermark overlay for all player branches.
+            Browser/native fullscreen can elevate media layers above DOM overlays. */}
+        <ChabaqaLogoWatermark enabled />
+
         {/* Dynamic Watermark for protected videos */}
         {playbackSession?.watermark && (
-          <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden select-none">
+          <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden select-none">
             <WatermarkText text={playbackSession.watermark.text} sessionShort={playbackSession.watermark.sessionShort} />
           </div>
         )}
@@ -1239,7 +1244,7 @@ export default function EnhancedVideoPlayer({
 
         {/* Watch time indicator (for tracking confirmation) - Only show when advancing BEYOND high-water mark */}
         {enrollment && watchTime > savedWatchPosition && watchTime > 0 && (
-          <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-2">
+          <div className="absolute top-2 right-2 z-30 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-2">
             <div className="w-16 h-1.5 bg-gray-600 rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary"
