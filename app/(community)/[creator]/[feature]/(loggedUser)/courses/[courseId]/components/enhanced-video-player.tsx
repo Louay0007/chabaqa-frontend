@@ -140,7 +140,9 @@ function WatermarkText({ text, sessionShort }: { text: string; sessionShort: str
   )
 }
 
-export default function EnhancedVideoPlayer({
+// Memoized to prevent re-renders when parent CoursePlayer re-renders due to watch-time state changes.
+// The polling interval inside this component would restart on every re-render otherwise.
+const EnhancedVideoPlayerInner = React.memo(function EnhancedVideoPlayer({
   creatorSlug,
   currentChapter,
   isChapterAccessible,
@@ -179,6 +181,13 @@ export default function EnhancedVideoPlayer({
   const enrollmentRef = useRef<any>(enrollment)
   const savedWatchPositionRef = useRef<number>(0)
   const sendWatchTimeRef = useRef<(time: number, duration?: number) => Promise<void>>(async () => {})
+  // Use refs for callbacks so the polling interval / YouTube player never needs to
+  // restart just because the callback reference changed.
+  const onWatchTimeUpdateRef = useRef(onWatchTimeUpdate)
+  useEffect(() => { onWatchTimeUpdateRef.current = onWatchTimeUpdate }, [onWatchTimeUpdate])
+  const onChapterCompleteRef = useRef(onChapterComplete)
+  useEffect(() => { onChapterCompleteRef.current = onChapterComplete }, [onChapterComplete])
+  const markChapterCompletedOnceRef = useRef<(reason: string, context?: { currentTime?: number; duration?: number }) => Promise<void>>(async () => {})
   const sessionExtendIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const hlsInstanceRef = useRef<any>(null)
 
@@ -348,10 +357,10 @@ export default function EnhancedVideoPlayer({
 
   // Initial UX sync: Notify parent about the saved position immediately on mount
   useEffect(() => {
-    if (savedWatchPosition > 0 && onWatchTimeUpdate && currentChapter?.id) {
+    if (savedWatchPosition > 0 && onWatchTimeUpdateRef.current && currentChapter?.id) {
       const chapterProgress = enrollment?.progress?.find((p: any) => String(p.chapterId) === String(currentChapter.id))
       const duration = Number((chapterProgress && (chapterProgress as any).videoDuration) || currentChapter.duration || 0)
-      onWatchTimeUpdate(savedWatchPosition, duration > 0 ? duration : undefined);
+      onWatchTimeUpdateRef.current(savedWatchPosition, duration > 0 ? duration : undefined);
       setWatchTime(savedWatchPosition);
       if (duration > 0) setVideoDuration(duration);
     }
@@ -407,6 +416,7 @@ export default function EnhancedVideoPlayer({
   const hasSentCompleteRef = useRef<boolean>(false)
   const completeInFlightRef = useRef<boolean>(false)
   const completeRetryPendingRef = useRef<boolean>(false)
+  const completeRetryCountRef = useRef<number>(0)
 
   const sendWatchTime = useCallback(async (time: number, duration?: number) => {
     if (!currentChapter?.id) return
@@ -432,8 +442,8 @@ export default function EnhancedVideoPlayer({
         // Chapter auto-completed via backend
       }
 
-      if (onWatchTimeUpdate) {
-        onWatchTimeUpdate(Math.floor(time), duration ? Math.floor(duration) : undefined)
+      if (onWatchTimeUpdateRef.current) {
+        onWatchTimeUpdateRef.current(Math.floor(time), duration ? Math.floor(duration) : undefined)
       }
       // Refresh progress once per chapter session so preview YouTube playback hydrates enrollment state.
       if (!progressRefreshTriggeredRef.current && onProgressSaved) {
@@ -444,8 +454,9 @@ export default function EnhancedVideoPlayer({
           console.error("Failed to refresh progress after watch-time sync:", refreshError)
         }
       }
-      if (completeRetryPendingRef.current) {
+      if (completeRetryPendingRef.current && completeRetryCountRef.current < 3) {
         completeRetryPendingRef.current = false
+        completeRetryCountRef.current += 1
         try {
           await coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
           if (typeof (window as any).__onChapterComplete === 'function') {
@@ -459,6 +470,7 @@ export default function EnhancedVideoPlayer({
             )
           }
           hasSentCompleteRef.current = true
+          completeRetryCountRef.current = 0
         } catch (retryError) {
           console.error("Completion retry after watch-time sync failed:", retryError)
           completeRetryPendingRef.current = true
@@ -469,7 +481,7 @@ export default function EnhancedVideoPlayer({
     } finally {
       isSendingRef.current = false
     }
-  }, [courseId, currentChapter?.id, onWatchTimeUpdate, onProgressSaved, persistHighWaterMark])
+  }, [courseId, currentChapter?.id, onProgressSaved, persistHighWaterMark])
 
   useEffect(() => {
     sendWatchTimeRef.current = sendWatchTime
@@ -495,8 +507,8 @@ export default function EnhancedVideoPlayer({
         await coursesApi.completeChapterEnrollment(String(courseId), String(currentChapter.id))
 
         // Notify via the explicit callback prop (preferred over global coupling).
-        if (onChapterComplete) {
-          onChapterComplete(String(currentChapter.id))
+        if (onChapterCompleteRef.current) {
+          onChapterCompleteRef.current(String(currentChapter.id))
         }
 
         if (typeof (window as any).__onChapterComplete === "function") {
@@ -510,15 +522,19 @@ export default function EnhancedVideoPlayer({
           )
         }
       } catch (error) {
-        hasSentCompleteRef.current = false
+        // Keep hasSentCompleteRef true to prevent the 1s polling interval from
+        // re-triggering markChapterCompletedOnce every tick.  Retry will
+        // happen only via completeRetryPendingRef inside sendWatchTime.
         completeRetryPendingRef.current = true
         console.error("Failed to complete chapter:", error)
       } finally {
         completeInFlightRef.current = false
       }
     },
-    [courseId, currentChapter?.id, onChapterComplete],
+    [courseId, currentChapter?.id],
   )
+
+  useEffect(() => { markChapterCompletedOnceRef.current = markChapterCompletedOnce }, [markChapterCompletedOnce])
 
   // Initialize YouTube Player
   useEffect(() => {
@@ -596,7 +612,7 @@ export default function EnhancedVideoPlayer({
               setPlayerError(null)
             } else if (event.data === (window as any).YT.PlayerState.ENDED) {
               setIsPlaying(false)
-              void markChapterCompletedOnce("youtube_ended")
+              void markChapterCompletedOnceRef.current("youtube_ended")
             } else {
               setIsPlaying(false)
             }
@@ -663,7 +679,6 @@ export default function EnhancedVideoPlayer({
     currentChapter?.id,
     currentChapter?.isPreview,
     chapterAccessible,
-    markChapterCompletedOnce,
     mapYouTubeErrorMessage,
     rawVideoUrl,
     videoUrl,
@@ -718,19 +733,19 @@ export default function EnhancedVideoPlayer({
           if (duration > 0) setVideoDuration(duration)
 
           // Immediately notify parent so UI can update optimistically per-second
-          if (onWatchTimeUpdate) {
+          if (onWatchTimeUpdateRef.current) {
             try {
-              onWatchTimeUpdate(Math.floor(time), duration > 0 ? Math.floor(duration) : undefined)
+              onWatchTimeUpdateRef.current(Math.floor(time), duration > 0 ? Math.floor(duration) : undefined)
             } catch (e) {
               // ignore
             }
           }
 
-          // Send update every 1 second (backend can auto-create enrollment)
-          if (time - lastUpdateRef.current >= 1) {
+          // Send update every 5 seconds (backend can auto-create enrollment)
+          if (time - lastUpdateRef.current >= 5) {
             if (time > maxStored) {
                persistHighWaterMark(time)
-               void sendWatchTime(time, duration > 0 ? duration : undefined)
+               void sendWatchTimeRef.current(time, duration > 0 ? duration : undefined)
             }
           }
 
@@ -738,12 +753,12 @@ export default function EnhancedVideoPlayer({
           if (duration > 0 && !hasSentCompleteRef.current) {
             const pct = time / duration
             if (pct >= 0.9) {
-              void markChapterCompletedOnce("vimeo_90_percent", { currentTime: time, duration })
+              void markChapterCompletedOnceRef.current("vimeo_90_percent", { currentTime: time, duration })
             }
           }
         } else if (data.event === "ended") {
           setIsPlaying(false)
-          void markChapterCompletedOnce("vimeo_ended")
+          void markChapterCompletedOnceRef.current("vimeo_ended")
         } else if (data.method === 'getDuration' && data.value) {
           setVideoDuration(Number(data.value))
         }
@@ -768,9 +783,6 @@ export default function EnhancedVideoPlayer({
     platform,
     currentChapter?.id,
     isChapterAccessible,
-    sendWatchTime,
-    onWatchTimeUpdate,
-    markChapterCompletedOnce,
     getStoredHighWaterMark,
     persistHighWaterMark,
     savedWatchPosition,
@@ -801,8 +813,8 @@ export default function EnhancedVideoPlayer({
       const effectiveMaxTime = Math.max(maxStoredTime, Math.floor(currentTime));
 
       // Notify parent with the HIGH WATER MARK for UI/UX stability (sidebar, header, etc)
-      if (onWatchTimeUpdate) {
-        onWatchTimeUpdate(effectiveMaxTime, duration > 0 ? Math.floor(duration) : undefined);
+      if (onWatchTimeUpdateRef.current) {
+        onWatchTimeUpdateRef.current(effectiveMaxTime, duration > 0 ? Math.floor(duration) : undefined);
       }
 
       // Update LocalStorage Mirror (Only if current time is actually greater)
@@ -815,20 +827,20 @@ export default function EnhancedVideoPlayer({
       // This handles the "I already completed it" case where backend might have missed it.
       if (duration > 0 && !hasSentCompleteRef.current) {
          if (effectiveMaxTime / duration >= 0.9) {
-            void markChapterCompletedOnce("high_watermark_recovery", { currentTime: effectiveMaxTime, duration });
+            void markChapterCompletedOnceRef.current("high_watermark_recovery", { currentTime: effectiveMaxTime, duration });
          }
       }
 
       // Throttled sync to backend (every 5 seconds) - ONLY if advancing beyond high-water mark
       if (currentTime - lastUpdateRef.current >= 5 && Math.floor(currentTime) > maxStoredTime) {
-        sendWatchTime(currentTime, duration > 0 ? duration : undefined);
+        sendWatchTimeRef.current(currentTime, duration > 0 ? duration : undefined);
       }
 
       // Standard Completion check (Live Playback)
       // (This is redundant if the block above catches it, but kept for safety during active play)
       if (duration > 0 && !hasSentCompleteRef.current) {
         if (currentTime / duration >= 0.9) {
-          void markChapterCompletedOnce("native_90_percent", { currentTime, duration });
+          void markChapterCompletedOnceRef.current("native_90_percent", { currentTime, duration });
         }
       }
     };
@@ -858,7 +870,7 @@ export default function EnhancedVideoPlayer({
     const onPause = () => setIsPlaying(false)
     const onEnded = () => {
       setIsPlaying(false)
-      void markChapterCompletedOnce("native_ended", { currentTime: videoEl.currentTime, duration: videoEl.duration })
+      void markChapterCompletedOnceRef.current("native_ended", { currentTime: videoEl.currentTime, duration: videoEl.duration })
     }
 
     videoEl.addEventListener('play', onPlay)
@@ -874,64 +886,16 @@ export default function EnhancedVideoPlayer({
     }
   }, [
     currentChapter?.id,
-    enrollment,
     isChapterAccessible,
     isLocalFileVideo,
     savedWatchPosition,
-    sendWatchTime,
-    onWatchTimeUpdate,
     courseId,
-    markChapterCompletedOnce,
     getStoredHighWaterMark,
     persistHighWaterMark,
   ]);
 
   // Track watch time when playing (run even without enrollment so backend can auto-create it)
   useEffect(() => {
-    if (isLocalFileVideo() && currentChapter?.id) {
-      const videoEl = htmlVideoRef.current
-      if (!videoEl) return
-
-      intervalRef.current = setInterval(async () => {
-        const currentTime = Number(videoEl.currentTime || 0)
-        const duration = Number(videoEl.duration || 0)
-        setWatchTime(currentTime)
-        if (duration > 0) setVideoDuration(duration)
-
-        // Notify parent immediately for per-second UI updates
-        if (onWatchTimeUpdate) {
-          try {
-            onWatchTimeUpdate(Math.floor(currentTime), duration > 0 ? Math.floor(duration) : undefined)
-          } catch (e) {
-            // ignore
-          }
-        }
-
-        if (isPlaying && currentTime - lastUpdateRef.current >= 1) {
-           const maxStored = getStoredHighWaterMark()
-           if (currentTime > maxStored) {
-              persistHighWaterMark(currentTime)
-              await sendWatchTime(currentTime, duration > 0 ? duration : undefined)
-           }
-        }
-
-        // Completion trigger (>=90%) for all chapters
-        if (isPlaying && duration > 0 && !hasSentCompleteRef.current) {
-          const pct = currentTime / duration
-          if (pct >= 0.9) {
-            await markChapterCompletedOnce("interval_native_90_percent", { currentTime, duration })
-          }
-        }
-      }, 1000)
-
-      return () => {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current)
-          intervalRef.current = null
-        }
-      }
-    }
-
     if (platform === 'youtube' && currentChapter?.id) {
       intervalRef.current = setInterval(async () => {
         if (Date.now() < youtubePollingBackoffUntilRef.current) {
@@ -974,21 +938,22 @@ export default function EnhancedVideoPlayer({
             isAdvancing || flooredTime > lastEmbeddedUiEmitRef.current
 
           // Keep UI responsive while avoiding repeated identical emits.
-          if (shouldEmitUiUpdate && onWatchTimeUpdate) {
+          if (shouldEmitUiUpdate && onWatchTimeUpdateRef.current) {
             try {
               lastEmbeddedUiEmitRef.current = flooredTime
-              onWatchTimeUpdate(flooredTime, duration > 0 ? Math.floor(duration) : undefined)
+              onWatchTimeUpdateRef.current(flooredTime, duration > 0 ? Math.floor(duration) : undefined)
             } catch (e) {
               // ignore
             }
           }
 
           // Sync when playback has advanced at least once in this session.
-          if ((embeddedSyncStartedRef.current || isAdvancing) && currentTime - lastUpdateRef.current >= 1) {
+          // Throttled to 5 seconds to reduce visual jitter and backend load
+          if ((embeddedSyncStartedRef.current || isAdvancing) && currentTime - lastUpdateRef.current >= 5) {
              const maxStored = getStoredHighWaterMark()
              if (currentTime > maxStored) {
                persistHighWaterMark(currentTime)
-               await sendWatchTime(currentTime, duration > 0 ? duration : undefined)
+               await sendWatchTimeRef.current(currentTime, duration > 0 ? duration : undefined)
              }
           }
 
@@ -996,7 +961,7 @@ export default function EnhancedVideoPlayer({
           if (duration > 0 && !hasSentCompleteRef.current) {
             const pct = currentTime / duration
             if (pct >= 0.9) {
-              await markChapterCompletedOnce("interval_embedded_90_percent", { currentTime, duration })
+              await markChapterCompletedOnceRef.current("interval_embedded_90_percent", { currentTime, duration })
             }
           }
         } catch (error) {
@@ -1021,13 +986,8 @@ export default function EnhancedVideoPlayer({
     }
   }, [
     currentChapter?.id,
-    enrollment,
     isLocalFileVideo,
-    isPlaying,
     platform,
-    sendWatchTime,
-    markChapterCompletedOnce,
-    onWatchTimeUpdate,
     getStoredHighWaterMark,
     persistHighWaterMark,
   ])
@@ -1095,6 +1055,7 @@ export default function EnhancedVideoPlayer({
   useEffect(() => {
     hasSentCompleteRef.current = false
     completeRetryPendingRef.current = false
+    completeRetryCountRef.current = 0
     completeInFlightRef.current = false
     lastObservedEmbeddedTimeRef.current = 0
     embeddedSyncStartedRef.current = false
@@ -1271,4 +1232,6 @@ export default function EnhancedVideoPlayer({
       </div>
     </Card>
   )
-}
+})
+
+export default EnhancedVideoPlayerInner

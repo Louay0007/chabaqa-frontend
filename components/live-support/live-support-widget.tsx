@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import { motion, useDragControls } from "framer-motion"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { X, Send, Loader2, Sparkles, LifeBuoy } from "lucide-react"
 import { io, Socket } from "socket.io-client"
@@ -43,6 +44,16 @@ export function LiveSupportWidget() {
   const [error, setError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const socketRef = useRef<Socket | null>(null)
+
+  const [isDesktop, setIsDesktop] = useState(false)
+  const dragControls = useDragControls()
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 1024)
+    handleResize()
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
 
   const status = (ticket?.supportStatus || "BOT_ACTIVE") as LiveSupportStatus
 
@@ -207,10 +218,22 @@ export function LiveSupportWidget() {
   if (!enabled || !isAuthenticated || !user || user.role === "admin") return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-[120] sm:bottom-6 sm:right-6">
+    <motion.div 
+      drag={isDesktop}
+      dragMomentum={false}
+      dragListener={false}
+      dragControls={dragControls}
+      dragConstraints={typeof window !== 'undefined' ? { left: -window.innerWidth + 100, right: 0, top: -window.innerHeight + 100, bottom: 0 } : undefined}
+      className={cn("fixed z-[120] flex flex-col items-end", isDesktop ? "" : "bottom-4 right-4 sm:bottom-6 sm:right-6")}
+      style={isDesktop ? { right: 24, bottom: 24, touchAction: "none" } : undefined}
+    >
       {open && (
         <div className="mb-3 w-[370px] max-w-[calc(100vw-1rem)] overflow-hidden rounded-3xl border border-chabaqa-secondary2/30 bg-white shadow-2xl shadow-chabaqa-primary/20">
-          <div className="bg-gradient-to-r from-[#4c1d95] via-[#6d28d9] to-[#8b5cf6] px-4 py-3 text-white">
+          <div 
+             className={cn("bg-gradient-to-r from-[#4c1d95] via-[#6d28d9] to-[#8b5cf6] px-4 py-3 text-white transition-colors duration-200", isDesktop && "cursor-grab active:cursor-grabbing")}
+             onPointerDown={(e) => isDesktop ? dragControls.start(e) : undefined}
+             style={{ touchAction: "none" }}
+          >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-3">
                 <div className="rounded-xl border border-white/30 bg-white/15 p-1.5">
@@ -354,7 +377,12 @@ export function LiveSupportWidget() {
       )}
 
       <Button
-        className="group relative h-16 w-16 overflow-hidden rounded-full border border-white/20 bg-gradient-to-br from-[#4c1d95] via-[#6d28d9] to-[#a855f7] shadow-[0_14px_30px_rgba(124,58,237,0.55)] transition hover:scale-[1.03] hover:shadow-[0_18px_36px_rgba(124,58,237,0.65)]"
+        onPointerDown={(e) => isDesktop ? dragControls.start(e) : undefined}
+        className={cn(
+          "group relative h-16 w-16 overflow-hidden rounded-full border border-white/20 bg-gradient-to-br from-[#4c1d95] via-[#6d28d9] to-[#a855f7] shadow-[0_14px_30px_rgba(124,58,237,0.55)] transition hover:scale-[1.03] hover:shadow-[0_18px_36px_rgba(124,58,237,0.65)]",
+          isDesktop && "cursor-move"
+        )}
+        style={{ touchAction: "none" }}
         onClick={() => setOpen((v) => !v)}
         aria-label="Open live support"
       >
@@ -371,6 +399,6 @@ export function LiveSupportWidget() {
           />
         )}
       </Button>
-    </div>
+    </motion.div>
   )
 }

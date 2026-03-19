@@ -32,6 +32,7 @@ export interface LoginData {
   email: string;
   password: string;
   remember_me?: boolean;
+  rememberMe?: boolean;
 }
 
 export interface AuthResponse {
@@ -154,7 +155,11 @@ export const authApi = {
    */
   login: async (data: LoginData): Promise<ApiSuccessResponse<AuthResponse>> => {
     try {
-      const response = await apiClient.post<ApiSuccessResponse<AuthResponse>>('/auth/login', data);
+      const payload = {
+        ...data,
+        remember_me: typeof data.remember_me === 'boolean' ? data.remember_me : !!data.rememberMe,
+      };
+      const response = await apiClient.post<ApiSuccessResponse<AuthResponse>>('/auth/login', payload);
       return response;
     } catch (error: any) {
       if (error.statusCode === 429) {

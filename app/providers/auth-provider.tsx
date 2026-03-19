@@ -24,7 +24,7 @@ interface AuthContextValue {
   error: string | null
   isAuthenticated: boolean
   register: (payload: any) => Promise<void>
-  login: (payload: { email: string; password: string }) => Promise<void>
+  login: (payload: { email: string; password: string; rememberMe?: boolean }) => Promise<void>
   updateAuth: (accessToken: string, user: any) => void
   logout: () => Promise<void>
   fetchMe: () => Promise<User | null>
@@ -164,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = useCallback(async (payload: { email: string; password: string }) => {
+  const login = useCallback(async (payload: { email: string; password: string; rememberMe?: boolean }) => {
     try {
       setError(null)
       // Use configured API URL or fallback to APP_URL/api, then localhost
@@ -174,6 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const normalizedPayload = {
         email: String(payload.email || '').trim().toLowerCase(),
         password: String(payload.password || ''),
+        remember_me: Boolean(payload.rememberMe),
       }
 
       console.log(`Attempting login to: ${apiBase}/auth/login`);

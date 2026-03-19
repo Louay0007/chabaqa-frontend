@@ -69,7 +69,7 @@ export async function loginAction(data: {
 
         if (name === 'accessToken' || name === 'refreshToken') {
           // Parse max-age from the cookie string if possible, or default
-          let maxAge = name === 'accessToken' ? (15 * 60) : (30 * 24 * 60 * 60); // Default 15m / 30d
+          let maxAge = name === 'accessToken' ? (15 * 60) : (7 * 24 * 60 * 60); // Default 15m / 7d
 
           const maxAgeMatch = sc.match(/Max-Age=(\d+)/i);
           if (maxAgeMatch && maxAgeMatch[1]) {
@@ -158,7 +158,7 @@ export async function verify2FAAction(userId: string, code: string, rememberMe: 
 
         if (name === 'accessToken' || name === 'refreshToken') {
           // Parse max-age from the cookie string if possible, or default
-          let maxAge = name === 'accessToken' ? (15 * 60) : (30 * 24 * 60 * 60);
+          let maxAge = name === 'accessToken' ? (15 * 60) : (7 * 24 * 60 * 60);
 
           const maxAgeMatch = sc.match(/Max-Age=(\d+)/i);
           if (maxAgeMatch && maxAgeMatch[1]) {

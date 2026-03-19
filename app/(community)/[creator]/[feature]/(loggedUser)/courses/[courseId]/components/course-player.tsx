@@ -71,6 +71,10 @@ export default function CoursePlayer({
     attempts: 0,
     nextAllowed: 0,
   })
+  // Track the live watch time in a ref so auto-advance logic is always up-to-date,
+  // but only flush to state every ~3 seconds to prevent re-rendering every polling tick.
+  const liveWatchTimeRef = useRef<number | null>(null)
+  const watchTimeStateLastUpdatedRef = useRef<number>(0)
   const autoAdvancedFromChapterRef = useRef<Record<string, boolean>>({})
   const autoAdvanceInFlightRef = useRef<Record<string, boolean>>({})
   const currentChapterRef = useRef<any>(null)
@@ -405,11 +409,21 @@ export default function CoursePlayer({
   // Handler called by EnhancedVideoPlayer with latest seconds (and optional duration)
   const handleWatchTimeUpdate = useCallback(
     async (seconds: number, duration?: number) => {
-      // Update optimistic overrides so progress UI updates immediately
       const secs = Math.floor(seconds)
-      setWatchTimeOverride(secs)
-      if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
-        setVideoDurationOverride(Math.floor(duration))
+
+      // Always keep the live ref up-to-date (used for auto-advance threshold checks)
+      liveWatchTimeRef.current = secs
+
+      // Only flush to React state every ~3 seconds to avoid re-rendering CoursePlayer
+      // (and its children) on every single polling tick from the video player.
+      const now = Date.now()
+      const WATCH_TIME_STATE_THROTTLE_MS = 3_000
+      if (now - watchTimeStateLastUpdatedRef.current >= WATCH_TIME_STATE_THROTTLE_MS) {
+        watchTimeStateLastUpdatedRef.current = now
+        setWatchTimeOverride(secs)
+        if (typeof duration === "number" && Number.isFinite(duration) && duration > 0) {
+          setVideoDurationOverride(Math.floor(duration))
+        }
       }
 
       // Report to centralized session hook for automatic threshold-based refresh
@@ -422,10 +436,12 @@ export default function CoursePlayer({
         const currentChapterIndex = allChapters.findIndex((c: any) => String(c.id) === currentChapterId)
         const hasNextChapter = currentChapterIndex !== -1 && currentChapterIndex < allChapters.length - 1
         const safeDuration = typeof duration === "number" && Number.isFinite(duration) ? Math.floor(duration) : null
+        // Use live ref value (not state) so we don't depend on stale state from throttled updates
+        const liveSecs = liveWatchTimeRef.current ?? secs
         const effectiveDuration = safeDuration && safeDuration > 0
           ? safeDuration
           : Number(videoDurationOverride ?? 0)
-        const reachedUnlockThreshold = effectiveDuration > 0 && secs >= effectiveDuration * 0.9
+        const reachedUnlockThreshold = effectiveDuration > 0 && liveSecs >= effectiveDuration * 0.9
 
         if (hasNextChapter && reachedUnlockThreshold && !autoAdvanceInFlightRef.current[currentChapterId]) {
           autoAdvanceInFlightRef.current[currentChapterId] = true
@@ -484,20 +500,20 @@ export default function CoursePlayer({
       })
 
       // Exponential backoff with jitter for refresh calls to avoid 429
-      const now = Date.now()
+      const refreshNow = Date.now()
       const THROTTLE_MS = 30_000
       const BASE_BACKOFF_MS = 10_000
       const MAX_BACKOFF_MS = 120_000
 
       // Respect any in-flight backoff window
-      if (now < progressBackoffRef.current.nextAllowed) {
+      if (refreshNow < progressBackoffRef.current.nextAllowed) {
         return
       }
 
       if (!onRefreshProgress) return
-      if (now - lastProgressRefreshRef.current <= THROTTLE_MS) return
+      if (refreshNow - lastProgressRefreshRef.current <= THROTTLE_MS) return
 
-      lastProgressRefreshRef.current = now
+      lastProgressRefreshRef.current = refreshNow
       try {
         await onRefreshProgress()
         // success -> reset backoff
@@ -513,7 +529,7 @@ export default function CoursePlayer({
           // jitter up to 50%
           const jitter = Math.floor(Math.random() * Math.floor(backoff * 0.5))
           const wait = backoff + jitter
-          progressBackoffRef.current.nextAllowed = now + wait
+          progressBackoffRef.current.nextAllowed = refreshNow + wait
           lastProgressRefreshRef.current = progressBackoffRef.current.nextAllowed
           console.warn(`[Progress Refresh] 429 received - backing off for ${Math.round(wait/1000)}s (attempt ${progressBackoffRef.current.attempts})`)
         } else {
@@ -521,7 +537,7 @@ export default function CoursePlayer({
         }
       }
     },
-    [onRefreshProgress, enrollment, videoDurationOverride, isUserEnrolled, allChapters, tryAutoAdvanceToNext],
+    [onRefreshProgress, enrollment, isUserEnrolled, allChapters, tryAutoAdvanceToNext, videoDurationOverride],
   )
 
   const defaultChapterId = useMemo(() => {
@@ -902,6 +918,13 @@ export default function CoursePlayer({
     }
   }, [resolvedCourseId, enrollment, onOpenEnrollment, onRefreshProgress, onRefreshUnlockedChapters, toast, currentChapter, selectedChapter])
 
+  // Stable reference for onChapterComplete so the video player never re-initializes.
+  const courseSessionRef = useRef(courseSession)
+  useEffect(() => { courseSessionRef.current = courseSession }, [courseSession])
+  const handleChapterComplete = useCallback((chapterId: string) => {
+    courseSessionRef.current?.reportChapterComplete(chapterId)
+  }, [])
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-6">
@@ -941,7 +964,7 @@ export default function CoursePlayer({
               onWatchTimeUpdate={handleWatchTimeUpdate}
               onEnrollNow={handleEnrollNow}
               onProgressSaved={onRefreshProgress}
-              onChapterComplete={courseSession ? (chapterId) => courseSession.reportChapterComplete(chapterId) : undefined}
+              onChapterComplete={handleChapterComplete}
             />
 
 	            <ChapterTabs 

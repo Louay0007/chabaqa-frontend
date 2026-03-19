@@ -358,23 +358,34 @@ export function useCourseSession(
 
   // Track whether a session refresh has been scheduled for each chapter
   const completionRefreshScheduledRef = useRef<Set<string>>(new Set())
+  // Track last watch time per chapter to throttle state updates
+  const lastReportedWatchTimeRef = useRef<Record<string, number>>({})
 
   const reportWatchTime = useCallback(
     (chapterId: string, seconds: number, duration?: number) => {
-      // Update local chapter state optimistically
-      setState((prev) => {
-        const chapters = prev.chapters.map((c) => {
-          if (c.chapterId !== chapterId) return c
-          const newWatchTime = Math.max(c.watchTime, Math.floor(seconds))
-          const effectiveDuration = duration && duration > 0 ? Math.floor(duration) : c.videoDuration
-          return {
-            ...c,
-            watchTime: newWatchTime,
-            videoDuration: effectiveDuration > 0 ? effectiveDuration : c.videoDuration,
-          }
+      const newWatchTime = Math.max(
+        stateRef.current.chapters.find(c => c.chapterId === chapterId)?.watchTime ?? 0,
+        Math.floor(seconds),
+      )
+      const lastReported = lastReportedWatchTimeRef.current[chapterId] ?? -1
+
+      // Only update React state when watch time changes by >=2 seconds to prevent
+      // re-rendering courseSession consumers every single polling tick.
+      if (Math.abs(newWatchTime - lastReported) >= 2) {
+        lastReportedWatchTimeRef.current[chapterId] = newWatchTime
+        setState((prev) => {
+          const chapters = prev.chapters.map((c) => {
+            if (c.chapterId !== chapterId) return c
+            const effectiveDuration = duration && duration > 0 ? Math.floor(duration) : c.videoDuration
+            return {
+              ...c,
+              watchTime: newWatchTime,
+              videoDuration: effectiveDuration > 0 ? effectiveDuration : c.videoDuration,
+            }
+          })
+          return { ...prev, chapters }
         })
-        return { ...prev, chapters }
-      })
+      }
 
       // Schedule a session refresh when the 90% threshold is crossed
       if (duration && duration > 0 && seconds >= duration * 0.9) {
@@ -395,21 +406,44 @@ export function useCourseSession(
   const reportChapterComplete = useCallback(
     (chapterId: string) => {
       localCompletionRef.current.add(chapterId)
-      // Optimistically mark as completed
+      // Optimistically mark as completed and unlock the immediately next chapter
+      // so sequential progression works without waiting for a backend round-trip.
       setState((prev) => {
-        const chapters = prev.chapters.map((c) => {
-          if (c.chapterId !== chapterId) return c
-          return { ...c, isCompleted: true }
+        const completedIdx = prev.chapters.findIndex((c) => c.chapterId === chapterId)
+        const chapters = prev.chapters.map((c, idx) => {
+          if (c.chapterId === chapterId) {
+            return { ...c, isCompleted: true }
+          }
+          // Unlock the immediately next chapter after the one just completed
+          if (completedIdx !== -1 && idx === completedIdx + 1 && !c.access.canAccess && c.access.lockCode === 'previous_chapter_incomplete') {
+            return { ...c, access: { ...c.access, canAccess: true, lockCode: 'allowed' as const, lockReason: undefined } }
+          }
+          return c
         })
         const completedChapters = chapters.filter((c) => c.isCompleted).length
+        // Also update nextChapterAction optimistically so "Next Chapter" works immediately
+        let nextChapterAction = prev.nextChapterAction
+        if (completedIdx !== -1 && completedIdx + 1 < chapters.length) {
+          const nextCh = chapters[completedIdx + 1]
+          if (nextCh.access.canAccess) {
+            nextChapterAction = {
+              action: 'navigate' as const,
+              chapterId: nextCh.chapterId,
+              chapterTitle: nextCh.chapterTitle,
+              sectionId: nextCh.sectionId,
+            }
+          }
+        }
         return {
           ...prev,
           chapters,
           completedChapters,
           progressPercent: chapters.length > 0 ? Math.round((completedChapters / chapters.length) * 100) : 0,
+          nextChapterAction,
         }
       })
-      // Refresh session from backend to get updated access decisions.
+      // Bypass the throttle so next-chapter access is refreshed immediately after completion.
+      lastRefreshRef.current = 0
       void refreshSession()
     },
     [refreshSession],

@@ -75,7 +75,7 @@ export default function SignInForm({ onSuccess }: SignInFormProps = {}) {
     setIsLoading(true)
 
     try {
-      await login({ email, password })
+      await login({ email, password, rememberMe })
       if (onSuccess) onSuccess()
       // Redirect is handled in AuthProvider
     } catch (err: any) {

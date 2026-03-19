@@ -12,6 +12,7 @@ const nextConfig = {
   },
   output: 'standalone',
   experimental: {
+    cpus: 1,
     optimizePackageImports: ['lucide-react'],
   },
   images: {
