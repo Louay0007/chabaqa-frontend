@@ -8,23 +8,33 @@ import { ProductsTabs } from "./components/products-tabs"
 import { ProductsPerformance } from "./components/products-performance"
 import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { useCommunityGuard } from "@/hooks/use-community-guard"
+import {
+  PageShell,
+  PageHeader,
+  PageState,
+  ModuleEmptyState,
+  TOAST_MESSAGES,
+} from "@/components/creator-dashboard"
 
 export default function CreatorProductsPage() {
   const { toast } = useToast()
-  const { selectedCommunity, selectedCommunityId, isLoading: communityLoading } = useCreatorCommunity()
+  const {
+    guard,
+    selectedCommunity,
+    selectedCommunityId,
+  } = useCommunityGuard()
 
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [revenue, setRevenue] = useState<number | null>(null)
   const [sales, setSales] = useState<number | null>(null)
   const [topProducts, setTopProducts] = useState<any[]>([])
 
   // Reload when community changes
   useEffect(() => {
-    if (communityLoading) return
     if (!selectedCommunityId) {
-      toast({ title: 'Select a community', description: 'Choose a community to load products.', variant: 'destructive' as any })
       setProducts([])
       setRevenue(null)
       setSales(null)
@@ -35,6 +45,7 @@ export default function CreatorProductsPage() {
 
     const load = async () => {
       setLoading(true)
+      setError(null)
       setRevenue(null)
       setSales(null)
       setTopProducts([])
@@ -46,7 +57,6 @@ export default function CreatorProductsPage() {
           return
         }
 
-        // Fetch creator products - backend returns { success: true, data: { products, pagination } }
         const productsRes = await api.products.getByCreator(user._id || user.id, { limit: 50, communityId: selectedCommunityId }).catch(() => null as any)
         const rawProducts = productsRes?.data?.products || productsRes?.products || productsRes?.data?.items || productsRes?.items || []
         const normalized = (Array.isArray(rawProducts) ? rawProducts : []).map((p: any) => {
@@ -105,24 +115,58 @@ export default function CreatorProductsPage() {
             }),
         )
       } catch (e: any) {
-        setRevenue(null)
-        setSales(null)
-        setTopProducts([])
-        toast({ title: 'Failed to load products', description: e?.message || 'Please try again later.', variant: 'destructive' as any })
+        setError(e?.message || "Failed to load products")
+        toast(TOAST_MESSAGES.error("load products"))
       } finally {
         setLoading(false)
       }
     }
     load()
-  }, [selectedCommunityId, selectedCommunity, communityLoading, toast])
+  }, [selectedCommunityId, selectedCommunity, toast])
+
+  // Community guard: loading / error / no-community states
+  if (guard) return guard
+
+  // Page-level loading state
+  if (loading) return <PageState variant="loading" compact />
+
+  // Page-level error state
+  if (error) {
+    return (
+      <PageState
+        variant="error"
+        description={error}
+        onRetry={() => {
+          setError(null)
+          setLoading(true)
+        }}
+      />
+    )
+  }
+
+  // Empty state
+  if (products.length === 0) {
+    return (
+      <PageShell>
+        <PageHeader
+          title="Products"
+          breadcrumbs={[
+            { label: "Dashboard", href: "/creator/dashboard" },
+            { label: "Products" },
+          ]}
+        />
+        <ModuleEmptyState module="products" />
+      </PageShell>
+    )
+  }
 
   return (
-    <div className="space-y-8 p-5">
+    <PageShell>
       <ProductsHeader />
       <ProductsStatsGrid products={products} revenue={revenue} sales={sales} />
       <ProductsSearch />
       <ProductsTabs products={products} communityId={selectedCommunityId || ""} />
       <ProductsPerformance products={products} topProducts={topProducts} />
-    </div>
+    </PageShell>
   )
 }

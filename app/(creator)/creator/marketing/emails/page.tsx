@@ -25,6 +25,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { useCommunityGuard } from "@/hooks/use-community-guard"
+import { PageShell } from "@/components/creator-dashboard"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AutomationsTab } from "../components/automations-tab"
 import { CampaignStats } from "../components/campaign-stats"
@@ -57,7 +59,7 @@ const DEFAULT_FILTERS: FilterState = {
 }
 
 export default function EmailCampaignsPage() {
-  const { selectedCommunity, selectedCommunityId } = useCreatorCommunity()
+  const { guard, selectedCommunity, selectedCommunityId } = useCommunityGuard()
   const { toast } = useToast()
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -323,8 +325,10 @@ export default function EmailCampaignsPage() {
     )
   }
 
+  if (guard) return guard
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <PageShell className="container mx-auto space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Email Marketing</h1>
@@ -658,6 +662,6 @@ export default function EmailCampaignsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   )
 }

@@ -14,6 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
 import { affiliateApi, communitiesApi, coursesApi, challengesApi, eventsApi, productsApi, sessionsApi } from "@/lib/api"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { useCommunityGuard } from "@/hooks/use-community-guard"
+import { PageShell } from "@/components/creator-dashboard"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import { StatusChip } from "./components/status-chip"
 import { AffiliateLinkBuilder, type AffiliateTargetType, type PartnerOption, type TargetOption } from "./components/affiliate-link-builder"
@@ -37,7 +39,7 @@ const firstId = (item: any): string => String(item?._id || item?.id || "")
 const isMongoObjectId = (value?: string | null): boolean => Boolean(value && /^[a-f\d]{24}$/i.test(value))
 
 export default function CreatorAffiliatesPage() {
-  const { selectedCommunity, selectedCommunityId } = useCreatorCommunity()
+  const { guard, selectedCommunity, selectedCommunityId } = useCommunityGuard()
   const { user: authUser } = useAuthContext()
   const { toast } = useToast()
 
@@ -370,8 +372,10 @@ export default function CreatorAffiliatesPage() {
     </div>
   )
 
+  if (guard) return guard
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <PageShell className="container mx-auto space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Affiliate Management</h1>
@@ -759,6 +763,6 @@ export default function CreatorAffiliatesPage() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   )
 }

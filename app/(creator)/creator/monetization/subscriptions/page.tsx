@@ -1,5 +1,6 @@
 'use client'
 
+import { PageShell } from "@/components/creator-dashboard"
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -181,7 +182,7 @@ const SubscriptionsPage = () => {
   );
 
   return (
-    <div className="p-8 space-y-8">
+    <PageShell>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -375,7 +376,7 @@ const SubscriptionsPage = () => {
           </CardFooter>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   )
 }
 

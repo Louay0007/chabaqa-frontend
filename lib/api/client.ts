@@ -103,6 +103,20 @@ class ApiClient {
 
         // Only redirect if on a protected route
         if (isProtectedRoute) {
+          // Clear auth state before redirecting to avoid stale state issues
+          try {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            sessionStorage.clear();
+            // Clear cookies
+            document.cookie = 'accessToken=; Path=/; Max-Age=0; SameSite=Lax';
+            document.cookie = 'accessToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax';
+          } catch (clearError) {
+            console.warn('Failed to clear auth state on 401:', clearError);
+          }
           window.location.href = '/signin';
         }
       }

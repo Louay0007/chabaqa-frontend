@@ -1,5 +1,7 @@
 "use client"
 
+import { PageShell } from "@/components/creator-dashboard"
+
 import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -233,7 +235,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <PageShell className="container mx-auto space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -479,6 +481,6 @@ export default function NotificationsPage() {
           <MutesList />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   )
 }

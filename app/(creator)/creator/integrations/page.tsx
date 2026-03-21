@@ -1,5 +1,7 @@
 "use client"
 
+import { PageShell } from "@/components/creator-dashboard"
+
 import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -120,7 +122,7 @@ export default function IntegrationsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-8">
+    <PageShell className="container mx-auto space-y-8">
       {/* Hero Section */}
       <div className="text-center space-y-4 py-12">
         <div className="inline-flex items-center justify-center w-20 h-20 bg-chabaqa-primary/10 rounded-full mb-4">
@@ -290,6 +292,6 @@ export default function IntegrationsPage() {
           </Button>
         </div>
       </Card>
-    </div>
+    </PageShell>
   )
 }

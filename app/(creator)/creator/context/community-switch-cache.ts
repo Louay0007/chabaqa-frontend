@@ -117,7 +117,7 @@ function parseSessionsResponse(response: any): any[] {
 }
 
 function parsePostsResponse(response: any): any[] {
-  const posts = response?.data?.data || response?.data || response?.items || []
+  const posts = response?.data?.posts || response?.posts || response?.data?.items || response?.items || []
   return Array.isArray(posts) ? posts : []
 }
 

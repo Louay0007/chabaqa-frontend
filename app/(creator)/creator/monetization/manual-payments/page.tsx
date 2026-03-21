@@ -1,5 +1,6 @@
 'use client'
 
+import { PageShell } from "@/components/creator-dashboard"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -188,7 +189,7 @@ export default function ManualPaymentsPage() {
     };
 
     return (
-        <div className="p-8 space-y-8">
+        <PageShell>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Manual Payments</h1>
@@ -567,6 +568,6 @@ export default function ManualPaymentsPage() {
                     </div>
                 </DialogContent>
             </Dialog>
-        </div>
+        </PageShell>
     )
 }

@@ -1,5 +1,7 @@
 "use client"
 
+import { PageShell } from "@/components/creator-dashboard"
+
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -288,7 +290,7 @@ export default function CommunitiesPage() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <PageShell className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
@@ -621,6 +623,6 @@ export default function CommunitiesPage() {
           </Button>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

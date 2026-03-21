@@ -484,6 +484,7 @@ export interface Post {
   thumbnail?: string;
   isPublished: boolean;
   likes: number;
+  likesCount?: number; // Alias for likes, kept for backwards compatibility
   reactions?: PostReaction[];
   commentsCount: number;
   shareCount: number;
@@ -607,6 +608,7 @@ export interface DashboardAnalytics {
     posts: number;
     comments: number;
     likes: number;
+  likesCount?: number; // Alias for likes, kept for backwards compatibility
     shares: number;
   };
 }

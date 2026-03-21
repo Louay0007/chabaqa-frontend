@@ -15,10 +15,12 @@ import { ArrowLeft, Save, Eye, Smartphone, Tablet, Monitor, Palette, Type, Layou
 import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { useCreatorCommunity } from "../context/creator-community-context"
+import { useCommunityGuard } from "@/hooks/use-community-guard"
+import { PageShell } from "@/components/creator-dashboard"
 
 export default function CustomizeCommunityPage() {
   const router = useRouter()
-  const { selectedCommunity: contextCommunity, isLoading: contextLoading } = useCreatorCommunity()
+  const { guard, selectedCommunity: contextCommunity, isLoading: contextLoading } = useCommunityGuard()
   const [community, setCommunity] = useState<any>(null)
   const [showPreview, setShowPreview] = useState(false)
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop")
@@ -194,8 +196,10 @@ export default function CustomizeCommunityPage() {
     mobile: Smartphone,
   }
 
+  if (guard) return guard
+
   return (
-    <div className="space-y-8">
+    <PageShell className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-4">
@@ -724,6 +728,6 @@ export default function CustomizeCommunityPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }

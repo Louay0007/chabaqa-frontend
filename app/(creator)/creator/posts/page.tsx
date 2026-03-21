@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { useCommunityGuard } from "@/hooks/use-community-guard"
+import { PageShell } from "@/components/creator-dashboard"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,7 +21,7 @@ export default function CreatorPostsPage() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const { user: authUser, isAuthenticated, loading: authLoading } = useAuthContext()
-  const { selectedCommunity, selectedCommunityId, isLoading: communityLoading } = useCreatorCommunity()
+  const { guard, selectedCommunity, selectedCommunityId, isLoading: communityLoading } = useCommunityGuard()
 
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
@@ -122,21 +124,12 @@ export default function CreatorPostsPage() {
 
   const mode = useMemo(() => (editingPost ? "edit" : "create"), [editingPost])
 
-  if (!selectedCommunity) {
-    return (
-      <div className="max-w-6xl mx-auto p-5">
-        <div className="text-center py-12">
-          <p className="text-gray-600 mb-4">Please select a community to manage posts</p>
-          <Button asChild>
-            <Link href="/creator/dashboard">Go to Dashboard</Link>
-          </Button>
-        </div>
-      </div>
-    )
-  }
+
+
+  if (guard) return guard
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 p-5">
+    <PageShell className="max-w-6xl mx-auto space-y-8 p-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -218,6 +211,6 @@ export default function CreatorPostsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   )
 }

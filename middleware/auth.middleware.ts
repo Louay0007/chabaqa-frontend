@@ -302,9 +302,29 @@ export async function authMiddleware(request: NextRequest) {
   }
 
   // Redirect authenticated users away from regular auth pages
-  if (isValidToken && (normalizedPath === '/signin' || normalizedPath === '/signup' || normalizedPath === '/verify-email')) {
-    const normalizedRedirect = normalizeAuthRedirect(request.nextUrl.searchParams.get('redirect'), locale)
-    return NextResponse.redirect(new URL(normalizedRedirect, getExternalUrl(request)))
+  // Skip redirect if they just logged out (message param)
+  const logoutMessage = request.nextUrl.searchParams.get('message')
+  const isPostLogout = logoutMessage?.toLowerCase().includes('logged out')
+  
+  if (normalizedPath === '/signin' || normalizedPath === '/signup' || normalizedPath === '/verify-email') {
+    if (isPostLogout) {
+      // User just logged out - clear the stale cookie and let them stay on signin
+      const response = continueWithHeaders()
+      response.cookies.set(USER_ACCESS_COOKIE, '', { path: '/', maxAge: 0, sameSite: 'lax' })
+      response.cookies.set(USER_ACCESS_COOKIE, '', { path: '/', maxAge: 0, sameSite: 'strict', secure: true })
+      response.cookies.set('refreshToken', '', { path: '/', maxAge: 0, sameSite: 'lax' })
+      response.cookies.set('refreshToken', '', { path: '/', maxAge: 0, sameSite: 'strict', secure: true })
+      return response
+    }
+    
+    if (isValidToken) {
+      // User appears authenticated - redirect away from auth pages
+      const normalizedRedirect = normalizeAuthRedirect(request.nextUrl.searchParams.get('redirect'), locale)
+      return NextResponse.redirect(new URL(normalizedRedirect, getExternalUrl(request)))
+    }
+    
+    // Not authenticated - let them access the auth page
+    return continueWithHeaders()
   }
 
   // Explicit public routes bypass protection checks

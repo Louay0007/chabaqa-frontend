@@ -55,6 +55,29 @@ function extractRefreshTokenFromResponse(payload: any): string {
 
   return String(rawToken || '').trim()
 }
+function clearAllAuthCookies() {
+  if (typeof document === 'undefined') return
+  const isSecure =
+    (typeof window !== 'undefined' && window.location.protocol === 'https:') ||
+    process.env.NODE_ENV === 'production'
+  const securePart = isSecure ? '; Secure' : ''
+  
+  // Clear cookies with multiple names and paths for thorough cleanup
+  const cookieNames = ['accessToken', 'access_token', 'token', 'refreshToken', 'refresh_token']
+  const paths = ['/', '/en', '/ar', '/api', '/creator', '/admin', '/dashboard']
+  
+  for (const name of cookieNames) {
+    for (const path of paths) {
+      document.cookie = `${name}=; Path=${path}; Max-Age=0; SameSite=Lax${securePart}`
+      document.cookie = `${name}=; Path=${path}; Max-Age=0; SameSite=Strict${securePart}`
+      document.cookie = `${name}=; Path=${path}; Expires=Thu, 01 Jan 1970 00:00:00 UTC${securePart}`
+      // Also try without Secure for local dev
+      document.cookie = `${name}=; Path=${path}; Max-Age=0; SameSite=Lax`
+    }
+  }
+}
+
+
 
 function syncAccessTokenCookie(accessToken: string | null) {
   if (typeof document === 'undefined') return
@@ -64,7 +87,9 @@ function syncAccessTokenCookie(accessToken: string | null) {
   const securePart = isSecure ? '; Secure' : ''
 
   if (!accessToken) {
+    // Clear cookie with multiple methods for better browser compatibility
     document.cookie = `${ACCESS_TOKEN_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax${securePart}`
+    document.cookie = `${ACCESS_TOKEN_COOKIE_NAME}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax${securePart}`
     return
   }
 
@@ -389,45 +414,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router, pathname])
 
   const logout = useCallback(async () => {
-    try {
-      // 1. Clear all local storage keys used by various systems
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refreshToken')
-      localStorage.removeItem('user')
-      localStorage.removeItem('auth-preferences')
-      localStorage.removeItem('user-session')
-      syncAccessTokenCookie(null)
-      setToken(null)
-
-      // Clear anything else that might have been set
-      if (typeof window !== 'undefined') {
-        sessionStorage.clear()
-      }
-
-      setUser(null)
-
-      // 2. Call the backend logout to clear cookies
-      // We use fetch instead of server action directly to avoid re-renders before navigation
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 
-                     (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api` : "http://localhost:3000/api")
-      await fetch(`${apiBase}/auth/logout`, {
+    // 1. Save the current token BEFORE clearing (needed for backend API calls)
+    const currentToken = localStorage.getItem('accessToken') || localStorage.getItem('access_token')
+    
+    // 2. Call the backend logout endpoints FIRST (while we still have the token)
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 
+                   (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api` : "http://localhost:3000/api")
+    
+    const authHeaders: HeadersInit = currentToken 
+      ? { 'Authorization': `Bearer ${currentToken}`, 'Content-Type': 'application/json' }
+      : { 'Content-Type': 'application/json' }
+    
+    // Revoke tokens on the backend (parallel, non-blocking)
+    await Promise.allSettled([
+      fetch(`${apiBase}/auth/logout`, {
         method: 'POST',
+        headers: authHeaders,
         credentials: 'include'
-      }).catch(err => console.error("API logout failed:", err))
-
-      await fetch(`${apiBase}/auth/revoke-all-tokens`, {
+      }).catch(() => {}),
+      fetch(`${apiBase}/auth/revoke-all-tokens`, {
         method: 'POST',
+        headers: authHeaders,
         credentials: 'include'
-      }).catch(err => console.error("Token revocation failed:", err))
+      }).catch(() => {}),
+    ])
 
-    } catch (e) {
-      console.error("Logout process error:", e)
-    } finally {
-      // 3. Perform a full page reload to signin page
-      // This is crucial to break any JS-resident loops and clear all provider states
-      window.location.href = `${localizeHref(pathname || '/', '/signin')}?message=Logged out successfully`
+    // 3. Clear all local storage keys
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user')
+    localStorage.removeItem('auth-preferences')
+    localStorage.removeItem('user-session')
+    
+    // 4. Clear session storage
+    if (typeof window !== 'undefined') {
+      sessionStorage.clear()
     }
+
+    // 5. Clear client-side cookies (non-httpOnly ones)
+    clearAllAuthCookies()
+    syncAccessTokenCookie(null)
+    
+    // 6. Clear React state
+    setToken(null)
+    setUser(null)
+
+    // 7. Navigate to the server-side signout route which clears httpOnly cookies
+    // and redirects to signin. This is a full navigation (not fetch) so the
+    // browser processes Set-Cookie headers before reaching the signin page.
+    window.location.href = '/api/auth/signout'
   }, [pathname])
 
   useEffect(() => {

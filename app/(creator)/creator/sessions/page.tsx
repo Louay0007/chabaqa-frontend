@@ -5,12 +5,17 @@ import { useEffect, useState, useCallback, useRef } from "react"
 import ClientSessionsView from "./components/client-sessions-view"
 import { type CreatorBookingViewModel } from "@/lib/api/sessions.api"
 import { useToast } from "@/hooks/use-toast"
-import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { useCommunityGuard } from "@/hooks/use-community-guard"
 import { loadSessionsCached } from "@/app/(creator)/creator/context/community-switch-cache"
+import { PageState, TOAST_MESSAGES } from "@/components/creator-dashboard"
 
 export default function CreatorSessionsPage() {
   const { toast } = useToast()
-  const { selectedCommunityId, isLoading: communityLoading } = useCreatorCommunity()
+  const {
+    guard,
+    selectedCommunityId,
+    isLoading: communityLoading,
+  } = useCommunityGuard()
 
   const [sessions, setSessions] = useState<any[]>([])
   const [bookings, setBookings] = useState<CreatorBookingViewModel[]>([])
@@ -36,7 +41,7 @@ export default function CreatorSessionsPage() {
       setBookings(payload.bookings)
       setRevenue(payload.revenue)
     } catch (e: any) {
-      toast({ title: 'Failed to load sessions', description: e?.message || 'Please try again later.', variant: 'destructive' })
+      toast(TOAST_MESSAGES.error("load sessions"))
       if (requestId !== requestIdRef.current) return
       setSessions([])
       setBookings([])
@@ -48,7 +53,6 @@ export default function CreatorSessionsPage() {
     }
   }, [toast])
 
-  // Reload when community changes
   useEffect(() => {
     if (communityLoading) return
 
@@ -68,6 +72,9 @@ export default function CreatorSessionsPage() {
     if (!selectedCommunityId) return
     loadSessions(selectedCommunityId, { force: true, keepCurrentData: true })
   }
+
+  // Community guard
+  if (guard) return guard
 
   return (
     <ClientSessionsView

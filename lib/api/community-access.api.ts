@@ -46,10 +46,18 @@ export const communityAccessApi = {
    * GET /communities/:communityId/staff
    */
   listStaff: async (communityId: string): Promise<CommunityStaffMember[]> => {
-    const res = await apiClient.get<ApiSuccessResponse<CommunityStaffMember[]>>(
-      `/communities/${communityId}/staff`,
-    );
-    return (res as any)?.data ?? res ?? [];
+    const res = await apiClient.get<any>(`/communities/${communityId}/staff`);
+    // Backend returns a flat array directly (no { data: ... } wrapper on this endpoint)
+    const payload = (res as any)?.data ?? res;
+    if (Array.isArray(payload)) return payload;
+    // Fallback: handle legacy { owner, staff } shape if still present
+    if (payload && typeof payload === 'object' && ('staff' in payload || 'owner' in payload)) {
+      const items: CommunityStaffMember[] = [];
+      if (payload.owner) items.push(payload.owner as CommunityStaffMember);
+      if (Array.isArray(payload.staff)) items.push(...(payload.staff as CommunityStaffMember[]));
+      return items;
+    }
+    return [];
   },
 
   /**

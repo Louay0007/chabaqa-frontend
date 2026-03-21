@@ -28,6 +28,8 @@ import Image from "next/image"
 import { CommunityManager } from "@/app/(creator)/creator/components/community-manager"
 import { api } from "@/lib/api"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { useCommunityGuard } from "@/hooks/use-community-guard"
+import { PageShell, PageState } from "@/components/creator-dashboard"
 import { loadDashboardCoreCached, loadDashboardGrowthCached } from "@/app/(creator)/creator/context/community-switch-cache"
 
 
@@ -38,13 +40,14 @@ export default function CreatorDashboardPage() {
   const router = useRouter()
   const { user: authUser, isAuthenticated, loading: authLoading } = useAuthContext()
 
-  // Use shared community context
+  // Use shared community context with guard
   const {
+    guard,
     communities: creatorCommunities,
     selectedCommunity,
     selectedCommunityId,
     isLoading: communityLoading
-  } = useCreatorCommunity()
+  } = useCommunityGuard()
 
   // Community feed URL for viewing the community
   const communityFeedUrl = selectedCommunity
@@ -366,8 +369,10 @@ export default function CreatorDashboardPage() {
     },
   ]
 
+  if (guard) return guard
+
   return (
-    <div className="p-8">
+    <PageShell>
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -716,6 +721,6 @@ export default function CreatorDashboardPage() {
         {/* Community Manager */}
         <CommunityManager communities={userCommunities} />
       </div>
-    </div>
+    </PageShell>
   )
 }

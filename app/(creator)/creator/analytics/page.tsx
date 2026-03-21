@@ -29,6 +29,8 @@ import {
 import { api } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { useCommunityGuard } from "@/hooks/use-community-guard"
+import { PageShell } from "@/components/creator-dashboard"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import { useRouter } from "next/navigation"
 import type {
@@ -572,7 +574,7 @@ export default function CommunityAnalyticsPage() {
   const router = useRouter()
   const { isAuthenticated, loading: authLoading } = useAuthContext()
   const { toast } = useToast()
-  const { selectedCommunityId, selectedCommunity, setSelectedCommunityId, communities, isLoading: communityLoading } = useCreatorCommunity()
+  const { guard, selectedCommunityId, selectedCommunity, setSelectedCommunityId, communities, isLoading: communityLoading } = useCommunityGuard()
   const [selectedFeature, setSelectedFeature] = useState<AnalyticsFeature>("courses")
   const [timeRange, setTimeRange] = useState<AnalyticsTimeRange>("7d")
   const [baseOverview, setBaseOverview] = useState<NormalizedOverview | null>(null)
@@ -1326,8 +1328,10 @@ export default function CommunityAnalyticsPage() {
     )
   }
 
+  if (guard) return guard
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <PageShell className="min-h-screen bg-gray-50">
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">
         {/* Header */}
         <div className="mb-6 lg:mb-8">
@@ -2574,6 +2578,6 @@ export default function CommunityAnalyticsPage() {
           </Tabs>
         </Card>
       </div>
-    </div>
+    </PageShell>
   )
 }

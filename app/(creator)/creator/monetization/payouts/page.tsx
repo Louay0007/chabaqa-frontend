@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { useCommunityGuard } from "@/hooks/use-community-guard"
+import { PageShell } from "@/components/creator-dashboard"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -52,7 +54,7 @@ interface PayoutData {
 }
 
 export default function PayoutsPage() {
-  const { selectedCommunityId, isLoading: communityLoading } = useCreatorCommunity()
+  const { guard, selectedCommunityId, isLoading: communityLoading } = useCommunityGuard()
   const [payouts, setPayouts] = useState<PayoutData[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
@@ -356,8 +358,10 @@ export default function PayoutsPage() {
     }
   };
 
+  if (guard) return guard
+
   return (
-    <div className="p-8 space-y-8">
+    <PageShell>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -934,6 +938,6 @@ export default function PayoutsPage() {
           </CardFooter>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   )
 }

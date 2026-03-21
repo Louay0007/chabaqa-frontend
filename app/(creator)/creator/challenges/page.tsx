@@ -8,11 +8,12 @@ import ChallengesTabs from "./components/ChallengesTabs"
 import ChallengePerformanceOverview from "./components/ChallengePerformanceOverview"
 import { api, apiClient } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { useCreatorCommunity } from "../context/creator-community-context"
+import { useCommunityGuard } from "@/hooks/use-community-guard"
+import { PageShell, PageState, ModuleEmptyState, TOAST_MESSAGES } from "@/components/creator-dashboard"
 
 export default function CreatorChallengesPage() {
   const { toast } = useToast()
-  const { selectedCommunity, selectedCommunityId, isLoading: communityLoading } = useCreatorCommunity()
+  const { guard, selectedCommunity, selectedCommunityId } = useCommunityGuard()
 
   const [challenges, setChallenges] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -20,9 +21,8 @@ export default function CreatorChallengesPage() {
   const [revenue, setRevenue] = useState<number | null>(null)
   const [topChallenges, setTopChallenges] = useState<any[]>([])
 
-  // Reload when community changes
   useEffect(() => {
-    if (communityLoading || !selectedCommunityId) return
+    if (!selectedCommunityId) return
 
     const load = async () => {
       setLoading(true)
@@ -38,7 +38,6 @@ export default function CreatorChallengesPage() {
 
         const slug = selectedCommunity?.slug || ""
 
-        // Challenges list
         let listRes: any = null
         if (selectedCommunityId) {
           listRes = await apiClient.get<any>(`/challenges/by-user/${user._id || user.id}`, { type: 'created', limit: 50, communityId: selectedCommunityId }).catch(() => null as any)
@@ -48,7 +47,6 @@ export default function CreatorChallengesPage() {
           listRes = await apiClient.get<any>(`/challenges/by-user/${user._id || user.id}`, { type: 'created', limit: 50 }).catch(() => null as any)
         }
 
-        // Backend returns { challenges } for list, or { success: true, data: { challenges } } for by-user
         const raw = listRes?.challenges || listRes?.data?.challenges || listRes?.data?.items || listRes?.items || []
         const normalized = (Array.isArray(raw) ? raw : []).map((c: any) => ({
           id: c.id || c._id,
@@ -65,7 +63,6 @@ export default function CreatorChallengesPage() {
         }))
         setChallenges(normalized)
 
-        // Fetch analytics to compute revenue (last 30 days)
         const now = new Date()
         const to = now.toISOString()
         const from = new Date(now.getTime() - 30 * 24 * 3600 * 1000).toISOString()
@@ -95,13 +92,13 @@ export default function CreatorChallengesPage() {
       } catch (e: any) {
         setRevenue(null)
         setTopChallenges([])
-        toast({ title: 'Failed to load challenges', description: e?.message || 'Please try again later.', variant: 'destructive' as any })
+        toast(TOAST_MESSAGES.error(e?.message || 'Failed to load challenges'))
       } finally {
         setLoading(false)
       }
     }
     load()
-  }, [selectedCommunityId, selectedCommunity, communityLoading, toast])
+  }, [selectedCommunityId, selectedCommunity, toast])
 
   const filtered = useMemo(() => {
     if (!search) return challenges
@@ -115,23 +112,19 @@ export default function CreatorChallengesPage() {
     return topChallenges.filter((challenge: any) => (challenge.title || "").toLowerCase().includes(q))
   }, [topChallenges, search])
 
+  if (guard) return guard
+  if (loading) return <PageState variant="loading" title="Loading challenges…" />
+
   return (
-    <div className="space-y-8 p-5">
+    <PageShell>
       <PageHeader />
-
       <StatsGrid allChallenges={filtered} revenue={revenue} />
-
       <SearchBar onSearch={setSearch} />
-
       <ChallengesTabs allChallenges={filtered} />
-
       {filtered.length > 0 && (
         <ChallengePerformanceOverview allChallenges={filtered} topChallenges={filteredTopChallenges} />
       )}
-
-      {!loading && filtered.length === 0 && (
-        <div className="text-sm text-muted-foreground">No challenges found.</div>
-      )}
-    </div>
+      {filtered.length === 0 && <ModuleEmptyState module="challenges" />}
+    </PageShell>
   )
 }

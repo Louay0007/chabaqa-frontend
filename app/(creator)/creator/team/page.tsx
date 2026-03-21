@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/dialog"
 import { Shield, UserPlus, Trash2, Loader2, Search, Info } from "lucide-react"
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
+import { useCommunityGuard } from "@/hooks/use-community-guard"
+import { PageShell } from "@/components/creator-dashboard"
 import { communityAccessApi, CommunityStaffMember } from "@/lib/api/community-access.api"
 import { useToast } from "@/hooks/use-toast"
 import { useCommunityPermissions } from "@/hooks/use-community-permissions"
@@ -50,10 +52,10 @@ import { api } from "@/lib/api"
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function getDisplayName(staff: CommunityStaffMember): string {
-  const u = staff.user
+  const u = staff.user as any
   if (!u) return staff.userId
   const names = [u.firstName, u.lastName].filter(Boolean).join(" ")
-  return names || u.username || u.email || staff.userId
+  return names || u.name || u.username || u.email || staff.userId
 }
 
 function getInitials(staff: CommunityStaffMember): string {
@@ -86,7 +88,7 @@ function RolePermissionsInfo({ role }: { role: CommunityRole }) {
 // ── Page component ─────────────────────────────────────────────────────────
 
 export default function TeamRolesPage() {
-  const { selectedCommunityId, selectedCommunity } = useCreatorCommunity()
+  const { guard, selectedCommunityId, selectedCommunity } = useCommunityGuard()
   const { can, role: myRole, isLoading: permLoading } = useCommunityPermissions(selectedCommunityId)
   const { toast } = useToast()
 
@@ -117,7 +119,7 @@ export default function TeamRolesPage() {
     setLoading(true)
     try {
       const data = await communityAccessApi.listStaff(selectedCommunityId)
-      setStaff(Array.isArray(data) ? data : [])
+      setStaff(data)
     } catch {
       toast({ title: "Error", description: "Failed to load team members", variant: "destructive" })
     } finally {
@@ -143,7 +145,7 @@ export default function TeamRolesPage() {
         const members: any[] = (res as any)?.data ?? (res as any)?.items ?? res ?? []
         const filtered = members.filter((m: any) => {
           const u = m.user ?? m
-          const text = [u.firstName, u.lastName, u.email, u.username].filter(Boolean).join(" ").toLowerCase()
+          const text = [u.name, u.firstName, u.lastName, u.email, u.username].filter(Boolean).join(" ").toLowerCase()
           return text.includes(q.toLowerCase())
         })
         setMemberSearch(filtered)
@@ -239,6 +241,8 @@ export default function TeamRolesPage() {
       </div>
     )
   }
+
+  if (guard) return guard
 
   return (
     <div className="space-y-6">
@@ -400,7 +404,7 @@ export default function TeamRolesPage() {
                   {memberSearch.map((m: any) => {
                     const u = m.user ?? m
                     const uid = u._id ?? u.id ?? m.userId
-                    const name = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.username || u.email
+                    const name = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.name || u.username || u.email
                     const isSelected = selectedUserId === uid
                     return (
                       <button
