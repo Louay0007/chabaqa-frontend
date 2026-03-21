@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -48,6 +48,7 @@ import {
   Route
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useCommunityPermissions } from "@/hooks/use-community-permissions"
 import { communitiesApi } from "@/lib/api/communities.api"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import { authApi } from "@/lib/api/auth.api"
@@ -78,9 +79,6 @@ const navigationItems = [
   { label: "Members", href: "/members", icon: Users },
 ]
 
-const mobilePrimaryNavigationItems = navigationItems.filter((item) =>
-  ["/home", "/courses", "/challenges", "/sessions"].includes(item.href),
-)
 
 const getCommunityLogoUrl = (community?: Community | null): string | undefined => {
   if (!community) return undefined
@@ -253,6 +251,42 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
     }
   }
 
+
+  const community = currentCommunityData
+  const communityId = useMemo(() => {
+    const raw = (community as any)?._id || (community as any)?.id || ""
+    const normalized = String(raw).trim()
+    return normalized || null
+  }, [community])
+  const { isStaff } = useCommunityPermissions(communityId)
+  const headerNavigationItems = useMemo(() => {
+    if (!isStaff) return navigationItems
+
+    const hasDashboard = navigationItems.some((item) => item.href === "/dashboard")
+    if (hasDashboard) return navigationItems
+
+    return [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      ...navigationItems,
+    ]
+  }, [isStaff])
+  const mobilePrimaryNavigationItems = useMemo(
+    () =>
+      headerNavigationItems.filter((item) =>
+        ["/home", "/courses", "/challenges", "/sessions"].includes(item.href),
+      ),
+    [headerNavigationItems],
+  )
+  const communityBasePath = `/${creatorSlug}/${currentCommunity}`
+  const mobilePrimaryHrefs = new Set(mobilePrimaryNavigationItems.map((item) => item.href))
+  const isRouteActive = (href: string) => {
+    const fullPath = `${communityBasePath}${href}`
+    return pathname === fullPath || pathname.startsWith(`${fullPath}/`)
+  }
+
+  const isMoreActive = headerNavigationItems.some(
+    (item) => !mobilePrimaryHrefs.has(item.href) && isRouteActive(item.href),
+  )
   if (loading) {
     return (
       <header className="community-mobile-header sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b shadow-sm">
@@ -270,20 +304,6 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
       </header>
     )
   }
-
-  const community = currentCommunityData
-  const communityBasePath = `/${creatorSlug}/${currentCommunity}`
-  const mobilePrimaryHrefs = new Set(mobilePrimaryNavigationItems.map((item) => item.href))
-
-  const isRouteActive = (href: string) => {
-    const fullPath = `${communityBasePath}${href}`
-    return pathname === fullPath || pathname.startsWith(`${fullPath}/`)
-  }
-
-  const isMoreActive = navigationItems.some(
-    (item) => !mobilePrimaryHrefs.has(item.href) && isRouteActive(item.href),
-  )
-
   return (
     <header className="community-mobile-header sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b shadow-sm">
       <div className="container mx-auto px-4">
@@ -516,7 +536,7 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
 
                   {/* Navigation Items */}
                   <div className="space-y-2">
-                    {navigationItems.map((item) => (
+                    {headerNavigationItems.map((item) => (
                       <Button
                         key={item.label}
                         variant="ghost"
@@ -658,7 +678,7 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
         {/* Navigation Bar (Desktop only) */}
         <div className="hidden sm:block border-t bg-white/50">
           <div className="flex items-center space-x-1 py-2 overflow-x-auto">
-            {navigationItems.map((item) => {
+            {headerNavigationItems.map((item) => {
               const href = `${communityBasePath}${item.href}`
               const isActive = isRouteActive(item.href)
 
