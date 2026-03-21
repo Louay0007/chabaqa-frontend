@@ -683,7 +683,7 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
 
         <nav
           aria-label="Mobile navigation"
-          className="fixed inset-x-0 bottom-0 z-[60] border-t border-gray-200/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90 sm:hidden"
+          className="fixed inset-x-0 bottom-0 z-[60] border-t border-gray-100/60 bg-white/98 backdrop-blur-xl supports-[backdrop-filter]:bg-white/95 sm:hidden shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.08)]"
         >
           <div
             className="mx-auto flex max-w-lg items-center justify-between gap-1 px-2 pt-2"
@@ -702,8 +702,8 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
                   key={item.label}
                   href={href}
                   className={cn(
-                    "flex h-14 min-w-[64px] flex-1 flex-col items-center justify-center rounded-xl text-[11px] font-medium transition-colors",
-                    isActive ? "bg-primary-50 text-primary-700" : "text-gray-500 hover:text-gray-900",
+                    "flex h-14 min-w-[60px] flex-1 flex-col items-center justify-center rounded-2xl text-[10px] font-semibold tracking-tight transition-all duration-200 active:scale-95",
+                    isActive ? "bg-gradient-to-b from-primary-50 to-primary-100/70 text-primary-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]" : "text-gray-400 hover:text-gray-700 hover:bg-gray-50/80",
                   )}
                 >
                   <item.icon className={cn("h-5 w-5", isActive && "text-primary-700")} />
@@ -716,7 +716,7 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
               type="button"
               onClick={() => setMobileMenuOpen(true)}
               className={cn(
-                "flex h-14 min-w-[64px] flex-1 flex-col items-center justify-center rounded-xl text-[11px] font-medium transition-colors",
+                "flex h-14 min-w-[60px] flex-1 flex-col items-center justify-center rounded-2xl text-[10px] font-semibold tracking-tight transition-all duration-200 active:scale-95",
                 isMoreActive || mobileMenuOpen
                   ? "bg-primary-50 text-primary-700"
                   : "text-gray-500 hover:text-gray-900",

@@ -587,9 +587,9 @@ export function PostCard({
   return (
     <Card
       id={`post-${post.id}`}
-      className={`overflow-hidden transition-all bg-white border ${
+      className={`overflow-hidden transition-all duration-300 bg-white border rounded-2xl ${
         post.isPinned ? "border-amber-200 shadow-amber-50" : "border-slate-200/70"
-      } shadow-sm hover:shadow-md ${isHighlighted ? "ring-2 ring-primary-400 shadow-md" : ""}`}
+      } shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.12)] active:scale-[0.995] ${isHighlighted ? "ring-2 ring-primary-400 shadow-md" : ""}`}
     >
       {/* ── Pinned banner ───────────────────────────────────────────────────── */}
       {post.isPinned && (
@@ -605,7 +605,7 @@ export function PostCard({
         <div className="flex items-start justify-between mb-3 sm:mb-4">
           <div className="flex items-center gap-2.5 min-w-0">
             <Link href={postAuthorProfileHref} className="shrink-0 hover:opacity-90 transition-opacity">
-              <Avatar className="h-10 w-10 sm:h-11 sm:w-11 ring-2 ring-slate-100">
+              <Avatar className="h-10 w-10 sm:h-11 sm:w-11 ring-2 ring-white shadow-md">
                 <AvatarImage
                   src={post.author?.avatar || "/placeholder.svg?height=44&width=44"}
                   className="object-cover"
@@ -789,7 +789,7 @@ export function PostCard({
         )}
 
         {/* ── Action bar ────────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+        <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-slate-100/80">
           <div className="flex items-center gap-0.5">
 
             {/* Like */}

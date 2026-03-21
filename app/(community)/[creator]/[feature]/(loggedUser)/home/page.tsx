@@ -902,12 +902,12 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-6 sm:py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-28 sm:pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
             {/* Main Feed */}
             <div className="lg:col-span-3 space-y-6">
               {/* Create / Edit Post */}
-              <Card className="overflow-hidden rounded-2xl border border-slate-200/60 shadow-lg bg-white">
+              <Card className="overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/50 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.08)] bg-white">
                 <CardContent className="p-0">
                   {/* ── Collapsed bar ──────────────────────────────────────── */}
                   {!isComposerOpen && (
@@ -1311,10 +1311,10 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-sm bg-white">
+              <Card className="border-0 shadow-sm bg-white/95 backdrop-blur-sm sticky top-[65px] z-40 rounded-2xl">
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="inline-flex rounded-lg border bg-gray-100 p-1">
+                    <div className="inline-flex rounded-2xl bg-gray-100/80 p-1 shadow-inner">
                       <Button
                         type="button"
                         variant={activeFeedTab === "all" ? "default" : "ghost"}
@@ -1348,14 +1348,14 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
               {/* Posts Feed */}
               <div className="space-y-6">
                 {activeFeedTab === "saved" && isLoadingSaved && feedPosts.length === 0 ? (
-                  <Card className="border-0 shadow-sm bg-white">
+                  <Card className="border-0 shadow-sm bg-white/95 backdrop-blur-sm sticky top-[65px] z-40 rounded-2xl">
                     <CardContent className="p-8 text-center">
                       <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary-500 mb-3" />
                       <p className="text-gray-600">Loading saved posts...</p>
                     </CardContent>
                   </Card>
                 ) : activeFeedTab === "saved" && savedError && feedPosts.length === 0 ? (
-                  <Card className="border-0 shadow-sm bg-white">
+                  <Card className="border-0 shadow-sm bg-white/95 backdrop-blur-sm sticky top-[65px] z-40 rounded-2xl">
                     <CardContent className="p-8 text-center">
                       <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-3" />
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load saved posts</h3>
@@ -1364,7 +1364,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                     </CardContent>
                   </Card>
                 ) : feedPosts.length === 0 ? (
-                  <Card className="border-0 shadow-sm bg-white">
+                  <Card className="border-0 shadow-sm bg-white/95 backdrop-blur-sm sticky top-[65px] z-40 rounded-2xl">
                     <CardContent className="p-8 text-center">
                       <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -1423,7 +1423,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
             </div>
 
             {/* Sidebar */}
-            <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-0 lg:self-start">
+            <div className="hidden lg:block lg:col-span-1 space-y-6 lg:sticky lg:top-0 lg:self-start">
               {/* Active Challenge */}
               {activeChallenges.length > 0 && (
                 <Card className="border-0 shadow-sm bg-gradient-to-br from-challenges-50 to-orange-50">
