@@ -5,6 +5,7 @@ import Script from "next/script"
 import { cookies, headers } from "next/headers"
 import { NextIntlClientProvider } from "next-intl"
 import "./globals.css"
+import { ReactQueryProvider } from "@/app/providers/react-query-provider"
 import { Ga4ScriptGate } from "@/components/ga4-script-gate"
 import { CookieConsentProvider } from "@/components/cookie-consent-provider"
 import { ArabicAutoTranslate } from "@/components/arabic-auto-translate"
@@ -122,17 +123,19 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
-          {children}
-          <PwaServiceWorker />
-          <ArabicAutoTranslate />
-          <Ga4ScriptGate />
-          <CookieConsentProvider />
-          <Script id="structured-data-org" type="application/ld+json" strategy="afterInteractive">
-            {JSON.stringify(seoConfig.organization)}
-          </Script>
-          <Script id="structured-data-website" type="application/ld+json" strategy="afterInteractive">
-            {JSON.stringify(generateWebSiteSchema())}
-          </Script>
+          <ReactQueryProvider>
+            {children}
+            <PwaServiceWorker />
+            <ArabicAutoTranslate />
+            <Ga4ScriptGate />
+            <CookieConsentProvider />
+            <Script id="structured-data-org" type="application/ld+json" strategy="afterInteractive">
+              {JSON.stringify(seoConfig.organization)}
+            </Script>
+            <Script id="structured-data-website" type="application/ld+json" strategy="afterInteractive">
+              {JSON.stringify(generateWebSiteSchema())}
+            </Script>
+          </ReactQueryProvider>
         </NextIntlClientProvider>
       </body>
     </html>
