@@ -534,7 +534,7 @@ export const siteData = {
       description:
         "Track your community's growth, engagement, and revenue with comprehensive analytics. Make data-driven decisions to optimize your community.",
       buttonText: "View Analytics",
-      video: "/features-vds/analytics (1).mp4",
+      video: "/features-vds/analytics.mp4",
       url: "chabaqa.io/analytics",
       color: "analytics",
       badgeColor: "border-teal-500/50 text-teal-600 bg-teal-50",
