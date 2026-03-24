@@ -1,25 +1,80 @@
 export const siteData = {
   brand: {
     name: "Chabaqa",
-    // ...
   },
+  
+  // Color system for features
+  featureColors: {
+    community: {
+      iconBg: '#ede9ff',
+      iconBorder: '#c4b8fd',
+      iconColor: '#8e78fb',
+      gradient: 'from-blue-50 to-indigo-50',
+    },
+    course: {
+      iconBg: '#fff3e4',
+      iconBorder: '#fde5bb',
+      iconColor: '#ff9b28',
+      gradient: 'from-orange-50 to-yellow-50',
+    },
+    challenge: {
+      iconBg: '#e4f8fd',
+      iconBorder: '#a5f3fc',
+      iconColor: '#47c7ea',
+      gradient: 'from-cyan-50 to-blue-50',
+    },
+    product: {
+      iconBg: '#ffe4ee',
+      iconBorder: '#fda4af',
+      iconColor: '#f65887',
+      gradient: 'from-pink-50 to-rose-50',
+    },
+    event: {
+      iconBg: '#ede9ff',
+      iconBorder: '#c4b8fd',
+      iconColor: '#8e78fb',
+      gradient: 'from-indigo-50 to-purple-50',
+    },
+    oneToOne: {
+      iconBg: '#fff3e4',
+      iconBorder: '#fde5bb',
+      iconColor: '#ff9b28',
+      gradient: 'from-amber-50 to-orange-50',
+    },
+    dms: {
+      iconBg: '#d1fae5',
+      iconBorder: '#6ee7b7',
+      iconColor: '#10b981',
+      gradient: 'from-green-50 to-emerald-50',
+    },
+    analytics: {
+      iconBg: '#ccfbf1',
+      iconBorder: '#5eead4',
+      iconColor: '#14b8a6',
+      gradient: 'from-teal-50 to-cyan-50',
+    },
+    branding: {
+      iconBg: '#fef3c7',
+      iconBorder: '#fcd34d',
+      iconColor: '#f59e0b',
+      gradient: 'from-amber-50 to-yellow-50',
+    },
+  },
+  
   navigationGroups: [
     {
       title: "Main",
       items: [
-        //{ name: "How it Works", href: "/#how-it-works" },
         { name: "Explore", href: "/explore" },
         { name: "Pricing", href: "/#pricing" },
         { name: "About", href: "/#about" },
         { name: "Features", href: "/#features" },
-
       ],
     },
-
   ],
 
   hero: {
-    title: "Turn your passion into buisness",
+    title: "Turn your passion into business",
     subtitle:
       "Create, engage, and monetize your audience with the platform designed for creators who want to build something amazing.",
     cta: {
@@ -27,6 +82,7 @@ export const siteData = {
       secondary: "See Success Stories",
     },
   },
+  
   features: [
     {
       id: "community",
@@ -35,6 +91,7 @@ export const siteData = {
         "Customize your spaces, prompt discussions, host live events, and launch your course. Circle is built for member engagement from the ground up.",
       buttonText: "Join Community",
       video: "/features-vds/communt.mp4",
+      url: "chabaqa.io/community",
       color: "community",
       badgeColor: "border-blue-500/50 text-blue-600 bg-blue-50",
       ctaGradient: "from-[#5d67ff] to-[#8e78fb]",
@@ -199,6 +256,7 @@ export const siteData = {
         "Create, manage, and deliver engaging online courses with interactive content, progress tracking, and comprehensive analytics to maximize learning outcomes.",
       buttonText: "Start Learning",
       video: "/features-vds/course.mp4",
+      url: "chabaqa.io/courses",
       color: "course",
       badgeColor: "border-[#47c7ea]/50 text-[#47c7ea] bg-[#47c7ea]/10",
       ctaGradient: "from-[#47c7ea] to-[#86e4fd]",
@@ -266,6 +324,7 @@ export const siteData = {
         "Engage your community with exciting challenges, competitions, and skill-building activities that drive participation and foster healthy competition.",
       buttonText: "Join Challenge",
       video: "/features-vds/challenge.mp4",
+      url: "chabaqa.io/challenges",
       color: "challenge",
       badgeColor: "border-[#ff9b28]/50 text-[#ff9b28] bg-[#ff9b28]/10",
       ctaGradient: "from-[#ff9b28] to-[#fddab0]",
@@ -315,6 +374,7 @@ export const siteData = {
         "Showcase and sell your products with integrated e-commerce features, inventory management, and seamless payment processing.",
       buttonText: "Browse Products",
       video: "/features-vds/product.mp4",
+      url: "chabaqa.io/products",
       color: "product",
       badgeColor: "border-purple-500/50 text-purple-600 bg-purple-50",
       ctaGradient: "from-[#5d67ff] to-[#86e4fd]",
@@ -364,6 +424,7 @@ export const siteData = {
         "Connect with mentors and coaches through personalized one-on-one sessions with scheduling, video calls, and progress tracking.",
       buttonText: "Book Session",
       video: "/features-vds/session.mp4",
+      url: "chabaqa.io/sessions",
       color: "oneToOne",
       badgeColor: "border-[#f65887]/50 text-[#f65887] bg-[#f65887]/10",
       ctaGradient: "from-[#f65887] to-[#fddab0]",
@@ -407,6 +468,7 @@ export const siteData = {
         "Connect privately with members through secure direct messaging. Share files, create group chats, and build meaningful one-on-one relationships.",
       buttonText: "Start Messaging",
       video: "/features-vds/dms.mp4",
+      url: "chabaqa.io/messages",
       color: "dms",
       badgeColor: "border-green-500/50 text-green-600 bg-green-50",
       ctaGradient: "from-[#10b981] to-[#34d399]",
@@ -472,7 +534,8 @@ export const siteData = {
       description:
         "Track your community's growth, engagement, and revenue with comprehensive analytics. Make data-driven decisions to optimize your community.",
       buttonText: "View Analytics",
-      video: "/features-vds/analytics.mp4",
+      video: "/features-vds/analytics (1).mp4",
+      url: "chabaqa.io/analytics",
       color: "analytics",
       badgeColor: "border-teal-500/50 text-teal-600 bg-teal-50",
       ctaGradient: "from-[#14b8a6] to-[#2dd4bf]",
@@ -539,6 +602,7 @@ export const siteData = {
         "Create a unique brand experience with custom themes, logos, colors, and domains. Make your community truly yours with white-label solutions.",
       buttonText: "Customize Brand",
       video: "/features-vds/branding.mp4",
+      url: "chabaqa.io/branding",
       color: "branding",
       badgeColor: "border-amber-500/50 text-amber-600 bg-amber-50",
       ctaGradient: "from-[#f59e0b] to-[#fbbf24]",
@@ -605,6 +669,7 @@ export const siteData = {
         "Host engaging live events, webinars, and workshops with interactive features, attendee management, and comprehensive analytics.",
       buttonText: "Attend Event",
       video: "/features-vds/event.mp4",
+      url: "chabaqa.io/events",
       color: "event",
       badgeColor: "border-indigo-500/50 text-indigo-600 bg-indigo-50",
       ctaGradient: "from-[#8e78fb] to-[#86e4fd]",
@@ -903,6 +968,14 @@ export const siteData = {
       description: "A diverse group of creators, developers, and community builders",
     },
   },
+  videos: [
+    { id: 'EmuPphacf0k', num: '01', tag: 'Getting Started', dur: '3:32' },
+    { id: 'sEXWWLlhuqA', num: '02', tag: 'Courses', dur: '4:15' },
+    { id: 'PyHE0D9pWFU', num: '03', tag: 'Challenges', dur: '3:10' },
+    { id: 'tmnUakwzMpQ', num: '04', tag: 'Coaching', dur: '2:59' },
+    { id: 'Om87N_xrcfQ', num: '05', tag: 'Products', dur: '3:39' },
+    { id: 'YXoqN0vRLe8', num: '06', tag: 'Events', dur: '3:06' },
+  ],
   footer: {
     description: "Empowering communities worldwide to learn, connect, and thrive together.",
     links: {

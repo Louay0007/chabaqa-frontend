@@ -1,12 +1,13 @@
-import { Header } from "@/components/header"
-import { Hero } from "@/app/(landing)/components/hero"
-import { Features } from "@/app/(landing)/components/features"
-import { Pricing } from "@/app/(landing)/components/pricing"
 import { About } from "@/app/(landing)/components/about"
-import { FAQ } from "@/app/(landing)/components/faq"
 import { AppInstallCTA } from "@/app/(landing)/components/app-install-cta"
+import { FAQ } from "@/app/(landing)/components/faq"
+import { Features } from "@/app/(landing)/components/features"
+import { Hero } from "@/app/(landing)/components/hero"
+import { Pricing } from "@/app/(landing)/components/pricing"
+import { RevealProvider } from "@/app/(landing)/components/reveal-provider"
 import { YouTubeVideos } from "@/app/(landing)/components/youtube-videos"
 import { Footer } from "@/components/footer"
+import { Header } from "@/components/header"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -127,6 +128,7 @@ export default function Home() {
     <>
       <main className="min-h-screen bg-white">
         <Header />
+        <RevealProvider />
         <Hero />
         <About />
         <Features />

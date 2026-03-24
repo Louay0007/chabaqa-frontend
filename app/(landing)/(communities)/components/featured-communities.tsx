@@ -46,17 +46,8 @@ export function FeaturedCommunities({ communities }: FeaturedCommunitiesProps) {
       <section className="py-1 bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Compact Header */}
-        <div className="text-center mb-2">
+        <div className="text-center mb-6 px-4">
 
-          <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-3">
-            <span className="bg-gradient-to-r from-chabaqa-primary to-chabaqa-secondary1 bg-clip-text text-transparent">
-              {t("featured.title")}
-            </span>
-          </h2>
-
-          <p className="text-base text-gray-600 max-w-2xl mx-auto mb-3">
-            {t("featured.subtitle")}
-          </p>
           <div className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-full border border-amber-200/50 mb-3">
             <Sparkles className="w-3.5 h-3.5 text-amber-500 mr-1.5" />
             <span className="text-xs font-medium text-amber-700">
@@ -64,6 +55,15 @@ export function FeaturedCommunities({ communities }: FeaturedCommunitiesProps) {
             </span>
           </div>
 
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 break-words">
+            <span className="bg-gradient-to-r from-chabaqa-primary to-chabaqa-secondary1 bg-clip-text text-transparent">
+              {t("featured.title")}
+            </span>
+          </h2>
+
+          <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto mb-2 break-words">
+            {t("featured.subtitle")}
+          </p>
         </div>
 
         {/* Compact Slider */}
@@ -72,17 +72,17 @@ export function FeaturedCommunities({ communities }: FeaturedCommunitiesProps) {
           <Button
             onClick={scrollLeft}
             disabled={!canScrollLeft}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/95 hover:bg-white text-gray-700 shadow-md border-0 w-8 h-8 rounded-full disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+            className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-10 bg-white/95 hover:bg-white text-gray-700 shadow-md border-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </Button>
 
           <Button
             onClick={scrollRight}
             disabled={!canScrollRight}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/95 hover:bg-white text-gray-700 shadow-md border-0 w-8 h-8 rounded-full disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+            className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-10 bg-white/95 hover:bg-white text-gray-700 shadow-md border-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </Button>
 
           {/* Compact Scrollable Container */}

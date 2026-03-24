@@ -1,107 +1,106 @@
-"use client"
-
-import { useState } from "react"
-import { ChevronDown } from "lucide-react"
-import { useTranslations } from "next-intl"
-
-interface FAQItem {
-  question: string
-  answer: string
-  category?: string
-}
+'use client'
+import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 export function FAQ() {
-  const t = useTranslations("landing.faq")
-  const [openIndex, setOpenIndex] = useState<number | null>(null)
-  const faqData = t.raw("items") as FAQItem[]
-
-  const toggleFAQ = (index: number) => {
-    setOpenIndex(openIndex === index ? null : index)
-  }
+  const t = useTranslations('landing.faq')
+  const items = t.raw('items') as { q: string; a: string }[]
+  const [open, setOpen] = useState<number | null>(0)
 
   return (
-    <>
-      <div id="faq" className="bg-white py-16 md:py-24">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
-          <div className="text-center mb-12 md:mb-16">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              {t("title")}
-            </h1>
-            <p className="text-sm sm:text-base md:text-xl text-gray-600 max-w-3xl mx-auto">
-              {t("subtitle")}
-            </p>
-          </div>
+    <section className="py-24 px-6 md:px-10 bg-gray-50" id="faq" aria-label="Frequently asked questions">
+      <div className="max-w-3xl mx-auto">
+        <div className="text-center mb-14 reveal">
+          <div className="text-xs font-bold uppercase tracking-[.1em] text-[#8e78fb] mb-3">{t('eyebrow')}</div>
+          <h2 className="text-[clamp(28px,4vw,44px)] font-black text-gray-900 mb-4">{t('title')}</h2>
+          <p className="text-gray-600">{t('sub')}</p>
+        </div>
 
-          <div className="space-y-4">
-            {faqData.map((faq, index) => (
+        <div className="flex flex-col gap-3 stagger" role="list">
+          {items.map((faq, i) => {
+            const isOpen = open === i
+            const answerId = `faq-answer-${i}`
+            const questionId = `faq-question-${i}`
+            return (
               <div
-                key={index}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-md"
-                itemScope
-                itemProp="mainEntity"
-                itemType="https://schema.org/Question"
+                key={i}
+                role="listitem"
+                className={`rounded-2xl border transition-all overflow-hidden ${isOpen ? 'border-[#8e78fb] shadow-[0_4px_24px_rgba(142,120,251,.15)]' : 'border-gray-200 hover:border-[#c4b8fd]'}`}
               >
                 <button
-                  onClick={() => toggleFAQ(index)}
-                  className="w-full px-6 py-5 flex items-center justify-between text-left focus:outline-none focus:ring-2 focus:ring-chabaqa-primary focus:ring-offset-2 rounded-xl"
-                  aria-expanded={openIndex === index}
-                >
-                  <span className="text-base md:text-lg font-semibold text-gray-900 pr-4" itemProp="name">
-                    {faq.question}
-                  </span>
-                  <ChevronDown
-                    className={`w-5 h-5 text-chabaqa-primary flex-shrink-0 transition-transform duration-200 ${
-                      openIndex === index ? "transform rotate-180" : ""
-                    }`}
-                  />
-                </button>
-                
-                <div
-                  className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                    openIndex === index ? "max-h-[500px]" : "max-h-0"
+                  id={questionId}
+                  className={`w-full flex items-center justify-between gap-4 px-6 py-5 text-start font-semibold text-sm transition-colors ${
+                    isOpen ? 'bg-[#8e78fb] text-white' : 'bg-white text-gray-900 hover:bg-[#ede9ff]'
                   }`}
-                  itemScope
-                  itemProp="acceptedAnswer"
-                  itemType="https://schema.org/Answer"
+                  onClick={() => setOpen(isOpen ? null : i)}
+                  aria-expanded={isOpen}
+                  aria-controls={answerId}
                 >
-                  <div className="px-6 pb-5 pt-3 text-sm md:text-base text-gray-600 leading-relaxed" itemProp="text">
-                    {faq.answer}
-                  </div>
+                  {faq.q}
+                  <span className="flex-shrink-0" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke={isOpen ? '#fff' : '#8e78fb'}
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      width="12"
+                      height="12"
+                      style={{ transform: isOpen ? 'rotate(45deg)' : 'none', transition: 'transform .2s' }}
+                    >
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </span>
+                </button>
+                <div id={answerId} role="region" aria-labelledby={questionId} hidden={!isOpen} className="px-6 py-5 text-sm text-gray-600 leading-relaxed bg-white">
+                  {faq.a}
                 </div>
               </div>
-            ))}
-          </div>
-
-          <div className="mt-12 text-center">
-            <p className="text-gray-600 mb-4">{t("stillHaveQuestions")}</p>
-            <a
-              href="mailto:contactchabaqa@gmail.com"
-              className="inline-flex items-center justify-center px-6 py-3 bg-chabaqa-primary text-white font-semibold rounded-lg hover:bg-chabaqa-primary/90 transition-colors duration-200"
-            >
-              {t("contactSupport")}
-            </a>
-          </div>
+            )
+          })}
         </div>
       </div>
 
-      {/* JSON-LD Structured Data for FAQ */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            "mainEntity": faqData.map(faq => ({
-              "@type": "Question",
-              "name": faq.question,
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": faq.answer
-              }
-            }))
-          })
-        }}
-      />
-    </>
+      <style jsx>{`
+        .reveal {
+          opacity: 0;
+          transform: translateY(24px);
+          transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .in-view {
+          opacity: 1 !important;
+          transform: none !important;
+        }
+        .stagger > * {
+          opacity: 0;
+          transform: translateY(20px);
+          transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .stagger.in-view > * {
+          opacity: 1;
+          transform: none;
+        }
+        .stagger.in-view > *:nth-child(1) {
+          transition-delay: 0.05s;
+        }
+        .stagger.in-view > *:nth-child(2) {
+          transition-delay: 0.13s;
+        }
+        .stagger.in-view > *:nth-child(3) {
+          transition-delay: 0.21s;
+        }
+        .stagger.in-view > *:nth-child(4) {
+          transition-delay: 0.29s;
+        }
+        .stagger.in-view > *:nth-child(5) {
+          transition-delay: 0.37s;
+        }
+        .stagger.in-view > *:nth-child(6) {
+          transition-delay: 0.45s;
+        }
+      `}</style>
+    </section>
   )
 }

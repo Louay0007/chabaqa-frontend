@@ -2,174 +2,166 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Facebook, Instagram, Linkedin, Youtube } from "lucide-react"
-import { siteData } from "@/lib/data"
-import { COOKIE_OPEN_PREFERENCES_EVENT } from "@/components/cookie-consent-provider"
 import { useTranslations } from "next-intl"
 import { usePathname } from "next/navigation"
 import { localizeHref } from "@/lib/i18n/client"
-
-const iconMap = {
-  Facebook,
-  Instagram,
-  Linkedin,
-  Youtube,
-}
+import { COOKIE_OPEN_PREFERENCES_EVENT } from "@/components/cookie-consent-provider"
 
 export function Footer() {
-  const t = useTranslations("landing.footer")
+  const t = useTranslations("footer")
   const pathname = usePathname()
   const withLocale = (href: string) => localizeHref(pathname, href)
-  const isArabic = pathname === "/ar" || pathname.startsWith("/ar/")
 
   const openCookiePreferences = () => {
     if (typeof window === "undefined") return
     window.dispatchEvent(new CustomEvent(COOKIE_OPEN_PREFERENCES_EVENT))
   }
 
-  const productLinks = [
-    { href: "/explore", label: t("links.product.explore") },
-    { href: "/#features", label: t("links.product.features") },
-    { href: "/#pricing", label: t("links.product.pricing") },
-  ]
+  const columns = t.raw("columns") as Record<string, string[]>
+  const bottomLinks = t.raw("bottomLinks") as string[]
 
-  const companyLinks = [
-    { href: "/#about", label: t("links.company.about") },
-    { href: "/terms-of-service", label: t("links.company.terms") },
-    { href: "/privacy-policy", label: t("links.company.privacy") },
+  const FOOTER_HREFS: string[][] = [
+    ["/#features", "/#pricing", "/#features", "/#features", "/#features"],
+    ["/#about", "/blogs", "#", "#"],
+    ["/terms-of-service", "/privacy-policy", "#"],
   ]
-
-  const legalLinks = companyLinks.filter((link) =>
-    ["/terms-of-service", "/privacy-policy"].includes(link.href)
-  )
 
   return (
-    <footer className="bg-gradient-to-t from-pink-100 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950 text-gray-900 dark:text-gray-100">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-        {/* Brand - Mobile First */}
-        <div className="mb-8 text-center lg:hidden">
-          <Link href={withLocale("/")} className="mb-3 inline-block" aria-label={siteData.brand.name}>
-            <Image
-              src="/Logos/PNG/frensh1.png"
-              alt="Chabaqa Logo"
-              width={120}
-              height={22}
-              priority
-              style={{ objectFit: "contain" }}
-            />
-          </Link>
-          <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
-            {t("description")}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-6 sm:gap-8 lg:grid-cols-4">
-          {/* Brand - Desktop */}
-          <div className="hidden lg:block lg:col-span-1">
-            <Link href={withLocale("/")} className="mb-4 block" aria-label={siteData.brand.name}>
+    <footer
+      className="pt-16 pb-8 px-6 md:px-10"
+      style={{
+        background: "linear-gradient(135deg, #8e78fb 0%, #5d67ff 100%)",
+      }}
+    >
+      <div className="max-w-6xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
+          {/* Brand */}
+          <div className="col-span-2 md:col-span-1">
+            <Link href={withLocale("/")} aria-label="Chabaqa — go to homepage" className="flex items-center mb-4">
               <Image
                 src="/Logos/PNG/frensh1.png"
-                alt="Chabaqa Logo"
-                width={150}
-                height={28}
-                priority
-                style={{ objectFit: "contain" }}
+                alt="Chabaqa"
+                width={120}
+                height={32}
+                className="h-8 w-auto brightness-0 invert"
               />
             </Link>
-            <p className="mt-1 text-gray-600 dark:text-gray-400 max-w-md">
-              {t("description")}
-            </p>
-          </div>
-
-          {/* Product */}
-          <div>
-            <h3 className="text-sm font-semibold mb-3 sm:mb-4">{t("sections.product")}</h3>
-            <ul className="space-y-2 sm:space-y-3" role="list">
-              {productLinks.map((link, index) => (
-                <li key={index}>
-                  <Link
-                    href={withLocale(link.href)}
-                    className="text-sm sm:text-base text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <h3 className="text-sm font-semibold mb-3 sm:mb-4">{t("sections.company")}</h3>
-            <ul className="space-y-2 sm:space-y-3" role="list">
-              {companyLinks.map((link, index) => (
-                <li key={index}>
-                  <Link
-                    href={withLocale(link.href)}
-                    className="text-sm sm:text-base text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Social */}
-          <div className="col-span-2 lg:col-span-1">
-            <h3 className={isArabic ? "text-sm font-semibold mb-3 sm:mb-4 text-center lg:text-right" : "text-sm font-semibold mb-3 sm:mb-4 text-center lg:text-left"}>{t("sections.followUs")}</h3>
-            <div className="flex justify-center lg:justify-start gap-4" dir="ltr">
-              {siteData.footer.social.map((social, index) => {
-                const Icon = iconMap[social.icon as keyof typeof iconMap]
-                return (
-                  <Link
-                    key={index}
-                    href={social.href}
-                    className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                    aria-label={social.icon}
-                  >
-                    <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Note */}
-        <div className="mt-8 sm:mt-12 border-t border-gray-900/10 dark:border-white/10 pt-6 sm:pt-8 text-center">
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400" dir={isArabic ? "rtl" : "ltr"}>
-            {isArabic ? (
-              <>
-                {t("copyrightReserved")} <span dir="ltr">{new Date().getFullYear()}</span> {siteData.brand.name}
-              </>
-            ) : (
-              t("copyright", { year: new Date().getFullYear(), brand: siteData.brand.name })
-            )}
-          </p>
-          {legalLinks.length > 0 && (
-            <div
-              className="mt-2 sm:mt-3 flex flex-wrap items-center justify-center gap-4 sm:gap-5"
-              dir={isArabic ? "rtl" : "ltr"}
-            >
-              {legalLinks.map((link) => (
+            <p className="text-white/70 text-sm leading-relaxed mb-6">{t("tagline")}</p>
+            <div className="flex gap-3">
+              {[
+                {
+                  href: "https://instagram.com/chabaqa",
+                  label: "Instagram",
+                  icon: (
+                    <>
+                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                    </>
+                  ),
+                },
+                {
+                  href: "https://twitter.com/chabaqa",
+                  label: "X (Twitter)",
+                  icon: (
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  ),
+                },
+                {
+                  href: "https://linkedin.com/company/chabaqa",
+                  label: "LinkedIn",
+                  icon: (
+                    <>
+                      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                      <rect x="2" y="9" width="4" height="12" />
+                      <circle cx="4" cy="4" r="2" />
+                    </>
+                  ),
+                },
+              ].map(({ href, label, icon }) => (
                 <Link
-                  key={link.href}
-                  href={withLocale(link.href)}
-                  className="text-xs sm:text-sm text-gray-500 underline-offset-4 hover:text-gray-800 hover:underline dark:text-gray-400 dark:hover:text-gray-200"
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Chabaqa on ${label}`}
+                  className="w-9 h-9 rounded-xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:border-white/30 transition-colors"
                 >
-                  {link.label}
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    width="16"
+                    height="16"
+                    aria-hidden="true"
+                  >
+                    {icon}
+                  </svg>
                 </Link>
               ))}
-              <button
-                type="button"
-                onClick={openCookiePreferences}
-                className="text-xs sm:text-sm text-gray-500 underline-offset-4 hover:text-gray-800 hover:underline dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                {t("manageCookies")}
-              </button>
             </div>
-          )}
+          </div>
+
+          {/* Columns */}
+          {Object.entries(columns).map(([heading, links], colIdx) => (
+            <div key={heading}>
+              <h4 className="text-white font-bold text-sm mb-4">{heading}</h4>
+              <ul className="flex flex-col gap-3">
+                {links.map((link, linkIdx) => (
+                  <li key={link}>
+                    <Link
+                      href={withLocale(FOOTER_HREFS[colIdx]?.[linkIdx] ?? "#")}
+                      className="text-white/70 hover:text-white text-sm transition-colors"
+                    >
+                      {link}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <span className="text-white/50 text-sm">{t("copyright")}</span>
+          <div className="flex items-center gap-4">
+            {bottomLinks.map((label, idx) => {
+              const hrefs = ["/terms-of-service", "/privacy-policy", "#"]
+              return (
+                <Link
+                  key={label}
+                  href={idx === 2 ? "#" : withLocale(hrefs[idx])}
+                  onClick={idx === 2 ? openCookiePreferences : undefined}
+                  className="text-white/50 hover:text-white text-sm transition-colors"
+                >
+                  {label}
+                </Link>
+              )
+            })}
+          </div>
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            aria-label={t("backTop")}
+            className="flex items-center gap-2 text-white/50 hover:text-white text-sm transition-colors"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              width="14"
+              height="14"
+              aria-hidden="true"
+            >
+              <polyline points="18 15 12 9 6 15" />
+            </svg>
+            {t("backTop")}
+          </button>
         </div>
       </div>
     </footer>

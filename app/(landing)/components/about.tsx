@@ -1,176 +1,95 @@
-"use client"
-
-import { Button } from "@/components/ui/button"
-import { Play, X } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { useEffect, useRef, useState } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { useTranslations } from "next-intl"
-import { usePathname } from "next/navigation"
-import { localizeHref } from "@/lib/i18n/client"
+'use client'
+import { localizeHref } from '@/lib/i18n/client'
+import { useTranslations } from 'next-intl'
+import { usePathname } from 'next/navigation'
 
 export function About() {
-  const [isVideoExpanded, setIsVideoExpanded] = useState(false)
-  const overlayRef = useRef<HTMLDivElement | null>(null)
-  const t = useTranslations("landing.about")
+  const t = useTranslations('landing.about')
   const pathname = usePathname()
   const withLocale = (href: string) => localizeHref(pathname, href)
-
-  // Close modal on ESC
-  useEffect(() => {
-    if (!isVideoExpanded) return
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setIsVideoExpanded(false)
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [isVideoExpanded])
-
-  // Lock background scroll when modal open (mobile friendly)
-  useEffect(() => {
-    if (!isVideoExpanded) return
-    const original = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    return () => {
-      document.body.style.overflow = original
-    }
-  }, [isVideoExpanded])
+  const pills = t.raw('pills') as string[]
 
   return (
-    <section
-      id="about"
-      className={cn(
-        "relative bg-white overflow-hidden",
-        "py-12 sm:py-16 lg:py-20",
-      )}
-    >
-      {/* Video Modal (with transition) */}
-      {isVideoExpanded && (
-        <div
-          ref={overlayRef}
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 animate-in fade-in duration-300"
-          role="dialog"
-          aria-modal="true"
-          aria-label={t("aboutVideoAriaLabel")}
-          onClick={(e) => {
-            if (e.target === overlayRef.current) setIsVideoExpanded(false)
-          }}
-          style={{
-            paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
-            paddingRight: "max(0.75rem, env(safe-area-inset-right))",
-            paddingTop: "max(0.75rem, env(safe-area-inset-top))",
-            paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
-          }}
-        >
-          <div
-            className="relative w-full max-w-screen-xl md:max-w-5xl lg:max-w-6xl mx-4 sm:mx-8 animate-in zoom-in-95 fade-in duration-300 max-h-[90vh]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setIsVideoExpanded(false)}
-              aria-label={t("closeVideo")}
-              className="fixed top-4 right-4 sm:top-6 sm:right-6 z-[60] text-white"
-              style={{ background: "transparent", border: "none", padding: 0, lineHeight: 0 }}
-            >
-              <X className="w-8 h-8" />
-            </button>
-
-
-            <div className="w-full max-w-full aspect-video h-auto rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
-               <iframe
-                src="https://www.youtube.com/embed/t_IUPjKppN8?autoplay=1&rel=0"
-                title={t("aboutVideoExpandedTitle")}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
-              
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Background blobs (smaller on mobile) */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-8 left-3 sm:top-12 sm:left-8 w-24 h-24 sm:w-40 sm:h-40 bg-gradient-to-br from-[#8e78fb]/20 to-[#f65887]/20 rounded-full blur-2xl animate-pulse" />
-        <div
-          className="absolute bottom-10 right-3 sm:bottom-16 sm:right-8 w-20 h-20 sm:w-36 sm:h-36 bg-gradient-to-br from-[#47c7ea]/20 to-[#ff9b28]/15 rounded-full blur-2xl animate-pulse"
-          style={{ animationDelay: "1s" }}
-        />
-      </div>
-
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-12 items-center mb-10 lg:mb-16">
-          {/* Video teaser */}
-          <div className="relative order-1 lg:order-none">
-            <div
-              className="aspect-video rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl bg-gray-900 cursor-pointer group"
-              onClick={() => setIsVideoExpanded(true)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setIsVideoExpanded(true)}
-              aria-label={t("playDemoVideo")}
-            >
-              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white/90 rounded-full flex items-center justify-center">
-                  <Play className="w-5 h-5 sm:w-6 sm:h-6 text-gray-900 ml-0.5" />
-                </div>
-              </div>
-
-              {/* <iframe
-                src="https://youtu.be/xf5Gvfpo330"
-                title="About Us Video"
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              /> */}
-            <Image
-              src="https://i.ytimg.com/vi/t_IUPjKppN8/hqdefault.jpg"
-              alt={t("aboutVideoAlt")}
-              fill
-              className="object-cover rounded-2xl"
+    <div className="py-24 px-6 md:px-10 bg-gray-50" id="about">
+      <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+        <div className="reveal-left">
+          <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-[0_8px_40px_rgba(142,120,251,.12)] aspect-video bg-white">
+            <iframe
+              src="https://www.youtube.com/embed/t_IUPjKppN8?autoplay=0&rel=0&modestbranding=1"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title="What is Chabaqa?"
               loading="lazy"
+              className="w-full h-full"
             />
-            </div>
-            <div className="absolute -inset-3 sm:-inset-4 bg-gradient-to-r from-[#8e78fb]/10 to-[#f65887]/10 rounded-2xl sm:rounded-3xl -z-10" />
-          </div>
-
-          {/* Text + CTAs */}
-          <div className="space-y-5 sm:space-y-6">
-            <div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-3 sm:mb-4 text-balance">
-                {t("title")}
-              </h1>
-              <p className="text-base sm:text-lg text-gray-700 leading-relaxed">
-                {t("description")}
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-[#8e78fb] to-[#f65887] hover:from-[#7c6bfa] hover:to-[#f54d7a] text-white px-6 sm:px-8 py-2.5 sm:py-3 text-base"
-              >
-                <Link href={withLocale("/dashboard/create-community")}>
-                  {t("getStartedToday")}
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-2 border-gray-300 hover:border-[#8e78fb] px-6 sm:px-8 py-2.5 sm:py-3 bg-transparent text-base"
-                onClick={() => setIsVideoExpanded(true)}
-              >
-                <Play className="w-4 h-4 mr-2" />
-                {t("watchDemo")}
-              </Button>
-            </div>
           </div>
         </div>
+        <div className="reveal-right">
+          <div className="text-xs font-bold uppercase tracking-[.1em] text-[#8e78fb] mb-4">{t('eyebrow')}</div>
+          <h2 className="text-[clamp(28px,4vw,44px)] font-black text-gray-900 leading-tight mb-5">{t('heading')}</h2>
+          <p className="text-gray-600 leading-relaxed mb-7">{t('body')}</p>
+          <ul className="flex flex-wrap gap-1.5 sm:gap-2 mb-6 sm:mb-8 stagger" aria-label="Key features">
+            {pills.map((pill) => (
+              <li key={pill} className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-[#ede9ff] border border-[#c4b8fd] text-[#8e78fb] text-xs sm:text-sm font-semibold">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="11" height="11" className="sm:w-[13px] sm:h-[13px]" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                {pill}
+              </li>
+            ))}
+          </ul>
+          <a
+            href={withLocale('/register')}
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-5 py-3 sm:px-7 sm:py-4 rounded-xl sm:rounded-2xl text-sm font-bold text-white bg-[#8e78fb] hover:bg-[#7a64f0] hover:-translate-y-[2px] transition-all shadow-[0_8px_24px_rgba(142,120,251,.35)]"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" className="sm:w-4 sm:h-4" aria-hidden="true">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+            {t('cta')}
+          </a>
+        </div>
       </div>
-    </section>
+
+      <style jsx>{`
+        .reveal-left,
+        .reveal-right {
+          opacity: 0;
+          transform: translateY(24px);
+          transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .reveal-left {
+          transform: translateX(-28px);
+        }
+        .reveal-right {
+          transform: translateX(28px);
+        }
+        .in-view {
+          opacity: 1 !important;
+          transform: none !important;
+        }
+        .stagger > * {
+          opacity: 0;
+          transform: translateY(20px);
+          transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .stagger.in-view > * {
+          opacity: 1;
+          transform: none;
+        }
+        .stagger.in-view > *:nth-child(1) {
+          transition-delay: 0.05s;
+        }
+        .stagger.in-view > *:nth-child(2) {
+          transition-delay: 0.13s;
+        }
+        .stagger.in-view > *:nth-child(3) {
+          transition-delay: 0.21s;
+        }
+        .stagger.in-view > *:nth-child(4) {
+          transition-delay: 0.29s;
+        }
+      `}</style>
+    </div>
   )
 }

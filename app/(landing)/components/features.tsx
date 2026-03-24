@@ -1,118 +1,223 @@
-"use client"
-import { siteData } from "@/lib/data"
-import { useState } from "react"
-import { useTranslations } from "next-intl"
+'use client'
+import { useState } from 'react'
+import { useTranslations } from 'next-intl'
+import { siteData } from '@/lib/data'
+import { JSX } from 'react/jsx-runtime';
+
+function FeatureIcon({ id, color, size = 16 }: { id: string; color: string; size?: number }) {
+  const icons: Record<string, JSX.Element> = {
+    community: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width={size} height={size}>
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+    course: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width={size} height={size}>
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+      </svg>
+    ),
+    challenge: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width={size} height={size}>
+        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+        <path d="M4 22h16" />
+        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+      </svg>
+    ),
+    product: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width={size} height={size}>
+        <circle cx="8" cy="21" r="1" />
+        <circle cx="19" cy="21" r="1" />
+        <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+      </svg>
+    ),
+    event: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width={size} height={size}>
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+      </svg>
+    ),
+    oneToOne: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width={size} height={size}>
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+    dms: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width={size} height={size}>
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+    ),
+    analytics: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width={size} height={size}>
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
+    ),
+    branding: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width={size} height={size}>
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="12" r="6" />
+        <circle cx="12" cy="12" r="2" />
+      </svg>
+    ),
+  }
+  return icons[id] || icons.community
+}
 
 export function Features() {
-  const [activeFeatureIndex, setActiveFeatureIndex] = useState(0)
-  const t = useTranslations("landing.features")
+  const t = useTranslations('landing.features')
+  const items = t.raw('items') as { id: string; name: string; desc: string }[]
+  const [active, setActive] = useState('community')
 
-  const activeFeature = siteData.features[activeFeatureIndex]
-
-  const getFeatureColor = (color: string) => {
-    return "bg-chabaqa-primary hover:bg-chabaqa-primary/90 border-chabaqa-primary"
+  // Get all data from centralized source
+  const features = siteData.features
+  const colors = siteData.featureColors
+  
+  // Find the active feature - no fallback
+  const feature = features.find((f) => f.id === active)
+  if (!feature) {
+    console.error(`Feature with id "${active}" not found`)
+    return null
   }
 
-  const getFeatureTitle = (featureId: string, fallback: string) =>
-    t.has(`items.${featureId}`) ? t(`items.${featureId}`) : fallback
+  // Get colors for the active feature - no fallback
+  const featureColors = colors[active as keyof typeof colors]
+  if (!featureColors) {
+    console.error(`Colors for feature "${active}" not found`)
+    return null
+  }
 
   return (
-    <div id="features" className="py-8 md:py-16">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-        <div className="mb-8 md:mb-12 text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            {t("title")}
-          </h2>
-          <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-            {t("subtitle")}
-          </p>
+    <div className="py-24 px-6 md:px-10 bg-white" id="features">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-14 reveal">
+          <div className="text-xs font-bold uppercase tracking-[.1em] text-[#8e78fb] mb-3">{t('eyebrow')}</div>
+          <h2 className="text-[clamp(28px,4vw,44px)] font-black text-gray-900 mb-4">{t('title')}</h2>
+          <p className="text-gray-600 max-w-xl mx-auto">{t('sub')}</p>
         </div>
 
-        {/* Mobile Feature Selector - Horizontal Scroll */}
-        <div className="lg:hidden mb-1">
-          <div className="relative -mx-4 px-4">
-            <div className="overflow-x-auto scrollbar-hide snap-x snap-mandatory">
-              <div className="flex gap-2 pb-2">
-                {siteData.features.map((feature, index) => (
-                  <button
-                    key={feature.id}
-                    onClick={() => setActiveFeatureIndex(index)}
-                    className={`flex-shrink-0 px-3 py-2 rounded-lg transition-all duration-300 snap-start ${
-                      index === activeFeatureIndex
-                        ? `${getFeatureColor(feature.color)} text-white shadow-md transform scale-105`
-                        : "bg-white border border-gray-200 text-gray-700 active:scale-95"
-                    }`}
-                  >
-                    <div className="font-semibold text-xs whitespace-nowrap">
-                      {getFeatureTitle(feature.id, feature.title)}
-                    </div>
-                  </button>
-                ))}
-              </div>
+        {/* Mobile: pill tabs row + centered video */}
+        <div className="md:hidden mb-6">
+          <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {items.map((f) => {
+              const itemColors = colors[f.id as keyof typeof colors]
+              if (!itemColors) return null
+              
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => setActive(f.id)}
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all whitespace-nowrap ${
+                    active === f.id ? 'bg-[#8e78fb] text-white border-[#8e78fb]' : 'bg-white text-gray-700 border-gray-200 hover:border-[#c4b8fd] hover:text-[#8e78fb]'
+                  }`}
+                >
+                  <FeatureIcon id={f.id} color={active === f.id ? '#fff' : itemColors.iconColor} size={12} />
+                  {f.name}
+                </button>
+              )
+            })}
+          </div>
+          {/* Video centered full width */}
+          <div className="rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-[0_8px_40px_rgba(142,120,251,.1)] w-full">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 bg-gray-50">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+              <span className="text-xs text-gray-600 ms-2 truncate">{feature.url || 'chabaqa.io'}</span>
             </div>
-            {/* Gradient Fade Edges with Scroll Indicators */}
-            <div className="absolute left-0 top-0 bottom-2 w-8 bg-gradient-to-r from-white via-white to-transparent pointer-events-none flex items-center">
-              <div className="w-1 h-8 bg-gray-300 rounded-full ml-2 animate-pulse"></div>
-            </div>
-            <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-white via-white to-transparent pointer-events-none flex items-center justify-end">
-              <div className="w-1 h-8 bg-gray-300 rounded-full mr-2 animate-pulse"></div>
+            <div className="relative aspect-video" style={{ background: `linear-gradient(135deg,${featureColors.iconBg},#f7f7fe)` }}>
+              {feature.video && (
+                <video
+                  key={active}
+                  src={feature.video}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              )}
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 lg:items-start">
-          {/* Desktop Sidebar - Scrollable */}
-          <div className="hidden lg:block lg:w-64 flex-shrink-0">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-3 sticky top-4">
-              <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-1">
-                <div className="space-y-1.5">
-                  {siteData.features.map((feature, index) => (
-                    <button
-                      key={feature.id}
-                      onClick={() => setActiveFeatureIndex(index)}
-                      className={`w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                        index === activeFeatureIndex
-                          ? `${getFeatureColor(feature.color)} text-white shadow-md`
-                          : "bg-gray-50 hover:bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      <div className="font-semibold text-sm">{getFeatureTitle(feature.id, feature.title)}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+        {/* Desktop: sidebar tabs + video */}
+        <div className="hidden md:grid md:grid-cols-[280px_1fr] gap-8 items-start">
+          <div className="flex flex-col gap-2 h-full">
+            {items.map((f) => {
+              const itemColors = colors[f.id as keyof typeof colors]
+              if (!itemColors) return null
+              
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => setActive(f.id)}
+                  className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-start transition-all border ${
+                    active === f.id ? 'border-[#c4b8fd] bg-[#ede9ff] shadow-[0_4px_16px_rgba(142,120,251,.15)]' : 'border-transparent bg-transparent hover:bg-[#ede9ff] hover:border-gray-200'
+                  }`}
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: itemColors.iconBg, border: `1.5px solid ${itemColors.iconBorder}` }}>
+                    <FeatureIcon id={f.id} color={itemColors.iconColor} size={14} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-bold text-gray-900">{f.name}</div>
+                  </div>
+                  <span className="text-gray-400 text-sm">→</span>
+                </button>
+              )
+            })}
           </div>
 
-          {/* Content Area */}
-          <div className="flex-1">
-            <div className="relative flex items-center justify-center">
-              <div className="relative group w-full max-w-3xl">
-                {/* Animated border */}
-                <div
-                  className={`absolute -inset-1 rounded-2xl opacity-75 blur-sm animate-pulse bg-gradient-to-r from-chabaqa-primary via-blue-300 to-indigo-400`}
-                ></div>
-                
-                {/* Video container */}
-                <div className="relative bg-white rounded-lg md:rounded-xl shadow-xl overflow-hidden">
-                  <video
-                    key={activeFeature.id}
-                    src={activeFeature.video || "/placeholder.mp4"}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-auto object-cover"
-                  >
-                    <source src={activeFeature.video || "/placeholder.mp4"} type="video/mp4" />
-                    {t("videoNotSupported")}
-                  </video>
-                </div>
-              </div>
+          {/* Video preview */}
+          <div className="rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-[0_8px_40px_rgba(142,120,251,.1)]">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 bg-gray-50">
+              <span className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+              <span className="w-3 h-3 rounded-full bg-[#febc2e]" />
+              <span className="w-3 h-3 rounded-full bg-[#28c840]" />
+              <span className="text-xs text-gray-600 ms-2">{feature.url || 'chabaqa.io'}</span>
+            </div>
+            <div className="relative aspect-video" style={{ background: `linear-gradient(135deg,${featureColors.iconBg},#f7f7fe)` }}>
+              {feature.video && (
+                <video
+                  key={active}
+                  src={feature.video}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .reveal {
+          opacity: 0;
+          transform: translateY(24px);
+          transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .in-view {
+          opacity: 1 !important;
+          transform: none !important;
+        }
+      `}</style>
     </div>
   )
 }

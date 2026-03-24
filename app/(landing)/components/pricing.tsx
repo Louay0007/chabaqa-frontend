@@ -1,378 +1,359 @@
-"use client"
+'use client'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useTranslations } from 'next-intl'
+import { usePathname } from 'next/navigation'
+import { localizeHref } from '@/lib/i18n/client'
+import { siteData } from '@/lib/data'
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import confetti from "canvas-confetti"
-import NumberFlow from "@number-flow/react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Check, ChevronLeft, ChevronRight } from "lucide-react"
-import { siteData } from "@/lib/data"
-import { subscriptionApi, PlanTier } from "@/lib/api/subscription.api"
-import { useToast } from "@/components/ui/use-toast"
-import { useTranslations } from "next-intl"
+// Types
+interface ConfettiParticle {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  color: string
+  size: number
+  rotation: number
+  rotationSpeed: number
+}
 
-type Billing = "monthly" | "yearly"
+// Confetti particle generator
+function createConfetti(): ConfettiParticle[] {
+  const colors = ['#8e78fb', '#47c7ea', '#ff9b28', '#f65887', '#fbbf24']
+  const particles: ConfettiParticle[] = []
+
+  for (let i = 0; i < 50; i++) {
+    particles.push({
+      x: Math.random() * window.innerWidth,
+      y: -20,
+      vx: (Math.random() - 0.5) * 4,
+      vy: Math.random() * 3 + 2,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: Math.random() * 8 + 4,
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 10,
+    })
+  }
+  return particles
+}
 
 export function Pricing() {
-  const { toast } = useToast()
-  const t = useTranslations("landing.pricing")
-  const [billing, setBilling] = useState<Billing>("monthly")
-  const plans = siteData.pricing.plans
+  const t = useTranslations('landing.pricing')
+  const pathname = usePathname()
+  const withLocale = useCallback((href: string) => localizeHref(pathname, href), [pathname])
+  
+  // Get plans from centralized data - memoized
+  const PLANS = useMemo(() => siteData.pricing.plans, [])
+  
+  // Get translations - memoized
+  const plansTranslations = useMemo(() => 
+    t.raw('plans') as { badge: string; name: string; desc: string; fee: string; features: string[] }[], 
+    [t]
+  )
+  const period = useMemo(() => 
+    t.raw('period') as { free: string; monthly: string; yearly: string }, 
+    [t]
+  )
+  
+  const [yearly, setYearly] = useState(false)
+  const [confetti, setConfetti] = useState<ConfettiParticle[]>([])
+  const [animatingPrices, setAnimatingPrices] = useState<Record<string, number>>({})
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const animationRef = useRef<number | undefined>(undefined)
+  const intervalsRef = useRef<Set<NodeJS.Timeout>>(new Set())
 
-  const mapPlanKey = (plan: any) => {
-    const source = String(plan?.tier ?? plan?.name ?? "").toLowerCase()
-    if (source.includes("starter")) return "starter"
-    if (source.includes("growth")) return "growth"
-    if (source.includes("pro")) return "pro"
-    return null
-  }
+  // Animate confetti
+  useEffect(() => {
+    if (confetti.length === 0) return
 
-  const getTranslatedPlan = (plan: any) => {
-    const planKey = mapPlanKey(plan)
-    if (!planKey) return plan
+    const canvas = canvasRef.current
+    if (!canvas) return
 
-    const baseKey = `plans.${planKey}`
-    return {
-      ...plan,
-      name: t.has(`${baseKey}.name`) ? t(`${baseKey}.name`) : plan.name,
-      description: t.has(`${baseKey}.description`) ? t(`${baseKey}.description`) : plan.description,
-      trial: t.has(`${baseKey}.trial`) ? t(`${baseKey}.trial`) : plan.trial,
-      cta: t.has(`${baseKey}.cta`) ? t(`${baseKey}.cta`) : plan.cta,
-      features: t.has(`${baseKey}.features`) ? (t.raw(`${baseKey}.features`) as string[]) : plan.features,
-    }
-  }
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
 
-  const handleSubscriptionPayment = async (tierName: string, interval: Billing) => {
-    try {
-      // Map plan name to PlanTier enum
-      const tierMap: Record<string, PlanTier> = {
-        'Starter': PlanTier.STARTER,
-        'Growth': PlanTier.GROWTH,
-        'Pro': PlanTier.PRO,
-      }
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
 
-      const tier = tierMap[tierName]
-      if (!tier) {
-        toast({
-          title: t("errors.invalidPlanTitle"),
-          description: t("errors.invalidPlanDescription"),
-          variant: "destructive",
-        })
-        return
-      }
+    let particles = [...confetti]
 
-      const billingInterval = interval === 'monthly' ? 'month' : 'year'
-      const result = await subscriptionApi.initStripePayment(tier, billingInterval)
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-      if (result?.checkoutUrl) {
-        window.location.href = result.checkoutUrl
-      } else {
-        throw new Error(t("errors.noCheckoutUrl"))
-      }
-    } catch (error: any) {
-      toast({
-        title: t("errors.paymentInitFailedTitle"),
-        description: error?.message || t("errors.tryAgain"),
-        variant: "destructive",
+      particles = particles.filter((p) => {
+        p.y += p.vy
+        p.x += p.vx
+        p.vy += 0.1 // gravity
+        p.rotation += p.rotationSpeed
+
+        if (p.y > canvas.height) return false
+
+        ctx.save()
+        ctx.translate(p.x, p.y)
+        ctx.rotate((p.rotation * Math.PI) / 180)
+        ctx.fillStyle = p.color
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size)
+        ctx.restore()
+
+        return true
       })
+
+      if (particles.length > 0) {
+        animationRef.current = requestAnimationFrame(animate)
+      } else {
+        setConfetti([])
+      }
     }
-  }
 
-  // Confetti on yearly
-  useEffect(() => {
-    if (billing === "yearly") {
-      confetti({ particleCount: 80, spread: 60, startVelocity: 45, origin: { x: 0.5, y: 0.35 } })
+    animationRef.current = requestAnimationFrame(animate)
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+      }
     }
-  }, [billing])
+  }, [confetti])
 
-  // --- Mobile carousel state (more robust indication)
-  const sliderRef = useRef<HTMLDivElement | null>(null)
-  const [active, setActive] = useState(0)
-  const [step, setStep] = useState(0)
-
-  // Measure step (card width + gap)
+  // Cleanup intervals on unmount
   useEffect(() => {
-    const el = sliderRef.current
-    if (!el) return
-    const first = el.children[0] as HTMLElement | undefined
-    const styles = getComputedStyle(el)
-    const gap =
-      parseFloat((styles as any).gap || "0") ||
-      parseFloat((styles as any)["column-gap"] || "0") ||
-      16
-    if (first) setStep(first.getBoundingClientRect().width + gap)
-  }, [plans?.length])
-
-  // Scroll listener -> set active index precisely
-  useEffect(() => {
-    const el = sliderRef.current
-    if (!el || !step) return
-    const onScroll = () => {
-      const idx = Math.round(el.scrollLeft / step)
-      const clamped = Math.max(0, Math.min(plans.length - 1, idx))
-      setActive(clamped)
+    return () => {
+      intervalsRef.current.forEach((interval) => clearInterval(interval))
+      intervalsRef.current.clear()
     }
-    el.addEventListener("scroll", onScroll, { passive: true })
-    return () => el.removeEventListener("scroll", onScroll)
-  }, [step, plans.length])
+  }, [])
 
-  const goTo = (i: number) => {
-    const el = sliderRef.current
-    if (!el || !step) return
-    const clamped = Math.max(0, Math.min(plans.length - 1, i))
-    el.scrollTo({ left: clamped * step, behavior: "smooth" })
-  }
-  const scrollByOne = (dir: "left" | "right") => goTo(active + (dir === "left" ? -1 : 1))
+  // Animate price change
+  const animatePrice = useCallback((planName: string, from: number, to: number) => {
+    const duration = 500
+    const steps = 30
+    const increment = (to - from) / steps
+    let current = from
+    let step = 0
 
-  const atStart = active === 0
-  const atEnd = active === plans.length - 1
+    const interval = setInterval(() => {
+      step++
+      current += increment
+      setAnimatingPrices((prev) => ({ ...prev, [planName]: Math.round(current) }))
+
+      if (step >= steps) {
+        clearInterval(interval)
+        intervalsRef.current.delete(interval)
+        setAnimatingPrices((prev) => ({ ...prev, [planName]: to }))
+      }
+    }, duration / steps)
+
+    intervalsRef.current.add(interval)
+  }, [])
+
+  // Handle toggle with confetti
+  const handleToggle = useCallback((isYearly: boolean) => {
+    if (isYearly && !yearly) {
+      // Switching to yearly - trigger confetti
+      setConfetti(createConfetti())
+    }
+    setYearly(isYearly)
+
+    // Animate prices
+    PLANS.forEach((plan) => {
+      const oldPrice = yearly ? plan.prices.yearly : plan.prices.monthly
+      const newPrice = isYearly ? plan.prices.yearly : plan.prices.monthly
+      animatePrice(plan.name, oldPrice, newPrice)
+    })
+  }, [yearly, animatePrice, PLANS])
 
   return (
-    <section id="pricing" className="py-20 bg-white relative overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-10 right-4 md:top-20 md:right-10 w-32 h-32 md:w-60 md:h-60 bg-gradient-to-br from-[#3b82f6]/20 to-[#1d4ed8]/15 rounded-full blur-2xl animate-pulse" />
-        <div className="absolute bottom-10 left-4 md:bottom-20 md:left-10 w-28 h-28 md:w-52 md:h-52 bg-gradient-to-br from-[#8b5cf6]/20 to-[#7c3aed]/15 rounded-full blur-2xl animate-pulse" style={{ animationDelay: "1s" }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 md:w-40 md:h-40 bg-gradient-to-br from-[#06b6d4]/15 to-[#0284c7]/10 rounded-full blur-2xl animate-pulse" style={{ animationDelay: "2s" }} />
-      </div>
+    <section className="py-24 px-6 md:px-10 bg-gray-50 relative" id="pricing" aria-label="Pricing plans">
+      {/* Confetti canvas */}
+      <canvas
+        ref={canvasRef}
+        className="fixed inset-0 pointer-events-none z-50"
+        style={{ display: confetti.length > 0 ? 'block' : 'none' }}
+        aria-hidden="true"
+      />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
-        {/* Title */}
-        <div className="text-center mb-10 max-w-4xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">{t("title")}</h2>
-          <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">{t("subtitle")}</p>
-        </div>
-
-        {/* Billing switch */}
-        <div className="flex flex-col items-center justify-center mb-6 sm:mb-10">
-          <div className="inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-14 reveal">
+          <div className="text-xs font-bold uppercase tracking-[.1em] text-[#8e78fb] mb-3">{t('eyebrow')}</div>
+          <h2 className="text-[clamp(28px,4vw,44px)] font-black text-gray-900 mb-4">{t('title')}</h2>
+          <p className="text-gray-600 max-w-xl mx-auto mb-8">{t('sub')}</p>
+          <div className="inline-flex rounded-lg sm:rounded-xl border border-gray-200 bg-white p-0.5 sm:p-1 gap-0.5 sm:gap-1" role="group" aria-label="Billing period toggle">
             <button
-              onClick={() => setBilling("monthly")}
-              className={`px-4 py-2 text-sm font-medium rounded-full transition ${billing === "monthly" ? "bg-chabaqa-primary text-white" : "text-gray-700 hover:bg-gray-100"}`}
-              aria-pressed={billing === "monthly"}
-              type="button"
+              onClick={() => handleToggle(false)}
+              aria-pressed={!yearly}
+              className={`px-3 py-1.5 sm:px-5 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-semibold transition-all ${!yearly ? 'bg-[#8e78fb] text-white shadow-sm scale-105' : 'text-gray-700 hover:bg-[#ede9ff]'}`}
             >
-              {t("billing.monthly")}
+              {t('monthly')}
             </button>
             <button
-              onClick={() => setBilling("yearly")}
-              className={`px-4 py-2 text-sm font-medium rounded-full transition ${billing === "yearly" ? "bg-chabaqa-primary text-white" : "text-gray-700 hover:bg-gray-100"}`}
-              aria-pressed={billing === "yearly"}
-              type="button"
+              onClick={() => handleToggle(true)}
+              aria-pressed={yearly}
+              className={`flex items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-5 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-semibold transition-all ${yearly ? 'bg-[#8e78fb] text-white shadow-sm scale-105' : 'text-gray-700 hover:bg-[#ede9ff]'}`}
             >
-              {t("billing.yearly")}
+              {t('yearly')}
+              <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 rounded-full bg-[#47c7ea] text-white">{t('save')}</span>
             </button>
           </div>
-
-          {/* Desktop savings badge */}
-          <SaveBadge plans={plans} billing={billing} t={t} />
         </div>
 
-        {/* Mobile savings mini badge (better indication) */}
-        <MobileSaveBadge plans={plans} billing={billing} t={t} />
-        {/* Pricing cards: mobile carousel (smaller) + desktop grid */}
-        <div
-          ref={sliderRef}
-          className="
-            flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2 -mx-4 px-4 md:mx-0 md:px-0
-            [scrollbar-width:none] [-ms-overflow-style:none]
-            md:grid md:grid-cols-3 md:gap-8 md:overflow-visible md:snap-none md:pb-0 md:items-stretch
-            max-w-6xl mx-auto
-          "
-          style={{ scrollbarWidth: "none" } as any}
-          aria-live="polite"
-          aria-roledescription="carousel"
-          aria-label={t("plansAriaLabel")}
-        >
-          <style>{`#pricing ::-webkit-scrollbar{ display:none; height:0; width:0 }`}</style>
+        {/* Cards */}
+        <div className="grid md:grid-cols-3 gap-5 stagger items-center">
+          {PLANS.map((plan, i) => {
+            const tPlan = plansTranslations[i]
+            const displayPrice = animatingPrices[plan.name] ?? (yearly ? plan.prices.yearly : plan.prices.monthly)
+            const isFree = displayPrice === 0
+            const priceLabel = isFree ? '0' : `${displayPrice}`
+            const periodLabel = isFree ? period.free : yearly ? period.yearly : period.monthly
 
-          {plans.map((plan: any, i: number) => {
-            const translatedPlan = getTranslatedPlan(plan)
-            const hasToggle = !!plan.prices
-            const currentPrice = hasToggle ? (billing === "monthly" ? plan.prices.monthly : plan.prices.yearly) : plan.price
-            const period = hasToggle ? (billing === "monthly" ? t("billing.periodMonthly") : t("billing.periodYearly")) : plan.period ?? ""
-            const perMonth = hasToggle && billing === "yearly" ? plan.prices.yearly / 12 : null
+            if (plan.popular) {
+              return (
+                <div key={plan.name} className="relative md:-my-3 z-10" style={{ filter: 'drop-shadow(0 20px 48px rgba(142,120,251,.35))' }}>
+                  {/* card */}
+                  <div className="relative rounded-2xl p-7 flex flex-col overflow-hidden" style={{ background: 'linear-gradient(145deg, #8e78fb 0%, #a78bfa 60%, #7c67f8 100%)' }}>
+                    {/* subtle shine overlay */}
+                    <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'radial-gradient(ellipse 80% 60% at 50% -10%, #fff, transparent)' }} aria-hidden="true" />
 
-            return (
-              <Card
-                key={i}
-                aria-label={t("planAriaLabel", { name: translatedPlan.name })}
-                className={`
-                  relative min-w-[70%] sm:min-w-[58%] snap-center border-2 bg-white/80
-                  md:min-w-0 md:w-full md:h-full md:flex md:flex-col
-                  ${plan.popular ? "border-chabaqa-primary shadow-xl md:scale-[1.02]" : "border-gray-200 shadow-lg"}
-                `}
-              >
-                {/* Popular badge or Trial badge – safer position on mobile */}
-                {plan.popular ? (
-                  <div className="absolute top-2 left-1/2 -translate-x-1/2">
-                    <span className="bg-chabaqa-primary text-white px-3 py-0.5 rounded-full text-xs sm:text-sm font-medium shadow">
-                      {t("badges.mostPopular")}
-                    </span>
-                  </div>
-                ) : plan.trial ? (
-                  <div className="absolute top-2 left-1/2 -translate-x-1/2">
-                    <span className="bg-green-500 text-white px-3 py-0.5 rounded-full text-xs sm:text-sm font-medium shadow">
-                      {translatedPlan.trial}
-                    </span>
-                  </div>
-                ) : null}
+                    {/* Most popular badge */}
+                    <div
+                      className="inline-flex self-center mb-5 px-4 py-1 rounded-full text-[11px] font-black uppercase tracking-widest"
+                      style={{ background: 'rgba(255,255,255,0.22)', color: '#fff', backdropFilter: 'blur(8px)' }}
+                    >
+                      {tPlan.badge}
+                    </div>
 
-                <CardHeader className="text-center pb-6 sm:pb-8 md:min-h-[220px]">
-                  <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 mt-4 sm:mt-6">
-                    {translatedPlan.name}
-                  </CardTitle>
+                    <div className="text-2xl font-black text-white mb-1">{tPlan.name}</div>
+                    <div className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                      {tPlan.desc}
+                    </div>
 
-                  <div className="mt-3 sm:mt-4 flex items-end justify-center gap-1">
-                    <span className="text-3xl sm:text-4xl font-bold text-gray-900 leading-none">
-                      {typeof currentPrice === "number" ? (
-                        <NumberFlow value={currentPrice} format={{ style: "currency", currency: "TND", maximumFractionDigits: 0 }} />
-                      ) : (
-                        currentPrice
-                      )}
-                    </span>
-                    {period && <span className="text-gray-600 text-base sm:text-lg pb-1">{period}</span>}
-                  </div>
-
-                  {perMonth != null && (
-                    <div className="mt-1 text-xs sm:text-sm text-gray-500">
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5">
-                        ≈ <NumberFlow value={perMonth} format={{ style: "currency", currency: "TND", maximumFractionDigits: 0 }} /> {t("billing.perMonthShort")}
+                    {/* Price */}
+                    <div className="flex items-end gap-1.5 mb-1">
+                      <span className="text-[54px] font-black leading-none text-white transition-all duration-300" aria-live="polite">{priceLabel}</span>
+                      <span className="text-base mb-3 font-semibold" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                        TND
                       </span>
                     </div>
-                  )}
-
-                  {/* Trial info below price */}
-                  {plan.trial && (
-                    <div className="mt-2 text-xs sm:text-sm text-green-600 font-medium">
-                      {t("trialIncluded", { trial: translatedPlan.trial })}
+                    <div className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                      {periodLabel}
                     </div>
-                  )}
+                    {yearly && (
+                      <div className="text-xs line-through mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        {plan.prices.monthly} TND
+                      </div>
+                    )}
+                    <div className="text-xs font-bold mb-6" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                      {tPlan.fee}
+                    </div>
 
-                  {translatedPlan.description && (
-                    <CardDescription className="text-gray-600 mt-2 sm:mt-3 text-sm sm:text-base line-clamp-2">
-                      {translatedPlan.description}
-                    </CardDescription>
-                  )}
-                </CardHeader>
+                    <div className="w-full h-px mb-6" style={{ background: 'rgba(255,255,255,0.18)' }} />
 
-                <CardContent className="space-y-4 sm:space-y-6 flex flex-col h-full">
-                  <ul className="space-y-2 sm:space-y-3 flex-1">
-                    {(translatedPlan.features as string[]).map((f: string, idx: number) => (
-                      <li key={idx} className="flex items-center">
-                        <Check className="w-4 h-4 sm:w-5 sm:h-5 text-chabaqa-primary mr-2 sm:mr-3 flex-shrink-0" />
-                        <span className="text-gray-700 text-sm sm:text-base">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
+                    <ul className="flex flex-col gap-3 mb-8 flex-1">
+                      {tPlan.features.map((f, idx) => (
+                        <li key={`${plan.name}-feature-${idx}`} className="flex items-start gap-3 text-sm">
+                          <div className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.25)' }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="9" height="9" aria-hidden="true">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </div>
+                          <span style={{ color: 'rgba(255,255,255,0.85)' }}>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
 
-                  <Button
-                    className={`w-full py-2.5 sm:py-3 text-sm sm:text-base ${plan.popular
-                      ? "bg-chabaqa-primary hover:bg-chabaqa-primary/90 text-white"
-                      : "bg-chabaqa-accent hover:bg-chabaqa-accent/90 text-white"
-                      }`}
-                    onClick={() => handleSubscriptionPayment(plan.tier, billing)}
-                  >
-                    {translatedPlan.cta}
-                  </Button>
-                </CardContent>
-              </Card>
+                    <a
+                      href={withLocale('/register')}
+                      className="flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all hover:opacity-90 active:scale-[.98]"
+                      style={{ background: '#fff', color: '#7c67f8' }}
+                    >
+                      {plan.cta}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="12" height="12" className="sm:w-[14px] sm:h-[14px]" aria-hidden="true">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              )
+            }
+
+            /* Regular cards */
+            return (
+              <div
+                key={plan.name}
+                className="rounded-2xl p-7 flex flex-col bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(142,120,251,.13)]"
+                style={{ border: '1.5px solid #e8e4ff' }}
+              >
+                <div className="inline-flex self-start text-xs font-bold px-3 py-1 rounded-full mb-5 bg-[#ede9ff] text-[#8e78fb]">{tPlan.badge}</div>
+
+                <div className="text-xl font-black text-gray-900 mb-1">{tPlan.name}</div>
+                <div className="text-sm text-gray-600 mb-6">{tPlan.desc}</div>
+
+                {/* Price */}
+                <div className="flex items-end gap-1 mb-1">
+                  <span className="text-[46px] font-black leading-none text-gray-900 transition-all duration-300" aria-live="polite">{isFree ? t('ctaFree').split(' ')[0] : priceLabel}</span>
+                  {!isFree && <span className="text-sm mb-3 text-gray-600">TND</span>}
+                </div>
+                <div className="text-xs text-gray-600 mb-1">{periodLabel}</div>
+                {yearly && !isFree && <div className="text-xs line-through text-gray-600 mb-2">{plan.prices.monthly} TND</div>}
+                <div className="text-xs font-semibold text-[#8e78fb] mb-6">{tPlan.fee}</div>
+
+                <div className="w-full h-px bg-gray-200 mb-6" />
+
+                <ul className="flex flex-col gap-3 mb-8 flex-1">
+                  {tPlan.features.map((f, idx) => (
+                    <li key={`${plan.name}-feature-${idx}`} className="flex items-start gap-3 text-sm">
+                      <div className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center bg-[#ede9ff]">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#8e78fb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="9" height="9" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </div>
+                      <span className="text-gray-700">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <a
+                  href={withLocale('/register')}
+                  className="flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all hover:bg-[#8e78fb] hover:text-white hover:border-[#8e78fb]"
+                  style={{ background: '#ede9ff', color: '#8e78fb', border: '1.5px solid #c4b8fd' }}
+                >
+                  {plan.cta}
+                </a>
+              </div>
             )
           })}
         </div>
-
-        {/* Mobile pagination dots + numeric indicator (fixed indication) */}
-        <div className="md:hidden flex flex-col items-center gap-2 mt-4">
-          <div className="flex justify-center gap-2">
-            {plans.map((_, i) => (
-              <button
-                key={i}
-                aria-label={t("goToSlide", { index: i + 1 })}
-                onClick={() => goTo(i)}
-                className={`h-1.5 w-4 rounded-full transition-all ${active === i ? "bg-chabaqa-primary w-6" : "bg-gray-300"
-                  }`}
-              />
-            ))}
-          </div>
-
-        </div>
       </div>
+
+      <style jsx>{`
+        .reveal {
+          opacity: 0;
+          transform: translateY(24px);
+          transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .in-view {
+          opacity: 1 !important;
+          transform: none !important;
+        }
+        .stagger > * {
+          opacity: 0;
+          transform: translateY(20px);
+          transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .stagger.in-view > * {
+          opacity: 1;
+          transform: none;
+        }
+        .stagger.in-view > *:nth-child(1) {
+          transition-delay: 0.05s;
+        }
+        .stagger.in-view > *:nth-child(2) {
+          transition-delay: 0.13s;
+        }
+        .stagger.in-view > *:nth-child(3) {
+          transition-delay: 0.21s;
+        }
+      `}</style>
     </section>
-  )
-}
-
-function SaveBadge({
-  plans,
-  billing,
-  t,
-}: {
-  plans: any[]
-  billing: Billing
-  t: ReturnType<typeof useTranslations>
-}) {
-  const best = useMemo(() => {
-    const arr: number[] = []
-    for (const p of plans) {
-      if (p.prices?.monthly && p.prices?.yearly) {
-        const m = p.prices.monthly
-        const y = p.prices.yearly
-        if (m > 0 && y > 0) {
-          const pct = 1 - y / (m * 12)
-          if (pct > 0 && isFinite(pct)) arr.push(pct)
-        }
-      }
-    }
-    if (!arr.length) return null
-    return Math.round(Math.max(...arr) * 100)
-  }, [plans])
-
-  if (best == null) return null
-
-  return (
-    <div
-      className={`hidden sm:flex mt-3 items-center rounded-full px-3 py-1 text-sm font-medium ring-1 transition ${billing === "yearly" ? "bg-green-50 text-green-700 ring-green-200" : "bg-gray-50 text-gray-600 ring-gray-200"
-        }`}
-    >
-      {billing === "yearly" ? t("saveBadge.yearly", { percent: best }) : t("saveBadge.monthly", { percent: best })}
-    </div>
-  )
-}
-
-function MobileSaveBadge({
-  plans,
-  billing,
-  t,
-}: {
-  plans: any[]
-  billing: Billing
-  t: ReturnType<typeof useTranslations>
-}) {
-  const best = useMemo(() => {
-    const arr: number[] = []
-    for (const p of plans) {
-      if (p.prices?.monthly && p.prices?.yearly) {
-        const m = p.prices.monthly
-        const y = p.prices.yearly
-        if (m > 0 && y > 0) {
-          const pct = 1 - y / (m * 12)
-          if (pct > 0 && isFinite(pct)) arr.push(pct)
-        }
-      }
-    }
-    if (!arr.length) return null
-    return Math.round(Math.max(...arr) * 100)
-  }, [plans])
-
-  if (best == null) return null
-  return (
-    <div
-      className={`sm:hidden flex w-fit mx-auto mb-3 -mt-2 items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition ${billing === "yearly"
-        ? "bg-green-50 text-green-700 ring-green-200"
-        : "bg-gray-50 text-gray-600 ring-gray-200"
-        }`}
-    >
-      {billing === "yearly" ? t("saveBadge.mobileYearly", { percent: best }) : t("saveBadge.mobileMonthly", { percent: best })}
-    </div>
-
   )
 }

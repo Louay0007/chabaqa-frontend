@@ -1,272 +1,247 @@
-"use client"
+'use client'
+import { useState, useRef, useEffect } from 'react'
+import Image from 'next/image'
+import { useTranslations } from 'next-intl'
+import { siteData } from '@/lib/data'
 
-import { useState, useRef, useEffect, useCallback, memo } from "react"
-import { Play, ChevronLeft, ChevronRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-import { useTranslations } from "next-intl"
+const CARD_W = 318
 
-interface Video {
-  id: string
-  thumbnail: string
-  duration: string
+const TAG_STYLES: Record<string, { bg: string; border: string; color: string }> = {
+  'Getting Started': { bg: '#ede9ff', border: '#c4b8fd', color: '#8e78fb' },
+  Courses: { bg: '#fff3e4', border: '#fde5bb', color: '#ff9b28' },
+  Challenges: { bg: '#e4f8fd', border: '#a5f3fc', color: '#47c7ea' },
+  Coaching: { bg: '#fff3e4', border: '#fde5bb', color: '#ff9b28' },
+  Products: { bg: '#ffe4ee', border: '#fda4af', color: '#f65887' },
+  Events: { bg: '#ede9ff', border: '#c4b8fd', color: '#8e78fb' },
 }
 
-const videos: Video[] = [
-  {
-    id: "EmuPphacf0k",
-    thumbnail: "https://i.ytimg.com/vi/EmuPphacf0k/hqdefault.jpg",
-    duration: "3:10"
-  },
-  {
-    id: "sEXWWLlhuqA",
-    thumbnail: "https://i.ytimg.com/vi/sEXWWLlhuqA/hqdefault.jpg",
-    duration: "2:59"
-  },
-  {
-    id: "PyHE0D9pWFU",
-    thumbnail: "https://i.ytimg.com/vi/PyHE0D9pWFU/hqdefault.jpg",
-    duration: "3:39"
-  },
-  {
-    id: "tmnUakwzMpQ",
-    thumbnail: "https://i.ytimg.com/vi/tmnUakwzMpQ/hqdefault.jpg",
-    duration: "3:06"
-  },
-  {
-    id: "YXoqN0vRLe8",
-    thumbnail: "https://i.ytimg.com/vi/YXoqN0vRLe8/hqdefault.jpg",
-    duration: "1:51"
-  },
-  {
-    id: "Om87N_xrcfQ",
-    thumbnail: "https://i.ytimg.com/vi/Om87N_xrcfQ/hqdefault.jpg",
-    duration: "1:45"
-  },
-]
-
-const VideoCard = memo(({ video, onClick, thumbnailAlt }: { video: Video; onClick: () => void; thumbnailAlt: string }) => {
-  const [imgError, setImgError] = useState(false)
-  
-  return (
-    <div
-      className="flex-shrink-0 w-[280px] sm:w-[340px] lg:w-[380px] group cursor-pointer"
-      onClick={onClick}
-    >
-      <div className="relative">
-        {/* Animated gradient border */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-[#8e78fb] via-[#f65887] to-[#ff9b28] rounded-2xl opacity-0 group-hover:opacity-75 blur-sm transition-opacity duration-300" />
-        
-        {/* Card */}
-        <div className="relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-gray-900 shadow-lg group-hover:shadow-2xl transition-all duration-300">
-          <img
-            src={imgError ? `https://i.ytimg.com/vi/${video.id}/mqdefault.jpg` : video.thumbnail}
-            alt={thumbnailAlt}
-            className="w-full h-full object-cover"
-            loading="lazy"
-            onError={() => setImgError(true)}
-          />
-          
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-          
-          {/* Play button */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative">
-              <div className="absolute inset-0 bg-[#8e78fb]/30 rounded-full blur-xl group-hover:blur-2xl transition-all" />
-              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300">
-                <Play className="h-7 w-7 sm:h-9 sm:w-9 text-[#8e78fb] ml-1" fill="currentColor" />
-              </div>
-            </div>
-          </div>
-
-          {/* Duration badge */}
-          <div className="absolute bottom-3 right-3 bg-black/80 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-lg">
-            {video.duration}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-})
-
-VideoCard.displayName = "VideoCard"
-
-const NavButton = memo(({ 
-  direction, 
-  show, 
-  onClick,
-  ariaLabel
-}: { 
-  direction: "left" | "right"
-  show: boolean
-  onClick: () => void 
-  ariaLabel: string
-}) => {
-  if (!show) return null
-  
-  return (
-    <Button
-      variant="outline"
-      size="icon"
-      className={cn(
-        "absolute top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full bg-white shadow-xl border-2 border-gray-200 hover:border-[#8e78fb] hover:bg-[#8e78fb] hover:text-white transition-all hidden lg:flex",
-        direction === "left" ? "-left-5" : "-right-5"
-      )}
-      onClick={onClick}
-      aria-label={ariaLabel}
-    >
-      {direction === "left" ? <ChevronLeft className="h-6 w-6" /> : <ChevronRight className="h-6 w-6" />}
-    </Button>
-  )
-})
-
-NavButton.displayName = "NavButton"
-
 export function YouTubeVideos() {
-  const t = useTranslations("landing.videos")
-  const [selectedVideo, setSelectedVideo] = useState<string | null>(null)
-  const [showLeftArrow, setShowLeftArrow] = useState(false)
-  const [showRightArrow, setShowRightArrow] = useState(true)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const t = useTranslations('landing.videos')
+  const items = t.raw('items') as { num: string; tag: string; title: string; desc: string }[]
+  
+  // Get videos from centralized data
+  const VIDEOS = siteData.videos
 
-  const checkScroll = useCallback(() => {
-    if (scrollRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current
-      setShowLeftArrow(scrollLeft > 10)
-      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10)
+  const [cur, setCur] = useState(0)
+  const [modal, setModal] = useState<{ id: string; title: string } | null>(null)
+  const sectionRef = useRef<HTMLElement>(null)
+  const trackRef = useRef<HTMLDivElement>(null)
+  const isDown = useRef(false)
+  const startX = useRef(0)
+  const scrollL = useRef(0)
+  const programmatic = useRef(false)
+
+  function scrollTo(i: number) {
+    const idx = ((i % VIDEOS.length) + VIDEOS.length) % VIDEOS.length
+    setCur(idx)
+    programmatic.current = true
+    trackRef.current?.scrollTo({ left: idx * CARD_W, behavior: 'smooth' })
+    setTimeout(() => {
+      programmatic.current = false
+    }, 600)
+  }
+
+  function openModal(id: string, title: string) {
+    setModal({ id, title })
+    document.body.style.overflow = 'hidden'
+  }
+  function closeModal() {
+    setModal(null)
+    document.body.style.overflow = ''
+  }
+
+  useEffect(() => () => {
+    document.body.style.overflow = ''
+  }, [])
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    isDown.current = true
+    startX.current = e.pageX - (trackRef.current?.offsetLeft ?? 0)
+    scrollL.current = trackRef.current?.scrollLeft ?? 0
+  }
+  const onMouseLeave = () => {
+    isDown.current = false
+  }
+  const onMouseUp = () => {
+    isDown.current = false
+  }
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDown.current) return
+    e.preventDefault()
+    const x = e.pageX - (trackRef.current?.offsetLeft ?? 0)
+    if (trackRef.current) trackRef.current.scrollLeft = scrollL.current - (x - startX.current) * 1.5
+  }
+  const onScroll = () => {
+    if (!trackRef.current || programmatic.current) return
+    const i = Math.round(trackRef.current.scrollLeft / CARD_W)
+    if (i !== cur) setCur(i)
+  }
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeModal()
     }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
   }, [])
 
   useEffect(() => {
-    checkScroll()
-    const scrollElement = scrollRef.current
-    if (!scrollElement) return
-
-    scrollElement.addEventListener("scroll", checkScroll, { passive: true })
-    window.addEventListener("resize", checkScroll, { passive: true })
-    
-    return () => {
-      scrollElement.removeEventListener("scroll", checkScroll)
-      window.removeEventListener("resize", checkScroll)
+    const section = sectionRef.current
+    if (!section) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        scrollTo(cur - 1)
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        scrollTo(cur + 1)
+      }
     }
-  }, [checkScroll])
+    section.addEventListener('keydown', handler)
+    return () => section.removeEventListener('keydown', handler)
+  }, [cur])
 
-  const scrollContainer = useCallback((direction: "left" | "right") => {
-    if (scrollRef.current) {
-      const scrollAmount = 400
-      scrollRef.current.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
-        behavior: "smooth"
-      })
-    }
-  }, [])
-
-  const handleVideoClick = useCallback((videoId: string) => {
-    setSelectedVideo(videoId)
-  }, [])
-
-  const handleCloseModal = useCallback(() => {
-    setSelectedVideo(null)
-  }, [])
+  const total = '06'
 
   return (
-    <section className="relative bg-white overflow-hidden py-12 sm:py-16 lg:py-20" aria-label={t("sectionAriaLabel")}>
-      {/* Background blobs - matching other sections */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-8 left-3 sm:top-12 sm:left-8 w-24 h-24 sm:w-40 sm:h-40 bg-gradient-to-br from-[#8e78fb]/20 to-[#f65887]/20 rounded-full blur-2xl animate-pulse" />
-        <div
-          className="absolute bottom-10 right-3 sm:bottom-16 sm:right-8 w-20 h-20 sm:w-36 sm:h-36 bg-gradient-to-br from-[#47c7ea]/20 to-[#ff9b28]/15 rounded-full blur-2xl animate-pulse"
-          style={{ animationDelay: "1s" }}
-        />
-      </div>
-
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* Header - matching Features section style */}
-        <div className="mb-8 md:mb-12 text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            {t("title")}
-          </h2>
-          <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-            {t("subtitle")}
-          </p>
-        </div>
-
-        {/* Videos Scroll */}
-        <div className="relative">
-          <NavButton 
-            direction="left" 
-            show={showLeftArrow} 
-            onClick={() => scrollContainer("left")}
-            ariaLabel={t("scrollLeft")}
-          />
-          <NavButton 
-            direction="right" 
-            show={showRightArrow} 
-            onClick={() => scrollContainer("right")}
-            ariaLabel={t("scrollRight")}
-          />
-
-          <div
-            ref={scrollRef}
-            className="flex gap-4 sm:gap-5 lg:gap-6 overflow-x-auto scrollbar-hide scroll-smooth py-4"
-            role="list"
-          >
-            {videos.map((video, index) => (
-              <VideoCard
-                key={`${video.id}-${index}`}
-                video={video}
-                onClick={() => handleVideoClick(video.id)}
-                thumbnailAlt={t("thumbnailAlt")}
-              />
-            ))}
+    <>
+      <section ref={sectionRef} className="py-24 bg-white" tabIndex={0} aria-label="Tutorial videos carousel" style={{ outline: 'none' }}>
+        {/* Header */}
+        <div className="max-w-6xl mx-auto px-6 md:px-10 mb-10 text-center">
+          <div className="reveal">
+            <div className="text-xs font-bold uppercase tracking-[.1em] text-[#8e78fb] mb-3">{t('eyebrow')}</div>
+            <h2 className="text-[clamp(28px,4vw,44px)] font-black text-gray-900 mb-3">{t('title')}</h2>
+            <p className="text-gray-600 max-w-lg mx-auto">{t('sub')}</p>
           </div>
         </div>
-      </div>
 
-      {/* Video Modal - matching About section modal style */}
-      {selectedVideo && (
+        {/* Scrollable track */}
+        <div className="overflow-hidden">
+          <div
+            ref={trackRef}
+            className="flex gap-[18px] overflow-x-auto snap-x snap-mandatory scroll-smooth cursor-grab active:cursor-grabbing select-none px-6 md:px-10 pb-4 justify-center md:justify-center"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            onMouseDown={onMouseDown}
+            onMouseLeave={onMouseLeave}
+            onMouseUp={onMouseUp}
+            onMouseMove={onMouseMove}
+            onScroll={onScroll}
+          >
+            {VIDEOS.map((v, idx) => {
+              const tItem = items[idx] ?? { num: v.num, tag: v.tag, title: '', desc: '' }
+              const tag = TAG_STYLES[v.tag] ?? TAG_STYLES['Getting Started']
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => openModal(v.id, tItem.title)}
+                  type="button"
+                  aria-label={`Watch: ${tItem.title}`}
+                  className="flex-shrink-0 w-[300px] snap-center bg-white border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:shadow-[0_8px_32px_rgba(142,120,251,.15)] hover:-translate-y-1 transition-all text-start"
+                >
+                  <div className="relative aspect-video overflow-hidden bg-[#ede9ff]">
+                    <Image src={`https://img.youtube.com/vi/${v.id}/hqdefault.jpg`} alt={tItem.title} fill className="object-cover" sizes="300px" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center">
+                        <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+                          <polygon points="5 3 19 12 5 21 5 3" fill="#8e78fb" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="absolute bottom-2 end-2 px-2 py-0.5 rounded text-[10px] font-bold text-white bg-black/60">{v.dur}</div>
+                  </div>
+                  <div className="p-5">
+                    <div className="inline-flex text-[11px] font-bold px-3 py-1 rounded-full mb-3" style={{ background: tag.bg, border: `1px solid ${tag.border}`, color: tag.color }}>
+                      {tItem.tag}
+                    </div>
+                    <div className="text-sm font-bold text-gray-900 mb-2 leading-snug">{tItem.title}</div>
+                    <div className="text-xs text-gray-600 leading-relaxed mb-4">{tItem.desc}</div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-600">
+                        {tItem.num} / {total}
+                      </span>
+                      <span className="text-xs font-bold flex items-center gap-1" style={{ color: tag.color }}>
+                        {t('watchNow')}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="12" height="12">
+                          <line x1="5" y1="12" x2="19" y2="12" />
+                          <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Nav arrows */}
+        <div className="flex items-center justify-center gap-2 sm:gap-3 mt-6 sm:mt-8">
+          <button
+            onClick={() => scrollTo(cur - 1)}
+            aria-label="Previous"
+            className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg sm:rounded-xl border border-gray-200 text-gray-600 hover:text-[#8e78fb] hover:border-[#c4b8fd] hover:bg-[#ede9ff] transition-all"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" className="sm:w-4 sm:h-4">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <button
+            onClick={() => scrollTo(cur + 1)}
+            aria-label="Next"
+            className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg sm:rounded-xl border border-gray-200 text-gray-600 hover:text-[#8e78fb] hover:border-[#c4b8fd] hover:bg-[#ede9ff] transition-all"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" className="sm:w-4 sm:h-4">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      {/* Modal */}
+      {modal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300"
-          onClick={handleCloseModal}
           role="dialog"
           aria-modal="true"
+          aria-labelledby="video-modal-title"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeModal()
+          }}
         >
-          <div
-            className="relative w-full max-w-5xl rounded-lg sm:rounded-xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300"
-            onClick={(e) => e.stopPropagation()}
-            style={{ aspectRatio: '16/9' }}
-          >
-            <button
-              onClick={handleCloseModal}
-              className="absolute -top-10 right-0 sm:-top-12 sm:right-0 z-10 w-10 h-10 rounded-full bg-white/90 hover:bg-white text-gray-900 flex items-center justify-center transition-all hover:scale-110 shadow-lg"
-              aria-label={t("closeVideo")}
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <iframe
-              src={`https://www.youtube.com/embed/${selectedVideo}?autoplay=1&rel=0`}
-              title={t("playerTitle")}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              className="w-full h-full"
-            />
+          <div className="bg-white rounded-2xl overflow-hidden w-full max-w-4xl shadow-2xl mx-auto">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#8e78fb]" />
+                <span id="video-modal-title" className="text-sm font-bold text-gray-900 truncate max-w-[340px]">
+                  {modal.title}
+                </span>
+              </div>
+              <button onClick={closeModal} aria-label="Close video" className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#ede9ff] text-gray-600 transition-colors">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" width="14" height="14" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div className="aspect-video bg-black">
+              <iframe src={`https://www.youtube.com/embed/${modal.id}?autoplay=1&rel=0`} allow="autoplay; encrypted-media" allowFullScreen title={modal.title} className="w-full h-full" />
+            </div>
           </div>
         </div>
       )}
 
       <style jsx>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+        .reveal {
+          opacity: 0;
+          transform: translateY(24px);
+          transition: opacity 0.6s ease, transform 0.6s ease;
         }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
+        .in-view {
+          opacity: 1 !important;
+          transform: none !important;
         }
       `}</style>
-    </section>
+    </>
   )
 }
-

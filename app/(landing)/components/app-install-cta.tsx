@@ -34,7 +34,7 @@ export function AppInstallCTA() {
 
           {/* Buttons - Centered (middle) on mobile, Bottom Center on desktop */}
           <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 sm:top-[75%] sm:bottom-8 sm:left-[30%] lg:bottom-10 z-10 w-full sm:w-auto px-4 sm:px-0">
-            <div className="flex flex-col sm:flex-row gap-6 items-center">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 items-center">
               <Link 
                 href="https://expo.dev/accounts/mariembenali/projects/mobile/builds/f85b1b45-f20f-47c7-bb5b-78f3f36ce556"
                 target="_blank"
@@ -46,7 +46,7 @@ export function AppInstallCTA() {
                   alt={t("downloadAppStore")}
                   width={370}
                   height={111}
-                  className="w-auto h-14 sm:h-12 lg:h-14"
+                  className="w-auto h-12 sm:h-12 lg:h-14"
                 />
               </Link>
               <Link 
@@ -60,7 +60,7 @@ export function AppInstallCTA() {
                   alt={t("downloadGooglePlay")}
                   width={370}
                   height={111}
-                  className="w-auto h-14 sm:h-12 lg:h-14"
+                  className="w-auto h-12 sm:h-12 lg:h-14"
                 />
               </Link>
             </div>

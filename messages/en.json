@@ -1,4 +1,23 @@
 {
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "explore": "Explore",
+    "blog": "Blog",
+    "login": "Log in",
+    "start": "Start for free"
+  },
+  "footer": {
+    "tagline": "All-in-one community platform for creators, coaches, and educators in MENA.",
+    "copyright": "© 2026 Chabaqa. All rights reserved.",
+    "backTop": "Top",
+    "bottomLinks": ["Terms", "Privacy", "Cookies"],
+    "columns": {
+      "Product": ["Features", "Pricing", "Community", "Courses", "Challenges"],
+      "Company": ["About", "Blog", "Careers", "Contact"],
+      "Legal": ["Terms of Service", "Privacy Policy", "Cookies"]
+    }
+  },
   "common": {
     "brand": "Chabaqa",
     "language": "Language",
@@ -174,6 +193,28 @@
     },
     "hero": {
       "badge": "For Creators, By Creators",
+      "title1": "Turn your",
+      "passion": "passion",
+      "title2": "into a",
+      "typedWords": ["business", "community", "courses", "income", "brand"],
+      "sub": "Create, engage, and monetize your audience with the all-in-one platform built for ambitious creators. Courses, communities, coaching — all in one place.",
+      "ctaPrimary": "Start Free — No card needed",
+      "ctaSecondary": "Watch demo",
+      "proofText": "Joined by creators across MENA — free to start",
+      "stats": [
+        { "val": "Free", "label": "To Start" },
+        { "val": "9", "label": "Creator Tools" },
+        { "val": "1 min", "label": "To Build A Business" },
+        { "val": "24/7", "label": "Support" }
+      ],
+      "pills": {
+        "community": { "label": "Community", "title": "Community Feed", "desc": "Build your private community with feed, reactions, announcements and direct messages." },
+        "courses": { "label": "Online Courses", "title": "Online Courses", "desc": "Create and sell structured courses with video chapters, progress tracking and certificates." },
+        "challenges": { "label": "Challenges", "title": "Challenges", "desc": "Run time-based competitive programs that maximize engagement and community activity." },
+        "products": { "label": "Products", "title": "Digital Products", "desc": "Sell e-books, templates, presets and downloads with instant delivery." },
+        "events": { "label": "Events", "title": "Events", "desc": "Host online and offline events with ticketing, RSVPs and automated reminders." },
+        "sessions": { "label": "1:1 Sessions", "title": "1:1 Coaching Sessions", "desc": "Let students book, pay and get meeting links — all automated from your calendar." }
+      },
       "headlineLine1": "Chabaqa helps you",
       "headlineLine2": "passion into",
       "headlineLine3": "business",
@@ -181,12 +222,6 @@
       "descriptionHighlight": "ambitious creators",
       "startFree": "Start Free",
       "explore": "Explore",
-      "stats": {
-        "features": "Features",
-        "freeValue": "Free",
-        "toStart": "To Start",
-        "support": "Support"
-      },
       "timeline": {
         "community": {
           "title": "Community",
@@ -227,6 +262,11 @@
       }
     },
     "about": {
+      "eyebrow": "What is Chabaqa?",
+      "heading": "What is Chabaqa?",
+      "body": "Chabaqa enables individuals to leverage their expertise, regardless of background or access to traditional employment, to build sustainable careers by monetizing their knowledge. We empower creators to connect with global audiences, gain professional recognition, and generate meaningful income from untapped potential.",
+      "pills": ["No code required", "Built for MENA creators", "Arabic & French support", "Free to start"],
+      "cta": "Get Started Today",
       "title": "What is Chabaqa?",
       "description": "Chabaqa enables individuals to leverage their expertise, regardless of background or access to traditional employment, to build sustainable careers by monetizing their knowledge. We empower creators to connect with global audiences, gain professional recognition, and generate meaningful income from untapped potential.",
       "aboutVideoAriaLabel": "About video",
@@ -238,24 +278,86 @@
       "watchDemo": "Watch Demo"
     },
     "features": {
-      "title": "Powerful Features",
+      "eyebrow": "Everything you need",
+      "title": "One platform. All your creator tools.",
+      "sub": "Click any feature to see it in action.",
+      "items": [
+        { "id": "community", "name": "Community", "desc": "Build & engage your audience daily" },
+        { "id": "course", "name": "Online Courses", "desc": "Create, sell & track structured learning" },
+        { "id": "challenge", "name": "Challenges", "desc": "Drive daily engagement with time-based programs" },
+        { "id": "product", "name": "Digital Products", "desc": "Sell templates, presets & e-books instantly" },
+        { "id": "event", "name": "Events", "desc": "Host & sell tickets for online/offline events" },
+        { "id": "oneToOne", "name": "1:1 Coaching Sessions", "desc": "Book, pay & meet — all automated" },
+        { "id": "dms", "name": "Direct Messages", "desc": "Private messaging & group chats" },
+        { "id": "analytics", "name": "Analytics", "desc": "Revenue, growth & engagement in real time" },
+        { "id": "branding", "name": "Branding", "desc": "Custom themes, logos & white-label" }
+      ],
       "subtitle": "Explore our comprehensive suite of tools designed to enhance your experience",
-      "videoNotSupported": "Your browser does not support the video tag.",
-      "items": {
-        "community": "Community",
-        "course": "Online Courses",
-        "challenge": "Challenges & Competitions",
-        "product": "Product Marketplace",
-        "event": "Events",
-        "session": "1:1 Sessions"
-      }
+      "videoNotSupported": "Your browser does not support the video tag."
     },
     "howItWorks": {
       "title": "How It Works",
       "subtitle": "Get started with Chabaqa in just four simple steps and watch your community flourish."
     },
     "pricing": {
-      "title": "Choose Your Plan",
+      "eyebrow": "Transparent pricing",
+      "title": "Start free, scale when ready",
+      "sub": "Every plan includes a 7-day free trial. No hidden fees.",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "save": "Save 17%",
+      "period": {
+        "free": "forever · no card needed",
+        "monthly": "TND / month · 7-day free trial",
+        "yearly": "TND / month · billed yearly"
+      },
+      "ctaFree": "Start for free",
+      "ctaTrial": "Start 7-day free trial",
+      "plans": [
+        {
+          "badge": "🌱 Starter",
+          "name": "Starter",
+          "desc": "Perfect for getting started",
+          "fee": "Transaction fee: 7.9%",
+          "features": [
+            "1 Community (up to 100 members)",
+            "Activate up to 3 Courses",
+            "Digital Products enabled",
+            "2 GB Storage",
+            "Basic analytics",
+            "24/7 Support"
+          ]
+        },
+        {
+          "badge": "⭐ Most Popular",
+          "name": "Growth",
+          "desc": "For growing communities",
+          "fee": "Transaction fee: 4.9%",
+          "features": [
+            "Up to 3 Communities (10k members)",
+            "Unlimited Courses",
+            "Challenges, Sessions & Events",
+            "Magic Reach automation (500/mo)",
+            "Member gamification",
+            "Verified badge · 50 GB storage",
+            "24/7 Priority Support"
+          ]
+        },
+        {
+          "badge": "🚀 Pro",
+          "name": "Pro",
+          "desc": "For professional creators",
+          "fee": "Transaction fee: 2.9%",
+          "features": [
+            "Unlimited Communities & Members",
+            "Unlimited automation",
+            "Add up to 3 team admins",
+            "Custom domain name",
+            "Featured badge + top listings",
+            "24/7 VIP Support"
+          ]
+        }
+      ],
       "subtitle": "Start free and scale as you grow",
       "plansAriaLabel": "Pricing plans",
       "planAriaLabel": "Plan {name}",
@@ -283,67 +385,22 @@
         "paymentInitFailedTitle": "Payment initialization failed",
         "noCheckoutUrl": "No checkout URL returned",
         "tryAgain": "Please try again."
-      },
-      "plans": {
-        "starter": {
-          "name": "Starter",
-          "description": "Perfect for getting started",
-          "trial": "7 days free",
-          "cta": "Start 7-Day Free Trial",
-          "features": [
-            "1 Community (up to 100 members)",
-            "Activate up to 3 Courses",
-            "Digital Products: Enabled (Sell/Downloadables)",
-            "2 GB Storage Included",
-            "Basic Insights - Members, Sales, Course Progress",
-            "24/7 Support",
-            "Transaction Fee: 7.9%"
-          ]
-        },
-        "growth": {
-          "name": "Growth",
-          "description": "For growing communities",
-          "trial": "7 days free",
-          "cta": "Start 7-Day Free Trial",
-          "features": [
-            "Up to 3 Communities (10,000 members total)",
-            "Unlimited Courses (no activation limit)",
-            "Courses, Challenges, 1-to-1 Sessions, Digital Products, Events & Online Meetings",
-            "Magic Reach: Email, WhatsApp & Message Automation (500/month)",
-            "Members Gamification (Points, Rewards, Rankings)",
-            "Full Advanced Insights - Sales, Growth, Engagement",
-            "24/7 Priority Support",
-            "Verified Badge for your Profile/Community",
-            "50 GB Storage for Files, Videos & Resources",
-            "Occasional Promotion on our Social Media",
-            "Transaction Fee: 4.9%"
-          ]
-        },
-        "pro": {
-          "name": "Pro",
-          "description": "For professional creators",
-          "trial": "7 days free",
-          "cta": "Start 7-Day Free Trial",
-          "features": [
-            "Unlimited Communities & Unlimited Members",
-            "Unlimited Courses (no restrictions)",
-            "Courses, Challenges, 1-to-1 Sessions, Digital Products, Events & Online Meetings",
-            "Magic Reach: Unlimited Email, WhatsApp & Message Automation",
-            "Team Power: Add up to 3 Admins",
-            "Branding: Custom URL with your own domain name",
-            "Recognition: Featured Badge + Community highlighted at top of listings",
-            "Members Gamification (Points, Rewards, Rankings)",
-            "Full Advanced Insights - Sales, Growth, Engagement",
-            "24/7 VIP Support",
-            "Occasional Promotion on our Social Media",
-            "Transaction Fee: 2.9%"
-          ]
-        }
       }
     },
     "videos": {
-      "sectionAriaLabel": "Video tutorials",
+      "eyebrow": "Video Tutorials",
       "title": "Learn from Videos",
+      "sub": "Watch step-by-step walkthroughs and discover how to build, grow and monetize your community.",
+      "watchNow": "Watch now",
+      "items": [
+        { "num": "01", "tag": "Getting Started", "title": "How to Create Your Community on Chabaqa", "desc": "Set up your community in minutes — name, banner, invite link." },
+        { "num": "02", "tag": "Courses", "title": "Build & Sell Your First Online Course", "desc": "Upload videos, create chapters, set pricing and publish." },
+        { "num": "03", "tag": "Challenges", "title": "Launch a 7-Day Challenge", "desc": "Boost daily member engagement and retention." },
+        { "num": "04", "tag": "Coaching", "title": "Set Up Your 1:1 Coaching Calendar", "desc": "Book, pay and meet — fully automated." },
+        { "num": "05", "tag": "Products", "title": "Sell Digital Products & Earn Passively", "desc": "Upload, price and sell presets or e-books instantly." },
+        { "num": "06", "tag": "Events", "title": "Track Your Growth with Analytics", "desc": "Revenue, engagement and member growth in real time." }
+      ],
+      "sectionAriaLabel": "Video tutorials",
       "subtitle": "Watch tutorials and discover features to help you build your community",
       "scrollLeft": "Scroll left",
       "scrollRight": "Scroll right",
@@ -352,61 +409,29 @@
       "playerTitle": "YouTube video player"
     },
     "appInstall": {
+      "heading": "Ready to build your community?",
+      "sub": "Join creators across MENA turning their expertise into income. Free to start.",
+      "primary": "Start for free — no card needed",
+      "secondary": "Talk to the team",
       "bannerAlt": "Get Chabaqa App",
       "downloadAppStore": "Download on App Store",
       "downloadGooglePlay": "Get it on Google Play"
     },
     "faq": {
-      "title": "Frequently Asked Questions",
+      "eyebrow": "FAQ",
+      "title": "Common questions",
+      "sub": "Everything you need to know before getting started with Chabaqa.",
+      "items": [
+        { "q": "What makes Chabaqa different?", "a": "Chabaqa is the only all-in-one platform built specifically for creators in Tunisia and MENA. Courses, challenges, coaching, events — one dashboard, one payout, local support in Arabic and French." },
+        { "q": "Is Chabaqa free to start?", "a": "Yes. The Starter plan is free with no credit card required. Every paid plan also includes a 7-day free trial." },
+        { "q": "What is the difference between Courses and Challenges?", "a": "Courses are self-paced learning with chapters and videos. Challenges are time-bound programs designed to maximize engagement and community participation." },
+        { "q": "Can I use Chabaqa if I'm in Tunisia or MENA?", "a": "Absolutely — Chabaqa was built for creators in Tunisia and across MENA. Pricing is in TND, support is in Arabic and French." },
+        { "q": "How do I get paid?", "a": "Revenue is collected through Chabaqa's secure checkout. Payouts are managed from your creator dashboard with transparent transaction fees (2.9%–7.9% depending on plan)." },
+        { "q": "Is there a money-back guarantee?", "a": "Yes — 30-day money-back guarantee on all paid plans, no questions asked." }
+      ],
       "subtitle": "Everything you need to know about Chabaqa - the all-in-one community platform for creators, coaches, and educators. Learn about features, pricing, and how to build and monetize your community.",
       "stillHaveQuestions": "Still have questions about Chabaqa?",
-      "contactSupport": "Contact Our Support Team",
-      "items": [
-        {
-          "question": "What makes Chabaqa different from other community platforms?",
-          "answer": "Chabaqa is an all-in-one community platform built for creators, coaches, and educators who want to grow and monetize their audience in one place. You can create and sell online courses, run interactive challenges, offer one-on-one coaching, host virtual events, and deliver digital products from a single system."
-        },
-        {
-          "question": "How do I create a community on Chabaqa?",
-          "answer": "After signing up at chabaqa.io, click Create New Community, add your community name and description, customize colors, banners, and logo, then publish your invite link. Anyone with the link can join instantly."
-        },
-        {
-          "question": "Is Chabaqa only for creating online courses?",
-          "answer": "No. Beyond courses, Chabaqa supports paid challenges, digital products, 1:1 coaching sessions, events, and online meetings, all in one dashboard."
-        },
-        {
-          "question": "How will Chabaqa help me engage with my community?",
-          "answer": "Chabaqa includes engagement tools like announcements, feeds, direct messages, and communication automations so you can keep members active and connected."
-        },
-        {
-          "question": "How can users book a 1:1 coaching session on Chabaqa?",
-          "answer": "Users open the 1:1 sessions section, choose a time slot from your availability calendar, complete booking, and receive confirmation with a meeting link."
-        },
-        {
-          "question": "What is the difference between Courses and Challenges on Chabaqa?",
-          "answer": "Courses are flexible learning resources available over time, while challenges are time-based and highly structured programs designed to maximize engagement and outcomes."
-        },
-        {
-          "question": "How can I create and manage events on Chabaqa?",
-          "answer": "You can create online or offline events, sell tickets, manage attendees, and track event performance directly from your community dashboard."
-        },
-        {
-          "question": "How much does Chabaqa cost? What are the pricing plans?",
-          "answer": "Chabaqa offers flexible plans for different creator stages, including free trial periods and paid tiers with advanced capabilities."
-        },
-        {
-          "question": "Can I use Chabaqa if I'm based in Tunisia or the MENA region?",
-          "answer": "Yes. Chabaqa is designed for creators in Tunisia and across the MENA region, with multilingual support and creator-friendly workflows."
-        },
-        {
-          "question": "How do I monetize my community on Chabaqa?",
-          "answer": "You can monetize through paid courses, challenges, coaching sessions, events, and digital products with secure checkout and payout support."
-        },
-        {
-          "question": "Is Chabaqa suitable for coaches, educators, and fitness trainers?",
-          "answer": "Yes. Chabaqa is built for coaches, educators, trainers, and creators who need an all-in-one platform to teach, engage, and monetize."
-        }
-      ]
+      "contactSupport": "Contact Our Support Team"
     },
     "footer": {
       "description": "Chabaqa startup",
