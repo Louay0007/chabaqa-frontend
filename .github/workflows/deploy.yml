@@ -59,15 +59,10 @@ jobs:
               key=$(echo "$key" | xargs)
               
               if grep -q "^${key}=" "$ENV_FILE"; then
-                # We use python to safely replace the key-value without sed escaping issues
-                python3 -c "
-import sys, re
-key = sys.argv[1]
-value = sys.argv[2]
-with open(sys.argv[3], 'r') as f: data = f.read()
-data = re.sub(r'(?m)^' + re.escape(key) + r'=.*$', key + '=' + value.replace('\\\\', '\\\\\\\\'), data)
-with open(sys.argv[3], 'w') as f: f.write(data)
-" "$key" "$value" "$ENV_FILE"
+                export awk_key="$key"
+                export awk_val="$value"
+                awk 'BEGIN{FS="="} $1==ENVIRON["awk_key"] { $0 = ENVIRON["awk_key"] "=" ENVIRON["awk_val"] } {print}' "$ENV_FILE" > "$ENV_FILE.tmp"
+                mv "$ENV_FILE.tmp" "$ENV_FILE"
               else
                 echo "${key}=${value}" >> "$ENV_FILE"
               fi
