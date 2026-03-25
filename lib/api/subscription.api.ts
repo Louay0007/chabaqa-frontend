@@ -45,6 +45,10 @@ export interface PlanLimits {
   coursesActivationMax: number;
   storageGB: number;
   adminsMax: number;
+  emailCampaignRecipientsPerMonth: number;
+  whatsappMessagesPerMonth: number;
+  analyticsLookbackDays: number;
+  sessionBookingsPerMonth: number;
 }
 
 export interface PlanFeatures {

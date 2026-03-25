@@ -37,6 +37,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
+import { FeatureGate } from "@/components/plan/feature-gate";
+import { LockedFeatureCard } from "@/components/plan/upgrade-modal";
 import {
   Table,
   TableBody,
@@ -115,8 +117,8 @@ export default function AdminContentPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem><BookOpen className="mr-2 h-4 w-4" />New Course</DropdownMenuItem>
-              <DropdownMenuItem><Calendar className="mr-2 h-4 w-4" />New Event</DropdownMenuItem>
-              <DropdownMenuItem><Award className="mr-2 h-4 w-4" />New Challenge</DropdownMenuItem>
+              <FeatureGate feature="events" fallback={<DropdownMenuItem disabled><Calendar className="mr-2 h-4 w-4" />New Event 🔒</DropdownMenuItem>}><DropdownMenuItem><Calendar className="mr-2 h-4 w-4" />New Event</DropdownMenuItem></FeatureGate>
+              <FeatureGate feature="challenges" fallback={<DropdownMenuItem disabled><Award className="mr-2 h-4 w-4" />New Challenge 🔒</DropdownMenuItem>}><DropdownMenuItem><Award className="mr-2 h-4 w-4" />New Challenge</DropdownMenuItem></FeatureGate>
               <DropdownMenuItem><ShoppingBag className="mr-2 h-4 w-4" />New Product</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -210,6 +212,7 @@ export default function AdminContentPage() {
 
         {/* Events Tab */}
         <TabsContent value="events" className="space-y-4">
+          <FeatureGate feature="events" fallback={<LockedFeatureCard feature="Events" requiredPlan="growth" description="Create and manage events for your community. Upgrade to Growth plan to unlock." />}>
           <Card>
             <Table>
               <TableHeader>
@@ -253,10 +256,12 @@ export default function AdminContentPage() {
               </TableBody>
             </Table>
           </Card>
+          </FeatureGate>
         </TabsContent>
 
         {/* Challenges Tab */}
         <TabsContent value="challenges" className="space-y-4">
+          <FeatureGate feature="challenges" fallback={<LockedFeatureCard feature="Challenges" requiredPlan="growth" description="Create and manage challenges for your community. Upgrade to Growth plan to unlock." />}>
           <Card>
             <Table>
               <TableHeader>
@@ -300,6 +305,7 @@ export default function AdminContentPage() {
               </TableBody>
             </Table>
           </Card>
+          </FeatureGate>
         </TabsContent>
 
         {/* Products Tab */}
