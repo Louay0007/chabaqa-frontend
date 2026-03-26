@@ -14,7 +14,7 @@ export function ExploreListRow({ item }: ExploreListRowProps) {
   const type = TYPE_CONFIG[item.type]
   return (
     <a href={item.url} className="block">
-      <article className="group flex gap-4 bg-[var(--white)] border border-[var(--bd)] rounded-2xl overflow-hidden hover:shadow-[0_8px_32px_rgba(142,120,251,.13)] hover:-translate-y-[2px] transition-all duration-300 p-3">
+      <article className="group flex gap-4 bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-[0_8px_32px_rgba(142,120,251,.13)] hover:-translate-y-[2px] transition-all duration-300 p-3">
         <div className="relative flex-shrink-0 w-[140px] sm:w-[180px] rounded-xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
           <Image src={item.banner} alt={item.title} fill className="object-cover" sizes="180px" />
           <div className="absolute top-2 end-2 flex gap-1">
@@ -25,22 +25,22 @@ export function ExploreListRow({ item }: ExploreListRowProps) {
         </div>
         <div className="flex flex-col flex-1 min-w-0 justify-between py-0.5">
           <div>
-            <h3 className="text-sm font-bold text-[var(--t1)] line-clamp-1 group-hover:text-[var(--p)] transition-colors mb-1">{item.title}</h3>
-            <p className="text-[11px] text-[var(--t3)] line-clamp-2 leading-relaxed">{item.desc}</p>
+            <h3 className="text-sm font-bold text-gray-900 line-clamp-1 group-hover:text-[#8e78fb] transition-colors mb-1">{item.title}</h3>
+            <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed">{item.desc}</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap mt-2">
             <div className="flex items-center gap-1.5">
-              <div className="relative w-5 h-5 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-[var(--bd)]">
+              <div className="relative w-5 h-5 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-gray-200">
                 {item.creatorAvatar
                   ? <Image src={item.creatorAvatar} alt={item.creator} fill className="object-cover" sizes="20px" />
                   : <div className="w-full h-full flex items-center justify-center text-[7px] font-black text-white" style={{ background: item.creatorColor }}>{item.creatorInitials}</div>
                 }
               </div>
-              <span className="text-[11px] text-[var(--t3)] font-medium">{item.creator}</span>
+              <span className="text-[11px] text-gray-500 font-medium">{item.creator}</span>
             </div>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: type.bg, color: type.color, border: `1px solid ${type.border}` }}>{type.label}</span>
             {item.members !== undefined && (
-              <span className="flex items-center gap-1 text-[11px] text-[var(--t3)]">
+              <span className="flex items-center gap-1 text-[11px] text-gray-500">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="10" height="10" aria-hidden="true">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                 </svg>
@@ -52,10 +52,10 @@ export function ExploreListRow({ item }: ExploreListRowProps) {
                 <svg viewBox="0 0 24 24" fill="#ff9b28" width="10" height="10" aria-hidden="true">
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                 </svg>
-                <span className="font-semibold text-[var(--t2)]">{item.rating}</span>
+                <span className="font-semibold text-gray-700">{item.rating}</span>
               </span>
             )}
-            <span className={`ms-auto text-xs font-black flex-shrink-0 ${item.price === 'free' ? 'text-emerald-500' : 'text-[var(--t1)]'}`}>
+            <span className={`ms-auto text-xs font-black flex-shrink-0 ${item.price === 'free' ? 'text-emerald-500' : 'text-gray-900'}`}>
               {item.price === 'free' ? 'Free' : `${item.price} ${item.currency}`}
             </span>
           </div>

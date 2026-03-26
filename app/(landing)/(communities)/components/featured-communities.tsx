@@ -20,7 +20,7 @@ export function FeaturedCommunities({ items }: FeaturedCommunitiesProps) {
   }
 
   return (
-    <section className="relative pt-12 pb-12 overflow-hidden" style={{ background: 'var(--bg, #ffffff)' }} aria-label={t('heroLabel')}>
+    <section className="relative pt-12 pb-12 overflow-hidden bg-white" aria-label={t('heroLabel')}>
       {/* Grid pattern background */}
       <div 
         className="absolute inset-0 opacity-40 pointer-events-none" 
@@ -33,26 +33,12 @@ export function FeaturedCommunities({ items }: FeaturedCommunitiesProps) {
       />
       
       {/* Animated blobs */}
-      <div 
-        className="absolute w-[480px] h-[300px] rounded-full blur-[80px] opacity-[0.10] -top-16 -left-24 bg-[#8e78fb] pointer-events-none" 
-        aria-hidden="true" 
-      />
-      <div 
-        className="absolute w-[300px] h-[300px] rounded-full blur-[80px] opacity-[0.08] top-8 -right-16 bg-[#47c7ea] pointer-events-none" 
-        aria-hidden="true" 
-      />
+      <div className="absolute w-[480px] h-[300px] rounded-full blur-[80px] opacity-[0.10] -top-16 -left-24 bg-[#8e78fb] pointer-events-none animate-[blobMove_12s_ease-in-out_infinite]" aria-hidden="true" />
+      <div className="absolute w-[300px] h-[300px] rounded-full blur-[80px] opacity-[0.08] top-8 -right-16 bg-[#47c7ea] pointer-events-none animate-[blobMove_15s_ease-in-out_infinite] [animation-delay:-5s]" aria-hidden="true" />
 
       {/* Hero Section */}
       <div className="relative px-6 md:px-10 max-w-6xl mx-auto mb-10 text-center">
-        <div 
-          className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold mb-5"
-          style={{ 
-            background: '#f0eefe', 
-            border: '1.5px solid #d4c5ff', 
-            color: '#8e78fb', 
-            animation: 'fadeDown .6s ease both' 
-          }}
-        >
+        <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold mb-5 bg-[#f0eefe] border-[1.5px] border-[#d4c5ff] text-[#8e78fb] animate-[fadeDown_0.6s_ease_both]">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="12" height="12" aria-hidden="true">
             <circle cx="11" cy="11" r="8"/>
             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -60,10 +46,7 @@ export function FeaturedCommunities({ items }: FeaturedCommunitiesProps) {
           {t('badge')}
         </div>
         
-        <h1 
-          className="text-[clamp(22px,4.8vw,52px)] font-black text-gray-900 leading-tight tracking-[-0.03em] mb-4"
-          style={{ animation: 'fadeDown .65s .08s ease both' }}
-        >
+        <h1 className="text-[clamp(22px,4.8vw,52px)] font-black text-gray-900 leading-tight tracking-[-0.03em] mb-4 animate-[fadeDown_0.65s_0.08s_ease_both]">
           {t('heroTitle1')}{' '}
           <span className="relative inline-block">
             <span className="relative z-10 text-[#8e78fb]">{t('heroTitle2')}</span>
@@ -75,20 +58,13 @@ export function FeaturedCommunities({ items }: FeaturedCommunitiesProps) {
                 strokeWidth="2"
                 strokeLinecap="round" 
                 pathLength="1"
-                style={{ 
-                  strokeDasharray: 1, 
-                  strokeDashoffset: 1, 
-                  animation: 'drawLine 0.9s 0.65s ease-out forwards' 
-                }}
+                className="[stroke-dasharray:1] [stroke-dashoffset:1] animate-[drawLine_0.9s_0.65s_ease-out_forwards]"
               />
             </svg>
           </span>
         </h1>
         
-        <p 
-          className="text-gray-500 text-[clamp(14px,2vw,16px)] leading-relaxed max-w-xl mx-auto"
-          style={{ animation: 'fadeDown .65s .16s ease both' }}
-        >
+        <p className="text-gray-500 text-[clamp(14px,2vw,16px)] leading-relaxed max-w-xl mx-auto animate-[fadeDown_0.65s_0.16s_ease_both]">
           {t('heroSub')}
         </p>
       </div>
@@ -133,8 +109,7 @@ export function FeaturedCommunities({ items }: FeaturedCommunitiesProps) {
           {/* Scroll track */}
           <div 
             ref={featuredRef} 
-            className="flex gap-4 overflow-x-auto pb-2 px-1" 
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            className="flex gap-4 overflow-x-auto pb-2 px-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           >
             {items.map(item => (
               <ExploreCard key={item.id} item={item} featured />
@@ -150,6 +125,11 @@ export function FeaturedCommunities({ items }: FeaturedCommunitiesProps) {
         }
         @keyframes drawLine {
           to { stroke-dashoffset: 0; }
+        }
+        @keyframes blobMove {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
         }
       `}</style>
     </section>
