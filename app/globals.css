@@ -2,6 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Brand tokens (light) ─────────────────────────────────────────────── */
+:root {
+  --p:        #8e78fb;
+  --p-dark:   #6c52f0;
+  --p2:       #ede9ff;
+  --p3:       #c4b8fd;
+  --orange:   #ff9b28;
+  --o2:       #fff3e4;
+  --cyan:     #47c7ea;
+  --c2:       #e4f8fd;
+  --pink:     #f65887;
+  --pk2:      #ffe4ee;
+  --bg:       #f7f7fe;
+  --white:    #ffffff;
+  --t1:       #1a1730;
+  --t2:       #46426a;
+  --t3:       #9590b8;
+  --bd:       #e8e4ff;
+  --bd2:      #d4ccff;
+  --nav-bg:   rgba(247,247,254,0.94);
+  --footer-bg: #1a1730;
+  --section-alt: #f0eefe;
+  --dot-red:    #ff5f57;
+  --dot-yellow: #febc2e;
+  --dot-green:  #28c840;
+}
+
+/* ── Dark mode tokens ─────────────────────────────────────────────────── */
+.dark {
+  --bg:          #12111a;
+  --white:       #1c1a2e;
+  --t1:          #f0eeff;
+  --t2:          #b8b2e0;
+  --t3:          #7a7598;
+  --bd:          #2e2a4a;
+  --bd2:         #413b6e;
+  --p2:          #1e1a35;
+  --p3:          #3d3570;
+  --nav-bg:      rgba(18,17,26,0.94);
+  --footer-bg:   #0d0c17;
+  --section-alt: #161424;
+}
+
 
 @layer base {
   :root {
@@ -805,6 +848,10 @@ body {
 @keyframes badgeShimmer {
   0% { transform: translateX(-150%); }
   60%, 100% { transform: translateX(200%); }
+}
+
+@keyframes drawLine {
+  to { stroke-dashoffset: 0; }
 }
 
 /* ── Scroll reveal ────────────────────────────────────────────────────── */

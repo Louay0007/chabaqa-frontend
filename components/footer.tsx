@@ -21,32 +21,36 @@ export function Footer() {
   const bottomLinks = t.raw("bottomLinks") as string[]
 
   const FOOTER_HREFS: string[][] = [
-    ["/#features", "/#pricing", "/#features", "/#features", "/#features"],
+    ["/#features", "/#pricing", "/explore", "/#features", "/#features"],
     ["/#about", "/blogs", "#", "#"],
     ["/terms-of-service", "/privacy-policy", "#"],
   ]
 
   return (
-    <footer
-      className="pt-16 pb-8 px-6 md:px-10"
-      style={{
-        background: "linear-gradient(135deg, #8e78fb 0%, #5d67ff 100%)",
-      }}
-    >
-      <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
-          {/* Brand */}
-          <div className="col-span-2 md:col-span-1">
-            <Link href={withLocale("/")} aria-label="Chabaqa — go to homepage" className="flex items-center mb-4">
+    <footer className="bg-gray-50 border-t border-gray-200">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+        {/* Main Footer Content */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 lg:gap-12 mb-12">
+          {/* Brand Column */}
+          <div className="col-span-2 lg:col-span-2">
+            <Link 
+              href={withLocale("/")} 
+              aria-label="Chabaqa — go to homepage" 
+              className="inline-block mb-4"
+            >
               <Image
                 src="/Logos/PNG/frensh1.png"
                 alt="Chabaqa"
-                width={120}
-                height={32}
-                className="h-8 w-auto brightness-0 invert"
+                width={140}
+                height={36}
+                className="h-9 w-auto"
               />
             </Link>
-            <p className="text-white/70 text-sm leading-relaxed mb-6">{t("tagline")}</p>
+            <p className="text-gray-600 text-sm leading-relaxed mb-6 max-w-sm">
+              {t("tagline")}
+            </p>
+            
+            {/* Social Links */}
             <div className="flex gap-3">
               {[
                 {
@@ -85,7 +89,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`Chabaqa on ${label}`}
-                  className="w-9 h-9 rounded-xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:border-white/30 transition-colors"
+                  className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-purple-600 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200"
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -94,8 +98,8 @@ export function Footer() {
                     strokeWidth="1.8"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    width="16"
-                    height="16"
+                    width="18"
+                    height="18"
                     aria-hidden="true"
                   >
                     {icon}
@@ -105,16 +109,16 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Columns */}
+          {/* Link Columns */}
           {Object.entries(columns).map(([heading, links], colIdx) => (
-            <div key={heading}>
-              <h4 className="text-white font-bold text-sm mb-4">{heading}</h4>
+            <div key={heading} className="col-span-1">
+              <h4 className="text-gray-900 font-semibold text-sm mb-4">{heading}</h4>
               <ul className="flex flex-col gap-3">
                 {links.map((link, linkIdx) => (
                   <li key={link}>
                     <Link
                       href={withLocale(FOOTER_HREFS[colIdx]?.[linkIdx] ?? "#")}
-                      className="text-white/70 hover:text-white text-sm transition-colors"
+                      className="text-gray-600 hover:text-purple-600 text-sm transition-colors duration-200"
                     >
                       {link}
                     </Link>
@@ -125,9 +129,11 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <span className="text-white/50 text-sm">{t("copyright")}</span>
-          <div className="flex items-center gap-4">
+        {/* Bottom Bar */}
+        <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <span className="text-gray-500 text-sm">{t("copyright")}</span>
+          
+          <div className="flex items-center gap-6">
             {bottomLinks.map((label, idx) => {
               const hrefs = ["/terms-of-service", "/privacy-policy", "#"]
               return (
@@ -135,17 +141,18 @@ export function Footer() {
                   key={label}
                   href={idx === 2 ? "#" : withLocale(hrefs[idx])}
                   onClick={idx === 2 ? openCookiePreferences : undefined}
-                  className="text-white/50 hover:text-white text-sm transition-colors"
+                  className="text-gray-500 hover:text-purple-600 text-sm transition-colors duration-200"
                 >
                   {label}
                 </Link>
               )
             })}
           </div>
+          
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             aria-label={t("backTop")}
-            className="flex items-center gap-2 text-white/50 hover:text-white text-sm transition-colors"
+            className="flex items-center gap-2 text-gray-500 hover:text-purple-600 text-sm transition-colors duration-200 group"
           >
             <svg
               viewBox="0 0 24 24"
@@ -154,9 +161,10 @@ export function Footer() {
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              width="14"
-              height="14"
+              width="16"
+              height="16"
               aria-hidden="true"
+              className="group-hover:-translate-y-0.5 transition-transform duration-200"
             >
               <polyline points="18 15 12 9 6 15" />
             </svg>

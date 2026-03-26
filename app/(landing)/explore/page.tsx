@@ -3,7 +3,7 @@ import { Footer } from "@/components/footer"
 import { ExplorePageClient } from "./explore-page-client"
 import { communitiesApi, coursesApi, challengesApi, productsApi, sessionsApi, eventsApi } from "@/lib/api"
 import type { Community, Course, Challenge, Product, Session, Event } from "@/lib/api/types"
-import type { Explore } from "@/lib/data-communities"
+import type { ExploreItem } from "@/lib/explore-data"
 import { computeEventStartAt } from "@/lib/utils/event-time"
 import type { Metadata } from "next"
 import {
@@ -180,7 +180,7 @@ function resolveCreatorSlug(source: any, creatorName: string): string | undefine
 }
 
 // Transform API Community to Explore format
-function transformCommunityToExplore(community: Community): Explore {
+function transformCommunityToExplore(community: Community): ExploreItem {
   const primaryImage = resolveImageUrl(
     (community as any).coverImage || (community as any).banner || community.image || (community as any).logo,
   )
@@ -193,48 +193,38 @@ function transformCommunityToExplore(community: Community): Explore {
   )
 
   const creatorName = community.creator?.name || (community as any).creator || 'Unknown'
-  const creatorSlug = resolveCreatorSlug(community, creatorName)
   const membersCount = maxCount((community as any).membersCount, (community as any).members)
+  const communityId = String((community as any)._id || community.id)
 
   return {
-    id: String((community as any)._id || community.id),
-    mongoId: (community as any)._id ? String((community as any)._id) : undefined,
+    id: communityId,
     type: "community",
-    name: community.name,
-    slug: community.slug,
+    category: (community.category as any) || 'business',
+    title: community.name,
+    desc: community.description || '',
     creator: creatorName,
-    creatorSlug,
+    creatorInitials: creatorName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
     creatorAvatar: avatar,
-    description: community.description,
-    category: community.category,
+    creatorColor: '#8e78fb',
+    banner: primaryImage,
+    price: normalizePrice((community as any).price) > 0 ? normalizePrice((community as any).price) : 'free',
+    currency: 'TND',
     members: membersCount,
     rating: (community as any).averageRating || community.rating || 0,
-    tags: community.tags,
+    ratingCount: normalizeCount((community as any).ratingCount, 0),
     verified: Boolean((community as any).verified ?? (community as any).isVerified ?? false),
-    price: normalizePrice((community as any).price),
-    priceType: mapPriceType(String((community as any).priceType || 'free')),
-    image: primaryImage,
     featured: Boolean((community as any).featured),
-    link: `/${encodeURIComponent(creatorName)}/${community.slug}`,
+    url: `/community/${communityId}`,
   }
 }
 
 // Transform API Course to Explore format
-async function transformCourseToExplore(course: Course): Promise<Explore> {
+async function transformCourseToExplore(course: Course): Promise<ExploreItem> {
   const image = resolveImageUrl(course.thumbnail || (course as any).image)
   const avatar = resolveImageUrl((course as any).creator?.avatar || (course as any).creatorAvatar)
 
-  // The API returns 'titre' (French) instead of 'title'
   const courseTitle = course.title || (course as any).titre || (course as any).name || 'Untitled Course'
   const creatorName = (course as any).creator?.name || (course as any).creatorName || 'Unknown'
-  const creatorSlug = resolveCreatorSlug(course, creatorName)
-
-  // Use community data from API response (now populated by backend)
-  const communityName = (course as any).communityName || 'Unknown Community'
-  const communitySlug = (course as any).communitySlug || (course as any).community?.slug || ''
-  const communityId = resolveEntityId(
-    (course as any).communityId || (course as any).community?._id || (course as any).community?.id,
-  )
   const enrollmentCount = maxCount(
     (course as any).enrollmentCount,
     (course as any).inscriptions,
@@ -247,48 +237,32 @@ async function transformCourseToExplore(course: Course): Promise<Explore> {
 
   return {
     id: courseId,
-    mongoId: (course as any)._id ? String((course as any)._id) : undefined,
     type: "course",
-    name: courseTitle,
-    slug: course.slug || (course as any).id,
+    category: (course as any).category || 'education',
+    title: courseTitle,
+    desc: course.description || '',
     creator: creatorName,
-    creatorSlug,
+    creatorInitials: creatorName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
     creatorAvatar: avatar,
-    description: course.description || '',
-    category: (course as any).category || 'Education',
+    creatorColor: '#47c7ea',
+    banner: image,
+    price: normalizePrice((course as any).price || (course as any).prix) > 0 ? normalizePrice((course as any).price || (course as any).prix) : 'free',
+    currency: 'TND',
     members: enrollmentCount,
     rating: (course as any).averageRating || course.rating || 0,
-    tags: (course as any).tags || [course.level],
+    ratingCount: normalizeCount((course as any).ratingCount, 0),
     verified: (course as any).verified || false,
-    price: normalizePrice((course as any).price || (course as any).prix),
-    priceType:
-      (String((course as any).priceType || '').toLowerCase() === 'free' ||
-      normalizePrice((course as any).price || (course as any).prix) === 0)
-        ? "free"
-        : "paid",
-    image,
     featured: (course as any).featured || false,
-    link: `/courses/${course.slug || courseId}`,
-    communityId,
-    communityName: communityName,
-    communitySlug: communitySlug,
+    url: `/course/${courseId}`,
   }
 }
 
 // Transform API Challenge to Explore format
-async function transformChallengeToExplore(challenge: Challenge): Promise<Explore> {
+async function transformChallengeToExplore(challenge: Challenge): Promise<ExploreItem> {
   const image = resolveImageUrl(challenge.thumbnail || (challenge as any).image)
   const avatar = resolveImageUrl((challenge as any).creator?.avatar || (challenge as any).creatorAvatar)
 
   const creatorName = (challenge as any).creator?.name || (challenge as any).creatorName || 'Unknown'
-  const creatorSlug = resolveCreatorSlug(challenge, creatorName)
-
-  // Use community data from API response (already populated by backend)
-  const communityName = (challenge as any).community?.name || 'Unknown Community'
-  const communitySlug = (challenge as any).community?.slug || (challenge as any).communitySlug || ''
-  const communityId = resolveEntityId(
-    (challenge as any).communityId || (challenge as any).community?._id || (challenge as any).community?.id,
-  )
   const participantCount = maxCount(
     challenge.participantCount,
     (challenge as any).participantsCount,
@@ -299,44 +273,32 @@ async function transformChallengeToExplore(challenge: Challenge): Promise<Explor
 
   return {
     id: challenge.id,
-    mongoId: (challenge as any)._id ? String((challenge as any)._id) : undefined,
     type: "challenge",
-    name: challenge.title,
-    slug: challenge.slug || challenge.id,
+    category: (challenge.category as any) || 'fitness',
+    title: challenge.title,
+    desc: challenge.description || '',
     creator: creatorName,
-    creatorSlug,
+    creatorInitials: creatorName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
     creatorAvatar: avatar,
-    description: challenge.description,
-    category: challenge.category || 'Challenge',
+    creatorColor: '#ff9b28',
+    banner: image,
+    price: normalizePrice((challenge as any).pricing?.participationFee) > 0 ? normalizePrice((challenge as any).pricing?.participationFee) : 'free',
+    currency: 'TND',
     members: participantCount,
     rating: (challenge as any).averageRating || (challenge as any).rating || 0,
-    tags: (challenge as any).tags || [challenge.difficulty],
+    ratingCount: normalizeCount((challenge as any).ratingCount, 0),
     verified: (challenge as any).verified || false,
-    price: normalizePrice((challenge as any).pricing?.participationFee),
-    priceType: normalizePrice((challenge as any).pricing?.participationFee) > 0 ? "paid" : "free",
-    image,
     featured: (challenge as any).featured || false,
-    link: `/challenges/${challenge.slug || challenge.id}`,
-    communityId,
-    communityName: communityName,
-    communitySlug: communitySlug,
+    url: `/challenge/${challenge.id}`,
   }
 }
 
 // Transform API Product to Explore format
-async function transformProductToExplore(product: Product): Promise<Explore> {
+async function transformProductToExplore(product: Product): Promise<ExploreItem> {
   const image = resolveImageUrl((product as any).images?.[0] || product.thumbnail)
   const avatar = resolveImageUrl((product as any).creator?.avatar || (product as any).creatorAvatar)
 
   const creatorName = (product as any).creator?.name || (product as any).creatorName || 'Unknown'
-  const creatorSlug = resolveCreatorSlug(product, creatorName)
-
-  // Use community data from API response (already populated by backend)
-  const communityName = (product as any).community?.name || product.community?.name || 'Unknown Community'
-  const communitySlug = (product as any).community?.slug || product.community?.slug || ''
-  const communityId = resolveEntityId(
-    (product as any).communityId || (product as any).community?._id || (product as any).community?.id,
-  )
   const salesCount = maxCount(
     (product as any).sales,
     product.salesCount,
@@ -348,63 +310,34 @@ async function transformProductToExplore(product: Product): Promise<Explore> {
 
   return {
     id: product.id,
-    mongoId: (product as any)._id ? String((product as any)._id) : undefined,
     type: "product",
-    name: (product as any).title || product.name,
-    slug: product.slug,
+    category: (product as any).category || 'creative',
+    title: (product as any).title || product.name,
+    desc: product.description || '',
     creator: creatorName,
-    creatorSlug,
+    creatorInitials: creatorName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
     creatorAvatar: avatar,
-    description: product.description,
-    category: (product as any).category || 'Product',
+    creatorColor: '#8e78fb',
+    banner: image,
+    price: normalizePrice((product as any).price || product.price),
+    currency: 'TND',
     members: salesCount,
     rating: normalizePrice((product as any).averageRating ?? product.rating),
     ratingCount: normalizeCount((product as any).ratingCount, 0),
-    tags: (product as any).tags || [product.type],
     verified: (product as any).verified || false,
-    price: normalizePrice((product as any).price || product.price),
-    priceType: "paid",
-    image,
     featured: (product as any).featured || false,
-    link: `/products/${product.slug}`,
-    communityId,
-    communityName: communityName,
-    communitySlug: communitySlug,
+    url: `/product/${product.id}`,
   }
 }
 
 // Transform API Session to Explore format
-async function transformSessionToExplore(
-  session: Session,
-): Promise<Explore> {
+async function transformSessionToExplore(session: Session): Promise<ExploreItem> {
   const image = resolveImageUrl(
     (session as any).thumbnail || (session as any).coverImage || (session as any).image,
   )
   const avatar = resolveImageUrl((session as any).creator?.avatar || (session as any).creatorAvatar)
 
   const creatorName = (session as any).creator?.name || (session as any).creatorName || 'Unknown'
-  const creatorSlug = resolveCreatorSlug(session, creatorName)
-
-  const communitySlug = String(
-    (session as any).communitySlug ||
-      (session as any).community?.slug ||
-      (session as any).community?.communitySlug ||
-      '',
-  ).trim()
-  const communityId = resolveEntityId(
-    (session as any).communityId || (session as any).community?._id || (session as any).community?.id,
-  )
-  const resolvedCommunityName = (
-    (session as any).communityName ||
-    (session as any).community?.name ||
-    (session as any).community?.communityName ||
-    (session as any).community?.title ||
-    ''
-  )
-  const communityName =
-    typeof resolvedCommunityName === 'string' && resolvedCommunityName.trim().length > 0
-      ? resolvedCommunityName.trim()
-      : (communitySlug ? communitySlug.replace(/[-_]+/g, ' ').trim() : 'Unknown Community')
   const bookingCount = maxCount(
     (session as any).bookedSlots,
     (session as any).bookingsCount,
@@ -416,43 +349,32 @@ async function transformSessionToExplore(
 
   return {
     id: session.id,
-    mongoId: (session as any)._id ? String((session as any)._id) : undefined,
-    type: "oneToOne",
-    name: session.title,
-    slug: (session as any).slug || session.id,
+    type: "session",
+    category: (session as any).category || 'business',
+    title: session.title,
+    desc: session.description || '',
     creator: creatorName,
-    creatorSlug,
+    creatorInitials: creatorName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
     creatorAvatar: avatar,
-    description: session.description,
-    category: (session as any).category || 'Mentorship',
+    creatorColor: '#f65887',
+    banner: image,
+    price: normalizePrice((session as any).price),
+    currency: 'TND',
     members: bookingCount,
     rating: (session as any).averageRating || (session as any).rating || 0,
-    tags: (session as any).tags || ['1-on-1', 'Mentorship'],
+    ratingCount: normalizeCount((session as any).ratingCount, 0),
     verified: (session as any).verified || false,
-    price: normalizePrice((session as any).price),
-    priceType: "hourly",
-    image,
     featured: (session as any).featured || false,
-    link: `/sessions/${(session as any).slug || session.id}`,
-    communityId,
-    communityName: communityName,
-    communitySlug: communitySlug,
+    url: `/session/${session.id}`,
   }
 }
 
 // Transform API Event to Explore format
-async function transformEventToExplore(event: Event): Promise<Explore> {
+async function transformEventToExplore(event: Event): Promise<ExploreItem> {
   const image = resolveImageUrl(event.thumbnail || event.image)
   const avatar = resolveImageUrl((event as any).creator?.avatar || (event as any).creatorAvatar)
 
   const creatorName = (event as any).creator?.name || (event as any).creatorName || 'Unknown'
-  const creatorSlug = resolveCreatorSlug(event, creatorName)
-
-  const communityName = (event as any).community?.name || 'Unknown Community'
-  const communitySlug = (event as any).community?.slug || (event as any).communitySlug || ''
-  const communityId = resolveEntityId(
-    (event as any).communityId || (event as any).community?._id || (event as any).community?.id,
-  )
   const ticketSoldCount = sumTicketSold((event as any).tickets)
   const attendeeCount = maxCount(
     event.currentAttendees,
@@ -466,27 +388,23 @@ async function transformEventToExplore(event: Event): Promise<Explore> {
 
   return {
     id: event.id,
-    mongoId: (event as any)._id ? String((event as any)._id) : undefined,
     type: "event",
-    name: event.title,
-    slug: event.slug,
+    category: (event.category as any) || 'business',
+    title: event.title,
+    desc: event.description || '',
     creator: creatorName,
-    creatorSlug,
+    creatorInitials: creatorName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
     creatorAvatar: avatar,
-    description: event.description,
-    category: event.category || 'Event',
+    creatorColor: '#8e78fb',
+    banner: image,
+    price: normalizePrice((event as any).price) > 0 ? normalizePrice((event as any).price) : 'free',
+    currency: 'TND',
     members: attendeeCount,
     rating: (event as any).averageRating || (event as any).rating || 0,
-    tags: event.tags || [event.type || 'Event'],
+    ratingCount: normalizeCount((event as any).ratingCount, 0),
     verified: (event as any).verified || false,
-    price: normalizePrice((event as any).price),
-    priceType: normalizePrice((event as any).price) > 0 ? "paid" : "free",
-    image,
     featured: (event as any).featured || false,
-    link: `/events/${event.slug}`,
-    communityId,
-    communityName: communityName,
-    communitySlug: communitySlug,
+    url: `/event/${event.id}`,
   }
 }
 
@@ -522,7 +440,8 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): 
 }
 
 export default async function CommunitiesPage() {
-  const allExploreItems: Explore[] = []
+  const allExploreItems: ExploreItem[] = []
+  const featuredItems: ExploreItem[] = []
 
   try {
     // Fetch all content types in parallel
@@ -571,25 +490,17 @@ export default async function CommunitiesPage() {
 
     // Helper to extract array from various response formats
     const extractArray = (response: any): any[] => {
-      // Handle direct array in data: { success: true, data: [...] }
-      if (response?.data && Array.isArray(response.data)) {
-        return response.data
-      }
-
-      // Handle nested structures with specific keys
+      if (response?.data && Array.isArray(response.data)) return response.data
       if (response?.data?.courses && Array.isArray(response.data.courses)) return response.data.courses
       if (response?.data?.challenges && Array.isArray(response.data.challenges)) return response.data.challenges
       if (response?.data?.products && Array.isArray(response.data.products)) return response.data.products
       if (response?.data?.sessions && Array.isArray(response.data.sessions)) return response.data.sessions
       if (response?.data?.events && Array.isArray(response.data.events)) return response.data.events
       if (response?.data?.communities && Array.isArray(response.data.communities)) return response.data.communities
-
       if (Array.isArray(response)) return response
-
       if (response?.data?.data && Array.isArray(response.data.data)) return response.data.data
       if (response?.data?.data?.courses && Array.isArray(response.data.data.courses)) return response.data.data.courses
       if (response?.data?.data?.communities && Array.isArray(response.data.data.communities)) return response.data.data.communities
-
       return []
     }
 
@@ -598,6 +509,7 @@ export default async function CommunitiesPage() {
       const data = extractArray(communitiesRes.value)
       const communities = data.map(transformCommunityToExplore)
       allExploreItems.push(...communities)
+      featuredItems.push(...communities.filter(c => c.featured))
     }
 
     // Transform courses
@@ -605,6 +517,7 @@ export default async function CommunitiesPage() {
       const data = extractArray(coursesRes.value)
       const courses = await Promise.all(data.map(transformCourseToExplore))
       allExploreItems.push(...courses)
+      featuredItems.push(...courses.filter(c => c.featured))
     }
 
     // Transform challenges
@@ -612,6 +525,7 @@ export default async function CommunitiesPage() {
       const data = extractArray(challengesRes.value)
       const challenges = await Promise.all(data.map(transformChallengeToExplore))
       allExploreItems.push(...challenges)
+      featuredItems.push(...challenges.filter(c => c.featured))
     }
 
     // Transform products
@@ -619,6 +533,7 @@ export default async function CommunitiesPage() {
       const data = extractArray(productsRes.value)
       const products = await Promise.all(data.map(transformProductToExplore))
       allExploreItems.push(...products)
+      featuredItems.push(...products.filter(c => c.featured))
     }
 
     // Transform sessions
@@ -626,6 +541,7 @@ export default async function CommunitiesPage() {
       const data = extractArray(sessionsRes.value)
       const sessions = await Promise.all(data.map(transformSessionToExplore))
       allExploreItems.push(...sessions)
+      featuredItems.push(...sessions.filter(c => c.featured))
     }
 
     // Transform events
@@ -638,6 +554,7 @@ export default async function CommunitiesPage() {
           .map(transformEventToExplore),
       )
       allExploreItems.push(...events)
+      featuredItems.push(...events.filter(c => c.featured))
     }
   } catch {
     // Keep page usable if one fetch path throws unexpectedly.
@@ -646,11 +563,9 @@ export default async function CommunitiesPage() {
   return (
     <div className="min-h-screen bg-white">
       <Header />
-
       <main className="pt-14">
-        <ExplorePageClient communities={allExploreItems} />
+        <ExplorePageClient items={allExploreItems} featured={featuredItems} />
       </main>
-
       <Footer />
     </div>
   )
