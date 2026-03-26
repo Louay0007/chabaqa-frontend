@@ -456,98 +456,6 @@
       "manageCookies": "Manage Cookies",
       "copyright": "© {year} {brand}. All rights reserved."
     },
-    "explore": {
-      "hero": {
-        "exploreCommunities": "Explore Communities",
-        "createCommunity": "Create Community"
-      },
-      "featured": {
-        "title": "Dive Into What Moves You",
-        "subtitle": "Communities, challenges, events, and 1:1 sessions - All waiting for you!",
-        "badge": "Featured Communities"
-      },
-      "searchSectionTitle": "Start Your Perfect Discovery!",
-      "searchSectionSubtitle": "Browse, filter, and connect with what excites you the most",
-      "searchPlaceholder": "Search...",
-      "filters": {
-        "label": "Filters",
-        "freeOnly": "Free Only",
-        "paidOnly": "Paid Only",
-        "verifiedOnly": "Verified Only",
-        "members1000": "1000+ Members",
-        "topRated": "Top Rated (4.5+)"
-      },
-      "sort": {
-        "popular": "Popular",
-        "newest": "Newest",
-        "members": "Members",
-        "rating": "Rating",
-        "priceLow": "Price Low",
-        "priceHigh": "Price High"
-      },
-      "resultsFor": "Results for",
-      "showing": "Showing {start}-{end} of {total}",
-      "activeCount": "{count} Active",
-      "view": {
-        "grid": "Grid",
-        "list": "List"
-      },
-      "clear": "Clear",
-      "price": "Price",
-      "all": "All",
-      "minMembers": "Min Members",
-      "anySize": "Any Size",
-      "activeFilters": "Active filters",
-      "pageOf": "Page {current} of {total}",
-      "noResultsTitle": "No communities found",
-      "noResultsDescription": "Try adjusting your search criteria or browse all communities.",
-      "clearAll": "Clear All Filters",
-      "verified": "Verified",
-      "createdBy": "Created by",
-      "by": "by",
-      "communityLabel": "Community",
-      "priceLabels": {
-        "free": "Free"
-      },
-      "types": {
-        "community": "Community",
-        "course": "Course",
-        "challenge": "Challenge",
-        "product": "Product",
-        "oneToOne": "1-to-1 Sessions",
-        "event": "Event"
-      },
-      "cta": {
-        "explore": "Explore",
-        "start": "Start",
-        "join": "Join",
-        "buy": "Buy",
-        "book": "Book",
-        "register": "Register",
-        "download": "Download",
-        "viewCommunity": "View Community"
-      },
-      "ctaCard": {
-        "title": "Ready to Start Your Own Community?",
-        "subtitle": "Join thousands of creators building thriving communities and generating meaningful income with Chabaqa.",
-        "createCommunity": "Create Your Community",
-        "learnMore": "Learn More",
-        "pillars": {
-          "build": {
-            "title": "Build",
-            "subtitle": "Invite members"
-          },
-          "engage": {
-            "title": "Engage",
-            "subtitle": "Share & host"
-          },
-          "monetize": {
-            "title": "Monetize",
-            "subtitle": "Earn revenue"
-          }
-        }
-      }
-    },
     "legal": {
       "badge": "Legal",
       "effective": "Effective",
@@ -570,6 +478,112 @@
       "lastUpdated": "February 27, 2026",
       "relatedLabel": "Read Privacy Policy",
       "relatedDescription": "For data handling, security, retention, and privacy rights."
+    },
+    "explore": {
+      "heroLabel": "Explore hero",
+      "badge": "200+ Creators in Tunisia & MENA",
+      "heroTitle1": "Discover What",
+      "heroTitle2": "Moves You",
+      "heroSub": "Explore communities, courses, challenges, and more — all built by creators in Tunisia and MENA.",
+      "searchPlaceholder": "Search communities, courses, creators...",
+      "searchLabel": "Search explore",
+      "clearSearch": "Clear search",
+      "featuredLabel": "Featured communities",
+      "featuredEyebrow": "Top Communities",
+      "featuredTitle": "Featured Communities",
+      "seeAll": "See all",
+      "filtersLabel": "Filter and sort",
+      "categoryLabel": "Filter by category",
+      "typeLabel": "Filter by type",
+      "catAll": "All",
+      "catFitness": "Fitness",
+      "catEducation": "Education",
+      "catTechnology": "Technology",
+      "catBusiness": "Business",
+      "catCreative": "Creative",
+      "catLanguage": "Language",
+      "typeCommunity": "Community",
+      "typeCourse": "Course",
+      "typeChallenge": "Challenge",
+      "typeProduct": "Product",
+      "typeSession": "1:1 Session",
+      "typeEvent": "Event",
+      "freeOnly": "Free only",
+      "sortLabel": "Sort by",
+      "sortPopular": "Most Popular",
+      "sortNewest": "Newest",
+      "sortRating": "Top Rated",
+      "sortPriceLow": "Price: Low to High",
+      "sortPriceHigh": "Price: High to Low",
+      "gridLabel": "Explore content",
+      "resultsOf": "of",
+      "results": "results",
+      "clearAll": "Clear filters",
+      "noResults": "No results found",
+      "noResultsSub": "Try adjusting your search or filters to find what you're looking for.",
+      "promoLabel": "Start building",
+      "promoBadge": "For Creators, By Creators",
+      "promoTitle": "Ready to Build Your Own Community?",
+      "promoSub": "Join hundreds of creators in Tunisia and MENA who are building, engaging, and monetizing their audience with Chabaqa.",
+      "promoF1": "Build communities",
+      "promoF2": "Sell courses",
+      "promoF3": "Earn income",
+      "promoF4": "Run challenges",
+      "promoCTA": "Start for free — no card needed",
+      "promoSecondary": "Explore more creators",
+      "promoF1Sub": "Build thriving communities around your expertise",
+      "promoF2Sub": "Create and sell courses, challenges & digital products",
+      "promoF3Sub": "Monetize your audience with multiple revenue streams",
+      "promoF4Sub": "Run competitions and gamify your community",
+      "statCreators": "Creators",
+      "statCourses": "Courses & Products",
+      "statMembers": "Members",
+      "by": "by",
+      "types": {
+        "community": "Community",
+        "course": "Course",
+        "challenge": "Challenge",
+        "product": "Product",
+        "oneToOne": "1:1 Session",
+        "event": "Event"
+      },
+      "cta": {
+        "explore": "Explore",
+        "join": "Join Community",
+        "enroll": "Enroll Now",
+        "start": "Start Challenge",
+        "buy": "Buy Now",
+        "book": "Book Session",
+        "register": "Register",
+        "viewCommunity": "View Community",
+        "download": "Download"
+      },
+      "priceLabels": {
+        "free": "Free",
+        "paid": "Paid",
+        "monthly": "Monthly",
+        "yearly": "Yearly"
+      },
+      "ctaCard": {
+        "title": "Ready to Start Your Own Community?",
+        "subtitle": "Join thousands of creators who are building thriving communities and generating meaningful income with Chabaqa.",
+        "pillars": {
+          "build": {
+            "title": "Build Community",
+            "subtitle": "Create your space and invite members"
+          },
+          "engage": {
+            "title": "Engage & Grow",
+            "subtitle": "Share content and host live events"
+          },
+          "monetize": {
+            "title": "Monetize",
+            "subtitle": "Generate revenue from your expertise"
+          }
+        },
+        "createCommunity": "Create Your Community",
+        "learnMore": "Learn More"
+      }
     }
   },
   "community": {

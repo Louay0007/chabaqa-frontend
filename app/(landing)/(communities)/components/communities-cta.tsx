@@ -1,10 +1,10 @@
-import { Card, CardContent } from "@/components/ui/card"
-import { LayoutGrid, Zap, BadgeDollarSign } from "lucide-react"
-import { CommunitiesCTAClient } from "./communities-cta-client"
+"use client"
+
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { usePathname } from "next/navigation"
 import { localizeHref } from "@/lib/i18n/client"
+import { Users, Zap, Heart, ArrowRight } from "lucide-react"
 
 export function CommunitiesCTA() {
   const t = useTranslations("landing.explore.ctaCard")
@@ -12,50 +12,60 @@ export function CommunitiesCTA() {
   const withLocale = (href: string) => localizeHref(pathname, href)
 
   return (
-    <section className="py-10 bg-white">
+    <section className="py-20 bg-gradient-to-br from-purple-50 via-white to-pink-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-3xl mx-auto rounded-3xl bg-white p-6 sm:p-10 shadow-2xl shadow-purple-200/40 border border-gray-100">
-          <div className="relative z-10 flex flex-col items-center text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-gray-900">{t("title")}</h2>
-            <p className="max-w-2xl text-base sm:text-lg text-gray-600 mb-8">
-              {t("subtitle")}
-            </p>
-
-            <div className="w-full grid grid-cols-3 gap-3 sm:gap-6 mb-10">
-              <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-purple-100 mb-2 sm:mb-3 text-purple-600">
-                  <LayoutGrid className="w-5 h-5 sm:w-7 sm:h-7" />
-                </div>
-                <h3 className="text-sm sm:text-xl font-semibold text-gray-800">{t("pillars.build.title")}</h3>
-                <p className="text-xs sm:text-sm text-gray-500">{t("pillars.build.subtitle")}</p>
+        <div className="max-w-4xl mx-auto">
+          <div className="border-0 shadow-2xl bg-gradient-to-r from-[#8e78fb] to-[#f65887] text-white overflow-hidden rounded-3xl">
+            <div className="p-8 sm:p-12 text-center space-y-8">
+              {/* Heading */}
+              <div className="space-y-4">
+                <h2 className="text-3xl sm:text-4xl font-bold">{t("title")}</h2>
+                <p className="text-xl opacity-90 max-w-2xl mx-auto">
+                  {t("subtitle")}
+                </p>
               </div>
 
-              <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-pink-100 mb-2 sm:mb-3 text-pink-600">
-                  <Zap className="w-5 h-5 sm:w-7 sm:h-7" />
+              {/* Three Pillars */}
+              <div className="grid md:grid-cols-3 gap-6 my-12">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-8 h-8" />
+                  </div>
+                  <h3 className="font-semibold mb-2">{t("pillars.build.title")}</h3>
+                  <p className="text-sm opacity-80">{t("pillars.build.subtitle")}</p>
                 </div>
-                <h3 className="text-sm sm:text-xl font-semibold text-gray-800">{t("pillars.engage.title")}</h3>
-                <p className="text-xs sm:text-sm text-gray-500">{t("pillars.engage.subtitle")}</p>
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Zap className="w-8 h-8" />
+                  </div>
+                  <h3 className="font-semibold mb-2">{t("pillars.engage.title")}</h3>
+                  <p className="text-sm opacity-80">{t("pillars.engage.subtitle")}</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Heart className="w-8 h-8" />
+                  </div>
+                  <h3 className="font-semibold mb-2">{t("pillars.monetize.title")}</h3>
+                  <p className="text-sm opacity-80">{t("pillars.monetize.subtitle")}</p>
+                </div>
               </div>
 
-              <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-indigo-100 mb-2 sm:mb-3 text-indigo-600">
-                  <BadgeDollarSign className="w-5 h-5 sm:w-7 sm:h-7" />
-                </div>
-                <h3 className="text-sm sm:text-xl font-semibold text-gray-800">{t("pillars.monetize.title")}</h3>
-                <p className="text-xs sm:text-sm text-gray-500">{t("pillars.monetize.subtitle")}</p>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <button className="w-full sm:w-auto bg-gradient-to-br from-purple-600 to-pink-500 text-white font-semibold px-7 py-2.5 rounded-lg shadow-lg shadow-purple-500/30 hover:shadow-xl hover:from-purple-700 hover:to-pink-600 focus:outline-none focus:ring-4 focus:ring-purple-300 transition-all duration-300 ease-in-out transform hover:-translate-y-0.5">
-                <Link href={withLocale("/dashboard/create-community")}>
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  href={withLocale("/dashboard/create-community")}
+                  className="inline-flex items-center justify-center bg-white hover:bg-gray-50 text-purple-600 px-8 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
+                >
                   {t("createCommunity")}
+                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Link>
-              </button>
-              <button className="w-full sm:w-auto bg-white border border-gray-300 text-gray-700 font-semibold px-7 py-2.5 rounded-lg hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-200 transition-all duration-300 ease-in-out">
-                {t("learnMore")}
-              </button>
+                <Link
+                  href={withLocale("/explore")}
+                  className="inline-flex items-center justify-center border-2 border-white text-white hover:bg-white hover:text-purple-600 px-8 py-4 text-lg font-semibold rounded-xl bg-transparent backdrop-blur-sm transition-all duration-300"
+                >
+                  {t("learnMore")}
+                </Link>
+              </div>
             </div>
           </div>
         </div>

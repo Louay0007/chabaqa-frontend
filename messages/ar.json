@@ -458,98 +458,6 @@
       "manageCookies": "إدارة ملفات الارتباط",
       "copyright": "© {year} {brand}. جميع الحقوق محفوظة."
     },
-    "explore": {
-      "hero": {
-        "exploreCommunities": "استكشف المجتمعات",
-        "createCommunity": "أنشئ مجتمعًا"
-      },
-      "featured": {
-        "title": "ادخل فيما يحرّك شغفك",
-        "subtitle": "مجتمعات وتحديات وفعاليات وجلسات 1:1 بانتظارك!",
-        "badge": "مجتمعات مميزة"
-      },
-      "searchSectionTitle": "ابدأ رحلة الاكتشاف المثالية!",
-      "searchSectionSubtitle": "تصفّح وفلتر وتواصل مع ما يثير اهتمامك أكثر",
-      "searchPlaceholder": "ابحث...",
-      "filters": {
-        "label": "فلاتر",
-        "freeOnly": "مجاني فقط",
-        "paidOnly": "مدفوع فقط",
-        "verifiedOnly": "موثّق فقط",
-        "members1000": "+1000 عضو",
-        "topRated": "الأعلى تقييمًا (4.5+)"
-      },
-      "sort": {
-        "popular": "الأكثر شعبية",
-        "newest": "الأحدث",
-        "members": "الأعضاء",
-        "rating": "التقييم",
-        "priceLow": "الأقل سعرًا",
-        "priceHigh": "الأعلى سعرًا"
-      },
-      "resultsFor": "نتائج البحث عن",
-      "showing": "عرض {start}-{end} من {total}",
-      "activeCount": "{count} نشط",
-      "view": {
-        "grid": "شبكة",
-        "list": "قائمة"
-      },
-      "clear": "مسح",
-      "price": "السعر",
-      "all": "الكل",
-      "minMembers": "الحد الأدنى للأعضاء",
-      "anySize": "أي حجم",
-      "activeFilters": "الفلاتر النشطة",
-      "pageOf": "الصفحة {current} من {total}",
-      "noResultsTitle": "لم يتم العثور على مجتمعات",
-      "noResultsDescription": "جرّب تعديل معايير البحث أو تصفّح كل المجتمعات.",
-      "clearAll": "مسح كل الفلاتر",
-      "verified": "موثّق",
-      "createdBy": "أنشأه",
-      "by": "بواسطة",
-      "communityLabel": "المجتمع",
-      "priceLabels": {
-        "free": "مجاني"
-      },
-      "types": {
-        "community": "مجتمع",
-        "course": "دورة",
-        "challenge": "تحدي",
-        "product": "منتج",
-        "oneToOne": "جلسات 1:1",
-        "event": "فعالية"
-      },
-      "cta": {
-        "explore": "استكشاف",
-        "start": "ابدأ",
-        "join": "انضم",
-        "buy": "شراء",
-        "book": "احجز",
-        "register": "سجّل",
-        "download": "تنزيل",
-        "viewCommunity": "عرض المجتمع"
-      },
-      "ctaCard": {
-        "title": "جاهز لبدء مجتمعك الخاص؟",
-        "subtitle": "انضم إلى آلاف الصنّاع الذين يبنون مجتمعات مزدهرة ويحققون دخلًا حقيقيًا عبر شبكة.",
-        "createCommunity": "أنشئ مجتمعك",
-        "learnMore": "اعرف أكثر",
-        "pillars": {
-          "build": {
-            "title": "ابنِ",
-            "subtitle": "ادعُ الأعضاء"
-          },
-          "engage": {
-            "title": "فعّل",
-            "subtitle": "شارك واستضف"
-          },
-          "monetize": {
-            "title": "اربح",
-            "subtitle": "حقق الإيرادات"
-          }
-        }
-      }
-    },
     "legal": {
       "badge": "قانوني",
       "effective": "ساري من",
@@ -572,6 +480,112 @@
       "lastUpdated": "27 فبراير 2026",
       "relatedLabel": "قراءة سياسة الخصوصية",
       "relatedDescription": "للاطلاع على معالجة البيانات والأمان وفترات الاحتفاظ وحقوق الخصوصية."
+    },
+    "explore": {
+      "heroLabel": "استكشاف",
+      "badge": "أكثر من 200 منشئ محتوى في تونس والشرق الأوسط",
+      "heroTitle1": "اكتشف ما يُلهمك",
+      "heroTitle2": "ويحرّكك",
+      "heroSub": "استكشف المجتمعات، الدورات، التحديات، والمزيد — كل شيء أنشأه منشئو محتوى من تونس والشرق الأوسط.",
+      "searchPlaceholder": "ابحث عن مجتمعات، دورات، منشئين...",
+      "searchLabel": "بحث في الاستكشاف",
+      "clearSearch": "مسح البحث",
+      "featuredLabel": "المجتمعات المميزة",
+      "featuredEyebrow": "أفضل المجتمعات",
+      "featuredTitle": "المجتمعات المميزة",
+      "seeAll": "عرض الكل",
+      "filtersLabel": "تصفية وترتيب",
+      "categoryLabel": "تصفية حسب الفئة",
+      "typeLabel": "تصفية حسب النوع",
+      "catAll": "الكل",
+      "catFitness": "اللياقة",
+      "catEducation": "التعليم",
+      "catTechnology": "التكنولوجيا",
+      "catBusiness": "الأعمال",
+      "catCreative": "الإبداع",
+      "catLanguage": "اللغات",
+      "typeCommunity": "مجتمع",
+      "typeCourse": "دورة",
+      "typeChallenge": "تحدّي",
+      "typeProduct": "منتج",
+      "typeSession": "جلسة خاصة",
+      "typeEvent": "فعالية",
+      "freeOnly": "مجاني فقط",
+      "sortLabel": "ترتيب حسب",
+      "sortPopular": "الأكثر شعبية",
+      "sortNewest": "الأحدث",
+      "sortRating": "الأعلى تقييماً",
+      "sortPriceLow": "السعر: من الأقل",
+      "sortPriceHigh": "السعر: من الأعلى",
+      "gridLabel": "محتوى الاستكشاف",
+      "resultsOf": "من",
+      "results": "نتيجة",
+      "clearAll": "مسح الفلاتر",
+      "noResults": "لا توجد نتائج",
+      "noResultsSub": "جرّب تعديل بحثك أو الفلاتر للعثور على ما تبحث عنه.",
+      "promoLabel": "ابدأ البناء",
+      "promoBadge": "من المنشئين، للمنشئين",
+      "promoTitle": "هل أنت مستعد لبناء مجتمعك الخاص؟",
+      "promoSub": "انضم لمئات المنشئين في تونس والشرق الأوسط الذين يبنون ويتفاعلون ويجنون الدخل من جمهورهم عبر شبقة.",
+      "promoF1": "بناء المجتمعات",
+      "promoF2": "بيع الدورات",
+      "promoF3": "تحقيق دخل",
+      "promoF4": "إطلاق تحديات",
+      "promoCTA": "ابدأ مجاناً — بدون بطاقة",
+      "promoSecondary": "استكشف المزيد",
+      "promoF1Sub": "ابنِ مجتمعات مزدهرة حول خبرتك",
+      "promoF2Sub": "أنشئ وبيع الدورات والتحديات والمنتجات الرقمية",
+      "promoF3Sub": "حوّل جمهورك إلى دخل متعدد المصادر",
+      "promoF4Sub": "أدِر مسابقات وحفّز مجتمعك باستمرار",
+      "statCreators": "منشئ محتوى",
+      "statCourses": "دورة ومنتج",
+      "statMembers": "عضو",
+      "by": "بواسطة",
+      "types": {
+        "community": "مجتمع",
+        "course": "دورة",
+        "challenge": "تحدّي",
+        "product": "منتج",
+        "oneToOne": "جلسة خاصة",
+        "event": "فعالية"
+      },
+      "cta": {
+        "explore": "استكشف",
+        "join": "انضم للمجتمع",
+        "enroll": "سجّل الآن",
+        "start": "ابدأ التحدي",
+        "buy": "اشترِ الآن",
+        "book": "احجز جلسة",
+        "register": "سجّل",
+        "viewCommunity": "عرض المجتمع",
+        "download": "تحميل"
+      },
+      "priceLabels": {
+        "free": "مجاني",
+        "paid": "مدفوع",
+        "monthly": "شهري",
+        "yearly": "سنوي"
+      },
+      "ctaCard": {
+        "title": "هل أنت مستعد لبناء مجتمعك الخاص؟",
+        "subtitle": "انضم لآلاف المنشئين الذين يبنون مجتمعات مزدهرة ويحققون دخلاً حقيقياً مع شبقة.",
+        "pillars": {
+          "build": {
+            "title": "بناء المجتمع",
+            "subtitle": "أنشئ مساحتك وادعُ الأعضاء"
+          },
+          "engage": {
+            "title": "التفاعل والنمو",
+            "subtitle": "شارك المحتوى واستضف فعاليات مباشرة"
+          },
+          "monetize": {
+            "title": "تحقيق الدخل",
+            "subtitle": "حقق إيرادات من خبرتك"
+          }
+        },
+        "createCommunity": "أنشئ مجتمعك",
+        "learnMore": "اعرف المزيد"
+      }
     }
   },
   "community": {

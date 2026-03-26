@@ -2,108 +2,80 @@
 
 import { useState, useRef } from "react"
 import { FeaturedCommunityCard } from "@/app/(landing)/(communities)/components/featured-community-card"
-import { Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Explore } from "@/lib/data-communities"
 import { useTranslations } from "next-intl"
+import type { ExploreItem } from "@/lib/explore-data"
 
 interface FeaturedCommunitiesProps {
-  communities: Explore[]
+  items: ExploreItem[]
 }
 
-export function FeaturedCommunities({ communities }: FeaturedCommunitiesProps) {
+export function FeaturedCommunities({ items }: FeaturedCommunitiesProps) {
   const t = useTranslations("landing.explore")
-  const featuredCommunities = communities.filter((c) => c.featured)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const [canScrollLeft, setCanScrollLeft] = useState(false)
-  const [canScrollRight, setCanScrollRight] = useState(true)
 
-  if (featuredCommunities.length === 0) return null
+  if (items.length === 0) return null
 
-  const checkScrollButtons = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current
-      setCanScrollLeft(scrollLeft > 0)
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10)
-    }
-  }
-
-  const scrollLeft = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -300, behavior: "smooth" })
-      setTimeout(checkScrollButtons, 300)
-    }
-  }
-
-  const scrollRight = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 300, behavior: "smooth" })
-      setTimeout(checkScrollButtons, 300)
-    }
+  const scrollBy = (direction: 1 | -1) => {
+    scrollContainerRef.current?.scrollBy({ left: direction * 340, behavior: 'smooth' })
   }
 
   return (
-      <section className="py-1 bg-white">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Compact Header */}
-        <div className="text-center mb-6 px-4">
+    <section className="relative pt-12 pb-12 overflow-hidden bg-[var(--bg)]" aria-label={t('heroLabel')}>
+      <div className="absolute inset-0 opacity-40 pointer-events-none" aria-hidden="true"
+        style={{ backgroundImage: 'linear-gradient(var(--bd) 1px,transparent 1px),linear-gradient(90deg,var(--bd) 1px,transparent 1px)', backgroundSize: '52px 52px', maskImage: 'radial-gradient(ellipse 90% 70% at 50% 0%,black 30%,transparent 100%)' }} />
+      <div className="absolute w-[480px] h-[300px] rounded-full blur-[80px] opacity-[0.10] -top-16 -left-24 bg-[var(--p)] pointer-events-none" aria-hidden="true" />
+      <div className="absolute w-[300px] h-[300px] rounded-full blur-[80px] opacity-[0.08] top-8 -right-16 bg-[var(--cyan)] pointer-events-none" aria-hidden="true" />
 
-          <div className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-full border border-amber-200/50 mb-3">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500 mr-1.5" />
-            <span className="text-xs font-medium text-amber-700">
-              {t("featured.badge")}
-            </span>
-          </div>
-
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 break-words">
-            <span className="bg-gradient-to-r from-chabaqa-primary to-chabaqa-secondary1 bg-clip-text text-transparent">
-              {t("featured.title")}
-            </span>
-          </h2>
-
-          <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto mb-2 break-words">
-            {t("featured.subtitle")}
-          </p>
+      <div className="relative px-6 md:px-10 max-w-6xl mx-auto mb-10 text-center">
+        <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold mb-5"
+          style={{ background: 'var(--p2)', border: '1.5px solid var(--p3)', color: 'var(--p)', animation: 'fadeDown .6s ease both' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="12" height="12" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          {t('badge')}
         </div>
+        <h1 className="text-[clamp(22px,4.8vw,52px)] font-black text-[var(--t1)] leading-tight tracking-[-0.03em] mb-4"
+          style={{ animation: 'fadeDown .65s .08s ease both' }}>
+          {t('heroTitle1')}{' '}
+          <span className="relative inline-block">
+            <span className="relative z-10" style={{ color: 'var(--p)' }}>{t('heroTitle2')}</span>
+            <svg className="absolute -bottom-1 left-0 w-full overflow-visible" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M0 7 Q25 2 50 6 Q75 10 100 5" fill="none" stroke="var(--orange)" strokeWidth="2"
+                strokeLinecap="round" pathLength="1"
+                style={{ strokeDasharray: 1, strokeDashoffset: 1, animation: 'drawLine 0.9s 0.65s ease-out forwards' }}/>
+            </svg>
+          </span>
+        </h1>
+        <p className="text-[var(--t3)] text-[clamp(14px,2vw,16px)] leading-relaxed max-w-xl mx-auto"
+          style={{ animation: 'fadeDown .65s .16s ease both' }}>
+          {t('heroSub')}
+        </p>
+      </div>
 
-        {/* Compact Slider */}
+      <div className="relative px-6 md:px-10 max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-[.12em] text-[var(--p)] mb-0.5">{t('featuredEyebrow')}</div>
+            <h2 className="text-lg font-black text-[var(--t1)]">{t('featuredTitle')}</h2>
+          </div>
+        </div>
         <div className="relative">
-          {/* Smaller Navigation Buttons */}
-          <Button
-            onClick={scrollLeft}
-            disabled={!canScrollLeft}
-            className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-10 bg-white/95 hover:bg-white text-gray-700 shadow-md border-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
-          >
-            <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          </Button>
-
-          <Button
-            onClick={scrollRight}
-            disabled={!canScrollRight}
-            className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-10 bg-white/95 hover:bg-white text-gray-700 shadow-md border-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
-          >
-            <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          </Button>
-
-          {/* Compact Scrollable Container */}
-          <div
-            ref={scrollContainerRef}
-            className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-10 py-2 snap-x snap-mandatory"
-            onScroll={checkScrollButtons}
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {featuredCommunities.map((community, index) => (
-              <div 
-                key={community.id} 
-                className="flex-shrink-0 w-64 sm:w-72 snap-center"
-              >
-                <FeaturedCommunityCard
-                  community={community}
-                  index={index}
-                  slug={community.slug}
-                  accessAware={true}
-                />
-              </div>
+          <button onClick={() => scrollBy(-1)} aria-label="Scroll left"
+            className="absolute -start-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-[var(--white)] border border-[var(--bd)] shadow-md text-[var(--t3)] hover:text-[var(--p)] hover:border-[var(--p3)] transition-all">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button onClick={() => scrollBy(1)} aria-label="Scroll right"
+            className="absolute -end-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-[var(--white)] border border-[var(--bd)] shadow-md text-[var(--t3)] hover:text-[var(--p)] hover:border-[var(--p3)] transition-all">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <div ref={scrollContainerRef} className="flex gap-4 overflow-x-auto pb-2 px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {items.map((item) => (
+              <FeaturedCommunityCard
+                key={item.id}
+                community={item}
+                slug={item.id}
+                accessAware={true}
+              />
             ))}
           </div>
         </div>
