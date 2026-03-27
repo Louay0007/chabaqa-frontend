@@ -879,7 +879,7 @@ export const siteData = {
       {
         name: "Starter",
         tier: "Starter",
-        prices: { monthly: 29, yearly: 290 },
+        prices: { monthly: 39, yearly: 390 },
         description: "Perfect for getting started",
         trial: "7 days free",
         features: [
@@ -897,7 +897,7 @@ export const siteData = {
       {
         name: "Growth",
         tier: "Growth",
-        prices: { monthly: 69, yearly: 690 },
+        prices: { monthly: 99, yearly: 990 },
         description: "For growing communities",
         trial: "7 days free",
         features: [
@@ -919,7 +919,7 @@ export const siteData = {
       {
         name: "Pro",
         tier: "Pro",
-        prices: { monthly: 99, yearly: 990 },
+        prices: { monthly: 159, yearly: 1590 },
         description: "For professional creators",
         trial: "7 days free",
         features: [
