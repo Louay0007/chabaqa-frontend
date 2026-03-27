@@ -254,7 +254,7 @@ async function transformCourseToExplore(course: Course): Promise<ExploreItem> {
     members: enrollmentCount,
     rating: (course as any).averageRating || course.rating || 0,
     ratingCount: normalizeCount((course as any).ratingCount, 0),
-    verified: (course as any).verified || false,
+    verified: false, // set from verifiedCommunitySlugs after transform
     featured: (course as any).featured || false,
     url: `/course/${courseId}`,
     slug: courseId,
@@ -295,7 +295,7 @@ async function transformChallengeToExplore(challenge: Challenge): Promise<Explor
     members: participantCount,
     rating: (challenge as any).averageRating || (challenge as any).rating || 0,
     ratingCount: normalizeCount((challenge as any).ratingCount, 0),
-    verified: (challenge as any).verified || false,
+    verified: false, // set from verifiedCommunitySlugs after transform
     featured: (challenge as any).featured || false,
     url: `/challenge/${challenge.id}`,
     slug: challenge.id,
@@ -337,7 +337,7 @@ async function transformProductToExplore(product: Product): Promise<ExploreItem>
     members: salesCount,
     rating: normalizePrice((product as any).averageRating ?? product.rating),
     ratingCount: normalizeCount((product as any).ratingCount, 0),
-    verified: (product as any).verified || false,
+    verified: false, // set from verifiedCommunitySlugs after transform
     featured: (product as any).featured || false,
     url: `/product/${product.id}`,
     slug: product.id,
@@ -381,7 +381,7 @@ async function transformSessionToExplore(session: Session): Promise<ExploreItem>
     members: bookingCount,
     rating: (session as any).averageRating || (session as any).rating || 0,
     ratingCount: normalizeCount((session as any).ratingCount, 0),
-    verified: (session as any).verified || false,
+    verified: false, // set from verifiedCommunitySlugs after transform
     featured: (session as any).featured || false,
     url: `/session/${session.id}`,
     slug: session.id,
@@ -425,7 +425,7 @@ async function transformEventToExplore(event: Event): Promise<ExploreItem> {
     members: attendeeCount,
     rating: (event as any).averageRating || (event as any).rating || 0,
     ratingCount: normalizeCount((event as any).ratingCount, 0),
-    verified: (event as any).verified || false,
+    verified: false, // set from verifiedCommunitySlugs after transform
     featured: (event as any).featured || false,
     url: `/event/${event.id}`,
     slug: event.id,
@@ -532,9 +532,21 @@ export default async function CommunitiesPage() {
       return []
     }
 
+    // Build a set of verified community slugs (admin-granted verification)
+    const verifiedCommunitySlugs = new Set<string>()
+
     // Transform communities
     if (communitiesRes.status === 'fulfilled') {
       const data = extractArray(communitiesRes.value)
+      for (const c of data) {
+        const isV = Boolean((c as any).verified ?? (c as any).isVerified)
+        if (isV) {
+          const slug = String((c as any).slug || '').trim().toLowerCase()
+          const id = String((c as any)._id || (c as any).id || '').trim()
+          if (slug) verifiedCommunitySlugs.add(slug)
+          if (id) verifiedCommunitySlugs.add(id)
+        }
+      }
       const communities = data.map(transformCommunityToExplore)
       allExploreItems.push(...communities)
       featuredItems.push(...communities.filter(c => c.featured))
@@ -543,7 +555,10 @@ export default async function CommunitiesPage() {
     // Transform courses
     if (coursesRes.status === 'fulfilled') {
       const data = extractArray(coursesRes.value)
-      const courses = await Promise.all(data.map(transformCourseToExplore))
+      const courses = (await Promise.all(data.map(transformCourseToExplore))).map(c => ({
+        ...c,
+        verified: verifiedCommunitySlugs.has((c.communitySlug || '').toLowerCase()) || verifiedCommunitySlugs.has(c.communityId || ''),
+      }))
       allExploreItems.push(...courses)
       featuredItems.push(...courses.filter(c => c.featured))
     }
@@ -551,7 +566,10 @@ export default async function CommunitiesPage() {
     // Transform challenges
     if (challengesRes.status === 'fulfilled') {
       const data = extractArray(challengesRes.value)
-      const challenges = await Promise.all(data.map(transformChallengeToExplore))
+      const challenges = (await Promise.all(data.map(transformChallengeToExplore))).map(c => ({
+        ...c,
+        verified: verifiedCommunitySlugs.has((c.communitySlug || '').toLowerCase()) || verifiedCommunitySlugs.has(c.communityId || ''),
+      }))
       allExploreItems.push(...challenges)
       featuredItems.push(...challenges.filter(c => c.featured))
     }
@@ -559,7 +577,10 @@ export default async function CommunitiesPage() {
     // Transform products
     if (productsRes.status === 'fulfilled') {
       const data = extractArray(productsRes.value)
-      const products = await Promise.all(data.map(transformProductToExplore))
+      const products = (await Promise.all(data.map(transformProductToExplore))).map(c => ({
+        ...c,
+        verified: verifiedCommunitySlugs.has((c.communitySlug || '').toLowerCase()) || verifiedCommunitySlugs.has(c.communityId || ''),
+      }))
       allExploreItems.push(...products)
       featuredItems.push(...products.filter(c => c.featured))
     }
@@ -567,7 +588,10 @@ export default async function CommunitiesPage() {
     // Transform sessions
     if (sessionsRes.status === 'fulfilled') {
       const data = extractArray(sessionsRes.value)
-      const sessions = await Promise.all(data.map(transformSessionToExplore))
+      const sessions = (await Promise.all(data.map(transformSessionToExplore))).map(c => ({
+        ...c,
+        verified: verifiedCommunitySlugs.has((c.communitySlug || '').toLowerCase()) || verifiedCommunitySlugs.has(c.communityId || ''),
+      }))
       allExploreItems.push(...sessions)
       featuredItems.push(...sessions.filter(c => c.featured))
     }
@@ -576,11 +600,14 @@ export default async function CommunitiesPage() {
     if (eventsRes.status === 'fulfilled') {
       const data = extractArray(eventsRes.value)
       const now = new Date()
-      const events = await Promise.all(
+      const events = (await Promise.all(
         data
           .filter((event: any) => shouldIncludeExploreEvent(event, now))
           .map(transformEventToExplore),
-      )
+      )).map(c => ({
+        ...c,
+        verified: verifiedCommunitySlugs.has((c.communitySlug || '').toLowerCase()) || verifiedCommunitySlugs.has(c.communityId || ''),
+      }))
       allExploreItems.push(...events)
       featuredItems.push(...events.filter(c => c.featured))
     }
