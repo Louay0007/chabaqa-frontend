@@ -504,6 +504,8 @@ export default async function CommunitiesPage() {
       return []
     }
 
+    console.log("communitiesRes", communitiesRes);
+    console.log("coursesRes", coursesRes);
     // Transform communities
     if (communitiesRes.status === 'fulfilled') {
       const data = extractArray(communitiesRes.value)
@@ -556,7 +558,7 @@ export default async function CommunitiesPage() {
       allExploreItems.push(...events)
       featuredItems.push(...events.filter(c => c.featured))
     }
-  } catch {
+  } catch (e) { console.error("Global catch err", e); 
     // Keep page usable if one fetch path throws unexpectedly.
   }
 
