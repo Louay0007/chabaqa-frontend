@@ -215,6 +215,9 @@ function transformCommunityToExplore(community: Community): ExploreItem {
     verified: Boolean((community as any).verified ?? (community as any).isVerified ?? false),
     featured: Boolean((community as any).featured),
     url: `/community/${communityId}`,
+    slug: (community as any).slug || communityId,
+    mongoId: communityId,
+    creatorSlug: resolveCreatorSlug(community, creatorName),
   }
 }
 
@@ -254,6 +257,11 @@ async function transformCourseToExplore(course: Course): Promise<ExploreItem> {
     verified: (course as any).verified || false,
     featured: (course as any).featured || false,
     url: `/course/${courseId}`,
+    slug: courseId,
+    mongoId: courseId,
+    communitySlug: (course as any).communitySlug || '',
+    communityId: String((course as any).communityId || (course as any).community?.id || ''),
+    creatorSlug: resolveCreatorSlug(course, creatorName),
   }
 }
 
@@ -290,6 +298,11 @@ async function transformChallengeToExplore(challenge: Challenge): Promise<Explor
     verified: (challenge as any).verified || false,
     featured: (challenge as any).featured || false,
     url: `/challenge/${challenge.id}`,
+    slug: challenge.id,
+    mongoId: challenge.id,
+    communitySlug: (challenge as any).communitySlug || (challenge as any).community?.slug || '',
+    communityId: String((challenge as any).communityId || (challenge as any).community?.id || ''),
+    creatorSlug: resolveCreatorSlug(challenge, creatorName),
   }
 }
 
@@ -327,6 +340,11 @@ async function transformProductToExplore(product: Product): Promise<ExploreItem>
     verified: (product as any).verified || false,
     featured: (product as any).featured || false,
     url: `/product/${product.id}`,
+    slug: product.id,
+    mongoId: product.id,
+    communitySlug: (product as any).communitySlug || (product as any).community?.slug || '',
+    communityId: String((product as any).communityId || (product as any).community?.id || ''),
+    creatorSlug: resolveCreatorSlug(product, creatorName),
   }
 }
 
@@ -366,6 +384,11 @@ async function transformSessionToExplore(session: Session): Promise<ExploreItem>
     verified: (session as any).verified || false,
     featured: (session as any).featured || false,
     url: `/session/${session.id}`,
+    slug: session.id,
+    mongoId: session.id,
+    communitySlug: (session as any).communitySlug || (session as any).community?.slug || '',
+    communityId: String((session as any).communityId || (session as any).community?.id || ''),
+    creatorSlug: resolveCreatorSlug(session, creatorName),
   }
 }
 
@@ -405,6 +428,11 @@ async function transformEventToExplore(event: Event): Promise<ExploreItem> {
     verified: (event as any).verified || false,
     featured: (event as any).featured || false,
     url: `/event/${event.id}`,
+    slug: event.id,
+    mongoId: event.id,
+    communitySlug: (event as any).communitySlug || (event as any).community?.slug || '',
+    communityId: String((event as any).communityId || (event as any).community?.id || ''),
+    creatorSlug: resolveCreatorSlug(event, creatorName),
   }
 }
 

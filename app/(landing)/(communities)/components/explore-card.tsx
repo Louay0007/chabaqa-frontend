@@ -2,101 +2,84 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { ExploreItem } from '@/lib/explore-data'
 import { TYPE_CONFIG, type ContentType } from '@/lib/explore-data'
-import { resolveExploreCardRouting } from '@/app/(landing)/(communities)/components/explore-card-routing'
 import { useTranslations } from 'next-intl'
-import type { Explore } from '@/lib/data-communities'
 
 function fmt(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : `${n}`
 }
 
-const CTA_LABEL: Record<ContentType, string> = {
-  community: 'Explore',
-  course: 'Start',
-  challenge: 'Join',
-  product: 'Download',
-  session: 'Book',
-  event: 'Register',
+function encodeSegment(value: string | undefined): string | null {
+  const v = (value || '').trim()
+  return v ? encodeURIComponent(v) : null
 }
 
 interface ExploreCardProps {
-  item: ExploreItem & Partial<Explore>
+  item: ExploreItem
   featured?: boolean
-  accessAware?: boolean
 }
 
-export function ExploreCard({ item, featured = false, accessAware = false }: ExploreCardProps) {
+export function ExploreCard({ item, featured = false }: ExploreCardProps) {
   const type = TYPE_CONFIG[item.type]
   const t = useTranslations('landing.explore')
-
-  // Map ExploreItem to Explore format for routing
-  const isFree = typeof item.price === 'string' && item.price === 'free'
-  const numericPrice = typeof item.price === 'number' ? item.price : 0
-  
-  const exploreItem: Explore = {
-    id: item.id,
-    mongoId: item.id,
-    type: item.type as any,
-    name: item.title,
-    slug: item.url.split('/').pop() || item.id,
-    creator: item.creator,
-    creatorSlug: item.creator.toLowerCase().replace(/\s+/g, '-'),
-    creatorAvatar: item.creatorAvatar || '',
-    description: item.desc,
-    category: item.category,
-    members: item.members || 0,
-    rating: typeof item.rating === 'number' ? item.rating : parseFloat(item.rating || '0'),
-    ratingCount: item.ratingCount,
-    tags: [],
-    verified: item.verified || false,
-    price: isFree ? 0 : numericPrice,
-    priceType: isFree ? 'free' : 'paid',
-    image: item.banner,
-    featured: item.featured || false,
-    link: item.url,
-    isMember: (item as any).isMember,
-    hasContentAccess: (item as any).hasContentAccess,
-    communitySlug: (item as any).communitySlug || item.url.split('/').pop() || item.id,
-  }
-
+  const isFree = item.price === 'free' || item.price === 0
   const itemType = item.type
-  
-  // Get type-specific CTA text
-  const getCtaText = (type: ContentType) => {
-    const ctaMap: Record<ContentType, string> = {
-      community: t('cta.explore'),
-      course: t('cta.start'),
-      challenge: t('cta.join'),
-      product: t('cta.buy'),
-      session: t('cta.book'),
-      event: t('cta.register'),
+
+  // ── Resolve CTA label and href based on membership/access ──
+  let ctaLabel: string
+  let ctaHref: string
+
+  if (itemType === 'community') {
+    if (item.isMember) {
+      // Member → go directly to community home
+      const creatorSeg = encodeSegment(item.creatorSlug || item.creator)
+      const slugSeg = encodeSegment(item.slug || item.id)
+      ctaHref = creatorSeg && slugSeg
+        ? `/${creatorSeg}/${slugSeg}/home`
+        : `/community/${item.slug || item.id}`
+      ctaLabel = t('cta.explore')
+    } else {
+      // Not a member → community landing page (join)
+      ctaHref = `/community/${encodeSegment(item.slug || item.id) || item.id}`
+      ctaLabel = t('cta.join')
     }
-    return ctaMap[type] || CTA_LABEL[type]
+  } else {
+    // Content types (course, challenge, product, session, event)
+    if (item.isMember) {
+      // Member of parent community → direct link to content
+      const creatorSeg = encodeSegment(item.creatorSlug || item.creator)
+      const commSlug = encodeSegment(item.communitySlug)
+      const contentId = encodeSegment(item.mongoId || item.id)
+
+      if (creatorSeg && commSlug && contentId) {
+        const base = `/${creatorSeg}/${commSlug}`
+        switch (itemType) {
+          case 'course': ctaHref = `${base}/courses/${contentId}`; break
+          case 'challenge': ctaHref = `${base}/challenges/${contentId}`; break
+          case 'product': ctaHref = `${base}/products/${contentId}`; break
+          case 'session': ctaHref = `${base}/sessions?sessionId=${contentId}`; break
+          case 'event': ctaHref = `${base}/events?eventId=${contentId}`; break
+          default: ctaHref = item.url; break
+        }
+      } else {
+        ctaHref = item.url
+      }
+
+      // CTA label for members with access
+      const ctaMap: Record<string, string> = {
+        course: t('cta.explore'),
+        challenge: t('cta.start'),
+        product: t('cta.download'),
+        session: t('cta.book'),
+        event: t('cta.register'),
+      }
+      ctaLabel = ctaMap[itemType] || t('cta.explore')
+    } else {
+      // Not a member → send to community page to join/pay
+      const commSlug = encodeSegment(item.communitySlug)
+      ctaHref = commSlug ? `/community/${commSlug}` : item.url
+      ctaLabel = t('cta.viewCommunity')
+    }
   }
-
-  const defaultCtaText = getCtaText(itemType)
-
-  // Determine routing
-  const defaultRouting = {
-    href: itemType === 'community'
-      ? (exploreItem.isMember
-        ? (item.url || `/${exploreItem.creator}/${exploreItem.slug}`)
-        : `/community/${exploreItem.slug}#join-section`)
-      : (item.url || `/community/${exploreItem.communitySlug}#join-section`),
-    label: itemType === 'community'
-      ? (exploreItem.isMember ? defaultCtaText : t('cta.join'))
-      : defaultCtaText,
-  }
-
-  const accessAwareRouting = resolveExploreCardRouting(exploreItem, defaultCtaText, {
-    join: t('cta.join'),
-    download: t('cta.download'),
-    buy: t('cta.buy'),
-    viewCommunity: t('cta.viewCommunity'),
-  })
-
-  const ctaHref = accessAware ? accessAwareRouting.href : defaultRouting.href
-  const ctaLabel = accessAware ? accessAwareRouting.ctaLabel : defaultRouting.label
 
   return (
     <article
@@ -130,6 +113,11 @@ export function ExploreCard({ item, featured = false, accessAware = false }: Exp
               <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                 stroke="#8e78fb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
+          </span>
+        )}
+        {item.isMember && (
+          <span className="absolute bottom-2 start-2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white shadow-sm">
+            ✓ Member
           </span>
         )}
       </div>
@@ -173,11 +161,13 @@ export function ExploreCard({ item, featured = false, accessAware = false }: Exp
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
             </svg>
             <span className="font-semibold text-gray-700">{typeof item.rating === 'number' ? item.rating.toFixed(1) : item.rating}</span>
-            {item.ratingCount && <span className="text-gray-500">({item.ratingCount})</span>}
+            {item.ratingCount ? <span className="text-gray-500">({item.ratingCount})</span> : null}
           </span>
         </div>
         <Link href={ctaHref}
-          className="mt-auto w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 hover:-translate-y-[1px] bg-[#8e78fb]">
+          className={`mt-auto w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 hover:-translate-y-[1px] ${
+            item.isMember ? 'bg-emerald-500' : 'bg-[#8e78fb]'
+          }`}>
           {ctaLabel}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="11" height="11" aria-hidden="true">
             <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>

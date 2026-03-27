@@ -1,9 +1,15 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import type { ExploreItem } from '@/lib/explore-data'
 import { TYPE_CONFIG } from '@/lib/explore-data'
 
 function fmt(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : `${n}`
+}
+
+function encodeSegment(value: string | undefined): string | null {
+  const v = (value || '').trim()
+  return v ? encodeURIComponent(v) : null
 }
 
 interface ExploreListRowProps {
@@ -12,8 +18,44 @@ interface ExploreListRowProps {
 
 export function ExploreListRow({ item }: ExploreListRowProps) {
   const type = TYPE_CONFIG[item.type]
+  const itemType = item.type
+
+  // Resolve href based on membership
+  let href: string
+  if (itemType === 'community') {
+    if (item.isMember) {
+      const creatorSeg = encodeSegment(item.creatorSlug || item.creator)
+      const slugSeg = encodeSegment(item.slug || item.id)
+      href = creatorSeg && slugSeg
+        ? `/${creatorSeg}/${slugSeg}/home`
+        : `/community/${item.slug || item.id}`
+    } else {
+      href = `/community/${encodeSegment(item.slug || item.id) || item.id}`
+    }
+  } else if (item.isMember) {
+    const creatorSeg = encodeSegment(item.creatorSlug || item.creator)
+    const commSlug = encodeSegment(item.communitySlug)
+    const contentId = encodeSegment(item.mongoId || item.id)
+    if (creatorSeg && commSlug && contentId) {
+      const base = `/${creatorSeg}/${commSlug}`
+      switch (itemType) {
+        case 'course': href = `${base}/courses/${contentId}`; break
+        case 'challenge': href = `${base}/challenges/${contentId}`; break
+        case 'product': href = `${base}/products/${contentId}`; break
+        case 'session': href = `${base}/sessions?sessionId=${contentId}`; break
+        case 'event': href = `${base}/events?eventId=${contentId}`; break
+        default: href = item.url; break
+      }
+    } else {
+      href = item.url
+    }
+  } else {
+    const commSlug = encodeSegment(item.communitySlug)
+    href = commSlug ? `/community/${commSlug}` : item.url
+  }
+
   return (
-    <a href={item.url} className="block">
+    <Link href={href} className="block">
       <article className="group flex gap-4 bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-[0_8px_32px_rgba(142,120,251,.13)] hover:-translate-y-[2px] transition-all duration-300 p-3">
         <div className="relative flex-shrink-0 w-[140px] sm:w-[180px] rounded-xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
           <Image src={item.banner} alt={item.title} fill className="object-cover" sizes="180px" />
@@ -22,6 +64,11 @@ export function ExploreListRow({ item }: ExploreListRowProps) {
               {item.price === 'free' ? 'Free' : `${item.price} ${item.currency}`}
             </span>
           </div>
+          {item.isMember && (
+            <span className="absolute bottom-1.5 start-1.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500 text-white shadow-sm">
+              ✓ Member
+            </span>
+          )}
         </div>
         <div className="flex flex-col flex-1 min-w-0 justify-between py-0.5">
           <div>
@@ -61,6 +108,6 @@ export function ExploreListRow({ item }: ExploreListRowProps) {
           </div>
         </div>
       </article>
-    </a>
+    </Link>
   )
 }

@@ -23,6 +23,14 @@ export interface ExploreItem {
   duration?: string
   date?: string
   url: string
+  // Access-aware routing fields
+  slug?: string
+  mongoId?: string
+  communitySlug?: string
+  creatorSlug?: string
+  communityId?: string
+  isMember?: boolean
+  hasContentAccess?: boolean
 }
 
 // ── Categories ────────────────────────────────────────────────────────────
