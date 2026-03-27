@@ -6,6 +6,7 @@ import { cookies, headers } from "next/headers"
 import { NextIntlClientProvider } from "next-intl"
 import "./globals.css"
 import { ReactQueryProvider } from "@/app/providers/react-query-provider"
+import { ExtensionErrorGuard } from "@/app/(auth)/components/extension-error-guard"
 import { Ga4ScriptGate } from "@/components/ga4-script-gate"
 import { CookieConsentProvider } from "@/components/cookie-consent-provider"
 import { ArabicAutoTranslate } from "@/components/arabic-auto-translate"
@@ -126,6 +127,7 @@ export default async function RootLayout({
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ReactQueryProvider>
+            <ExtensionErrorGuard />
             {children}
             <PwaServiceWorker />
             <ArabicAutoTranslate />
