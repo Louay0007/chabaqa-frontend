@@ -97,7 +97,7 @@ export function ExploreCard({ item, featured = false }: ExploreCardProps) {
             <svg viewBox="0 0 24 24" fill="#ff9b28" width="11" height="11" aria-hidden="true">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
             </svg>
-            <span className="font-semibold text-gray-700">{item.rating}</span>
+            <span className="font-semibold text-gray-700">{typeof item.rating === 'number' ? item.rating.toFixed(1) : item.rating}</span>
             {item.ratingCount && <span className="text-gray-500">({item.ratingCount})</span>}
           </span>
         </div>
