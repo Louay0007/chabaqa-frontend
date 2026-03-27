@@ -1,6 +1,10 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import type { ExploreItem } from '@/lib/explore-data'
 import { TYPE_CONFIG, type ContentType } from '@/lib/explore-data'
+import { resolveExploreCardRouting } from '@/app/(landing)/(communities)/components/explore-card-routing'
+import { useTranslations } from 'next-intl'
+import type { Explore } from '@/lib/data-communities'
 
 function fmt(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : `${n}`
@@ -16,12 +20,83 @@ const CTA_LABEL: Record<ContentType, string> = {
 }
 
 interface ExploreCardProps {
-  item: ExploreItem
+  item: ExploreItem & Partial<Explore>
   featured?: boolean
+  accessAware?: boolean
 }
 
-export function ExploreCard({ item, featured = false }: ExploreCardProps) {
+export function ExploreCard({ item, featured = false, accessAware = false }: ExploreCardProps) {
   const type = TYPE_CONFIG[item.type]
+  const t = useTranslations('landing.explore')
+
+  // Map ExploreItem to Explore format for routing
+  const isFree = typeof item.price === 'string' && item.price === 'free'
+  const numericPrice = typeof item.price === 'number' ? item.price : 0
+  
+  const exploreItem: Explore = {
+    id: item.id,
+    mongoId: item.id,
+    type: item.type as any,
+    name: item.title,
+    slug: item.url.split('/').pop() || item.id,
+    creator: item.creator,
+    creatorSlug: item.creator.toLowerCase().replace(/\s+/g, '-'),
+    creatorAvatar: item.creatorAvatar || '',
+    description: item.desc,
+    category: item.category,
+    members: item.members || 0,
+    rating: typeof item.rating === 'number' ? item.rating : parseFloat(item.rating || '0'),
+    ratingCount: item.ratingCount,
+    tags: [],
+    verified: item.verified || false,
+    price: isFree ? 0 : numericPrice,
+    priceType: isFree ? 'free' : 'paid',
+    image: item.banner,
+    featured: item.featured || false,
+    link: item.url,
+    isMember: (item as any).isMember,
+    hasContentAccess: (item as any).hasContentAccess,
+    communitySlug: (item as any).communitySlug || item.url.split('/').pop() || item.id,
+  }
+
+  const itemType = item.type
+  
+  // Get type-specific CTA text
+  const getCtaText = (type: ContentType) => {
+    const ctaMap: Record<ContentType, string> = {
+      community: t('cta.explore'),
+      course: t('cta.start'),
+      challenge: t('cta.join'),
+      product: t('cta.buy'),
+      session: t('cta.book'),
+      event: t('cta.register'),
+    }
+    return ctaMap[type] || CTA_LABEL[type]
+  }
+
+  const defaultCtaText = getCtaText(itemType)
+
+  // Determine routing
+  const defaultRouting = {
+    href: itemType === 'community'
+      ? (exploreItem.isMember
+        ? (item.url || `/${exploreItem.creator}/${exploreItem.slug}`)
+        : `/community/${exploreItem.slug}#join-section`)
+      : (item.url || `/community/${exploreItem.communitySlug}#join-section`),
+    label: itemType === 'community'
+      ? (exploreItem.isMember ? defaultCtaText : t('cta.join'))
+      : defaultCtaText,
+  }
+
+  const accessAwareRouting = resolveExploreCardRouting(exploreItem, defaultCtaText, {
+    join: t('cta.join'),
+    download: t('cta.download'),
+    buy: t('cta.buy'),
+    viewCommunity: t('cta.viewCommunity'),
+  })
+
+  const ctaHref = accessAware ? accessAwareRouting.href : defaultRouting.href
+  const ctaLabel = accessAware ? accessAwareRouting.ctaLabel : defaultRouting.label
 
   return (
     <article
@@ -37,11 +112,11 @@ export function ExploreCard({ item, featured = false }: ExploreCardProps) {
         />
         <div className="absolute top-2.5 end-2.5 flex gap-1.5">
           <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm ${
-            item.price === 'free'
+            isFree
               ? 'bg-gradient-to-r from-emerald-400 to-teal-500 text-white'
               : 'bg-black/65 text-white'
           }`}>
-            {item.price === 'free' ? 'Free' : `${item.price} ${item.currency}`}
+            {isFree ? 'Free' : `${item.price} ${item.currency || ''}`}
           </span>
           {featured && (
             <span className="text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm text-white bg-gradient-to-r from-amber-400 to-orange-600">
@@ -101,13 +176,13 @@ export function ExploreCard({ item, featured = false }: ExploreCardProps) {
             {item.ratingCount && <span className="text-gray-500">({item.ratingCount})</span>}
           </span>
         </div>
-        <a href={item.url}
+        <Link href={ctaHref}
           className="mt-auto w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 hover:-translate-y-[1px] bg-[#8e78fb]">
-          {CTA_LABEL[item.type]}
+          {ctaLabel}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="11" height="11" aria-hidden="true">
             <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
           </svg>
-        </a>
+        </Link>
       </div>
     </article>
   )
