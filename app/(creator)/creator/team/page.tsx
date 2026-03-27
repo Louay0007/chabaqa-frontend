@@ -48,6 +48,7 @@ import {
   type CommunityPermissionValue,
 } from "@/lib/permissions"
 import { api } from "@/lib/api"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -325,7 +326,7 @@ export default function TeamRolesPage() {
                   className="flex items-center gap-4 py-3 first:pt-0 last:pb-0"
                 >
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={s.user?.profileImage} />
+                    <AvatarImage src={resolveImageUrl(s.user?.profileImage)} />
                     <AvatarFallback>{getInitials(s)}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
@@ -335,7 +336,11 @@ export default function TeamRolesPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {canManageRoles ? (
+                    {s.role === 'owner' ? (
+                      <Badge className={ROLE_COLORS['owner']}>
+                        {ROLE_LABELS['owner']}
+                      </Badge>
+                    ) : canManageRoles ? (
                       <Select
                         value={s.role}
                         onValueChange={(v) => handleUpdateRole(s.userId, v as CommunityStaffRole)}
@@ -356,7 +361,7 @@ export default function TeamRolesPage() {
                         {ROLE_LABELS[s.role as CommunityRole] ?? s.role}
                       </Badge>
                     )}
-                    {canManageRoles && (
+                    {canManageRoles && s.role !== 'owner' && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -416,7 +421,7 @@ export default function TeamRolesPage() {
                         }`}
                       >
                         <Avatar className="h-7 w-7">
-                          <AvatarImage src={u.profileImage ?? u.avatar} />
+                          <AvatarImage src={resolveImageUrl(u.profileImage ?? u.avatar)} />
                           <AvatarFallback>{(name?.[0] ?? "?").toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
