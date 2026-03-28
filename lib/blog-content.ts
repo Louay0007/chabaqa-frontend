@@ -49,8 +49,8 @@ export const blogAuthors: Record<string, BlogAuthor> = {
     bio: "Community building expert and creator coach with 10+ years of experience",
     role: "Tech Lead",
     social: {
-      twitter: "https://twitter.com/sarahjohnson",
-      linkedin: "https://linkedin.com/in/sarahjohnson"
+      twitter: "https://twitter.com/louayrjili",
+      linkedin: "https://linkedin.com/in/louayrjili"
     }
   }
 }
