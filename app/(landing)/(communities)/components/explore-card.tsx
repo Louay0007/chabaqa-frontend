@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import type { ExploreItem } from '@/lib/explore-data'
-import { TYPE_CONFIG, type ContentType } from '@/lib/explore-data'
+import { TYPE_CONFIG } from '@/lib/explore-data'
 import { useTranslations } from 'next-intl'
 
 function fmt(n: number) {
@@ -24,13 +24,11 @@ export function ExploreCard({ item, featured = false }: ExploreCardProps) {
   const isFree = item.price === 'free' || item.price === 0
   const itemType = item.type
 
-  // ── Resolve CTA label and href based on membership/access ──
   let ctaLabel: string
   let ctaHref: string
 
   if (itemType === 'community') {
     if (item.isMember) {
-      // Member → go directly to community home
       const creatorSeg = encodeSegment(item.creatorSlug || item.creator)
       const slugSeg = encodeSegment(item.slug || item.id)
       ctaHref = creatorSeg && slugSeg
@@ -38,14 +36,11 @@ export function ExploreCard({ item, featured = false }: ExploreCardProps) {
         : `/community/${item.slug || item.id}`
       ctaLabel = t('cta.explore')
     } else {
-      // Not a member → community landing page (join)
       ctaHref = `/community/${encodeSegment(item.slug || item.id) || item.id}`
       ctaLabel = t('cta.join')
     }
   } else {
-    // Content types (course, challenge, product, session, event)
     if (item.isMember) {
-      // Member of parent community → direct link to content
       const creatorSeg = encodeSegment(item.creatorSlug || item.creator)
       const commSlug = encodeSegment(item.communitySlug)
       const contentId = encodeSegment(item.mongoId || item.id)
@@ -64,7 +59,6 @@ export function ExploreCard({ item, featured = false }: ExploreCardProps) {
         ctaHref = item.url
       }
 
-      // CTA label for members with access
       const ctaMap: Record<string, string> = {
         course: t('cta.explore'),
         challenge: t('cta.start'),
@@ -74,7 +68,6 @@ export function ExploreCard({ item, featured = false }: ExploreCardProps) {
       }
       ctaLabel = ctaMap[itemType] || t('cta.explore')
     } else {
-      // Not a member → send to community page to join/pay
       const commSlug = encodeSegment(item.communitySlug)
       ctaHref = commSlug ? `/community/${commSlug}` : item.url
       ctaLabel = t('cta.viewCommunity')
@@ -99,16 +92,16 @@ export function ExploreCard({ item, featured = false }: ExploreCardProps) {
               ? 'bg-gradient-to-r from-emerald-400 to-teal-500 text-white'
               : 'bg-black/65 text-white'
           }`}>
-            {isFree ? 'Free' : `${item.price} ${item.currency || ''}`}
+            {isFree ? t('priceLabels.free') : `${item.price} ${item.currency || ''}`}
           </span>
           {featured && (
             <span className="text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm text-white bg-gradient-to-r from-amber-400 to-orange-600">
-              VIP
+              {t('vipBadge')}
             </span>
           )}
         </div>
         {item.verified && (
-          <span className="absolute top-2.5 start-2.5 w-6 h-6 rounded-full bg-white/92 flex items-center justify-center shadow-sm" aria-label="Verified Creator">
+          <span className="absolute top-2.5 start-2.5 w-6 h-6 rounded-full bg-white/92 flex items-center justify-center shadow-sm" aria-label={t('verifiedCreator')}>
             <svg viewBox="0 0 24 24" fill="none" width="13" height="13" aria-hidden="true">
               <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                 stroke="#8e78fb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -117,7 +110,7 @@ export function ExploreCard({ item, featured = false }: ExploreCardProps) {
         )}
         {item.isMember && (
           <span className="absolute bottom-2 start-2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white shadow-sm">
-            ✓ Member
+            ✓ {t('memberBadge')}
           </span>
         )}
       </div>
@@ -145,7 +138,7 @@ export function ExploreCard({ item, featured = false }: ExploreCardProps) {
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
             style={{ background: type.bg, color: type.color, border: `1px solid ${type.border}` }}>
-            {type.label}
+            {t(`types.${itemType}`)}
           </span>
           {item.members !== undefined && (
             <span className="flex items-center gap-1 text-[11px] text-gray-500">

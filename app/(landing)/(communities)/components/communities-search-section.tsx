@@ -126,9 +126,17 @@ export function CommunitiesSearchSection({ items }: CommunitiesSearchSectionProp
                   aria-label={t('sortLabel')}
                   className="appearance-none w-full h-9 ps-2.5 pe-7 rounded-xl text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-200 focus:outline-none focus:border-[#8e78fb] hover:border-[#d4c5ff] cursor-pointer transition-colors"
                 >
-                  {SORT_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
+                  {SORT_OPTIONS.map(opt => {
+                    const sortKeyMap: Record<string, any> = {
+                      'popular': t('sortPopular'),
+                      'newest': t('sortNewest'),
+                      'rating': t('sortRating'),
+                      'price-low': t('sortPriceLow'),
+                      'price-high': t('sortPriceHigh')
+                    };
+                    const label = sortKeyMap[opt.value] || opt.label;
+                    return <option key={opt.value} value={opt.value}>{label}</option>
+                  })}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 end-2 flex items-center" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="12" height="12">
@@ -173,14 +181,14 @@ export function CommunitiesSearchSection({ items }: CommunitiesSearchSectionProp
             {t('results')}
           </p>
           <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
-            <button onClick={() => setViewMode('grid')} aria-pressed={viewMode === 'grid'} aria-label="Grid view"
+            <button onClick={() => setViewMode('grid')} aria-pressed={viewMode === 'grid'} aria-label={t('gridView')}
               className={`px-3 py-2 transition-colors ${viewMode === 'grid' ? 'bg-[#8e78fb] text-white' : 'bg-white text-gray-500 hover:text-[#8e78fb]'}`}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" aria-hidden="true">
                 <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
                 <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
               </svg>
             </button>
-            <button onClick={() => setViewMode('list')} aria-pressed={viewMode === 'list'} aria-label="List view"
+            <button onClick={() => setViewMode('list')} aria-pressed={viewMode === 'list'} aria-label={t('listView')}
               className={`px-3 py-2 transition-colors border-s border-gray-200 ${viewMode === 'list' ? 'bg-[#8e78fb] text-white' : 'bg-white text-gray-500 hover:text-[#8e78fb]'}`}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" aria-hidden="true">
                 <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
@@ -203,16 +211,16 @@ export function CommunitiesSearchSection({ items }: CommunitiesSearchSectionProp
             )}
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-10 flex-wrap gap-4" role="navigation" aria-label="Pagination">
+              <div className="flex items-center justify-between mt-10 flex-wrap gap-4" role="navigation" aria-label={t('paginationLabel')}>
                 <span className="text-sm text-gray-500">
-                  Page <span className="font-bold text-gray-900">{page}</span> of <span className="font-bold text-gray-900">{totalPages}</span>
+                  {t('pageOf', { page, total: totalPages })}
                 </span>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setPage(1)} disabled={page === 1} aria-label="First page"
+                  <button onClick={() => setPage(1)} disabled={page === 1} aria-label={t('firstPage')}
                     className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-[#8e78fb] hover:border-[#d4c5ff] disabled:opacity-35 disabled:cursor-not-allowed transition-all">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
                   </button>
-                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} aria-label="Previous page"
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} aria-label={t('previousPage')}
                     className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-[#8e78fb] hover:border-[#d4c5ff] disabled:opacity-35 disabled:cursor-not-allowed transition-all">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
                   </button>
@@ -228,11 +236,11 @@ export function CommunitiesSearchSection({ items }: CommunitiesSearchSectionProp
                       </button>
                     )
                   )}
-                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label="Next page"
+                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label={t('nextPage')}
                     className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-[#8e78fb] hover:border-[#d4c5ff] disabled:opacity-35 disabled:cursor-not-allowed transition-all">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
                   </button>
-                  <button onClick={() => setPage(totalPages)} disabled={page === totalPages} aria-label="Last page"
+                  <button onClick={() => setPage(totalPages)} disabled={page === totalPages} aria-label={t('lastPage')}
                     className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-[#8e78fb] hover:border-[#d4c5ff] disabled:opacity-35 disabled:cursor-not-allowed transition-all">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" aria-hidden="true"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
                   </button>

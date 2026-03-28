@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { ExploreItem } from '@/lib/explore-data'
 import { TYPE_CONFIG } from '@/lib/explore-data'
+import { useTranslations } from 'next-intl'
 
 function fmt(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : `${n}`
@@ -19,6 +20,7 @@ interface ExploreListRowProps {
 export function ExploreListRow({ item }: ExploreListRowProps) {
   const type = TYPE_CONFIG[item.type]
   const itemType = item.type
+  const t = useTranslations('landing.explore')
 
   // Resolve href based on membership
   let href: string
@@ -61,12 +63,12 @@ export function ExploreListRow({ item }: ExploreListRowProps) {
           <Image src={item.banner} alt={item.title} fill className="object-cover" sizes="180px" />
           <div className="absolute top-2 end-2 flex gap-1">
             <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${item.price === 'free' ? 'bg-gradient-to-r from-emerald-400 to-teal-500 text-white' : 'bg-black/60 text-white'}`}>
-              {item.price === 'free' ? 'Free' : `${item.price} ${item.currency}`}
+              {item.price === 'free' ? t('priceLabels.free') : `${item.price} ${item.currency}`}
             </span>
           </div>
           {item.isMember && (
             <span className="absolute bottom-1.5 start-1.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500 text-white shadow-sm">
-              ✓ Member
+              ✓ {t('memberBadge')}
             </span>
           )}
         </div>
@@ -85,7 +87,7 @@ export function ExploreListRow({ item }: ExploreListRowProps) {
               </div>
               <span className="text-[11px] text-gray-500 font-medium">{item.creator}</span>
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: type.bg, color: type.color, border: `1px solid ${type.border}` }}>{type.label}</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: type.bg, color: type.color, border: `1px solid ${type.border}` }}>{t(`types.${itemType}`)}</span>
             {item.members !== undefined && (
               <span className="flex items-center gap-1 text-[11px] text-gray-500">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="10" height="10" aria-hidden="true">
@@ -103,7 +105,7 @@ export function ExploreListRow({ item }: ExploreListRowProps) {
               </span>
             )}
             <span className={`ms-auto text-xs font-black flex-shrink-0 ${item.price === 'free' ? 'text-emerald-500' : 'text-gray-900'}`}>
-              {item.price === 'free' ? 'Free' : `${item.price} ${item.currency}`}
+              {item.price === 'free' ? t('priceLabels.free') : `${item.price} ${item.currency}`}
             </span>
           </div>
         </div>
