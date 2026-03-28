@@ -227,9 +227,8 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
       requiredPermission: CommunityPermission.MARKETING_MANAGE as CommunityPermissionValue,
       items: [
         { title: "Email Campaigns", href: "/creator/marketing/emails", icon: Mail },
-        { title: "Affiliates", href: "/creator/marketing/affiliates", icon: UserPlus },
-        { title: "Affiliate Portal", href: "/dashboard/affiliate", icon: ExternalLink, external: true },
-        { title: "Contacts", href: "/creator/marketing/contacts", icon: Users },
+        { title: "Affiliates", href: "/creator/marketing/affiliates", icon: UserPlus, soon: true },
+        { title: "Affiliate Portal", href: "/dashboard/affiliate", icon: ExternalLink, soon: true },
         { title: "Messages", href: "/creator/marketing/messages", icon: MessageSquare, soon: true },
         { title: "WhatsApp", href: "/creator/marketing/whatsapp", icon: MessageSquare, soon: true },
       ],

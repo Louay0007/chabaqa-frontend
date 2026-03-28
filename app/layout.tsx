@@ -11,6 +11,7 @@ import { Ga4ScriptGate } from "@/components/ga4-script-gate"
 import { CookieConsentProvider } from "@/components/cookie-consent-provider"
 import { ArabicAutoTranslate } from "@/components/arabic-auto-translate"
 import { PwaServiceWorker } from "@/components/pwa-service-worker"
+import LoadingScreen from "@/components/ui/LoadingScreen"
 import { DEFAULT_LOCALE, getLocaleDirection, isAppLocale, LOCALE_COOKIE } from "@/lib/i18n/config"
 import { getMessagesForLocale } from "@/lib/i18n/messages"
 import {
@@ -125,6 +126,7 @@ export default async function RootLayout({
         className={`${inter.variable} ${tajawal.variable} ${locale === "ar" ? "font-arabic" : "font-latin"}`}
         suppressHydrationWarning
       >
+        <LoadingScreen />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ReactQueryProvider>
             <ExtensionErrorGuard />
