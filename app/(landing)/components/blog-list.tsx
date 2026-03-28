@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef } from "react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useLocale } from "next-intl"
@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation"
 import { getAllBlogPosts } from "@/lib/blog-content"
 import { localizeHref } from "@/lib/i18n/client"
 import type { BlogPost } from "@/lib/blog-content"
+import { motion, useInView } from "framer-motion"
 
 const POSTS_PER_PAGE = 6
 
@@ -345,9 +346,17 @@ export function BlogList() {
         <div aria-hidden="true" style={{ position: "absolute", top: "30%", insetInlineStart: "60%", width: "200px", height: "200px", borderRadius: "50%", background: "var(--orange,#ff9b28)", filter: "blur(60px)", opacity: 0.1, animation: "blobMove 12s ease-in-out infinite", zIndex: 0 }} />
 
         {/* Content */}
-        <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: "720px", margin: "0 auto" }}>
+        <motion.div
+          initial={{ opacity: 0, y: 32 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: "720px", margin: "0 auto" }}
+        >
           {/* Badge */}
-          <div
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.1, ease: "backOut" }}
             style={{
               display: "inline-flex", alignItems: "center", gap: "6px",
               padding: "6px 16px", borderRadius: "999px",
@@ -365,9 +374,12 @@ export function BlogList() {
               <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
             </svg>
             {t("heroEyebrow")}
-          </div>
+          </motion.div>
 
-          <h1
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
             style={{
               fontSize: "clamp(36px,5vw,64px)",
               fontWeight: 900,
@@ -379,16 +391,27 @@ export function BlogList() {
           >
             {t("heroTitle")}{" "}
             <span style={{ color: "var(--p,#8e78fb)" }}>{t("heroTitleAccent")}</span>
-          </h1>
+          </motion.h1>
 
-          <p style={{ fontSize: "18px", color: "var(--t2,#6b7280)", lineHeight: 1.6, maxWidth: "520px", margin: "0 auto" }}>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            style={{ fontSize: "18px", color: "var(--t2,#6b7280)", lineHeight: 1.6, maxWidth: "520px", margin: "0 auto" }}
+          >
             {t("heroSub")}
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
       </section>
 
       {/* ── Category Filter ── */}
-      <nav aria-label="Blog category filter" style={{ padding: "0 24px 32px", display: "flex", justifyContent: "center" }}>
+      <motion.nav
+        aria-label="Blog category filter"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5, ease: "easeOut" }}
+        style={{ padding: "0 24px 32px", display: "flex", justifyContent: "center" }}
+      >
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px", maxWidth: "720px" }}>
           {categories.map((cat) => {
             const isActive = selectedCategory === cat.key
@@ -415,7 +438,7 @@ export function BlogList() {
             )
           })}
         </div>
-      </nav>
+      </motion.nav>
 
       {/* ── Posts Grid ── */}
       <section aria-label="Blog posts" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px 64px" }}>
@@ -431,7 +454,14 @@ export function BlogList() {
           </div>
         ) : (
           <>
-            <div
+            <motion.div
+              variants={{
+                hidden: {},
+                show: { transition: { staggerChildren: 0.09 } },
+              }}
+              initial="hidden"
+              animate="show"
+              key={selectedCategory}
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))",
@@ -439,9 +469,17 @@ export function BlogList() {
               }}
             >
               {displayedPosts.map((post) => (
-                <BlogCard key={post.id} post={post} t={t} locale={locale} pathname={pathname} />
+                <motion.div
+                  key={post.id}
+                  variants={{
+                    hidden: { opacity: 0, y: 28, scale: 0.97 },
+                    show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
+                  }}
+                >
+                  <BlogCard post={post} t={t} locale={locale} pathname={pathname} />
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
 
             {/* Count + Load More */}
             <div style={{ textAlign: "center", marginTop: "40px" }}>
