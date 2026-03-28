@@ -10,6 +10,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { X, CreditCard, Shield, CheckCircle, Users, Star, Clock, Gift, ArrowRight, Sparkles } from "lucide-react"
 import { communitiesApi } from "@/lib/api/communities.api"
+import { PaymentProviderModal } from "@/components/payment-provider-modal"
+import { usePaymentProviderModal } from "@/lib/hooks/use-payment-provider-modal"
 
 interface JoinCommunityModalProps {
   community: any
@@ -23,6 +25,13 @@ export function JoinCommunityModal({ community, onClose }: JoinCommunityModalPro
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+  })
+
+  const communityId = community?._id || community?.id
+
+  const paymentModal = usePaymentProviderModal({
+    initStripe: () => (communitiesApi as any).initStripePayment(communityId),
+    initKonnect: () => (communitiesApi as any).initKonnectPayment(communityId),
   })
 
   const formatPrice = (price: number, type: string) => {
@@ -43,23 +52,18 @@ export function JoinCommunityModal({ community, onClose }: JoinCommunityModalPro
     setStep("success")
   }
 
-  const handlePayment = async () => {
-    const communityId = community?._id || community?.id
+  const handlePayment = () => {
     if (!communityId) return
-
-    setIsProcessing(true)
-    try {
-      const result = await (communitiesApi as any).initStripePayment(communityId)
-      const checkoutUrl = result?.data?.checkoutUrl || result?.checkoutUrl
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl
-        return
-      }
-    } catch { }
-    setIsProcessing(false)
+    paymentModal.open()
   }
 
   return (
+    <>
+      <PaymentProviderModal
+        open={paymentModal.isOpen}
+        onOpenChange={paymentModal.close}
+        onSelect={paymentModal.handleSelect}
+      />
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl p-0">
         <DialogHeader className="p-6 border-b">
@@ -284,5 +288,6 @@ export function JoinCommunityModal({ community, onClose }: JoinCommunityModalPro
         </div>
       </DialogContent>
     </Dialog>
+    </>
   )
 }

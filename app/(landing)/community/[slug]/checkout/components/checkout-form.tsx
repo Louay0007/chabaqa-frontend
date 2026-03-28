@@ -36,7 +36,7 @@ export function CheckoutForm({
   const [success, setSuccess] = useState(false)
   const [alreadyMember, setAlreadyMember] = useState(false)
   const [paymentProof, setPaymentProof] = useState<File | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState<"stripe" | "manual">("stripe")
+  const [paymentMethod, setPaymentMethod] = useState<"stripe" | "konnect" | "manual">("stripe")
 
   const pricing = community as any
   const normalizedInviteCode = typeof inviteCode === "string" ? inviteCode.trim() : ""
@@ -165,13 +165,24 @@ export function CheckoutForm({
           promoCode || undefined,
           normalizedInviteCode || undefined,
         )
-        // Handle both wrapped (data.checkoutUrl) and direct (checkoutUrl) response formats
         const checkoutUrl = result?.data?.checkoutUrl || result?.checkoutUrl
         if (checkoutUrl) {
           window.location.href = checkoutUrl
         } else {
-          console.error("Stripe result:", result)
           throw new Error("Failed to get checkout URL from Stripe")
+        }
+      } else if (paymentMethod === "konnect") {
+        // Konnect payment
+        const result = await (communitiesApi as any).initKonnectPayment(
+          community.id,
+          promoCode || undefined,
+          normalizedInviteCode || undefined,
+        )
+        const checkoutUrl = result?.data?.checkoutUrl || result?.checkoutUrl || result?.payUrl || result?.data?.payUrl
+        if (checkoutUrl) {
+          window.location.href = checkoutUrl
+        } else {
+          throw new Error("Failed to get checkout URL from Konnect")
         }
       } else {
         // Paid community: initiate manual payment
@@ -407,10 +418,14 @@ export function CheckoutForm({
                   Select Payment Method
                 </Label>
                 <Tabs defaultValue="stripe" value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 h-12">
+                  <TabsList className="grid w-full grid-cols-3 h-12">
                     <TabsTrigger value="stripe" className="flex items-center gap-2">
                       <CreditCard className="w-4 h-4" />
-                      <span>Card (Stripe)</span>
+                      <span>Stripe</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="konnect" className="flex items-center gap-2">
+                      <span className="font-bold text-[#FF6B35] text-sm">K</span>
+                      <span>Konnect</span>
                     </TabsTrigger>
                     <TabsTrigger value="manual" className="flex items-center gap-2">
                       <Wallet className="w-4 h-4" />
@@ -425,6 +440,16 @@ export function CheckoutForm({
                         Instant Access
                       </p>
                       <p className="mt-1 opacity-90">Pay securely with your credit/debit card and get instant access to the community.</p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="konnect" className="mt-4">
+                    <div className="p-4 rounded-lg bg-orange-50 border border-orange-100 text-orange-800 text-sm">
+                      <p className="font-semibold flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-orange-500" />
+                        Konnect — Local Payment
+                      </p>
+                      <p className="mt-1 opacity-90">Pay via D17, Flouci, or local bank cards. Instant access after payment confirmation.</p>
                     </div>
                   </TabsContent>
 

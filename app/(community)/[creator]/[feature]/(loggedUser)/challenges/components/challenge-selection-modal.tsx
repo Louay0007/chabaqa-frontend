@@ -29,6 +29,8 @@ import {
 import { formatDate } from "@/lib/utils"
 import { useState } from "react"
 import { challengesApi } from "@/lib/api/challenges.api"
+import { PaymentProviderModal } from "@/components/payment-provider-modal"
+import { usePaymentProviderModal } from "@/lib/hooks/use-payment-provider-modal"
 
 interface ChallengeSelectionModalProps {
   challenge: any
@@ -47,6 +49,12 @@ export default function ChallengeSelectionModal({
 
   const [promoCode, setPromoCode] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const paymentModal = usePaymentProviderModal({
+    initStripe: () => (challengesApi as any).initStripePayment(String(challenge?.id || challenge?._id), promoCode.trim() || undefined),
+    initKonnect: () => (challengesApi as any).initKonnectPayment(String(challenge?.id || challenge?._id), promoCode.trim() || undefined),
+    onError: (err: any) => toast({ title: "Payment failed", description: err?.message || "Please try again.", variant: "destructive" }),
+  })
 
   if (!challenge) return null
 
@@ -75,12 +83,8 @@ export default function ChallengeSelectionModal({
         return
       }
 
-      const result = await (challengesApi as any).initStripePayment(challengeId, promoCode.trim() || undefined)
-      const checkoutUrl = result?.data?.checkoutUrl || result?.checkoutUrl
-      if (!checkoutUrl) {
-        throw new Error('Unable to start checkout. Please try again.')
-      }
-      window.location.href = checkoutUrl
+      setIsSubmitting(false)
+      paymentModal.open()
     } catch (error: any) {
       console.error('[Join Challenge] Error:', error)
       toast({
@@ -94,6 +98,12 @@ export default function ChallengeSelectionModal({
   }
 
   return (
+    <>
+      <PaymentProviderModal
+        open={paymentModal.isOpen}
+        onOpenChange={paymentModal.close}
+        onSelect={paymentModal.handleSelect}
+      />
     <Dialog open={!!challenge} onOpenChange={() => setSelectedChallenge(null)}>
       <DialogContent className="w-[95vw] max-w-2xl sm:w-full p-0 overflow-hidden border-0 shadow-2xl">
         {/* Header with gradient background */}
@@ -250,5 +260,6 @@ export default function ChallengeSelectionModal({
         </div>
       </DialogContent>
     </Dialog>
+    </>
   )
 }

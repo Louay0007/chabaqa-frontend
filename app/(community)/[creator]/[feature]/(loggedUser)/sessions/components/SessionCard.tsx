@@ -31,6 +31,8 @@ import { ReviewsList } from "@/components/reviews/reviews-list"
 import { StarRating } from "@/components/reviews/star-rating"
 import { resolveImageUrl } from "@/lib/resolve-image-url"
 import { getUserProfileHref } from "@/lib/profile-handle"
+import { PaymentProviderModal } from "@/components/payment-provider-modal"
+import { usePaymentProviderModal } from "@/lib/hooks/use-payment-provider-modal"
 
 interface AvailableSlot {
   id: string
@@ -256,6 +258,15 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
     return next.toISOString()
   }, [selectedDate, selectedTime])
 
+  const paymentModal = usePaymentProviderModal({
+    initStripe: () => sessionsApi.initStripePayment(String(session?.id), {
+      scheduledAt: scheduledAt || new Date().toISOString(),
+      notes: bookingNotes.trim() || undefined,
+      slotId: selectedSlotId || undefined,
+    }, promoCode.trim() || undefined),
+    initKonnect: () => (sessionsApi as any).initKonnectPayment(String(session?.id), promoCode.trim() || undefined),
+  })
+
   const handleTimeSelect = (slotId: string, time: string) => {
     setSelectedSlotId(slotId)
     setSelectedTime(time)
@@ -301,25 +312,11 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
             slotId: selectedSlotId || undefined
           }
           
-          const response: any = await sessionsApi.initStripePayment(
-            String(session?.id),
-            bookingData,
-            promoCode.trim() || undefined
-          )
-
-          console.log('[SessionCard] Stripe payment initialized:', response)
-
-          const checkoutUrl = response?.checkoutUrl || response?.data?.checkoutUrl;
-
-          if (checkoutUrl) {
-             window.location.href = checkoutUrl
-             return
-          } else {
-            console.error('[SessionCard] No checkoutUrl in response:', response)
-            throw new Error("Failed to initialize payment: No checkout URL received")
-          }
+          setIsSubmitting(false)
+          paymentModal.open()
+          return
         } catch (stripeError: any) {
-             throw stripeError
+          throw stripeError
         }
       }
 
@@ -393,6 +390,12 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
   }
 
   return (
+    <>
+      <PaymentProviderModal
+        open={paymentModal.isOpen}
+        onOpenChange={paymentModal.close}
+        onSelect={paymentModal.handleSelect}
+      />
     <Card key={session.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
       <div className="h-40 w-full overflow-hidden rounded-t-lg bg-muted">
         <img
@@ -703,5 +706,6 @@ export default function SessionCard({ session, selectedSession, setSelectedSessi
         </div>
       </CardContent>
     </Card>
+    </>
   )
 }

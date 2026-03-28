@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { coursesApi } from "@/lib/api/courses.api"
+import { PaymentProviderModal } from "@/components/payment-provider-modal"
+import { usePaymentProviderModal } from "@/lib/hooks/use-payment-provider-modal"
 
 type EnrollCourseDialogProps = {
   open: boolean
@@ -45,6 +47,12 @@ export default function EnrollCourseDialog({
     return String(course.mongoId || course.id || course._id || "")
   }, [course])
 
+  const paymentModal = usePaymentProviderModal({
+    initStripe: () => (coursesApi as any).initStripePayment(resolvedCourseId, promoCode.trim() || undefined),
+    initKonnect: () => (coursesApi as any).initKonnectPayment(resolvedCourseId, promoCode.trim() || undefined),
+    onError: (err: any) => toast({ title: "Payment failed", description: err?.message || "Please try again.", variant: "destructive" }),
+  })
+
   const priceLabel = useMemo(() => {
     if (!course) return ""
     const price = Number(course.price ?? 0)
@@ -72,14 +80,10 @@ export default function EnrollCourseDialog({
 
     setIsSubmitting(true)
     try {
-      // Paid course: redirect to Stripe Link checkout
+      // Paid course: show provider selector
       if (isPaidCourse) {
-        const result = await (coursesApi as any).initStripePayment(resolvedCourseId, promoCode.trim() || undefined)
-        const checkoutUrl = result?.data?.checkoutUrl || result?.checkoutUrl
-        if (!checkoutUrl) {
-          throw new Error("Unable to start checkout. Please try again.")
-        }
-        window.location.href = checkoutUrl
+        setIsSubmitting(false)
+        paymentModal.open()
         return
       }
 
@@ -106,6 +110,12 @@ export default function EnrollCourseDialog({
   }
 
   return (
+    <>
+      <PaymentProviderModal
+        open={paymentModal.isOpen}
+        onOpenChange={paymentModal.close}
+        onSelect={paymentModal.handleSelect}
+      />
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
@@ -153,5 +163,6 @@ export default function EnrollCourseDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </>
   )
 }

@@ -13,6 +13,7 @@ import { ProductWithDetails } from "@/lib/api/products-community.api"
 import { resolveImageUrl } from "@/lib/resolve-image-url"
 import { useProductPurchaseFlow } from "@/lib/hooks/use-product-purchase-flow"
 import { getUserProfileHref } from "@/lib/profile-handle"
+import { PaymentProviderModal } from "@/components/payment-provider-modal"
 
 interface ProductCardProps {
   creatorSlug: string
@@ -35,6 +36,7 @@ export default function ProductCard({
   const {
     isStripeLoading,
     initStripePayment,
+    paymentModal,
   } = useProductPurchaseFlow()
 
   const productDetails = product;
@@ -59,21 +61,19 @@ export default function ProductCard({
     name: productDetails.creator?.name || "Creator",
   })
 
-  const handleStripePayment = async () => {
-    try {
-      await initStripePayment(
-        String(productDetails.id || productDetails._id || ""),
-      )
-    } catch (error: any) {
-      toast({
-        title: "Payment initialization failed",
-        description: error?.message || "Please try again.",
-        variant: "destructive",
-      })
-    }
+  const handleStripePayment = () => {
+    initStripePayment(
+      String(productDetails.id || productDetails._id || ""),
+    )
   }
 
   return (
+    <>
+      <PaymentProviderModal
+        open={paymentModal.isOpen}
+        onOpenChange={paymentModal.close}
+        onSelect={paymentModal.handleSelect}
+      />
     <Card
       className={`border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all cursor-pointer ${
         isSelected ? "ring-2 ring-primary-500" : ""
@@ -178,5 +178,6 @@ export default function ProductCard({
         </div>
       </div>
     </Card>
+    </>
   )
 }

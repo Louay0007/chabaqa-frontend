@@ -12,6 +12,8 @@ import { eventsApi } from "@/lib/api/events.api";
 import { trackingApi } from "@/lib/api/tracking.api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { computeEventStartAt } from "@/lib/utils/event-time";
+import { PaymentProviderModal } from "@/components/payment-provider-modal";
+import { usePaymentProviderModal } from "@/lib/hooks/use-payment-provider-modal";
 
 interface AvailableEventsTabProps {
   availableEvents: EventWithTickets[];
@@ -33,6 +35,12 @@ export default function AvailableEventsTab({
 
   const [promoCode, setPromoCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const paymentModal = usePaymentProviderModal({
+    initStripe: () => (eventsApi as any).initStripePayment(String(selectedEvent?.id), String(selectedTicket), promoCode.trim() || undefined),
+    initKonnect: () => (eventsApi as any).initKonnectPayment(String(selectedEvent?.id), String(selectedTicket), promoCode.trim() || undefined),
+    onError: (err: any) => toast({ title: "Payment failed", description: err?.message || "Please try again.", variant: "destructive" }),
+  });
 
   // Filter only published and upcoming events, but keep events with invalid/missing dates visible.
   const upcomingEvents = useMemo(
@@ -109,12 +117,8 @@ export default function AvailableEventsTab({
         return;
       }
 
-      const result = await (eventsApi as any).initStripePayment(String(selectedEvent.id), String(selectedTicket), promoCode.trim() || undefined);
-      const checkoutUrl = result?.data?.checkoutUrl || result?.checkoutUrl;
-      if (!checkoutUrl) {
-        throw new Error('Unable to start checkout. Please try again.');
-      }
-      window.location.href = checkoutUrl;
+      setIsSubmitting(false);
+      paymentModal.open();
     } catch (error: any) {
       if (isAlreadyRegisteredError(error)) {
         toast({
@@ -151,6 +155,12 @@ export default function AvailableEventsTab({
   }
 
   return (
+    <>
+      <PaymentProviderModal
+        open={paymentModal.isOpen}
+        onOpenChange={paymentModal.close}
+        onSelect={paymentModal.handleSelect}
+      />
     <TabsContent value="available" className="space-y-6">
       {targetEventNotice && (
         <Alert>
@@ -177,5 +187,6 @@ export default function AvailableEventsTab({
         ))}
       </div>
     </TabsContent>
+    </>
   );
 }

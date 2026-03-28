@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Download } from "lucide-react"
 import { useProductPurchaseFlow } from "@/lib/hooks/use-product-purchase-flow"
+import { PaymentProviderModal } from "@/components/payment-provider-modal"
 
 interface PurchaseCardProps {
   product: any
@@ -29,26 +30,25 @@ export default function PurchaseCard({
   const {
     isStripeLoading,
     initStripePayment,
+    paymentModal,
   } = useProductPurchaseFlow()
 
   const isPaidProduct = useMemo(() => Number(product?.price ?? 0) > 0, [product])
 
-  const handleStripePayment = async () => {
+  const handleStripePayment = () => {
     if (!product) return
-    try {
-      await initStripePayment(
-        String(product.id || product._id),
-      )
-    } catch (error: any) {
-      toast({
-        title: 'Payment initialization failed',
-        description: error?.message || 'Please try again.',
-        variant: 'destructive',
-      })
-    }
+    initStripePayment(
+      String(product.id || product._id),
+    )
   }
 
   return (
+    <>
+      <PaymentProviderModal
+        open={paymentModal.isOpen}
+        onOpenChange={paymentModal.close}
+        onSelect={paymentModal.handleSelect}
+      />
     <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-3 sm:pb-4">
           <CardTitle className="text-base sm:text-lg font-semibold">
@@ -144,6 +144,6 @@ export default function PurchaseCard({
           )}
         </CardContent>
       </Card>
- 
+    </>
   )
 }

@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { subscriptionApi, PlanTier as ApiPlanTier } from '@/lib/api/subscription.api';
 import { useToast } from '@/components/ui/use-toast';
+import { PaymentProviderModal } from '@/components/payment-provider-modal';
+import { usePaymentProviderModal } from '@/lib/hooks/use-payment-provider-modal';
 
 // ── Constants ──────────────────────────────────────────────────────
 
@@ -117,29 +119,33 @@ const FAQS = [
 export default function PricingPage() {
   const [billing, setBilling] = useState<Billing>('yearly');
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [pendingTier, setPendingTier] = useState<ApiPlanTier | null>(null);
   const { toast } = useToast();
 
-  const handleGetStarted = async (tier: PlanTier) => {
-    try {
-      const tierMap: Record<PlanTier, ApiPlanTier> = {
-        starter: ApiPlanTier.STARTER,
-        growth: ApiPlanTier.GROWTH,
-        pro: ApiPlanTier.PRO,
-      };
-      const interval = billing === 'yearly' ? 'year' : 'month';
-      const res = await subscriptionApi.initStripePayment(tierMap[tier], interval);
-      if (res?.data?.url) {
-        window.location.href = res.data.url;
-      } else {
-        // Fallback: navigate to signup
-        window.location.href = `/auth/register?plan=${tier}&billing=${billing}`;
-      }
-    } catch {
-      window.location.href = `/auth/register?plan=${tier}&billing=${billing}`;
-    }
+  const tierMap: Record<PlanTier, ApiPlanTier> = {
+    starter: ApiPlanTier.STARTER,
+    growth: ApiPlanTier.GROWTH,
+    pro: ApiPlanTier.PRO,
+  };
+
+  const paymentModal = usePaymentProviderModal({
+    initStripe: () => subscriptionApi.initStripePayment(pendingTier!, billing === 'yearly' ? 'year' : 'month'),
+    initKonnect: () => (subscriptionApi as any).initKonnectPayment(pendingTier!),
+    onError: () => { window.location.href = `/auth/register?billing=${billing}` },
+  });
+
+  const handleGetStarted = (tier: PlanTier) => {
+    setPendingTier(tierMap[tier]);
+    paymentModal.open();
   };
 
   return (
+    <>
+      <PaymentProviderModal
+        open={paymentModal.isOpen}
+        onOpenChange={paymentModal.close}
+        onSelect={paymentModal.handleSelect}
+      />
     <main className="min-h-screen bg-background">
       {/* Hero */}
       <section className="relative overflow-hidden py-16 sm:py-24 text-center">
@@ -434,5 +440,6 @@ export default function PricingPage() {
         </div>
       </section>
     </main>
+    </>
   );
 }

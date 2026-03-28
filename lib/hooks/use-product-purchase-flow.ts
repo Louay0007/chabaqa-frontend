@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { productsApi } from "@/lib/api/products.api"
 import { tokenStorage } from "@/lib/token-storage"
+import { usePaymentProviderModal } from "@/lib/hooks/use-payment-provider-modal"
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api").replace(/\/$/, "")
 
@@ -16,21 +17,18 @@ export function useProductPurchaseFlow() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isStripeLoading, setIsStripeLoading] = useState(false)
   const [isPendingVerification, setIsPendingVerification] = useState(false)
+  const [pendingProductId, setPendingProductId] = useState<string | null>(null)
+  const [pendingPromoCode, setPendingPromoCode] = useState<string | undefined>(undefined)
 
-  const initStripePayment = async (productId: string, promoCode?: string) => {
-    setIsStripeLoading(true)
-    try {
-      const result = await productsApi.initStripePayment(productId, promoCode)
-      const checkoutUrl = result?.checkoutUrl || result?.data?.checkoutUrl
-      if (!checkoutUrl) {
-        throw new Error("No checkout URL returned")
-      }
-      if (typeof window !== "undefined") {
-        window.location.href = checkoutUrl
-      }
-    } finally {
-      setIsStripeLoading(false)
-    }
+  const paymentModal = usePaymentProviderModal({
+    initStripe: () => productsApi.initStripePayment(pendingProductId!, pendingPromoCode),
+    initKonnect: () => (productsApi as any).initKonnectPayment(pendingProductId!, pendingPromoCode),
+  })
+
+  const initStripePayment = (productId: string, promoCode?: string) => {
+    setPendingProductId(productId)
+    setPendingPromoCode(promoCode)
+    paymentModal.open()
   }
 
   const submitManualPayment = async ({
@@ -83,5 +81,6 @@ export function useProductPurchaseFlow() {
     setIsPendingVerification,
     initStripePayment,
     submitManualPayment,
+    paymentModal,
   }
 }

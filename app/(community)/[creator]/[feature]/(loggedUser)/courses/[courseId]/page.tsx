@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { useToast } from "@/components/ui/use-toast"
 import { useCourseSession } from "@/hooks/use-course-session"
+import { PaymentProviderModal } from "@/components/payment-provider-modal"
+import { usePaymentProviderModal } from "@/lib/hooks/use-payment-provider-modal"
 
 type CoursePlayerPageProps = {
   params: Promise<{ creator: string; feature: string; courseId: string }>
@@ -53,6 +55,12 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
     onRefreshEnrollment: async () => {
       await refreshEnrollmentProgress(resolvedCourseIdForSession, course)
     },
+  })
+
+  const coursePagePaymentModal = usePaymentProviderModal({
+    initStripe: () => (coursesApi as any).initStripePayment(String(course?.mongoId || courseId), undefined),
+    initKonnect: () => (coursesApi as any).initKonnectPayment(String(course?.mongoId || courseId), undefined),
+    onError: (err: any) => toast({ title: "Checkout failed", description: err?.message || "Please try again.", variant: "destructive" }),
   })
 
   const refreshEnrollmentProgress = async (
@@ -344,13 +352,8 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
       try {
         setIsEnrolling(true)
         toast({ title: "Redirecting to payment...", description: "Taking you to secure checkout." })
-        const result = await (coursesApi as any).initStripePayment(resolvedCourseId, undefined)
-        const checkoutUrl = result?.data?.checkoutUrl ?? result?.checkoutUrl
-        if (checkoutUrl) {
-          window.location.href = checkoutUrl
-          return
-        }
-        throw new Error("Unable to start checkout. Please try again.")
+        setIsEnrolling(false)
+        coursePagePaymentModal.open()
       } catch (error) {
         toast({
           title: "Checkout failed",
@@ -476,6 +479,11 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
 
   return (
     <>
+      <PaymentProviderModal
+        open={coursePagePaymentModal.isOpen}
+        onOpenChange={coursePagePaymentModal.close}
+        onSelect={coursePagePaymentModal.handleSelect}
+      />
       <CoursePlayer
         creatorSlug={creator}
         slug={feature}
