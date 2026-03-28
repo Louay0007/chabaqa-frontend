@@ -1323,5 +1323,30 @@
       "goToAllowedArea": "الانتقال إلى منطقة مسموح بها",
       "reevaluateLanding": "إعادة تقييم صفحة البداية"
     }
+  },
+  "ticket": {
+    "verifyTitle": "التحقق من التذكرة",
+    "verifiedAuthentic": "تذكرة أصلية موثقة",
+    "verifiedAt": "تم التحقق في {time}",
+    "verificationFailed": "فشل التحقق",
+    "ticketNotVerified": "لا يمكن التحقق من هذه التذكرة.",
+    "qrExpiredOrInvalid": "قد يكون رمز QR منتهي الصلاحية أو غير صالح أو تم التلاعب به.",
+    "event": "الحدث",
+    "attendee": "الحضور",
+    "checkedIn": "تم تسجيل الحضور",
+    "registeredOn": "مسجل {date}",
+    "hostedBy": "بواسطة {name}",
+    "presentAtEntrance": "قدّم عند المدخل",
+    "secureTicket": "تذكرة آمنة",
+    "validFor": "صالحة لمدة {duration}",
+    "downloadQr": "تحميل QR",
+    "share": "مشاركة",
+    "joinOnline": "انضم للحدث عبر الإنترنت",
+    "backToEvents": "العودة للأحداث",
+    "loadingTicket": "جاري تحميل تذكرتك…",
+    "verifyingTicket": "جاري التحقق من التذكرة…",
+    "qrUnavailable": "QR غير متوفر",
+    "verifiedBy": "موثق من شبقة · تذكرة رقمية آمنة",
+    "cryptoSigned": "هذه تذكرة رقمية موقعة تشفيرياً صادرة عن Chabaqa.io"
   }
 }

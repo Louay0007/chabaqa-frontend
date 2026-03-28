@@ -1322,5 +1322,30 @@
       "goToAllowedArea": "Go To Allowed Area",
       "reevaluateLanding": "Re-evaluate Landing"
     }
+  },
+  "ticket": {
+    "verifyTitle": "Verify Ticket",
+    "verifiedAuthentic": "Verified Authentic Ticket",
+    "verifiedAt": "Verified at {time}",
+    "verificationFailed": "Verification Failed",
+    "ticketNotVerified": "This ticket could not be verified.",
+    "qrExpiredOrInvalid": "The QR code may be expired, invalid, or tampered with.",
+    "event": "Event",
+    "attendee": "Attendee",
+    "checkedIn": "Checked In",
+    "registeredOn": "Registered {date}",
+    "hostedBy": "Hosted by {name}",
+    "presentAtEntrance": "Present at entrance",
+    "secureTicket": "Secure ticket",
+    "validFor": "Valid for {duration}",
+    "downloadQr": "Download QR",
+    "share": "Share",
+    "joinOnline": "Join Online Event",
+    "backToEvents": "Back to Events",
+    "loadingTicket": "Loading your ticket…",
+    "verifyingTicket": "Verifying ticket…",
+    "qrUnavailable": "QR unavailable",
+    "verifiedBy": "Verified by Chabaqa · Secure digital ticket",
+    "cryptoSigned": "This is a cryptographically signed digital ticket issued by Chabaqa.io"
   }
 }
