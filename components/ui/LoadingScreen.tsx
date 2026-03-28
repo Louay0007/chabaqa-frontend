@@ -1,22 +1,27 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { usePathname } from 'next/navigation'
 
 export default function LoadingScreen() {
-  const [fading, setFading] = useState(false)
-  const [gone,   setGone]   = useState(false)
+  const [visible, setVisible] = useState(true)
+  const [fading, setFading]   = useState(false)
+  const pathname = usePathname()
+  const isFirst = useRef(true)
 
   useEffect(() => {
-    if (sessionStorage.getItem('app_loaded')) {
-      setGone(true)
-      return
+    if (isFirst.current) {
+      isFirst.current = false
+    } else {
+      setVisible(true)
+      setFading(false)
     }
-    sessionStorage.setItem('app_loaded', '1')
-    const t1 = setTimeout(() => setFading(true),  900)
-    const t2 = setTimeout(() => setGone(true),    1250)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [])
 
-  if (gone) return null
+    const t1 = setTimeout(() => setFading(true),  900)
+    const t2 = setTimeout(() => setVisible(false), 1250)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [pathname])
+
+  if (!visible) return null
 
   return (
     <div
