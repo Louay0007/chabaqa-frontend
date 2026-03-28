@@ -87,14 +87,6 @@ export function PaymentProviderModal({
       borderColor: "border-[#6772E5]",
       hoverBg: "hover:bg-[#6772E5]/5",
     },
-    {
-      id: "konnect",
-      label: "Konnect",
-      sublabel: "D17 · Flouci · Local cards · Tunisia",
-      Logo: KonnectLogo,
-      borderColor: "border-[#FF6B35]",
-      hoverBg: "hover:bg-[#FF6B35]/5",
-    },
   ]
 
   return (
