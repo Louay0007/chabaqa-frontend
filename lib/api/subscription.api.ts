@@ -405,4 +405,8 @@ export const subscriptionApi = {
   initStripePayment: async (tier: PlanTier, interval: 'month' | 'year' = 'month'): Promise<any> => {
     return apiClient.post('/payment/stripe-link/init/subscription', { tier, interval });
   },
+
+  initKonnectPayment: async (tier: PlanTier): Promise<any> => {
+    return apiClient.post('/payment/konnect/init/subscription', { tier });
+  },
 };

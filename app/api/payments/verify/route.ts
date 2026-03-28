@@ -2,18 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * API endpoint to verify payment status
- * Gets called after user returns from Stripe checkout
+ * Gets called after user returns from Stripe / Flouci / Konnect checkout
  */
 export async function GET(req: NextRequest) {
   try {
     const sessionId = req.nextUrl.searchParams.get('sessionId');
     const paymentId = req.nextUrl.searchParams.get('paymentId');
+    const paymentRef = req.nextUrl.searchParams.get('paymentRef');
     const authHeader = req.headers.get('authorization');
     const incomingCookies = req.headers.get('cookie') || '';
 
-    if (!sessionId && !paymentId) {
+    if (!sessionId && !paymentId && !paymentRef) {
       return NextResponse.json(
-        { message: 'sessionId or paymentId query parameter is required' },
+        { message: 'sessionId, paymentId, or paymentRef query parameter is required' },
         { status: 400 }
       );
     }
@@ -35,12 +36,24 @@ export async function GET(req: NextRequest) {
       ? backendUrl 
       : `http://localhost:3000${backendUrl}`;
 
-    const isStripeSession = Boolean(sessionId);
-    const verifyPath = isStripeSession
-      ? `/payment/stripe-link/verify?sessionId=${encodeURIComponent(sessionId as string)}`
-      : `/payment/verify?paymentId=${encodeURIComponent(paymentId as string)}`;
+    let verifyPath: string;
+    let providerLabel: string;
 
-    console.log(`[Payment Verify] Verifying ${isStripeSession ? 'stripe session' : 'payment'} at ${finalBackendUrl}${verifyPath}`);
+    if (paymentRef) {
+      // Konnect payment verification
+      verifyPath = `/payment/konnect/verify?paymentRef=${encodeURIComponent(paymentRef)}`;
+      providerLabel = 'konnect';
+    } else if (sessionId) {
+      // Stripe session verification
+      verifyPath = `/payment/stripe-link/verify?sessionId=${encodeURIComponent(sessionId)}`;
+      providerLabel = 'stripe session';
+    } else {
+      // Flouci payment verification
+      verifyPath = `/payment/verify?paymentId=${encodeURIComponent(paymentId as string)}`;
+      providerLabel = 'flouci payment';
+    }
+
+    console.log(`[Payment Verify] Verifying ${providerLabel} at ${finalBackendUrl}${verifyPath}`);
 
     // Call the backend verification endpoint
     const response = await fetch(

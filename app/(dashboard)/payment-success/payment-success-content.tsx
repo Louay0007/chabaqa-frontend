@@ -64,7 +64,8 @@ export default function PaymentSuccessContent() {
   const scope = searchParams.get('scope');
   const id = searchParams.get('id');
   const chapterId = searchParams.get('chapterId') || id;
-  const provider = searchParams.get('provider'); // Add provider check
+  const provider = searchParams.get('provider');
+  const paymentRef = searchParams.get('paymentRef');
 
   console.log('Payment Success Params:', searchParams.toString());
   console.log('Session ID:', sessionId);
@@ -76,8 +77,8 @@ export default function PaymentSuccessContent() {
 
   useEffect(() => {
     const verifyPayment = async () => {
-      if (!sessionId) {
-        setError('No session ID provided');
+      if (!sessionId && !paymentRef) {
+        setError('No payment identifier provided');
         setLoading(false);
         return;
       }
@@ -85,7 +86,9 @@ export default function PaymentSuccessContent() {
       try {
         // Determine correct endpoint based on provider
         let verifyUrl = `/api/payments/verify?paymentId=${sessionId}`; // Default to Flouci
-        if (provider === 'stripe' || provider === 'stripe-link') {
+        if (provider === 'konnect' && paymentRef) {
+          verifyUrl = `/api/payments/verify?paymentRef=${paymentRef}`;
+        } else if (provider === 'stripe' || provider === 'stripe-link') {
           verifyUrl = `/api/payments/verify?sessionId=${sessionId}`;
         }
 
@@ -178,7 +181,7 @@ export default function PaymentSuccessContent() {
     };
 
     verifyPayment();
-  }, [sessionId, provider, id, scope, router, toast]);
+  }, [sessionId, paymentRef, provider, id, scope, router, toast]);
 
   // Helper to access data safely
   const paymentData = verificationData?.data || verificationData;

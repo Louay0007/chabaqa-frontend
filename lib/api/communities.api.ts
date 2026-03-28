@@ -510,4 +510,19 @@ export const communitiesApi = {
       ...(inviteCode ? { inviteCode } : {}),
     });
   },
+
+  initKonnectPayment: async (
+    communityId: string,
+    promoCode?: string,
+    inviteCode?: string,
+  ): Promise<any> => {
+    const endpoint = promoCode
+      ? `/payment/konnect/init/community?promoCode=${encodeURIComponent(promoCode)}`
+      : `/payment/konnect/init/community`;
+
+    return apiClient.post<any>(endpoint, {
+      communityId,
+      ...(inviteCode ? { inviteCode } : {}),
+    });
+  },
 };
