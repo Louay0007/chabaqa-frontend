@@ -13,6 +13,7 @@ import {
   Globe,
   Tag,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 
 interface VerificationData {
@@ -60,6 +61,7 @@ export function TicketVerifyClient({ token }: { token: string }) {
   const [data, setData] = useState<VerificationData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
     const verify = async () => {
@@ -73,6 +75,7 @@ export function TicketVerifyClient({ token }: { token: string }) {
           return;
         }
         setData(json.data);
+        setTimeout(() => setRevealed(true), 100);
       } catch {
         setError("Unable to verify ticket. Please try again.");
       } finally {
@@ -85,9 +88,15 @@ export function TicketVerifyClient({ token }: { token: string }) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#f0ecff] via-white to-[#e8e4ff] flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-10 w-10 animate-spin text-[#8e78fb] mx-auto" />
-          <p className="text-sm text-[#46426a]">Verifying ticket…</p>
+        <div className="text-center space-y-4 animate-pulse">
+          <div className="h-16 w-16 rounded-2xl bg-[#8e78fb]/10 flex items-center justify-center mx-auto">
+            <ShieldCheck className="h-8 w-8 text-[#8e78fb]" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-[#1a1730]">Verifying ticket…</p>
+            <p className="text-xs text-[#9590b8]">Checking cryptographic signature</p>
+          </div>
+          <Loader2 className="h-5 w-5 animate-spin text-[#8e78fb] mx-auto" />
         </div>
       </div>
     );
@@ -95,21 +104,23 @@ export function TicketVerifyClient({ token }: { token: string }) {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#fff0f0] via-white to-[#ffe8e8] flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center space-y-4">
-          <div className="h-16 w-16 rounded-full bg-red-50 flex items-center justify-center mx-auto">
-            <ShieldAlert className="h-8 w-8 text-red-500" />
+      <div className="min-h-screen bg-gradient-to-br from-[#fff5f5] via-white to-[#ffe8e8] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-red-500 to-rose-500 p-6 text-center">
+            <div className="h-14 w-14 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-3">
+              <ShieldAlert className="h-7 w-7 text-white" />
+            </div>
+            <h1 className="text-lg font-bold text-white">Verification Failed</h1>
           </div>
-          <h1 className="text-xl font-bold text-[#1a1730]">
-            Verification Failed
-          </h1>
-          <p className="text-sm text-[#46426a]">
-            {error || "This ticket could not be verified."}
-          </p>
-          <p className="text-xs text-[#9590b8]">
-            The QR code may be expired, invalid, or tampered with.
-          </p>
-          <div className="pt-4 border-t border-[#e8e4ff]">
+          <div className="p-6 text-center space-y-3">
+            <p className="text-sm text-[#46426a]">
+              {error || "This ticket could not be verified."}
+            </p>
+            <p className="text-xs text-[#9590b8]">
+              The QR code may be expired, invalid, or tampered with. Please contact the event organizer if you believe this is an error.
+            </p>
+          </div>
+          <div className="border-t border-[#f1eeff] bg-[#faf9ff] px-6 py-4">
             <ChabaqaWatermark />
           </div>
         </div>
@@ -127,26 +138,35 @@ export function TicketVerifyClient({ token }: { token: string }) {
     day: "numeric",
   });
 
-  const typeColor =
-    ev.type === "Online"
-      ? "bg-cyan-50 text-cyan-700 border-cyan-200"
-      : ev.type === "Hybrid"
-        ? "bg-purple-50 text-purple-700 border-purple-200"
-        : "bg-amber-50 text-amber-700 border-amber-200";
+  const typeConfig: Record<string, { bg: string; text: string; border: string; icon: typeof Globe }> = {
+    Online: { bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-200", icon: Globe },
+    Hybrid: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200", icon: Sparkles },
+    "In-person": { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", icon: MapPin },
+  };
+  const tc = typeConfig[ev.type] || typeConfig["In-person"];
+  const TypeIcon = tc.icon;
+
+  const initials = att.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f0ecff] via-[#f7f7fe] to-[#e8e4ff] p-4 sm:p-8">
-      <div className="max-w-lg mx-auto space-y-4">
+      <div className={`max-w-lg mx-auto space-y-4 transition-all duration-700 ${revealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
+
         {/* Verification Status Banner */}
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+          <div className="h-11 w-11 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
             <ShieldCheck className="h-5 w-5 text-emerald-600" />
           </div>
-          <div>
-            <p className="text-sm font-semibold text-emerald-800">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-emerald-800">
               ✓ Verified Authentic Ticket
             </p>
-            <p className="text-xs text-emerald-600">
+            <p className="text-xs text-emerald-600 truncate">
               Verified at{" "}
               {new Date(data.verifiedAt).toLocaleString("en-US", {
                 dateStyle: "medium",
@@ -157,25 +177,26 @@ export function TicketVerifyClient({ token }: { token: string }) {
         </div>
 
         {/* Main Ticket Card */}
-        <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(142,120,251,0.12)] overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-[0_8px_32px_rgba(142,120,251,0.12)] overflow-hidden">
           {/* Event Image / Purple Header */}
           {ev.image ? (
-            <div className="relative h-48 overflow-hidden">
+            <div className="relative h-52 overflow-hidden">
               <img
                 src={ev.image}
                 alt={ev.title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-5">
-                <h1 className="text-xl font-bold text-white leading-tight">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <p className="text-[10px] text-white/70 uppercase tracking-widest mb-1 font-medium">Event</p>
+                <h1 className="text-xl font-bold text-white leading-tight drop-shadow-sm">
                   {ev.title}
                 </h1>
               </div>
             </div>
           ) : (
-            <div className="bg-gradient-to-r from-[#8e78fb] to-[#6c52f0] p-6">
-              <p className="text-xs text-white/70 uppercase tracking-widest mb-1">
+            <div className="bg-gradient-to-br from-[#8e78fb] via-[#7c6cf0] to-[#6c52f0] p-7">
+              <p className="text-[10px] text-white/60 uppercase tracking-widest mb-1 font-medium">
                 Event
               </p>
               <h1 className="text-xl font-bold text-white leading-tight">
@@ -184,53 +205,60 @@ export function TicketVerifyClient({ token }: { token: string }) {
             </div>
           )}
 
+          {/* Rainbow accent bar */}
+          <div className="h-1 bg-gradient-to-r from-[#8e78fb] via-[#f65887] via-[#ff9b28] to-[#47c7ea]" />
+
           {/* Event Details */}
-          <div className="p-5 space-y-4">
+          <div className="p-6 space-y-5">
             {/* Type & Category Badges */}
             <div className="flex flex-wrap gap-2">
               <span
-                className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border ${typeColor}`}
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border ${tc.bg} ${tc.text} ${tc.border}`}
               >
-                {ev.type === "Online" ? (
-                  <Globe className="h-3 w-3" />
-                ) : (
-                  <MapPin className="h-3 w-3" />
-                )}
+                <TypeIcon className="h-3 w-3" />
                 {ev.type}
               </span>
-              <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-[#f0ecff] text-[#6c52f0] border border-[#e8e4ff]">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-[#f0ecff] text-[#6c52f0] border border-[#e8e4ff]">
                 <Tag className="h-3 w-3" />
                 {ev.category}
               </span>
             </div>
 
             {/* Date, Time, Location */}
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               <div className="flex items-center gap-3 text-sm">
-                <CalendarDays className="h-4 w-4 text-[#8e78fb] flex-shrink-0" />
+                <div className="h-8 w-8 rounded-lg bg-[#f0ecff] flex items-center justify-center flex-shrink-0">
+                  <CalendarDays className="h-4 w-4 text-[#8e78fb]" />
+                </div>
                 <span className="text-[#1a1730] font-medium">
                   {formattedDate}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-sm">
-                <Clock className="h-4 w-4 text-[#8e78fb] flex-shrink-0" />
+                <div className="h-8 w-8 rounded-lg bg-[#f0ecff] flex items-center justify-center flex-shrink-0">
+                  <Clock className="h-4 w-4 text-[#8e78fb]" />
+                </div>
                 <span className="text-[#1a1730]">
                   {ev.startTime} – {ev.endTime}{" "}
-                  <span className="text-[#9590b8]">({ev.timezone})</span>
+                  <span className="text-[#9590b8] text-xs">({ev.timezone})</span>
                 </span>
               </div>
               {ev.location && (
                 <div className="flex items-center gap-3 text-sm">
-                  <MapPin className="h-4 w-4 text-[#8e78fb] flex-shrink-0" />
+                  <div className="h-8 w-8 rounded-lg bg-[#f0ecff] flex items-center justify-center flex-shrink-0">
+                    <MapPin className="h-4 w-4 text-[#8e78fb]" />
+                  </div>
                   <span className="text-[#1a1730]">{ev.location}</span>
                 </div>
               )}
               {ev.communityName && (
                 <div className="flex items-center gap-3 text-sm">
-                  <User className="h-4 w-4 text-[#8e78fb] flex-shrink-0" />
+                  <div className="h-8 w-8 rounded-lg bg-[#f0ecff] flex items-center justify-center flex-shrink-0">
+                    <User className="h-4 w-4 text-[#8e78fb]" />
+                  </div>
                   <span className="text-[#46426a]">
                     Hosted by{" "}
-                    <span className="font-medium text-[#1a1730]">
+                    <span className="font-semibold text-[#1a1730]">
                       {ev.creatorName || ev.communityName}
                     </span>
                   </span>
@@ -238,42 +266,39 @@ export function TicketVerifyClient({ token }: { token: string }) {
               )}
             </div>
 
-            {/* Dashed Divider — like a real ticket tear line */}
-            <div className="relative py-2">
+            {/* Dashed Divider — realistic ticket tear line */}
+            <div className="relative py-1">
               <div className="border-t-2 border-dashed border-[#e8e4ff]" />
-              <div className="absolute -left-5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-gradient-to-br from-[#f0ecff] to-[#e8e4ff]" />
-              <div className="absolute -right-5 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-gradient-to-br from-[#f0ecff] to-[#e8e4ff]" />
+              <div className="absolute -left-6 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-gradient-to-br from-[#f0ecff] to-[#e8e4ff]" />
+              <div className="absolute -right-6 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-gradient-to-br from-[#f0ecff] to-[#e8e4ff]" />
             </div>
 
             {/* Attendee Info */}
-            <div className="bg-[#f8f7ff] rounded-xl p-4 space-y-3">
-              <p className="text-xs text-[#9590b8] uppercase tracking-wider font-medium">
+            <div className="bg-gradient-to-br from-[#f8f7ff] to-[#f0ecff] rounded-xl p-5 space-y-3 border border-[#e8e4ff]">
+              <p className="text-[10px] text-[#8e78fb] uppercase tracking-widest font-bold">
                 Attendee
               </p>
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#8e78fb] to-[#6c52f0] flex items-center justify-center text-white font-bold text-sm">
-                  {att.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase()}
+                <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[#8e78fb] to-[#6c52f0] flex items-center justify-center text-white font-bold text-sm shadow-[0_4px_12px_rgba(142,120,251,0.3)]">
+                  {initials}
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-[#1a1730]">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-[#1a1730] truncate">
                     {att.name}
                   </p>
-                  <p className="text-xs text-[#9590b8]">{att.email}</p>
+                  <p className="text-xs text-[#9590b8] truncate">{att.email}</p>
                 </div>
               </div>
             </div>
 
             {/* Ticket Info */}
-            <div className="flex items-center justify-between bg-gradient-to-r from-[#8e78fb]/5 to-[#6c52f0]/5 rounded-xl p-4 border border-[#e8e4ff]">
-              <div className="flex items-center gap-3">
-                <Ticket className="h-5 w-5 text-[#8e78fb]" />
-                <div>
-                  <p className="text-sm font-semibold text-[#1a1730]">
+            <div className="flex items-center justify-between bg-white rounded-xl p-4 border-2 border-[#e8e4ff] shadow-sm">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#8e78fb]/10 to-[#6c52f0]/10 flex items-center justify-center flex-shrink-0">
+                  <Ticket className="h-5 w-5 text-[#8e78fb]" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-[#1a1730] truncate">
                     {data.ticketInfo?.name || att.ticketType}
                   </p>
                   <p className="text-xs text-[#9590b8]">
@@ -285,7 +310,7 @@ export function TicketVerifyClient({ token }: { token: string }) {
                 </div>
               </div>
               {att.checkedIn && (
-                <div className="flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200 flex-shrink-0">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Checked In
                 </div>
@@ -294,15 +319,15 @@ export function TicketVerifyClient({ token }: { token: string }) {
           </div>
 
           {/* Chabaqa Watermark Footer */}
-          <div className="border-t border-[#f1eeff] bg-[#faf9ff] px-5 py-4">
+          <div className="border-t border-[#f1eeff] bg-gradient-to-r from-[#faf9ff] to-[#f8f7ff] px-6 py-4">
             <ChabaqaWatermark />
           </div>
         </div>
 
         {/* Security Note */}
-        <p className="text-center text-[10px] text-[#9590b8]">
-          This is a cryptographically signed digital ticket issued by
-          Chabaqa.io
+        <p className="text-center text-[10px] text-[#9590b8] leading-relaxed">
+          This is a cryptographically signed digital ticket<br />
+          issued and verified by <span className="font-semibold text-[#8e78fb]">Chabaqa.io</span>
         </p>
       </div>
     </div>
@@ -311,30 +336,13 @@ export function TicketVerifyClient({ token }: { token: string }) {
 
 function ChabaqaWatermark() {
   return (
-    <div className="flex items-center justify-center gap-2">
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 40 40"
-        fill="none"
-        className="flex-shrink-0"
-      >
-        <rect width="40" height="40" rx="8" fill="#8e78fb" fillOpacity="0.1" />
-        <path
-          d="M20 8C13.4 8 8 13.4 8 20s5.4 12 12 12 12-5.4 12-12S26.6 8 20 8zm0 21.6c-5.3 0-9.6-4.3-9.6-9.6S14.7 10.4 20 10.4 29.6 14.7 29.6 20 25.3 29.6 20 29.6z"
-          fill="#8e78fb"
-        />
-        <path
-          d="M22.4 15.2l-4.8 4.8 4.8 4.8"
-          stroke="#8e78fb"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+    <div className="flex items-center justify-center gap-2.5">
+      <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#8e78fb]/10 to-[#6c52f0]/10 flex items-center justify-center">
+        <ShieldCheck className="h-4 w-4 text-[#8e78fb]" />
+      </div>
       <div>
-        <p className="text-xs font-semibold text-[#8e78fb]">Chabaqa</p>
-        <p className="text-[10px] text-[#9590b8]">
+        <p className="text-xs font-bold text-[#8e78fb] leading-tight">chabaqa.</p>
+        <p className="text-[10px] text-[#9590b8] leading-tight">
           Verified Digital Ticket
         </p>
       </div>
