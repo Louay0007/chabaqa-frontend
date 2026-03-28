@@ -23,6 +23,8 @@ export function Header() {
   const isAuthenticated = !!authUser
   const profileHandle = getUserProfileHandle(authUser)
   const withLocale = (href: string) => localizeHref(pathname, href)
+  const isArabic = pathname.startsWith("/ar")
+  const logoSrc = isArabic ? "/Logos/PNG/arabic.png" : "/Logos/PNG/frensh1.png"
 
   const NAV_LINKS = [
     { href: "/#features", label: t("features") },
@@ -107,7 +109,7 @@ export function Header() {
       >
         {/* Logo */}
         <Link href={withLocale("/")} aria-label="Chabaqa — go to homepage" className="flex-shrink-0">
-          <Image src="/Logos/PNG/frensh1.png" alt="Chabaqa" width={112} height={28} className="h-9 w-auto" priority />
+          <Image src={logoSrc} alt="Chabaqa" width={112} height={28} className="h-9 w-auto" priority />
         </Link>
 
         {/* Desktop links */}
