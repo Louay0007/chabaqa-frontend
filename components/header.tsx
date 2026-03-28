@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { getUserProfileHandle } from "@/lib/profile-handle"
 import { useTranslations } from "next-intl"
 import { localizeHref } from "@/lib/i18n/client"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -130,6 +131,7 @@ export function Header() {
 
         {/* Right CTA */}
         <div className="flex items-center gap-2">
+          <ThemeToggle size="sm" />
           {loading ? null : !isAuthenticated ? (
             <>
               <Link

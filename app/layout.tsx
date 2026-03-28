@@ -12,6 +12,7 @@ import { CookieConsentProvider } from "@/components/cookie-consent-provider"
 import { ArabicAutoTranslate } from "@/components/arabic-auto-translate"
 import { PwaServiceWorker } from "@/components/pwa-service-worker"
 import LoadingScreen from "@/components/ui/LoadingScreen"
+import { ThemeProvider } from "@/components/theme-provider"
 import { DEFAULT_LOCALE, getLocaleDirection, isAppLocale, LOCALE_COOKIE } from "@/lib/i18n/config"
 import { getMessagesForLocale } from "@/lib/i18n/messages"
 import {
@@ -126,8 +127,9 @@ export default async function RootLayout({
         className={`${inter.variable} ${tajawal.variable} ${locale === "ar" ? "font-arabic" : "font-latin"}`}
         suppressHydrationWarning
       >
-        <LoadingScreen />
-        <NextIntlClientProvider locale={locale} messages={messages}>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <LoadingScreen />
+          <NextIntlClientProvider locale={locale} messages={messages}>
           <ReactQueryProvider>
             <ExtensionErrorGuard />
             {children}
@@ -142,7 +144,8 @@ export default async function RootLayout({
               {JSON.stringify(generateWebSiteSchema())}
             </Script>
           </ReactQueryProvider>
-        </NextIntlClientProvider>
+          </NextIntlClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -29,7 +29,7 @@ export default function LoadingScreen() {
       aria-label="Loading"
       className="fixed inset-0 z-[9999] flex items-center justify-center"
       style={{
-        background: '#f5f5f5',
+        background: 'var(--bg)',
         transition: 'opacity 0.35s cubic-bezier(.4,0,.2,1)',
         opacity: fading ? 0 : 1,
         pointerEvents: fading ? 'none' : 'auto',
