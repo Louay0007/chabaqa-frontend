@@ -25,6 +25,9 @@ export function Header() {
   const withLocale = (href: string) => localizeHref(pathname, href)
   const isArabic = pathname.startsWith("/ar")
   const logoSrc = isArabic ? "/Logos/PNG/arabic.png" : "/Logos/PNG/frensh1.png"
+  const logoWidth = isArabic ? 156 : 112
+  const logoHeight = isArabic ? 40 : 28
+  const logoClassName = isArabic ? "h-11 w-auto" : "h-9 w-auto"
 
   const NAV_LINKS = [
     { href: "/#features", label: t("features") },
@@ -109,7 +112,7 @@ export function Header() {
       >
         {/* Logo */}
         <Link href={withLocale("/")} aria-label="Chabaqa — go to homepage" className="flex-shrink-0">
-          <Image src={logoSrc} alt="Chabaqa" width={112} height={28} className="h-9 w-auto" priority />
+          <Image src={logoSrc} alt="Chabaqa" width={logoWidth} height={logoHeight} className={logoClassName} priority />
         </Link>
 
         {/* Desktop links */}
