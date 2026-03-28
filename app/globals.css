@@ -109,7 +109,6 @@
   }
   body {
     @apply bg-background text-foreground;
-    transition: background 0.3s ease, color 0.3s ease;
   }
 
   .font-latin {
@@ -952,58 +951,4 @@ body {
   58%       { stroke-dasharray:40 400; stroke-width:30; stroke-dashoffset:-225; }
   78%       { stroke-dasharray:40 400; stroke-width:30; stroke-dashoffset:-395; }
   86%,to   { stroke-dasharray:0 440;  stroke-width:20; stroke-dashoffset:-440; }
-}
-
-/* ── Global dark mode overrides ────────────────────────────────────────
-   Automatically remap Tailwind's hardcoded gray/white utilities so the
-   entire UI responds to the .dark class without editing 1 900+ usages. */
-
-/* Backgrounds */
-.dark .bg-white        { background-color: var(--white) !important; }
-.dark .bg-gray-50      { background-color: var(--bg) !important; }
-.dark .bg-gray-100     { background-color: var(--section-alt) !important; }
-.dark .bg-gray-200     { background-color: var(--bd) !important; }
-
-/* Text */
-.dark .text-gray-900   { color: var(--t1) !important; }
-.dark .text-gray-800   { color: var(--t1) !important; }
-.dark .text-gray-700   { color: var(--t2) !important; }
-.dark .text-gray-600   { color: var(--t2) !important; }
-.dark .text-gray-500   { color: var(--t3) !important; }
-.dark .text-gray-400   { color: var(--t3) !important; }
-.dark .text-black      { color: var(--t1) !important; }
-
-/* Borders */
-.dark .border-gray-100 { border-color: var(--bd) !important; }
-.dark .border-gray-200 { border-color: var(--bd) !important; }
-.dark .border-gray-300 { border-color: var(--bd2) !important; }
-.dark .border-white     { border-color: var(--bd) !important; }
-
-/* Divide */
-.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: var(--bd) !important; }
-.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--bd) !important; }
-
-/* Ring */
-.dark .ring-gray-200   { --tw-ring-color: var(--bd) !important; }
-.dark .ring-gray-100   { --tw-ring-color: var(--bd) !important; }
-
-/* Slate equivalents (some components use slate-) */
-.dark .bg-slate-50     { background-color: var(--bg) !important; }
-.dark .bg-slate-100    { background-color: var(--section-alt) !important; }
-.dark .bg-slate-200    { background-color: var(--bd) !important; }
-.dark .text-slate-900  { color: var(--t1) !important; }
-.dark .text-slate-800  { color: var(--t1) !important; }
-.dark .text-slate-700  { color: var(--t2) !important; }
-.dark .text-slate-600  { color: var(--t2) !important; }
-.dark .text-slate-500  { color: var(--t3) !important; }
-.dark .border-slate-200 { border-color: var(--bd) !important; }
-.dark .border-slate-300 { border-color: var(--bd2) !important; }
-
-/* Placeholder text */
-.dark .placeholder-gray-400::placeholder  { color: var(--t3) !important; }
-.dark .placeholder-gray-500::placeholder  { color: var(--t3) !important; }
-
-/* Shadow softening in dark mode */
-.dark [class*="shadow-"] {
-  --tw-shadow-color: rgba(0, 0, 0, 0.3);
 }

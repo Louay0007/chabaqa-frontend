@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import Image from "next/image"
-import { ThemeToggle } from "@/components/theme-toggle"
 
 import {
   DropdownMenu,
@@ -302,7 +301,6 @@ export function AppHeader({ userType, currentCommunity, showCommunitySelector = 
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <ThemeToggle size="sm" />
 
           {/* Notifications */}
           <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
@@ -319,7 +317,7 @@ export function AppHeader({ userType, currentCommunity, showCommunitySelector = 
                 )}
               </Button>
             </SheetTrigger>
-          <SheetContent className="relative overflow-hidden bg-[radial-gradient(120%_80%_at_10%_0%,#f7f5ff_0%,#ffffff_55%)] dark:bg-[radial-gradient(120%_80%_at_10%_0%,#1e1a35_0%,#1c1a2e_55%)]">
+          <SheetContent className="relative overflow-hidden bg-[radial-gradient(120%_80%_at_10%_0%,#f7f5ff_0%,#ffffff_55%)]">
             <div className="pointer-events-none absolute -top-24 right-0 h-60 w-60 rounded-full bg-[#86e4fd]/35 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-24 left-0 h-72 w-72 rounded-full bg-[#8e78fb]/20 blur-3xl" />
             <SheetHeader className="relative space-y-3">
@@ -328,7 +326,7 @@ export function AppHeader({ userType, currentCommunity, showCommunitySelector = 
                   <SheetTitle className="text-xl tracking-tight">Notifications</SheetTitle>
                   <SheetDescription className="text-sm">Stay updated with your community activity</SheetDescription>
                 </div>
-                <div className="flex items-center gap-2 rounded-full border border-border bg-background/70 px-3 py-1 text-xs font-semibold text-foreground shadow-sm">
+                <div className="flex items-center gap-2 rounded-full border border-white/60 bg-white/70 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm">
                   <span>{unreadCount}</span>
                   <span className="text-muted-foreground">unread</span>
                 </div>
@@ -342,7 +340,7 @@ export function AppHeader({ userType, currentCommunity, showCommunitySelector = 
             </SheetHeader>
             <div className="mt-6 space-y-4">
               {notifications.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-border bg-background/80 p-6 text-center text-sm text-muted-foreground shadow-sm">
+                <div className="rounded-2xl border border-dashed border-border-color bg-white/80 p-6 text-center text-sm text-muted-foreground shadow-sm">
                   You&apos;re all caught up.
                 </div>
               )}
@@ -355,7 +353,7 @@ export function AppHeader({ userType, currentCommunity, showCommunitySelector = 
                       <div
                         key={notification.id}
                         className={cn(
-                          "group relative overflow-hidden rounded-2xl border bg-background/80 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+                          "group relative overflow-hidden rounded-2xl border bg-white/80 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
                           notification.unread ? "border-[#8e78fb]/30" : "border-border-color",
                         )}
                       >
@@ -369,7 +367,7 @@ export function AppHeader({ userType, currentCommunity, showCommunitySelector = 
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <h4 className="text-sm font-semibold text-foreground">{notification.title}</h4>
+                                <h4 className="text-sm font-semibold text-gray-900">{notification.title}</h4>
                                 <p className="mt-1 text-sm text-muted-foreground">{notification.message}</p>
                               </div>
                               {notification.unread && <div className="mt-1 h-2 w-2 rounded-full bg-[#8e78fb]" />}
@@ -395,7 +393,7 @@ export function AppHeader({ userType, currentCommunity, showCommunitySelector = 
                       <div
                         key={notification.id}
                         className={cn(
-                          "group relative overflow-hidden rounded-2xl border bg-background/80 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+                          "group relative overflow-hidden rounded-2xl border bg-white/80 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
                           notification.unread ? "border-[#8e78fb]/30" : "border-border-color",
                         )}
                       >
@@ -409,7 +407,7 @@ export function AppHeader({ userType, currentCommunity, showCommunitySelector = 
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <h4 className="text-sm font-semibold text-foreground">{notification.title}</h4>
+                                <h4 className="text-sm font-semibold text-gray-900">{notification.title}</h4>
                                 <p className="mt-1 text-sm text-muted-foreground">{notification.message}</p>
                               </div>
                               {notification.unread && <div className="mt-1 h-2 w-2 rounded-full bg-[#8e78fb]" />}
