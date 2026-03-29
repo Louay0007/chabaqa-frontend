@@ -219,13 +219,8 @@ export default function CourseAnalyticsPage() {
         <AIInsightsPanel
           contentType="course"
           contentId={courseId}
-          from={new Date(Date.now() - (timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : timeRange === "90d" ? 90 : 365) * 86400000).toISOString().slice(0, 10)}
-          to={new Date().toISOString().slice(0, 10)}
           communityId={communityId}
-          onGenerate={async (payload) => {
-            const res = await insightsMutation.mutateAsync(payload as any);
-            return { data: res as any };
-          }}
+          plan={planTier}
         />
       </AnalyticsPlanGate>
     </DashboardShell>

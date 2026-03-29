@@ -412,10 +412,10 @@ export const creatorAnalyticsApi = {
     return apiClient.get<ApiSuccessResponse<CompareResponse>>('/analytics/creator/compare', params);
   },
   getSessionQuality: async (sessionId: string, params?: { from?: string; to?: string }): Promise<ApiSuccessResponse<SessionQualityResponse>> => {
-    return apiClient.get<ApiSuccessResponse<SessionQualityResponse>>(\`/analytics/creator/sessions/\${sessionId}/quality\`, params);
+    return apiClient.get<ApiSuccessResponse<SessionQualityResponse>>(`/analytics/creator/sessions/${sessionId}/quality`, params);
   },
   getChallengeStreaks: async (challengeId: string, params?: { from?: string; to?: string }): Promise<ApiSuccessResponse<ChallengeStreaksResponse>> => {
-    return apiClient.get<ApiSuccessResponse<ChallengeStreaksResponse>>(\`/analytics/creator/challenges/\${challengeId}/streaks\`, params);
+    return apiClient.get<ApiSuccessResponse<ChallengeStreaksResponse>>(`/analytics/creator/challenges/${challengeId}/streaks`, params);
   },
   getWeeklyReport: async (): Promise<ApiSuccessResponse<WeeklyReportResponse | null>> => {
     return apiClient.get<ApiSuccessResponse<WeeklyReportResponse | null>>('/analytics/creator/weekly-report');

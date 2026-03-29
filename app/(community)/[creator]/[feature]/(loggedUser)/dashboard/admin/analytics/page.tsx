@@ -308,7 +308,7 @@ export default function AdminAnalyticsPage() {
   const dailyTrend = ovData.dailyTrend ?? ovData.trend ?? ovData.daily ?? [];
 
   // Change from compare
-  const viewsChange = compareViews.data?.data?.change ?? compareViews.data?.change;
+  const viewsChange = (compareViews.data as any)?.data?.change ?? (compareViews.data as any)?.change;
 
   // ── Guards ────────────────────────────────────────
   if (dashLoading) return <DashboardLoading message="Loading analytics..." />;
@@ -464,7 +464,7 @@ export default function AdminAnalyticsPage() {
             <CardHeader><CardTitle>Courses Performance</CardTitle></CardHeader>
             <CardContent>
               <ContentTable
-                items={courses.data?.data?.items ?? courses.data?.data ?? courses.data?.courses ?? []}
+                items={(courses.data as any)?.data?.items ?? (courses.data as any)?.data ?? []}
                 isLoading={courses.isLoading}
                 contentType="courses"
                 basePath={basePath}
@@ -571,7 +571,7 @@ export default function AdminAnalyticsPage() {
           <AnalyticsPlanGate requiredPlan="growth" currentPlan={planTier}>
             {revenue.data?.data && (
               <RevenueByContentChart
-                data={revenue.data.data.byContent ?? []}
+                items={revenue.data.data.byContent ?? []}
                 totalRevenue={revenue.data.data.totalRevenue ?? 0}
                 currency={revenue.data.data.currency ?? "TND"}
               />
@@ -591,7 +591,7 @@ export default function AdminAnalyticsPage() {
         {/* ─── Geography Tab (Growth+) ───────────────── */}
         <TabsContent value="geography" className="space-y-6">
           <AnalyticsPlanGate requiredPlan="growth" currentPlan={planTier}>
-            <GeographyTable data={geography.data?.data?.data ?? []} />
+            <GeographyTable rows={(geography.data?.data as any)?.data ?? []} />
           </AnalyticsPlanGate>
         </TabsContent>
       </Tabs>

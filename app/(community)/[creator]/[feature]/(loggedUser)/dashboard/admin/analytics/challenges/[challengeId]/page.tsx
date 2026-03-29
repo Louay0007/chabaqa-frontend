@@ -144,7 +144,7 @@ export default function ChallengeAnalyticsPage() {
 
       {/* Conversion Funnel */}
       <div className="mb-6">
-        <FunnelChart steps={funnelData?.funnel ?? []} title="Challenge Conversion Funnel" />
+        <FunnelChart steps={(funnelData?.funnel ?? []).map((s: any) => ({ label: s.stepLabel, value: s.uniqueUsers ?? s.events ?? 0 }))} />
       </div>
 
       {/* Drop-off Info */}
@@ -166,13 +166,8 @@ export default function ChallengeAnalyticsPage() {
         <AIInsightsPanel
           contentType="challenge"
           contentId={challengeId}
-          from={new Date(Date.now() - (timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : timeRange === "90d" ? 90 : 365) * 86400000).toISOString().slice(0, 10)}
-          to={new Date().toISOString().slice(0, 10)}
           communityId={communityId}
-          onGenerate={async (payload) => {
-            const res = await insightsMutation.mutateAsync(payload as any);
-            return { data: res as any };
-          }}
+          plan={planTier}
         />
       </AnalyticsPlanGate>
     </DashboardShell>
