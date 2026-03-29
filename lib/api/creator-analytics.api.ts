@@ -194,6 +194,115 @@ export interface CourseAnalyticsResponse {
   meta: CourseAnalyticsMeta;
 }
 
+
+// ═══════════════════════════════════════════════════════
+// Phase 3: New Response Types
+// ═══════════════════════════════════════════════════════
+
+export interface RevenueByContentItem {
+  contentType: string;
+  contentId: string;
+  revenue: number;
+  views: number;
+  starts: number;
+  completes: number;
+  revenueShare: number;
+}
+
+export interface RevenueTrendPoint {
+  date: string;
+  revenue: number;
+  orders: number;
+}
+
+export interface RevenueResponse {
+  totalRevenue: number;
+  currency: string;
+  totalOrders: number;
+  avgOrderValue: number;
+  byContent: RevenueByContentItem[];
+  trend: RevenueTrendPoint[];
+}
+
+export interface GeographyItem {
+  code: string;
+  name: string;
+  views: number;
+  share: number;
+}
+
+export interface GeographyResponse {
+  granularity: 'country' | 'city';
+  data: GeographyItem[];
+}
+
+export interface RetentionWeek {
+  week: number;
+  retained: number;
+  rate: number;
+}
+
+export interface RetentionCohort {
+  cohortLabel: string;
+  cohortStart: string;
+  cohortSize: number;
+  weeks: RetentionWeek[];
+}
+
+export interface RetentionResponse {
+  cohorts: RetentionCohort[];
+}
+
+export interface CompareTrendPoint {
+  date: string;
+  value: number;
+}
+
+export interface CompareResponse {
+  metric: string;
+  current: { value: number; trend: CompareTrendPoint[] };
+  previous: { value: number; trend: CompareTrendPoint[] };
+  change: number;
+  changeDirection: 'up' | 'down';
+}
+
+export interface SessionQualityResponse {
+  sessionId: string;
+  totalBookings: number;
+  showUpRate: number;
+  noShowRate: number;
+  rebookingRate: number;
+  avgRating: number;
+  completedSessions: number;
+  revenue: number;
+}
+
+export interface ChallengeStreaksResponse {
+  challengeId: string;
+  activeChallengers: number;
+  dailyActiveRate: number;
+  avgStreakDays: number;
+  maxStreakDays: number;
+  completionRate: number;
+}
+
+export interface WeeklyReportHighlight {
+  metric: string;
+  value: number;
+  change: number;
+}
+
+export interface WeeklyReportResponse {
+  creatorId: string;
+  weekStart: string;
+  plan: string;
+  summary: string;
+  topIssues: Array<{ stepId: string; stepTitle: string; metricEvidence: string[]; hypothesis: string }>;
+  fixes: Array<{ title: string; whyItHelps: string; exactCreatorAction: string }>;
+  highlights: WeeklyReportHighlight[];
+  deliveredAt?: string;
+}
+
 export const creatorAnalyticsApi = {
   getOverview: async (params?: CreatorAnalyticsParams): Promise<ApiSuccessResponse<any>> => {
     return apiClient.get<ApiSuccessResponse<any>>('/analytics/creator/overview', params);
@@ -284,5 +393,31 @@ export const creatorAnalyticsApi = {
   },
   updateBankCredentials: async (payload: TunisianBankCredentials): Promise<BankCredentialsResponse> => {
     return apiClient.put<BankCredentialsResponse>('/payouts/bank-credentials', payload);
+  },
+
+  // ═══════════════════════════════════════════════
+  // Phase 3: New API Methods
+  // ═══════════════════════════════════════════════
+
+  getRevenue: async (params?: CreatorAnalyticsParams & { contentType?: string; contentId?: string }): Promise<ApiSuccessResponse<RevenueResponse>> => {
+    return apiClient.get<ApiSuccessResponse<RevenueResponse>>('/analytics/creator/revenue', params);
+  },
+  getGeography: async (params?: CreatorAnalyticsParams & { granularity?: 'country' | 'city' }): Promise<ApiSuccessResponse<GeographyResponse>> => {
+    return apiClient.get<ApiSuccessResponse<GeographyResponse>>('/analytics/creator/geography', params);
+  },
+  getRetention: async (params?: CreatorAnalyticsParams & { period?: 'weekly' | 'monthly' }): Promise<ApiSuccessResponse<RetentionResponse>> => {
+    return apiClient.get<ApiSuccessResponse<RetentionResponse>>('/analytics/creator/retention', params);
+  },
+  getCompare: async (params: CreatorAnalyticsParams & { compareFrom: string; compareTo: string; metric: string }): Promise<ApiSuccessResponse<CompareResponse>> => {
+    return apiClient.get<ApiSuccessResponse<CompareResponse>>('/analytics/creator/compare', params);
+  },
+  getSessionQuality: async (sessionId: string, params?: { from?: string; to?: string }): Promise<ApiSuccessResponse<SessionQualityResponse>> => {
+    return apiClient.get<ApiSuccessResponse<SessionQualityResponse>>(\`/analytics/creator/sessions/\${sessionId}/quality\`, params);
+  },
+  getChallengeStreaks: async (challengeId: string, params?: { from?: string; to?: string }): Promise<ApiSuccessResponse<ChallengeStreaksResponse>> => {
+    return apiClient.get<ApiSuccessResponse<ChallengeStreaksResponse>>(\`/analytics/creator/challenges/\${challengeId}/streaks\`, params);
+  },
+  getWeeklyReport: async (): Promise<ApiSuccessResponse<WeeklyReportResponse | null>> => {
+    return apiClient.get<ApiSuccessResponse<WeeklyReportResponse | null>>('/analytics/creator/weekly-report');
   },
 };

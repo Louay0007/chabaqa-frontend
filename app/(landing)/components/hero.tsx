@@ -463,6 +463,8 @@ export function Hero() {
           }
         }
       `}</style>
+      {/* Bottom fade to white */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none z-10" style={{ background: 'linear-gradient(to bottom, transparent, white)' }} aria-hidden="true" />
     </section>
   )
 }
