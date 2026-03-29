@@ -59,7 +59,7 @@ export default function ProgressionPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[var(--bg)]">
         <div className="container mx-auto flex min-h-[60vh] items-center justify-center px-4 py-8">
           <Card className="w-full max-w-lg border border-slate-200 bg-white shadow-sm">
             <CardContent className="flex items-center gap-3 py-8 text-sm text-muted-foreground">
@@ -75,7 +75,7 @@ export default function ProgressionPage({
   if (error) {
     console.error("Error loading progression page:", error)
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[var(--bg)]">
         <div className="container mx-auto flex min-h-[60vh] items-center justify-center px-4 py-8">
           <Card className="w-full max-w-lg border border-red-200 bg-white shadow-sm">
             <CardContent className="py-10 text-center">
@@ -103,7 +103,7 @@ export default function ProgressionPage({
 
   if (!community || !progression) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[var(--bg)]">
         <div className="container mx-auto flex min-h-[60vh] items-center justify-center px-4 py-8">
           <Card className="w-full max-w-lg border border-slate-200 bg-white shadow-sm">
             <CardContent className="py-10 text-center">

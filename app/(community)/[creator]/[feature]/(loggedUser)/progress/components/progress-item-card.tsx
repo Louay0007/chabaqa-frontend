@@ -159,7 +159,7 @@ export default function ProgressItemCard({ item }: ProgressItemCardProps) {
   })()
 
   return (
-    <Card className="overflow-hidden border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+    <Card className="overflow-hidden border border-[var(--bd)] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(142,120,251,.15)]">
       <CardContent className="p-0">
         <div className="flex flex-col md:flex-row md:items-center">
           <div className="relative h-44 w-full shrink-0 overflow-hidden rounded-t-lg md:mx-4 md:h-[184px] md:w-[248px] md:rounded-lg">
@@ -172,7 +172,7 @@ export default function ProgressItemCard({ item }: ProgressItemCardProps) {
                 className="object-contain object-center"
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[var(--bg)] to-[var(--bd)]">
                 <TypeIcon className={cn("h-10 w-10", typeConfig.color)} />
               </div>
             )}
@@ -188,16 +188,16 @@ export default function ProgressItemCard({ item }: ProgressItemCardProps) {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 space-y-1.5">
                 {item.community?.name && (
-                  <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <p className="flex items-center gap-1 text-xs text-[var(--t3)]">
                     <MapPin className="h-3.5 w-3.5" />
                     {item.community.name}
                   </p>
                 )}
-                <h3 className="text-lg font-semibold leading-snug text-foreground">
+                <h3 className="text-lg font-semibold leading-snug text-[var(--t1)]">
                   {item.title}
                 </h3>
                 {item.description && (
-                  <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                  <p className="line-clamp-2 text-sm leading-relaxed text-[var(--t2)]">
                     {item.description}
                   </p>
                 )}
@@ -215,12 +215,12 @@ export default function ProgressItemCard({ item }: ProgressItemCardProps) {
             {typeof item.progressPercent === "number" && (
               <div className="mt-4 space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Completion progress</span>
-                  <span className="font-medium text-foreground">{item.progressPercent}%</span>
+                  <span className="text-[var(--t3)]">Completion progress</span>
+                  <span className="font-medium text-[var(--t1)]">{item.progressPercent}%</span>
                 </div>
                 <Progress
                   value={item.progressPercent}
-                  className="h-2 bg-slate-100 [&>*]:bg-primary"
+                  className="h-2 bg-[var(--bd)] [&>*]:bg-[var(--p)]"
                 />
               </div>
             )}
@@ -232,10 +232,10 @@ export default function ProgressItemCard({ item }: ProgressItemCardProps) {
                   return (
                     <span
                       key={`${chip.label}-${chip.value}`}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-700"
+                      className="inline-flex items-center gap-1.5 rounded-md border border-[var(--bd)] bg-[var(--bg)] px-2.5 py-1 text-xs text-[var(--t2)]"
                     >
-                      {ChipIcon && <ChipIcon className="h-3.5 w-3.5 text-slate-500" />}
-                      <span className="text-slate-500">{chip.label}:</span>
+                      {ChipIcon && <ChipIcon className="h-3.5 w-3.5 text-[var(--t3)]" />}
+                      <span className="text-[var(--t3)]">{chip.label}:</span>
                       <span className="font-medium">{chip.value}</span>
                     </span>
                   )
@@ -243,8 +243,8 @@ export default function ProgressItemCard({ item }: ProgressItemCardProps) {
               </div>
             )}
 
-            <div className="mt-auto flex flex-col gap-3 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <div className="mt-auto flex flex-col gap-3 border-t border-[var(--bd)] pt-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="flex items-center gap-1.5 text-xs text-[var(--t3)]">
                 <Clock className="h-3.5 w-3.5" />
                 {timeLabel}
               </p>
@@ -265,7 +265,7 @@ export default function ProgressItemCard({ item }: ProgressItemCardProps) {
                 )}
 
                 {item.actions?.continue && item.status !== "completed" && (
-                  <Button size="sm" asChild className="h-9 gap-1.5 text-xs">
+                  <Button size="sm" asChild className="h-9 gap-1.5 text-xs bg-[var(--p)] hover:bg-[var(--p-dark)] text-white border-0">
                     <Link href={item.actions.continue}>
                       {item.status === "not_started" ? (
                         <>

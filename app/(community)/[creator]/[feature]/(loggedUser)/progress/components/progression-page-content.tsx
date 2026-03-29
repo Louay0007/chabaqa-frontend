@@ -190,7 +190,7 @@ export default function ProgressionPageContent({
   }, [fetchProgress, hasMore, pagination?.page, toast])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[var(--bg)]">
       <div className="container mx-auto px-4 py-8">
         <ProgressHeader
           summary={summary}
@@ -215,16 +215,16 @@ export default function ProgressionPageContent({
           {isLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <Card key={i} className="overflow-hidden border border-slate-200 bg-white shadow-sm">
+                <Card key={i} className="overflow-hidden border border-[var(--bd)] bg-white shadow-sm">
                   <CardContent className="p-0">
                     <div className="flex flex-col md:flex-row">
-                      <div className="h-44 w-full animate-pulse bg-slate-200 md:h-52 md:w-56" />
+                      <div className="h-44 w-full animate-pulse bg-[var(--bd)] md:h-52 md:w-56" />
                       <div className="flex-1 space-y-3 p-5">
-                        <div className="h-5 w-2/5 animate-pulse rounded bg-slate-200" />
-                        <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
-                        <div className="h-4 w-4/5 animate-pulse rounded bg-slate-100" />
-                        <div className="h-2 w-full animate-pulse rounded bg-slate-100" />
-                        <div className="h-9 w-36 animate-pulse rounded bg-slate-100" />
+                        <div className="h-5 w-2/5 animate-pulse rounded bg-[var(--bd)]" />
+                        <div className="h-4 w-full animate-pulse rounded bg-[var(--bg)]" />
+                        <div className="h-4 w-4/5 animate-pulse rounded bg-[var(--bg)]" />
+                        <div className="h-2 w-full animate-pulse rounded bg-[var(--bg)]" />
+                        <div className="h-9 w-36 animate-pulse rounded bg-[var(--bg)]" />
                       </div>
                     </div>
                   </CardContent>
@@ -238,7 +238,7 @@ export default function ProgressionPageContent({
                   <AlertCircle className="h-6 w-6" />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground">Unable to load progress</h3>
-                <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">{error}</p>
+                <p className="mx-auto mt-2 max-w-md text-sm text-[var(--t2)]">{error}</p>
                 <Button onClick={handleRefresh} variant="outline" className="mt-4 gap-2">
                   <RefreshCw className="h-4 w-4" />
                   Retry
@@ -246,10 +246,10 @@ export default function ProgressionPageContent({
               </CardContent>
             </Card>
           ) : filteredItems.length === 0 ? (
-            <Card className="border border-slate-200 bg-white shadow-sm">
+            <Card className="border border-[var(--bd)] bg-white shadow-sm">
               <CardContent className="py-12 text-center">
                 <h3 className="text-lg font-semibold text-foreground">No progress to show yet</h3>
-                <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+                <p className="mx-auto mt-2 max-w-xl text-sm text-[var(--t2)]">
                   Start a course, join a challenge, or register for an event to see your
                   progression history here.
                 </p>

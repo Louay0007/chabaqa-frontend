@@ -42,11 +42,11 @@ export default function ProgressTabs({
 
   return (
     <section className="mb-8 space-y-4">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="rounded-2xl border border-[var(--bd)] bg-white p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Learning Timeline</h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-[var(--t3)]">
               Filter your activity and continue where you left off.
             </p>
           </div>
@@ -67,17 +67,17 @@ export default function ProgressTabs({
 
         <div className="mt-4 flex flex-col gap-3">
           <div className="relative w-full">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--t3)]" />
             <Input
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search by title, description, or metadata"
-              className="h-10 rounded-xl border-slate-200 bg-slate-50 pl-9 focus-visible:bg-white"
+              className="h-10 rounded-xl border-[var(--bd)] bg-[var(--bg)] pl-9 focus-visible:bg-white"
             />
           </div>
 
           <Tabs value={typeFilter} onValueChange={onTypeChange} className="w-full">
-            <TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1">
+            <TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-xl border border-[var(--bd)] bg-[var(--bg)] p-1">
               <TabsTrigger
                 value="all"
                 className={cn(
@@ -85,7 +85,7 @@ export default function ProgressTabs({
                 )}
               >
                 All
-                <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">
+                <span className="ml-1.5 rounded bg-[var(--bd)] px-1.5 py-0.5 text-[11px] text-[var(--t2)]">
                   {summary.totalItems ?? 0}
                 </span>
               </TabsTrigger>
@@ -97,7 +97,7 @@ export default function ProgressTabs({
                   className="h-8 whitespace-nowrap rounded-lg px-3 text-sm font-medium capitalize data-[state=active]:bg-white data-[state=active]:shadow-sm"
                 >
                   {TYPE_CONFIG[type]?.label ?? type}
-                  <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">
+                  <span className="ml-1.5 rounded bg-[var(--bd)] px-1.5 py-0.5 text-[11px] text-[var(--t2)]">
                     {summary.byType?.[type]?.total ?? 0}
                   </span>
                 </TabsTrigger>

@@ -70,9 +70,9 @@ const TYPE_METADATA: Record<
   resource: {
     label: "Resources",
     icon: FileText,
-    color: "text-slate-600",
-    bgColor: "bg-slate-50",
-    borderColor: "border-slate-100",
+    color: "text-[var(--t2)]",
+    bgColor: "bg-[var(--bg)]",
+    borderColor: "border-[var(--bd)]",
   },
   community: {
     label: "Communities",
@@ -105,7 +105,7 @@ export default function ProgressByType({ summary }: ProgressByTypeProps) {
         </div>
         <div>
           <h2 className="text-lg font-semibold text-foreground">Progress by Content Type</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-[var(--t3)]">
             See where you are most active and where to continue next.
           </p>
         </div>
@@ -116,9 +116,9 @@ export default function ProgressByType({ summary }: ProgressByTypeProps) {
           const meta = TYPE_METADATA[type] || {
             label: type,
             icon: Layers,
-            color: "text-slate-600",
-            bgColor: "bg-slate-50",
-            borderColor: "border-slate-100",
+            color: "text-[var(--t2)]",
+            bgColor: "bg-[var(--bg)]",
+            borderColor: "border-[var(--bd)]",
           }
 
           const Icon = meta.icon
@@ -131,7 +131,7 @@ export default function ProgressByType({ summary }: ProgressByTypeProps) {
             <Card
               key={type}
               className={cn(
-                "border bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+                "border border-[var(--bd)] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
                 meta.borderColor,
               )}
             >
@@ -143,7 +143,7 @@ export default function ProgressByType({ summary }: ProgressByTypeProps) {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-foreground">{meta.label}</p>
-                      <p className="text-xs text-muted-foreground">{data.total} items</p>
+                      <p className="text-xs text-[var(--t3)]">{data.total} items</p>
                     </div>
                   </div>
                   <Badge
@@ -152,7 +152,7 @@ export default function ProgressByType({ summary }: ProgressByTypeProps) {
                       "font-medium",
                       completionRate >= 100
                         ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : "border-slate-200 bg-slate-50 text-slate-700",
+                        : "border-[var(--bd)] bg-[var(--bg)] text-[var(--t2)]",
                     )}
                   >
                     {completionRate}%
@@ -160,13 +160,13 @@ export default function ProgressByType({ summary }: ProgressByTypeProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs text-[var(--t3)]">
                     <span>Completion</span>
                     <span className="font-medium text-foreground">{completionRate}%</span>
                   </div>
                   <Progress
                     value={completionRate}
-                    className="h-2 bg-slate-100 [&>*]:bg-primary"
+                    className="h-2 bg-[var(--bd)] [&>*]:bg-[var(--p)]"
                   />
                 </div>
 
@@ -179,9 +179,9 @@ export default function ProgressByType({ summary }: ProgressByTypeProps) {
                     <p className="font-semibold text-blue-700">{inProgress}</p>
                     <p className="text-blue-600/80">Active</p>
                   </div>
-                  <div className="rounded-md bg-slate-100 px-2 py-1.5 text-center">
-                    <p className="font-semibold text-slate-700">{notStarted}</p>
-                    <p className="text-slate-600/80">Left</p>
+                  <div className="rounded-md bg-[var(--bg)] border border-[var(--bd)] px-2 py-1.5 text-center">
+                    <p className="font-semibold text-[var(--t1)]">{notStarted}</p>
+                    <p className="text-[var(--t3)]">Left</p>
                   </div>
                 </div>
               </CardContent>
