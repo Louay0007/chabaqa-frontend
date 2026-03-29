@@ -1348,5 +1348,118 @@
     "qrUnavailable": "QR غير متوفر",
     "verifiedBy": "موثق من شبقة · تذكرة رقمية آمنة",
     "cryptoSigned": "هذه تذكرة رقمية موقعة تشفيرياً صادرة عن Chabaqa.io"
+  },
+  "analytics": {
+    "pageTitle": "التحليلات",
+    "pageDescription": "رؤى معمقة حول أداء محتواك",
+    "backToDashboard": "العودة إلى لوحة التحكم",
+    "backToAnalytics": "العودة إلى التحليلات",
+    "tabs": {
+      "overview": "نظرة عامة",
+      "courses": "الدورات",
+      "challenges": "التحديات",
+      "sessions": "الجلسات",
+      "events": "الفعاليات",
+      "products": "المنتجات",
+      "posts": "المنشورات",
+      "audience": "الجمهور",
+      "revenue": "الإيرادات",
+      "geography": "الجغرافيا"
+    },
+    "kpis": {
+      "views": "إجمالي المشاهدات",
+      "starts": "البدايات",
+      "completes": "الإكمالات",
+      "completionRate": "معدل الإكمال",
+      "revenue": "الإيرادات",
+      "uniqueUsers": "الجمهور الفريد",
+      "watchTime": "وقت المشاهدة",
+      "avgRating": "متوسط التقييم",
+      "shares": "المشاركات",
+      "bookmarks": "المحفوظات",
+      "downloads": "التحميلات",
+      "enrollments": "التسجيلات",
+      "totalBookings": "إجمالي الحجوزات",
+      "showUpRate": "معدل الحضور",
+      "noShowRate": "معدل عدم الحضور",
+      "rebookingRate": "معدل إعادة الحجز",
+      "participants": "المشاركون",
+      "dailyActiveRate": "معدل النشاط اليومي",
+      "avgStreak": "متوسط السلسلة",
+      "maxStreak": "أقصى سلسلة"
+    },
+    "funnel": {
+      "title": "قمع التحويل",
+      "chapters": "قمع الفصول",
+      "tasks": "قمع المهام",
+      "chapterProgress": "قمع تقدم الفصول",
+      "dropOff": "نقطة الانسحاب",
+      "biggestDropOff": "أكبر نقطة انسحاب",
+      "noData": "لا توجد بيانات لهذه الفترة"
+    },
+    "insights": {
+      "generate": "توليد رؤى بالذكاء الاصطناعي",
+      "generating": "جاري التحليل...",
+      "growthRequired": "متاح في خطة Growth وما فوق",
+      "summary": "الملخص",
+      "topIssues": "أهم المشكلات المكتشفة",
+      "fixes": "الإصلاحات الموصى بها",
+      "experiments": "اقتراحات اختبار A/B",
+      "aiPowered": "رؤى الذكاء الاصطناعي"
+    },
+    "export": {
+      "button": "تصدير CSV",
+      "proRequired": "متاح في خطة Pro",
+      "downloading": "جاري تحضير التصدير..."
+    },
+    "timeRange": {
+      "7d": "آخر 7 أيام",
+      "30d": "آخر 30 يوم",
+      "90d": "آخر 3 أشهر",
+      "1y": "آخر سنة",
+      "custom": "فترة مخصصة"
+    },
+    "planGate": {
+      "upgradePrompt": "قم بالترقية إلى {plan} لفتح هذه الميزة",
+      "lockedBadge": "ميزة {plan}"
+    },
+    "weeklyReport": {
+      "title": "تقرير التحليلات الأسبوعي"
+    },
+    "revenue": {
+      "byContentType": "الإيرادات حسب نوع المحتوى",
+      "totalRevenue": "إجمالي الإيرادات",
+      "noData": "لا توجد بيانات إيرادات لهذه الفترة"
+    },
+    "geography": {
+      "title": "الجمهور حسب الدولة",
+      "noData": "لا تتوفر بيانات جغرافية بعد"
+    },
+    "devices": {
+      "title": "أجهزة الجمهور"
+    },
+    "referrers": {
+      "title": "مصادر الزيارات",
+      "topReferrers": "أهم المصادر"
+    },
+    "retention": {
+      "title": "مجموعات الاحتفاظ",
+      "noData": "لا تتوفر بيانات احتفاظ بعد"
+    },
+    "content": {
+      "title": "أداء المحتوى",
+      "viewDetails": "التفاصيل",
+      "noData": "لا توجد بيانات لهذه الفترة"
+    },
+    "dailyTrend": {
+      "title": "الاتجاه اليومي",
+      "description": "المشاهدات والإكمالات عبر الزمن"
+    },
+    "course": {
+      "deepDive": "تحليل عميق لأداء الدورة"
+    },
+    "challenge": {
+      "deepDive": "تحليل عميق لتفاعل التحدي"
+    }
   }
 }

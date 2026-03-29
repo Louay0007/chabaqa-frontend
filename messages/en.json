@@ -1347,5 +1347,118 @@
     "qrUnavailable": "QR unavailable",
     "verifiedBy": "Verified by Chabaqa · Secure digital ticket",
     "cryptoSigned": "This is a cryptographically signed digital ticket issued by Chabaqa.io"
+  },
+  "analytics": {
+    "pageTitle": "Analytics",
+    "pageDescription": "Deep insights into your content performance",
+    "backToDashboard": "Back to Dashboard",
+    "backToAnalytics": "Back to Analytics",
+    "tabs": {
+      "overview": "Overview",
+      "courses": "Courses",
+      "challenges": "Challenges",
+      "sessions": "Sessions",
+      "events": "Events",
+      "products": "Products",
+      "posts": "Posts",
+      "audience": "Audience",
+      "revenue": "Revenue",
+      "geography": "Geography"
+    },
+    "kpis": {
+      "views": "Total Views",
+      "starts": "Starts",
+      "completes": "Completions",
+      "completionRate": "Completion Rate",
+      "revenue": "Revenue",
+      "uniqueUsers": "Unique Audience",
+      "watchTime": "Watch Time",
+      "avgRating": "Avg Rating",
+      "shares": "Shares",
+      "bookmarks": "Saved",
+      "downloads": "Downloads",
+      "enrollments": "Enrollments",
+      "totalBookings": "Total Bookings",
+      "showUpRate": "Show-up Rate",
+      "noShowRate": "No-show Rate",
+      "rebookingRate": "Rebooking Rate",
+      "participants": "Participants",
+      "dailyActiveRate": "Daily Active Rate",
+      "avgStreak": "Avg Streak",
+      "maxStreak": "Max Streak"
+    },
+    "funnel": {
+      "title": "Conversion Funnel",
+      "chapters": "Chapter Funnel",
+      "tasks": "Task Funnel",
+      "chapterProgress": "Chapter Progress Funnel",
+      "dropOff": "Drop-off Point",
+      "biggestDropOff": "Biggest drop-off",
+      "noData": "No data for this period"
+    },
+    "insights": {
+      "generate": "Generate AI Insights",
+      "generating": "Analyzing...",
+      "growthRequired": "Available on Growth plan and above",
+      "summary": "Summary",
+      "topIssues": "Top Issues Detected",
+      "fixes": "Recommended Fixes",
+      "experiments": "A/B Test Suggestions",
+      "aiPowered": "AI Insights"
+    },
+    "export": {
+      "button": "Export CSV",
+      "proRequired": "Available on Pro plan",
+      "downloading": "Preparing export..."
+    },
+    "timeRange": {
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "90d": "Last 3 months",
+      "1y": "Last year",
+      "custom": "Custom range"
+    },
+    "planGate": {
+      "upgradePrompt": "Upgrade to {plan} to unlock this",
+      "lockedBadge": "{plan} Feature"
+    },
+    "weeklyReport": {
+      "title": "Weekly Analytics Report"
+    },
+    "revenue": {
+      "byContentType": "Revenue by Content Type",
+      "totalRevenue": "Total Revenue",
+      "noData": "No revenue data for this period"
+    },
+    "geography": {
+      "title": "Audience by Country",
+      "noData": "No geographic data available yet"
+    },
+    "devices": {
+      "title": "Audience Devices"
+    },
+    "referrers": {
+      "title": "Traffic Sources",
+      "topReferrers": "Top Referrers"
+    },
+    "retention": {
+      "title": "Retention Cohorts",
+      "noData": "No retention data available yet"
+    },
+    "content": {
+      "title": "Content Performance",
+      "viewDetails": "Details",
+      "noData": "No data for this period"
+    },
+    "dailyTrend": {
+      "title": "Daily Trend",
+      "description": "Views and completions over time"
+    },
+    "course": {
+      "deepDive": "Deep-dive into course performance"
+    },
+    "challenge": {
+      "deepDive": "Deep-dive into challenge engagement"
+    }
   }
 }
