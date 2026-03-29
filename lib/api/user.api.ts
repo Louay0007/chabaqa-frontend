@@ -14,12 +14,12 @@ export interface UpdateProfilePayload {
 }
 
 export interface ChangePasswordPayload {
-  currentPassword: string
+  currentPassword?: string
   newPassword: string
 }
 
 export interface DeleteAccountPayload {
-  currentPassword: string
+  currentPassword?: string
   confirmText: string
 }
 

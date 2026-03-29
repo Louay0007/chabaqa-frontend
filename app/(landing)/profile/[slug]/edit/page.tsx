@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { changePassword, deleteAccount, updateProfile } from "@/lib/api/user.api"
+import { changePassword, deleteAccount, updateProfile, type ChangePasswordPayload, type DeleteAccountPayload } from "@/lib/api/user.api"
 import { storageApi } from "@/lib/api/storage.api"
 import { useCurrentUser } from "@/lib/hooks/useUser"
 import { useAuthContext } from "@/app/providers/auth-provider"
@@ -104,15 +104,25 @@ export default function EditProfilePage() {
   const nameError = !fullName.trim() ? "Full name is required" : ""
   const emailError = !email.trim() ? "Email is required" : (!isValidEmail(email) ? "Enter a valid email address" : "")
   const BIO_MAX = 300
-  const isPasswordSameAsCurrent = !!currentPassword && !!newPassword && currentPassword === newPassword
+  const hasLocalPassword = (user as any)?.hasLocalPassword !== false
+  const isPasswordSameAsCurrent = hasLocalPassword && !!currentPassword && !!newPassword && currentPassword === newPassword
   const isPasswordMismatch = !!confirmNewPassword && newPassword !== confirmNewPassword
-  const canSubmitPassword =
-    currentPassword.trim().length >= 8 &&
-    newPassword.trim().length >= 8 &&
-    confirmNewPassword.trim().length >= 8 &&
-    !isPasswordSameAsCurrent &&
-    !isPasswordMismatch
-  const canDeleteAccount = deleteCurrentPassword.trim().length >= 8 && deleteConfirmText.trim() === "DELETE"
+  const canSubmitPassword = hasLocalPassword
+    ? (
+        currentPassword.trim().length >= 8 &&
+        newPassword.trim().length >= 8 &&
+        confirmNewPassword.trim().length >= 8 &&
+        !isPasswordSameAsCurrent &&
+        !isPasswordMismatch
+      )
+    : (
+        newPassword.trim().length >= 8 &&
+        confirmNewPassword.trim().length >= 8 &&
+        !isPasswordMismatch
+      )
+  const canDeleteAccount = hasLocalPassword
+    ? deleteCurrentPassword.trim().length >= 8 && deleteConfirmText.trim() === "DELETE"
+    : deleteConfirmText.trim() === "DELETE"
 
   useEffect(() => {
     // when SWR provides user, prefill
@@ -256,10 +266,10 @@ export default function EditProfilePage() {
     setPasswordError("")
     setPasswordSuccess("")
     try {
-      const result = await changePassword({
-        currentPassword: currentPassword.trim(),
-        newPassword: newPassword.trim(),
-      })
+      const payload: ChangePasswordPayload = hasLocalPassword
+        ? { currentPassword: currentPassword.trim(), newPassword: newPassword.trim() }
+        : { newPassword: newPassword.trim() }
+      const result = await changePassword(payload)
       setPasswordSuccess(result.message || "Password updated successfully.")
       setCurrentPassword("")
       setNewPassword("")
@@ -273,17 +283,19 @@ export default function EditProfilePage() {
 
   const onDeleteAccount = async () => {
     if (!canDeleteAccount) {
-      setDeleteError("Type DELETE and provide your current password to continue.")
+      setDeleteError(hasLocalPassword
+        ? "Type DELETE and provide your current password to continue."
+        : "Type DELETE to confirm account deletion.")
       return
     }
 
     setDeleteLoading(true)
     setDeleteError("")
     try {
-      await deleteAccount({
-        currentPassword: deleteCurrentPassword.trim(),
-        confirmText: deleteConfirmText.trim(),
-      })
+      const payload: DeleteAccountPayload = hasLocalPassword
+        ? { currentPassword: deleteCurrentPassword.trim(), confirmText: deleteConfirmText.trim() }
+        : { confirmText: deleteConfirmText.trim() }
+      await deleteAccount(payload)
 
       await mutate(null, { revalidate: false })
       await logout()
@@ -504,25 +516,37 @@ export default function EditProfilePage() {
             <div className="flex items-start justify-between gap-4 mb-5">
               <div>
                 <h2 className="text-xl font-bold text-text-primary">Security</h2>
-                <p className="text-sm text-text-secondary mt-1">Change your password to keep your account secure.</p>
+                <p className="text-sm text-text-secondary mt-1">
+                  {hasLocalPassword
+                    ? "Change your password to keep your account secure."
+                    : "Set a password to enable email/password login alongside Google."}
+                </p>
               </div>
             </div>
 
             <form className="space-y-5" onSubmit={onPasswordSubmit} noValidate>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5" htmlFor="currentPassword">Current Password</label>
-                <input
-                  id="currentPassword"
-                  name="currentPassword"
-                  type="password"
-                  className="w-full rounded-lg border border-border-color px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary transition"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  autoComplete="current-password"
-                  minLength={8}
-                  required
-                />
-              </div>
+              {hasLocalPassword ? (
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1.5" htmlFor="currentPassword">Current Password</label>
+                  <input
+                    id="currentPassword"
+                    name="currentPassword"
+                    type="password"
+                    className="w-full rounded-lg border border-border-color px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary transition"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    autoComplete="current-password"
+                    minLength={8}
+                    required
+                  />
+                </div>
+              ) : (
+                <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
+                  <p className="text-sm text-blue-800">
+                    You signed in with Google. Set a password below to also enable email/password login.
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
@@ -566,7 +590,7 @@ export default function EditProfilePage() {
                   disabled={passwordSaving || !canSubmitPassword}
                   className={`h-10 px-5 text-white font-semibold ${passwordSaving || !canSubmitPassword ? "bg-[#8e78fb]/60 hover:bg-[#8e78fb]/60" : "bg-[#8e78fb] hover:bg-[#7b61f8]"}`}
                 >
-                  {passwordSaving ? "Updating..." : "Update Password"}
+                  {passwordSaving ? "Updating..." : (hasLocalPassword ? "Update Password" : "Set Password")}
                 </Button>
               </div>
             </form>
@@ -605,25 +629,29 @@ export default function EditProfilePage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Account</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action is permanent. Enter your current password and type DELETE to confirm.
+                  {hasLocalPassword
+                    ? "This action is permanent. Enter your current password and type DELETE to confirm."
+                    : "This action is permanent. Type DELETE to confirm."}
                 </AlertDialogDescription>
               </AlertDialogHeader>
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-text-primary mb-1.5" htmlFor="deleteCurrentPassword">Current Password</label>
-                  <input
-                    id="deleteCurrentPassword"
-                    name="deleteCurrentPassword"
-                    type="password"
-                    className="w-full rounded-lg border border-border-color px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary transition"
-                    value={deleteCurrentPassword}
-                    onChange={(e) => setDeleteCurrentPassword(e.target.value)}
-                    autoComplete="current-password"
-                    minLength={8}
-                    required
-                  />
-                </div>
+                {hasLocalPassword && (
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-1.5" htmlFor="deleteCurrentPassword">Current Password</label>
+                    <input
+                      id="deleteCurrentPassword"
+                      name="deleteCurrentPassword"
+                      type="password"
+                      className="w-full rounded-lg border border-border-color px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary transition"
+                      value={deleteCurrentPassword}
+                      onChange={(e) => setDeleteCurrentPassword(e.target.value)}
+                      autoComplete="current-password"
+                      minLength={8}
+                      required
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-text-primary mb-1.5" htmlFor="deleteConfirmText">Type DELETE to confirm</label>
                   <input
