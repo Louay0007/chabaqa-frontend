@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Save, Palette, Type, Layout, Zap, Eye } from "lucide-react"
+import { ArrowLeft, Save, Palette, Type, Layout, Zap, Eye, Lock } from "lucide-react"
 import { ImageUpload } from "@/app/(dashboard)/components/image-upload"
 import { ColorPicker } from "@/app/(dashboard)/components/color-picker"
 import { communitiesApi } from "@/lib/api/communities.api"
@@ -1056,46 +1056,57 @@ export default function CustomizeCommunityPage() {
 
                   {/* Other Advanced Settings from original file would go here */}
                   <div className="space-y-6">
-                    <Label className="text-lg font-semibold">Custom Domain</Label>
-                    <div className="space-y-2">
-                      <Label htmlFor="customDomain">Domain Name</Label>
-                      <Input
-                        id="customDomain"
-                        placeholder="e.g., community.yourdomain.com"
-                        value={community.settings?.customDomain || ''}
-                        onChange={(e) => handleDomainChange(e.target.value)}
-                      />
-                      {customDomainStatus === "invalid" && (
-                        <p className="text-xs text-red-600 mt-1">
-                          Enter a valid hostname only (example: ai.chabaqa.io)
-                        </p>
-                      )}
-                      {customDomainStatus === "taken" && (
-                        <p className="text-xs text-red-600 mt-1">
-                          This custom domain is already used by another community.
-                        </p>
-                      )}
-                      {customDomainStatus === "valid" && (
-                        <p className="text-xs text-emerald-600 mt-1">
-                          Valid custom domain format.
-                        </p>
-                      )}
+                    <div className="flex items-center gap-2">
+                      <Label className="text-lg font-semibold">Custom Domain</Label>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[var(--p)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--p)]">
+                        <Lock className="h-3 w-3" />
+                        Pro feature
+                      </span>
+                    </div>
+                    <div className="relative space-y-2">
+                      <div className="pointer-events-none select-none opacity-50">
+                        <Label htmlFor="customDomain">Domain Name</Label>
+                        <Input
+                          id="customDomain"
+                          placeholder="e.g., community.yourdomain.com"
+                          value=""
+                          readOnly
+                          disabled
+                        />
+                      </div>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-white/70 backdrop-blur-[2px]">
+                        <Lock className="h-5 w-5 text-[var(--p)]" />
+                        <p className="text-sm font-medium text-[var(--t1)]">Upgrade to Pro to use a custom domain</p>
+                      </div>
                     </div>
                   </div>
 
                   <Separator />
 
                   <div className="space-y-6">
-                    <Label className="text-lg font-semibold">Custom Scripts</Label>
-                    <div className="space-y-2">
-                      <Label htmlFor="headerScripts">Header Scripts</Label>
-                      <Textarea
-                        id="headerScripts"
-                        rows={4}
-                        placeholder={`<script>...</script>`}
-                        value={community.settings?.headerScripts || ''}
-                        onChange={(e) => handleSettingsChange("headerScripts", e.target.value)}
-                      />
+                    <div className="flex items-center gap-2">
+                      <Label className="text-lg font-semibold">Custom Scripts</Label>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[var(--p)]/10 px-2 py-0.5 text-[11px] font-medium text-[var(--p)]">
+                        <Lock className="h-3 w-3" />
+                        Pro feature
+                      </span>
+                    </div>
+                    <div className="relative space-y-2">
+                      <div className="pointer-events-none select-none opacity-50">
+                        <Label htmlFor="headerScripts">Header Scripts</Label>
+                        <Textarea
+                          id="headerScripts"
+                          rows={4}
+                          placeholder="<script>...</script>"
+                          value=""
+                          readOnly
+                          disabled
+                        />
+                      </div>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-white/70 backdrop-blur-[2px]">
+                        <Lock className="h-5 w-5 text-[var(--p)]" />
+                        <p className="text-sm font-medium text-[var(--t1)]">Upgrade to Pro to add custom scripts</p>
+                      </div>
                     </div>
                   </div>
                 </TabsContent>
