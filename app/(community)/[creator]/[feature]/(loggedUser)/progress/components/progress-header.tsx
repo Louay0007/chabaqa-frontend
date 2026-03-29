@@ -18,7 +18,7 @@ export default function ProgressHeader({ summary, communityName }: ProgressHeade
 
   return (
     <div className="mb-6">
-      <div className="bg-gradient-to-r from-[var(--p)] to-[#6c52f0] rounded-xl p-4 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between">
+      <div className="bg-gradient-to-r from-rose-600 to-fuchsia-500 rounded-xl p-4 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between">
         <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-12 translate-x-12" />
         <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/10 rounded-full translate-y-8 -translate-x-8" />
 
@@ -27,7 +27,7 @@ export default function ProgressHeader({ summary, communityName }: ProgressHeade
             <TrendingUp className="h-6 w-6" />
             <h1 className="text-2xl font-bold">My Progress</h1>
           </div>
-          <p className="text-white/70 text-sm">
+          <p className="text-fuchsia-100 text-sm">
             {communityName ? `Your journey in ${communityName}` : "Tracking your learning journey"}
           </p>
         </div>
