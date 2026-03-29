@@ -41,6 +41,15 @@ const getDateRange = (fromProp?: string, toProp?: string) => {
   };
 };
 
+const stripMarkdown = (text: string): string => {
+  return text
+    .replace(/```[a-z]*\n?/gi, '')   // remove code fences like ```json
+    .replace(/```/g, '')              // remove closing fences
+    .replace(/^#+\s+/gm, '')         // remove heading markers
+    .replace(/\*\*(.*?)\*\*/g, '$1') // remove bold
+    .trim();
+};
+
 const confidenceColor = (c: string) => {
   if (c === "high") return "bg-green-100 text-green-700 border-green-300";
   if (c === "med") return "bg-yellow-100 text-yellow-700 border-yellow-300";
@@ -221,7 +230,7 @@ export function AIInsightsPanel({
               <TabsContent value="summary" className="mt-4">
                 {insights.summary ? (
                   <div className="space-y-3">
-                    {insights.summary.split(/\n\n+/).map((para, i) => (
+                    {stripMarkdown(insights.summary).split(/\n\n+/).map((para, i) => (
                       <p key={i} className="text-sm text-muted-foreground leading-relaxed">
                         {para}
                       </p>
@@ -258,7 +267,7 @@ export function AIInsightsPanel({
                           </ul>
                         )}
                         <p className="text-xs text-muted-foreground leading-relaxed border-t pt-2">
-                          {issue.hypothesis}
+                          {stripMarkdown(issue.hypothesis)}
                         </p>
                       </div>
                     ))}
@@ -275,7 +284,7 @@ export function AIInsightsPanel({
                     {insights.fixes.map((fix, idx) => (
                       <div key={idx} className="border rounded-xl p-4 space-y-2">
                         <p className="font-medium text-sm">{fix.title}</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">{fix.whyItHelps}</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{stripMarkdown(fix.whyItHelps)}</p>
                         <div className="bg-[var(--bg)] rounded-lg p-2.5 text-xs text-[var(--t1)] border">
                           <span className="font-medium text-[var(--p)]">Action: </span>
                           {fix.exactCreatorAction}
