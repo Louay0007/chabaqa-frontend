@@ -14,7 +14,6 @@ import {
   Ticket,
   Clock,
   Download,
-  Share2,
   ExternalLink,
   Globe,
   Loader2,
@@ -119,22 +118,6 @@ export default function EventQrPage() {
     a.click();
   };
 
-  const handleShare = async () => {
-    if (!verifyUrl) return;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Ticket: ${registration?.event?.title || "Event"}`,
-          text: "My event ticket from Chabaqa",
-          url: verifyUrl,
-        });
-      } catch {
-        /* user cancelled */
-      }
-    } else {
-      await navigator.clipboard.writeText(verifyUrl);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f0ecff] via-[#f7f7fe] to-[#e8e4ff]">
@@ -282,15 +265,6 @@ export default function EventQrPage() {
               >
                 <Download className="h-3.5 w-3.5 me-1.5" />
                 Download QR
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 h-9 text-xs border-[#e8e4ff] text-[#46426a] hover:bg-[#f8f7ff]"
-                onClick={handleShare}
-              >
-                <Share2 className="h-3.5 w-3.5 me-1.5" />
-                Share
               </Button>
             </div>
 

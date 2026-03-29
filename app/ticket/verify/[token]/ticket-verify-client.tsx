@@ -37,6 +37,7 @@ interface VerificationData {
   attendee: {
     name: string;
     email: string;
+    profilePicture?: string;
     ticketType: string;
     registeredAt: string;
     checkedIn: boolean;
@@ -279,8 +280,27 @@ export function TicketVerifyClient({ token }: { token: string }) {
                 Attendee
               </p>
               <div className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[#8e78fb] to-[#6c52f0] flex items-center justify-center text-white font-bold text-sm shadow-[0_4px_12px_rgba(142,120,251,0.3)]">
-                  {initials}
+                <div className="h-11 w-11 rounded-xl overflow-hidden flex-shrink-0 shadow-[0_4px_12px_rgba(142,120,251,0.3)]">
+                  {att.profilePicture ? (
+                    <img
+                      src={att.profilePicture}
+                      alt={att.name}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        target.style.display = "none";
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.classList.add("bg-gradient-to-br", "from-[#8e78fb]", "to-[#6c52f0]", "flex", "items-center", "justify-center", "text-white", "font-bold", "text-sm");
+                          parent.textContent = initials;
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-gradient-to-br from-[#8e78fb] to-[#6c52f0] flex items-center justify-center text-white font-bold text-sm">
+                      {initials}
+                    </div>
+                  )}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-[#1a1730] truncate">
