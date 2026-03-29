@@ -219,7 +219,7 @@ export function Hero() {
   const STAT_COLORS = ['#8e78fb', '#ff9b28', '#47c7ea', '#f65887']
 
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 md:px-12 pt-28 pb-20 overflow-hidden" aria-label="Hero">
+    <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 md:px-12 pt-28 pb-20 overflow-hidden bg-white" aria-label="Hero">
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         <div
