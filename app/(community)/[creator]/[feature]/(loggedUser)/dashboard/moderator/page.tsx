@@ -6,7 +6,7 @@ import {
   DashboardShell,
   DashboardSection,
   StatCard,
-  DashboardCard,
+  ActionCard,
   DashboardLoading,
   DashboardUnauthorized,
 } from "../components";
@@ -55,7 +55,7 @@ export default function ModeratorDashboardPage() {
   }
 
   // Calculate stats from queue
-  const queue = queueData?.queue ?? [];
+  const queue = queueData?.items ?? [];
   const pendingCount = queue.filter((item: any) => item.status === "pending").length;
   const reviewedToday = queue.filter((item: any) => {
     if (item.reviewedAt) {
@@ -65,7 +65,7 @@ export default function ModeratorDashboardPage() {
     }
     return false;
   }).length;
-  const pinnedCount = pinnedData?.posts?.length ?? 0;
+  const pinnedCount = (pinnedData as any)?.length ?? 0;
   const flaggedCount = queue.filter((item: any) => item.type === "flagged").length;
 
   const anyLoading = queueLoading || pinnedLoading;
@@ -146,7 +146,7 @@ export default function ModeratorDashboardPage() {
       <DashboardSection title="Quick Actions" description="Common moderation tasks" className="mb-8">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {actionCards.map((card) => (
-            <DashboardCard
+            <ActionCard
               key={card.title}
               title={card.title}
               description={card.description}

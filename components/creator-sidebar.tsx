@@ -145,7 +145,7 @@ export function CreatorSidebar() {
       // Fetch all counts in parallel
       const [coursesRes, challengesRes, sessionsRes, postsRes] = await Promise.all([
         api.courses.getByCreator(userId, { limit: 1 }).catch(() => ({ data: { courses: [], pagination: { total: 0, page: 1, limit: 1, totalPages: 0 } } })),
-        api.challenges.getByCreator(userId, { limit: 1, status: 'active' }).catch(() => ({ data: { courses: [], pagination: { total: 0, page: 1, limit: 1, totalPages: 0 } } })),
+        api.challenges.getByCreator(userId, { limit: 1 } as any).catch(() => ({ data: { courses: [], pagination: { total: 0, page: 1, limit: 1, totalPages: 0 } } })),
         api.sessions.getByCreator(userId, { limit: 1 }).catch(() => ({ data: { courses: [], pagination: { total: 0, page: 1, limit: 1, totalPages: 0 } } })),
         api.posts.getByCreator(userId, { page: 1, limit: 1 }).catch(() => ({ posts: [], pagination: { total: 0, page: 1, limit: 1, totalPages: 0 } } as any)),
       ])

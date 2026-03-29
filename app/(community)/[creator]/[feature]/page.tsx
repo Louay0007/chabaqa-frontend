@@ -3,7 +3,8 @@ import { redirect } from "next/navigation"
 export default async function FeaturePage({
   params,
 }: {
-  params: { creator: string; feature: string }
+  params: Promise<{ creator: string; feature: string }>
 }) {
-  redirect(`/${params.creator}/${params.feature}/home`)
+  const { creator, feature } = await params
+  redirect(`/${creator}/${feature}/home`)
 }

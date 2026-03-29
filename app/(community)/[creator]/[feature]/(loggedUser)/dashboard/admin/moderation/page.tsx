@@ -67,7 +67,7 @@ const MOCK_AUTOMOD_RULES = [
 ];
 
 export default function AdminModerationPage() {
-  const { role, can, isLoading, canAccessDashboard, getDashboardPath, creatorSlug } = useDashboard();
+  const { role, can, isLoading, canAccessDashboard, getDashboardPath, creatorSlug, communityId } = useDashboard();
   const basePath = getDashboardPath("admin");
   const [tab, setTab] = useState("queue");
 
@@ -113,8 +113,8 @@ export default function AdminModerationPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard title="Pending Review" value="12" description="Items in queue" icon={Clock} />
           <StatCard title="Flagged Today" value="5" description="New reports" icon={Flag} />
-          <StatCard title="Auto-blocked" value="23" description="This week" icon={Shield} trend={{ value: 15, isPositive: false }} />
-          <StatCard title="Health Score" value="94%" description="Community health" icon={TrendingUp} trend={{ value: 2, isPositive: true }} />
+          <StatCard title="Auto-blocked" value="23" description="This week" icon={Shield} trend={{ value: 15 }} />
+          <StatCard title="Health Score" value="94%" description="Community health" icon={TrendingUp} trend={{ value: 2 }} />
         </div>
       </DashboardSection>
 
@@ -128,7 +128,7 @@ export default function AdminModerationPage() {
 
         {/* Content Queue Tab */}
         <TabsContent value="queue">
-          <ModerationQueue />
+          <ModerationQueue communityId={communityId} />
         </TabsContent>
 
         {/* Flagged Users Tab */}

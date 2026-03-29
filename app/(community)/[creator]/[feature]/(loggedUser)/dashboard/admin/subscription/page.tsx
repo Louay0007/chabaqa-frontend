@@ -159,7 +159,7 @@ export default function SubscriptionManagementPage() {
   // ── Render guards ────────────────────────────────────────────────
 
   if (dashLoading || subLoading) return <DashboardLoading />;
-  if (!canAccessDashboard || !can(CommunityPermission.MANAGE_COMMUNITY)) {
+  if (!canAccessDashboard || !can(CommunityPermission.COMMUNITY_MANAGE_SETTINGS)) {
     return <DashboardUnauthorized />;
   }
 
@@ -175,7 +175,7 @@ export default function SubscriptionManagementPage() {
   const isCanceled = sub?.cancelAtPeriodEnd;
 
   return (
-    <DashboardShell>
+    <DashboardShell variant="admin">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link href={getDashboardPath("admin")} className="text-muted-foreground hover:text-foreground">

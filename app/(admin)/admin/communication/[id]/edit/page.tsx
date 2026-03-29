@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
@@ -42,7 +43,8 @@ interface EmailTemplate {
   variables: string[]
 }
 
-export default function EditCampaignPage({ params }: { params: { id: string } }) {
+export default function EditCampaignPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params)
   const router = useRouter()
   const { isAuthenticated, loading: authLoading } = useAdminAuth()
 
@@ -81,16 +83,16 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
       setLoadingTemplates(true)
       try {
         const [campaignRes, templatesRes] = await Promise.all([
-          adminApi.communication.getEmailCampaignById(params.id),
+          adminApi.communication.getEmailCampaignById(id),
           adminApi.communication.getEmailTemplates(),
         ])
 
-        const campaignData = campaignRes?.data?.campaign || campaignRes?.data || {}
+        const campaignData = (campaignRes?.data?.campaign || campaignRes?.data || {}) as any
         const templatesData = templatesRes?.data || {}
         const templatesList = Array.isArray(templatesData)
           ? templatesData
           : templatesData?.templates || []
-        setTemplates(templatesList)
+        setTemplates(templatesList as any)
 
         reset({
           name: campaignData?.name || campaignData?.title || "",
@@ -106,7 +108,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
       } catch (error) {
         console.error("[Edit Campaign] Fetch error:", error)
         toast.error("Failed to load campaign data")
-        router.push(`/admin/communication/${params.id}`)
+        router.push(`/admin/communication/${id}`)
       } finally {
         setLoading(false)
         setLoadingTemplates(false)
@@ -114,7 +116,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
     }
 
     fetchData()
-  }, [isAuthenticated, authLoading, params.id, reset, router])
+  }, [isAuthenticated, authLoading, id, reset, router])
 
   const handleTemplateSelect = (templateId: string) => {
     const template = templates.find((t) => t._id === templateId)
@@ -136,7 +138,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
               .filter((id) => id.length > 0)
           : []
 
-      await adminApi.communication.updateEmailCampaign(params.id, {
+      await adminApi.communication.updateEmailCampaign(id, {
         name: data.name,
         subject: data.subject,
         content: data.content,
@@ -147,7 +149,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
       } as any)
 
       toast.success("Campaign updated successfully")
-      router.push(`/admin/communication/${params.id}`)
+      router.push(`/admin/communication/${id}`)
     } catch (error: any) {
       console.error("[Edit Campaign] Update error:", error)
       toast.error(error?.message || "Failed to update campaign")
@@ -170,7 +172,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.push(`/admin/communication/${params.id}`)}>
+        <Button variant="ghost" size="icon" onClick={() => router.push(`/admin/communication/${id}`)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -257,7 +259,7 @@ export default function EditCampaignPage({ params }: { params: { id: string } })
         </Card>
 
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => router.push(`/admin/communication/${params.id}`)}>
+          <Button type="button" variant="outline" onClick={() => router.push(`/admin/communication/${id}`)}>
             Cancel
           </Button>
           <Button type="submit" disabled={submitting}>

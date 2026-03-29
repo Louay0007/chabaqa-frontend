@@ -41,7 +41,7 @@ describe('adminApi normalization contracts', () => {
     expect(payload.limit).toBe(5);
     expect(payload.totalPages).toBe(3);
     expect(payload.pagination.total).toBe(11);
-    expect(response.pagination?.total).toBe(11);
+    expect((response as any).pagination?.total).toBe(11);
   });
 
   it('normalizes communities consistently from nested backend shape', async () => {
@@ -70,7 +70,7 @@ describe('adminApi normalization contracts', () => {
       success: true,
       data: [{ _id: 'm1', status: 'pending' }],
       pagination: { page: 1, limit: 10, total: 33, totalPages: 4 },
-    });
+    } as any);
 
     const response = await adminApi.contentModeration.getQueue({ page: 1, limit: 10 });
     const payload = response.data;
@@ -79,7 +79,7 @@ describe('adminApi normalization contracts', () => {
     expect(payload.data).toHaveLength(1);
     expect(payload.queue).toHaveLength(1);
     expect(payload.total).toBe(33);
-    expect(response.pagination?.totalPages).toBe(4);
+    expect((response as any).pagination?.totalPages).toBe(4);
   });
 
   it('normalizes financial subscriptions from non-envelope backend payload', async () => {
@@ -97,7 +97,7 @@ describe('adminApi normalization contracts', () => {
       page: 1,
       limit: 20,
       totalPages: 1,
-    });
+    } as any);
 
     const response = await adminApi.financial.getSubscriptions({ page: 1, limit: 20 });
     const payload = response.data;
@@ -119,7 +119,7 @@ describe('adminApi normalization contracts', () => {
         { _id: 'e2', type: 'suspicious_login', severity: 'high', description: 'B', resolved: false },
         { _id: 'e3', type: 'suspicious_login', severity: 'high', description: 'C', resolved: false },
       ],
-    });
+    } as any);
 
     const response = await adminApi.security.getSecurityEvents({ page: 1, limit: 2 });
     const payload = response.data;
@@ -304,7 +304,7 @@ describe('adminApi normalization contracts', () => {
           },
         ],
         pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
-      })
+      } as any)
       .mockResolvedValueOnce({
         success: true,
         data: {
@@ -504,7 +504,7 @@ describe('adminApi normalization contracts', () => {
         progressPercentage: 40,
       }),
     );
-    expect(active.data[0].failures[0]).toEqual(
+    expect(active.data[0].failures![0]).toEqual(
       expect.objectContaining({
         itemId: 'user-3',
         error: 'invalid status',
@@ -512,7 +512,7 @@ describe('adminApi normalization contracts', () => {
     );
     expect(validation.data.isValid).toBe(false);
     expect(validation.data.errors[0].field).toBe('email');
-    expect(validation.data.warnings[0].field).toBe('role');
+    expect(validation.data.warnings?.[0].field).toBe('role');
     expect(validation.data.sanitizedData).toEqual(
       expect.objectContaining({ email: 'ops@chabaqa.com' }),
     );

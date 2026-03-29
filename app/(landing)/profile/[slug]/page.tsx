@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import ProfilePage from "../page"
+const ProfilePageContent = (ProfilePage as any).__profileContent as React.ComponentType<{ overrideUser?: any; isOwnProfile?: boolean }>
 import { getUserProfileHandle, slugifyToHandle } from "@/lib/profile-handle"
 import type { UserSocialLinks } from "@/lib/social-links"
 
@@ -175,7 +176,7 @@ export default function ProfileSlugPage() {
   )
 
   // Pass the fetched user data to the existing ProfilePage component
-  return <ProfilePage overrideUser={slugUser} isOwnProfile={isOwnProfile} />
+  return <ProfilePageContent overrideUser={slugUser} isOwnProfile={isOwnProfile} />
 }
 
 function safeDecodeHandle(value: string): string {

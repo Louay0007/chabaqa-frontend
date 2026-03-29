@@ -82,7 +82,7 @@ export default function ModeratorQueuePage() {
   // Moderate mutation
   const moderateMutation = useMutation({
     mutationFn: ({ postId, action, reason }: { postId: string; action: ModerationAction; reason?: string }) =>
-      moderationApi.moderatePost(postId, { action, reason }),
+      moderationApi.moderatePost(postId, action, reason),
     onSuccess: (_, vars) => {
       toast.success(`Content ${vars.action === "approve" ? "approved" : vars.action === "hide" ? "hidden" : "deleted"}`);
       queryClient.invalidateQueries({ queryKey: ["moderation-queue", communityId] });
@@ -98,7 +98,7 @@ export default function ModeratorQueuePage() {
   if (!canAccessDashboard("moderator")) {
     return <DashboardUnauthorized role={role} requiredRole="moderator" backAction={{ label: "Back", href: `/${creatorSlug}` }} />;
   }
-  if (!can(CommunityPermission.CONTENT_MODERATE)) {
+  if (!can(CommunityPermission.POSTS_MODERATE)) {
     return (
       <DashboardShell variant="moderator">
         <DashboardUnauthorized role={role} requiredRole="moderator with content.moderate" backAction={{ label: "Back", href: basePath }} />
@@ -106,13 +106,13 @@ export default function ModeratorQueuePage() {
     );
   }
 
-  const queue = queueData?.queue ?? [];
-  const totalPages = queueData?.totalPages ?? 1;
+  const queue = queueData?.items ?? [];
+  const totalPages = queueData?.pagination?.totalPages ?? 1;
   const counts = {
-    all: queueData?.totalCount ?? 0,
-    pending: queueData?.pendingCount ?? queue.filter((i: any) => i.status === "pending").length,
-    approved: queueData?.approvedCount ?? queue.filter((i: any) => i.status === "approved").length,
-    hidden: queueData?.hiddenCount ?? queue.filter((i: any) => i.status === "hidden").length,
+    all: queueData?.pagination?.total ?? 0,
+    pending: queueData?.stats?.pending ?? queue.filter((i: any) => i.status === "pending").length,
+    approved: queueData?.stats?.approved ?? queue.filter((i: any) => i.status === "approved").length,
+    hidden: queueData?.stats?.hidden ?? queue.filter((i: any) => i.status === "hidden").length,
   };
 
   const handleAction = (action: ModerationAction, itemId: string) => {

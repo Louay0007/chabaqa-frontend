@@ -48,13 +48,14 @@ function resolveImageUrl(raw?: string, apiBase?: string): string {
 }
 
 interface CommunityDetailsPageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
 export async function generateMetadata({ params }: CommunityDetailsPageProps): Promise<Metadata> {
-  const slug = decodeURIComponent(params.slug || "").trim()
+  const { slug: rawSlug } = await params
+  const slug = decodeURIComponent(rawSlug || "").trim()
   const readableSlug = slug.replace(/[-_]+/g, " ").trim()
   const normalizedName = readableSlug
     ? readableSlug

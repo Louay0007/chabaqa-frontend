@@ -31,10 +31,13 @@ import {
   Calendar,
   BookOpen,
   Building,
+  GraduationCap,
+  Target,
 } from "lucide-react"
 import { communitiesApi } from "@/lib/api"
 import { useAuth } from "@/hooks/use-auth"
 import { Community } from "@/lib/api/types"
+import { cn } from "@/lib/utils"
 
 
 interface AppHeaderProps {

@@ -10,7 +10,7 @@ export interface BulkAction {
   label: string
   icon?: LucideIcon
   onClick: () => void | Promise<void>
-  variant?: 'default' | 'destructive' | 'success' | 'outline' | 'secondary'
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary'
   requiresConfirmation?: boolean
   confirmationMessage?: string
   confirmationTitle?: string
@@ -126,7 +126,7 @@ export function BulkActionBar({
                   disabled={isDisabled}
                   className={cn(
                     "gap-2",
-                    action.variant === 'success' && "bg-green-600 hover:bg-green-700 text-white"
+                    (action.variant as string) === 'success' && "bg-green-600 hover:bg-green-700 text-white"
                   )}
                   aria-label={`${action.label} ${selectedCount} selected ${selectedCount === 1 ? 'item' : 'items'}`}
                 >

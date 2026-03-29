@@ -10,6 +10,7 @@ const emptyCaps: AdminCapabilities = {
   users: false,
   communities: false,
   contentModeration: false,
+  contentManagement: false,
   financial: false,
   analytics: false,
   security: false,

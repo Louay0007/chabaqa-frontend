@@ -1,7 +1,8 @@
 import { CourseManager } from "./components/course-manager"
 
-export default function ManageCoursePage({ params }: { params: { courseId: string } }) {
+export default async function ManageCoursePage({ params }: { params: Promise<{ courseId: string }> }) {
+  const { courseId } = await params
   return (
-      <CourseManager courseId={params.courseId} />
+      <CourseManager courseId={courseId} />
   )
 }

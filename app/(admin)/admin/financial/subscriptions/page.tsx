@@ -92,7 +92,7 @@ export default function SubscriptionsListPage() {
           sortOrder: sorting.sortOrder
         })
 
-        const data: SubscriptionsResponse = response?.data || response
+        const data: SubscriptionsResponse = (response?.data || response) as any as SubscriptionsResponse
         setSubscriptions(data?.subscriptions || [])
         setPagination(prev => ({
           ...prev,

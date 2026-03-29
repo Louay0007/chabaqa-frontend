@@ -9,12 +9,13 @@ import { notFound } from "next/navigation"
 import { Loader2 } from "lucide-react"
 
 type Props = {
-  params: { productId: string }
+  params: Promise<{ productId: string }>
 }
 
 export default async function CreatorProductPage({ params }: Props) {
+  const { productId } = await params
   try {
-    const response = await api.products.getById(params.productId)
+    const response = await api.products.getById(productId)
     const product = response.data
     
     if (!product) {

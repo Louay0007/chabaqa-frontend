@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAdminAuth } from "@/app/(admin)/providers/admin-auth-provider"
@@ -33,12 +34,13 @@ import { toast } from "sonner"
 import { Textarea } from "@/components/ui/textarea"
 
 interface UserDetailsPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default function UserDetailsPage({ params }: UserDetailsPageProps) {
+  const { id } = React.use(params)
   const router = useRouter()
   const { isAuthenticated, loading: authLoading } = useAdminAuth()
   
@@ -73,10 +75,10 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
   const fetchUserDetails = async () => {
     setLoading(true)
     try {
-      const response = await adminApi.users.getUserDetails(params.id)
+      const response = await adminApi.users.getUserDetails(id)
       const data = response.data as UserDetails
       setUserDetails(data)
-      setNotes(data.user?.notes || "")
+      setNotes((data.user?.notes as string) || "")
     } catch (error) {
       console.error('[UserDetails] Fetch error:', error)
       toast.error('Failed to load user details')
@@ -88,7 +90,7 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
   useEffect(() => {
     if (!isAuthenticated || authLoading) return
     fetchUserDetails()
-  }, [isAuthenticated, authLoading, params.id])
+  }, [isAuthenticated, authLoading, id])
 
   // Handle suspend user
   const handleSuspendUser = async () => {
@@ -99,7 +101,7 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
     
     setSuspending(true)
     try {
-      await adminApi.users.suspendUser(params.id, {
+      await adminApi.users.suspendUser(id, {
         reason: suspendReason,
         notifyUser: true,
       })
@@ -124,7 +126,7 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
     
     setActivating(true)
     try {
-      await adminApi.users.activateUser(params.id, {
+      await adminApi.users.activateUser(id, {
         reason: activateReason,
         notifyUser: true,
       })
@@ -144,7 +146,7 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
   const handleResetPassword = async () => {
     setResettingPassword(true)
     try {
-      await adminApi.users.resetPassword(params.id, {
+      await adminApi.users.resetPassword(id, {
         sendEmail: true,
       })
       toast.success('Password reset email sent successfully')
@@ -161,7 +163,7 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
   const handleSaveNotes = async () => {
     setSavingNotes(true)
     try {
-      await adminApi.users.updateNotes(params.id, notes)
+      await adminApi.users.updateNotes(id, notes)
       toast.success('Notes saved successfully')
       setEditingNotes(false)
     } catch (error) {
@@ -211,8 +213,8 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
             <h1 className="text-3xl font-bold">{user.username}</h1>
             <p className="text-muted-foreground">{user.email}</p>
           </div>
-          <StatusBadge 
-            status={user.status}
+          <StatusBadge
+            status={user.status || 'unknown'}
             variant={
               user.status === 'active' ? 'success' :
               user.status === 'suspended' ? 'danger' :
@@ -348,8 +350,8 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  <StatusBadge 
-                    status={user.status}
+                  <StatusBadge
+                    status={user.status || 'unknown'}
                     variant={
                       user.status === 'active' ? 'success' :
                       user.status === 'suspended' ? 'danger' :
@@ -360,13 +362,13 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Registered</p>
                   <p className="text-sm">
-                    {new Date(user.createdAt).toLocaleDateString()}
+                    {user.createdAt ? new Date(user.createdAt as string).toLocaleDateString() : '—'}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Last Login</p>
                   <p className="text-sm">
-                    {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                    {user.lastLogin ? new Date(user.lastLogin as string).toLocaleDateString() : 'Never'}
                   </p>
                 </div>
               </div>
@@ -496,7 +498,7 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
                       variant="outline"
                       onClick={() => {
                         setEditingNotes(false)
-                        setNotes(user.notes || "")
+                        setNotes((user.notes as string) || "")
                       }}
                       disabled={savingNotes}
                     >

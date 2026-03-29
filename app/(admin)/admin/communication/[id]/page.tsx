@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAdminAuth } from "@/app/(admin)/providers/admin-auth-provider"
@@ -38,7 +39,8 @@ interface EmailCampaign {
   updatedAt: string
 }
 
-export default function CampaignDetailsPage({ params }: { params: { id: string } }) {
+export default function CampaignDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params)
   const router = useRouter()
   const { isAuthenticated, loading: authLoading } = useAdminAuth()
   
@@ -62,9 +64,9 @@ export default function CampaignDetailsPage({ params }: { params: { id: string }
   const fetchCampaign = async () => {
     setLoading(true)
     try {
-      const response = await adminApi.communication.getEmailCampaignById(params.id)
+      const response = await adminApi.communication.getEmailCampaignById(id)
       const data = response?.data || response
-      setCampaign(data?.campaign || data)
+      setCampaign((data?.campaign || data) as any)
     } catch (error) {
       console.error('[Campaign Details] Error:', error)
       toast.error('Failed to load campaign details')
@@ -76,12 +78,12 @@ export default function CampaignDetailsPage({ params }: { params: { id: string }
   useEffect(() => {
     if (!isAuthenticated || authLoading) return
     fetchCampaign()
-  }, [isAuthenticated, authLoading, params.id])
+  }, [isAuthenticated, authLoading, id])
 
   const handleSendCampaign = async () => {
     setSending(true)
     try {
-      await adminApi.communication.sendEmailCampaign(params.id)
+      await adminApi.communication.sendEmailCampaign(id)
       toast.success('Campaign sent successfully')
       setSendDialogOpen(false)
       fetchCampaign() // Refresh data
@@ -96,7 +98,7 @@ export default function CampaignDetailsPage({ params }: { params: { id: string }
   const handleDeleteCampaign = async () => {
     setDeleting(true)
     try {
-      await adminApi.communication.deleteEmailCampaign(params.id)
+      await adminApi.communication.deleteEmailCampaign(id)
       toast.success('Campaign deleted successfully')
       router.push('/admin/communication')
     } catch (error) {
@@ -174,7 +176,7 @@ export default function CampaignDetailsPage({ params }: { params: { id: string }
           {canEdit && (
             <Button
               variant="outline"
-              onClick={() => router.push(`/admin/communication/${params.id}/edit`)}
+              onClick={() => router.push(`/admin/communication/${id}/edit`)}
             >
               <Edit className="h-4 w-4 mr-2" />
               Edit

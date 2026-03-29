@@ -118,7 +118,7 @@ export default function PayoutsListPage() {
           sortOrder: sorting.sortOrder
         })
 
-        const data: PayoutsResponse = response?.data || response
+        const data: PayoutsResponse = (response?.data || response) as any as PayoutsResponse
         setPayouts(data?.payouts || [])
         setPagination(prev => ({
           ...prev,
@@ -250,7 +250,7 @@ export default function PayoutsListPage() {
       label: 'Process Selected',
       icon: Check,
       onClick: () => setBulkProcessDialogOpen(true),
-      variant: 'success',
+      variant: 'default',
       requiresConfirmation: true,
       confirmationMessage: `Process ${selectedRows.length} payout(s)?`
     }

@@ -7,16 +7,16 @@ import { CheckoutForm } from "./components/checkout-form"
 import { generateAlternateLanguages, generateKeywords, generateTwitterMetadata } from "@/lib/seo-config"
 
 interface CheckoutPageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
-  searchParams?: {
+  }>
+  searchParams?: Promise<{
     inviteCode?: string
-  }
+  }>
 }
 
 export async function generateMetadata({ params }: CheckoutPageProps): Promise<Metadata> {
-  const slug = decodeURIComponent(params.slug || "").trim()
+  const { slug } = await params
   const communityName = slug
     ? slug
         .replace(/[-_]+/g, " ")
@@ -42,9 +42,10 @@ export async function generateMetadata({ params }: CheckoutPageProps): Promise<M
 }
 
 export default async function CheckoutPage({ params, searchParams }: CheckoutPageProps) {
-  const { slug } = params
+  const { slug } = await params
+  const resolvedSearchParams = (await searchParams) ?? {}
   const inviteCode =
-    typeof searchParams?.inviteCode === "string" ? searchParams.inviteCode.trim() : ""
+    typeof resolvedSearchParams.inviteCode === "string" ? resolvedSearchParams.inviteCode.trim() : ""
   
   let community: any = null
   

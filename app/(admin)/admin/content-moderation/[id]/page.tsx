@@ -55,7 +55,8 @@ interface ModerationAction {
   notes?: string
 }
 
-export default function ContentDetailsPage({ params }: { params: { id: string } }) {
+export default function ContentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params)
   const router = useRouter()
   const { isAuthenticated, loading: authLoading } = useAdminAuth()
   const { toast } = useToast()
@@ -92,7 +93,7 @@ export default function ContentDetailsPage({ params }: { params: { id: string } 
 
       setLoading(true)
       try {
-        const response = await adminApi.contentModeration.getContentDetails(params.id)
+        const response = await adminApi.contentModeration.getContentDetails(id)
         const data = response.data as ContentDetails
 
         setDetails(data)
@@ -112,12 +113,12 @@ export default function ContentDetailsPage({ params }: { params: { id: string } 
     }
 
     fetchDetails()
-  }, [params.id, isAuthenticated, authLoading, toast])
+  }, [id, isAuthenticated, authLoading, toast])
 
   // Handle priority update
   const handlePriorityUpdate = async (newPriority: string) => {
     try {
-      await adminApi.contentModeration.updatePriority(params.id, newPriority)
+      await adminApi.contentModeration.updatePriority(id, newPriority)
       setPriority(newPriority)
       toast({
         title: "Success",
@@ -136,7 +137,7 @@ export default function ContentDetailsPage({ params }: { params: { id: string } 
   // Handle moderator assignment
   const handleAssignment = async (moderatorId: string) => {
     try {
-      await adminApi.contentModeration.assignContent(params.id, moderatorId)
+      await adminApi.contentModeration.assignContent(id, moderatorId)
       setAssignedTo(moderatorId)
       toast({
         title: "Success",
@@ -166,7 +167,7 @@ export default function ContentDetailsPage({ params }: { params: { id: string } 
         payload.reason = rejectReason
       }
 
-      await adminApi.contentModeration.moderateContent(params.id, payload)
+      await adminApi.contentModeration.moderateContent(id, payload)
 
       toast({
         title: "Success",
@@ -574,7 +575,7 @@ export default function ContentDetailsPage({ params }: { params: { id: string } 
         }
         confirmLabel={confirmDialog.action ? confirmDialog.action.charAt(0).toUpperCase() + confirmDialog.action.slice(1) : 'Confirm'}
         variant={confirmDialog.action === 'reject' ? 'destructive' : 'default'}
-        onConfirm={() => confirmDialog.action && handleAction(confirmDialog.action)}
+        onConfirm={() => { if (confirmDialog.action) handleAction(confirmDialog.action) }}
       />
     </div>
   )

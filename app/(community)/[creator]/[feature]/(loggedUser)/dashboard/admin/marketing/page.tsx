@@ -115,10 +115,10 @@ export default function AdminMarketingPage() {
       {/* Stats Overview */}
       <DashboardSection title="Email Performance" description="Last 30 days" className="mb-8">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Total Subscribers" value="3,847" description="Active list size" icon={Users} trend={{ value: 12, isPositive: true }} />
+          <StatCard title="Total Subscribers" value="3,847" description="Active list size" icon={Users} trend={{ value: 12 }} />
           <StatCard title="Emails Sent" value="12,456" description="This month" icon={Send} />
-          <StatCard title="Open Rate" value="68.4%" description="Industry avg: 42%" icon={Eye} trend={{ value: 8, isPositive: true }} />
-          <StatCard title="Click Rate" value="24.2%" description="Industry avg: 18%" icon={MousePointer} trend={{ value: 3, isPositive: true }} />
+          <StatCard title="Open Rate" value="68.4%" description="Industry avg: 42%" icon={Eye} trend={{ value: 8 }} />
+          <StatCard title="Click Rate" value="24.2%" description="Industry avg: 18%" icon={MousePointer} trend={{ value: 3 }} />
         </div>
       </DashboardSection>
 

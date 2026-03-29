@@ -146,7 +146,7 @@ async function PrivacyPolicyContent() {
           onThisPage: t("legal.onThisPage"),
           relatedDocument: t("legal.relatedDocument"),
         }}
-        sections={[...PRIVACY_SECTIONS]}
+        sections={PRIVACY_SECTIONS as any}
         relatedLink={{
           href: "/terms-of-service",
           label: t("privacyPolicy.relatedLabel"),

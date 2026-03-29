@@ -124,7 +124,7 @@ export function usePendingCommunities() {
   return useSWR(
     'admin/communities/pending',
     async () => {
-      const response = await adminApi.communities.getPendingApprovals()
+      const response = await adminApi.communities.getPendingApprovals({})
       return response?.data || response
     },
     {

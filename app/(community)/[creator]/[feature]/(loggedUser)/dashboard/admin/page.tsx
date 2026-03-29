@@ -115,7 +115,7 @@ export default function AdminDashboardPage() {
             description="vs last month"
             icon={TrendingUp}
             isLoading={isStatsLoading}
-            trend={growthRate !== 0 ? { value: Math.abs(growthRate), isPositive: growthRate > 0 } : undefined}
+            trend={growthRate !== 0 ? { value: Math.abs(growthRate) } : undefined}
           />
         </div>
       </DashboardSection>

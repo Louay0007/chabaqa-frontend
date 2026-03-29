@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAdminAuth } from "@/app/(admin)/providers/admin-auth-provider"
@@ -14,12 +15,13 @@ import { ArrowLeft, Copy, RotateCcw, Send } from "lucide-react"
 import { toast } from "sonner"
 
 interface TemplateDetailPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default function TemplateDetailPage({ params }: TemplateDetailPageProps) {
+  const { id } = React.use(params)
   const router = useRouter()
   const { isAuthenticated, loading: authLoading } = useAdminAuth()
 
@@ -54,8 +56,8 @@ export default function TemplateDetailPage({ params }: TemplateDetailPageProps) 
     setLoading(true)
     try {
       const [templateResponse, versionsResponse] = await Promise.all([
-        adminApi.communication.getEmailTemplateById(params.id),
-        adminApi.communication.getTemplateVersionHistory(params.id),
+        adminApi.communication.getEmailTemplateById(id),
+        adminApi.communication.getTemplateVersionHistory(id),
       ])
 
       setTemplate(templateResponse.data)
@@ -87,7 +89,7 @@ export default function TemplateDetailPage({ params }: TemplateDetailPageProps) 
 
     setSubmitting(true)
     try {
-      const response = await adminApi.communication.previewTemplate(params.id, parsedPreviewData as Record<string, unknown>)
+      const response = await adminApi.communication.previewTemplate(id, parsedPreviewData as Record<string, unknown>)
       setPreview(response.data)
       toast.success("Preview generated")
     } catch (error) {
@@ -101,7 +103,7 @@ export default function TemplateDetailPage({ params }: TemplateDetailPageProps) 
   const handleRestore = async (version: number) => {
     setSubmitting(true)
     try {
-      await adminApi.communication.restoreTemplateVersion(params.id, version)
+      await adminApi.communication.restoreTemplateVersion(id, version)
       toast.success(`Restored version ${version}`)
       await loadData()
     } catch (error) {
@@ -120,7 +122,7 @@ export default function TemplateDetailPage({ params }: TemplateDetailPageProps) 
 
     setSubmitting(true)
     try {
-      const response = await adminApi.communication.duplicateTemplate(params.id, duplicateName.trim())
+      const response = await adminApi.communication.duplicateTemplate(id, duplicateName.trim())
       toast.success("Template duplicated")
       setDuplicateOpen(false)
       router.push(`/admin/communication/templates/${response.data?._id}`)
@@ -144,7 +146,7 @@ export default function TemplateDetailPage({ params }: TemplateDetailPageProps) 
 
     setSubmitting(true)
     try {
-      await adminApi.communication.sendTestEmail(params.id, {
+      await adminApi.communication.sendTestEmail(id, {
         testEmail: testEmail.trim(),
         testData: parsedPreviewData as Record<string, unknown>,
       })

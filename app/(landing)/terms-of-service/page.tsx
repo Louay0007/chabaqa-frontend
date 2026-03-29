@@ -143,7 +143,7 @@ async function TermsOfServiceContent() {
           onThisPage: t("legal.onThisPage"),
           relatedDocument: t("legal.relatedDocument"),
         }}
-        sections={[...TERMS_SECTIONS]}
+        sections={TERMS_SECTIONS as any}
         relatedLink={{
           href: "/privacy-policy",
           label: t("termsOfService.relatedLabel"),

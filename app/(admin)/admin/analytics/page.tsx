@@ -275,7 +275,7 @@ export default function AnalyticsDashboardPage() {
         format,
         startDate: options.startDate || period.startDate,
         endDate: options.endDate || period.endDate,
-        includeCharts: options.includeDetails,
+        includeCharts: options.includeDetails ?? false,
       })
       toast.success(`Analytics exported as ${format.toUpperCase()}`)
     } catch (error) {
@@ -607,7 +607,7 @@ export default function AnalyticsDashboardPage() {
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label>Report Type</Label>
-                  <Select value={reportType} onValueChange={(value: AdminAnalyticsReportRequest["type"]) => setReportType(value)}>
+                  <Select value={reportType} onValueChange={(value: string) => setReportType(value as AdminAnalyticsReportRequest["type"])}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -624,7 +624,7 @@ export default function AnalyticsDashboardPage() {
 
                 <div className="space-y-2">
                   <Label>Format</Label>
-                  <Select value={reportFormat} onValueChange={(value: AdminAnalyticsReportRequest["format"]) => setReportFormat(value)}>
+                  <Select value={reportFormat} onValueChange={(value: string) => setReportFormat(value as AdminAnalyticsReportRequest["format"])}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>

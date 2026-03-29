@@ -82,7 +82,7 @@ export default function CreateCampaignPage() {
       try {
         const response = await adminApi.communication.getEmailTemplates()
         const data = response?.data || response
-        setTemplates(Array.isArray(data) ? data : data?.templates || [])
+        setTemplates((Array.isArray(data) ? data : data?.templates || []) as any)
       } catch (error) {
         console.error('[Templates] Error:', error)
         toast.error('Failed to load templates')
@@ -151,7 +151,7 @@ export default function CreateCampaignPage() {
       }
 
       const response = await adminApi.communication.createEmailCampaign(campaignData)
-      const campaign = response?.data || response
+      const campaign = (response?.data || response) as any
       
       toast.success('Campaign created successfully')
       router.push(`/admin/communication/${campaign._id || campaign.id}`)

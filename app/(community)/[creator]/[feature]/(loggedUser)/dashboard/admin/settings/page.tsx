@@ -147,6 +147,7 @@ export default function AdminSettingsPage() {
                   <Label>Community Logo</Label>
                   <div className="flex items-center gap-4">
                     <div className="h-20 w-20 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
+                      {/* eslint-disable-next-line jsx-a11y/alt-text */}
                       <Image className="h-8 w-8 text-muted-foreground" />
                     </div>
                     <Button variant="outline"><Upload className="mr-2 h-4 w-4" />Upload</Button>
@@ -156,6 +157,7 @@ export default function AdminSettingsPage() {
                   <Label>Cover Image</Label>
                   <div className="flex items-center gap-4">
                     <div className="h-20 w-32 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
+                      {/* eslint-disable-next-line jsx-a11y/alt-text */}
                       <Image className="h-8 w-8 text-muted-foreground" />
                     </div>
                     <Button variant="outline"><Upload className="mr-2 h-4 w-4" />Upload</Button>

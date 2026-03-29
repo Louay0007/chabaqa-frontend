@@ -6,9 +6,9 @@ import type { Metadata } from "next"
 import { getBlogPostById, getAllBlogPosts } from "@/lib/blog-content"
 
 interface BlogPostPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 // Generate static params for all blog posts
@@ -20,7 +20,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
-  const post = getBlogPostById(params.id)
+  const { id } = await params
+  const post = getBlogPostById(id)
   
   if (!post) {
     return {
@@ -69,8 +70,9 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   }
 }
 
-export default function BlogPostPage({ params }: BlogPostPageProps) {
-  const post = getBlogPostById(params.id)
+export default async function BlogPostPage({ params }: BlogPostPageProps) {
+  const { id } = await params
+  const post = getBlogPostById(id)
 
   if (!post) {
     notFound()

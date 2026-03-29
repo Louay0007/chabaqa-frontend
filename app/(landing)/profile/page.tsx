@@ -651,7 +651,7 @@ interface ProfilePageProps {
   isOwnProfile?: boolean
 }
 
-export default function ProfilePage({ overrideUser, isOwnProfile = true }: ProfilePageProps = {}) {
+function ProfilePageContent({ overrideUser, isOwnProfile = true }: ProfilePageProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -1813,3 +1813,10 @@ export default function ProfilePage({ overrideUser, isOwnProfile = true }: Profi
     </div>
   )
 }
+
+export default function ProfilePage() {
+  return <ProfilePageContent />
+}
+
+// Allow usage with overrideUser from slug page
+;(ProfilePage as any).__profileContent = ProfilePageContent

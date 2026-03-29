@@ -371,7 +371,7 @@ export default function AuditLogsPage() {
       })
       
       // Create download link
-      const blob = new Blob([response.data.content || response.data], { 
+      const blob = new Blob([(response as any).data?.content || (response as any).data], {
         type: format === 'json' ? 'application/json' : 'text/csv' 
       })
       const url = window.URL.createObjectURL(blob)

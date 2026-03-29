@@ -125,8 +125,8 @@ export default function AdminAffiliatesPage() {
       <DashboardSection title="Affiliate Performance" description="All time stats" className="mb-8">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard title="Total Affiliates" value="89" description="4 pending approval" icon={Users} />
-          <StatCard title="Total Referrals" value="1,247" description="This month: 156" icon={UserPlus} trend={{ value: 23, isPositive: true }} />
-          <StatCard title="Revenue Generated" value="$47,890" description="From referrals" icon={DollarSign} trend={{ value: 18, isPositive: true }} />
+          <StatCard title="Total Referrals" value="1,247" description="This month: 156" icon={UserPlus} trend={{ value: 23 }} />
+          <StatCard title="Revenue Generated" value="$47,890" description="From referrals" icon={DollarSign} trend={{ value: 18 }} />
           <StatCard title="Commission Rate" value="10%" description="Default rate" icon={Percent} />
         </div>
       </DashboardSection>

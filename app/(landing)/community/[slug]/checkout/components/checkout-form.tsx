@@ -171,7 +171,7 @@ export function CheckoutForm({
         } else {
           throw new Error("Failed to get checkout URL from Stripe")
         }
-      } else if (paymentMethod === "konnect") {
+      } else if ((paymentMethod as string) === "konnect") {
         // Konnect payment
         const result = await (communitiesApi as any).initKonnectPayment(
           community.id,

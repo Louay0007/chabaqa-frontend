@@ -107,7 +107,7 @@ export default function AdminAnalyticsPage() {
   });
 
   const stats = statsResponse?.data;
-  const memberCount = membersResponse?.totalCount ?? stats?.memberCount ?? 0;
+  const memberCount = membersResponse?.pagination?.total ?? stats?.memberCount ?? 0;
 
   // Derived metrics (these would ideally come from a dedicated analytics endpoint)
   const metrics = useMemo(() => ({

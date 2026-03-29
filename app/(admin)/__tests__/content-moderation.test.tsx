@@ -49,7 +49,7 @@ describe('Content Moderation', () => {
       const result = await adminApi.contentModeration.getQueue(filters);
 
       expect(adminApi.contentModeration.getQueue).toHaveBeenCalledWith(filters);
-      expect(result.items).toHaveLength(2);
+      expect((result as any).items).toHaveLength(2);
     });
 
     it('should fetch queue statistics', async () => {
@@ -70,8 +70,8 @@ describe('Content Moderation', () => {
       const result = await adminApi.contentModeration.getQueueStats();
 
       expect(adminApi.contentModeration.getQueueStats).toHaveBeenCalled();
-      expect(result.totalPending).toBe(25);
-      expect(result.queueByPriority.urgent).toBe(3);
+      expect((result as any).totalPending).toBe(25);
+      expect((result as any).queueByPriority.urgent).toBe(3);
     });
   });
 
@@ -97,8 +97,8 @@ describe('Content Moderation', () => {
       const result = await adminApi.contentModeration.moderateContent('item-1', moderationData);
 
       expect(adminApi.contentModeration.moderateContent).toHaveBeenCalledWith('item-1', moderationData);
-      expect(result.success).toBe(true);
-      expect(result.item.status).toBe('approved');
+      expect((result as any).success).toBe(true);
+      expect((result as any).item.status).toBe('approved');
     });
 
     it('should reject content with reason', async () => {
@@ -118,7 +118,7 @@ describe('Content Moderation', () => {
       const result = await adminApi.contentModeration.moderateContent('item-1', moderationData);
 
       expect(adminApi.contentModeration.moderateContent).toHaveBeenCalledWith('item-1', moderationData);
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it('should flag content for review', async () => {
@@ -138,7 +138,7 @@ describe('Content Moderation', () => {
       const result = await adminApi.contentModeration.moderateContent('item-1', moderationData);
 
       expect(adminApi.contentModeration.moderateContent).toHaveBeenCalledWith('item-1', moderationData);
-      expect(result.success).toBe(true);
+      expect((result as any).success).toBe(true);
     });
 
     it('should perform bulk moderation', async () => {
@@ -159,7 +159,7 @@ describe('Content Moderation', () => {
       const result = await adminApi.contentModeration.bulkModerate(bulkData);
 
       expect(adminApi.contentModeration.bulkModerate).toHaveBeenCalledWith(bulkData);
-      expect(result.processed).toBe(5);
+      expect((result as any).processed).toBe(5);
     });
   });
 
@@ -178,7 +178,7 @@ describe('Content Moderation', () => {
       const result = await adminApi.contentModeration.updatePriority('item-1', 'urgent');
 
       expect(adminApi.contentModeration.updatePriority).toHaveBeenCalledWith('item-1', 'urgent');
-      expect(result.item.priority).toBe('urgent');
+      expect((result as any).item.priority).toBe('urgent');
     });
 
     it('should assign content to moderator', async () => {
@@ -195,7 +195,7 @@ describe('Content Moderation', () => {
       const result = await adminApi.contentModeration.assignContent('item-1', 'moderator-1');
 
       expect(adminApi.contentModeration.assignContent).toHaveBeenCalledWith('item-1', 'moderator-1');
-      expect(result.item.assignedTo).toBe('moderator-1');
+      expect((result as any).item.assignedTo).toBe('moderator-1');
     });
   });
 
@@ -220,8 +220,8 @@ describe('Content Moderation', () => {
       const result = await adminApi.contentModeration.getContentDetails('item-1');
 
       expect(adminApi.contentModeration.getContentDetails).toHaveBeenCalledWith('item-1');
-      expect(result._id).toBe('item-1');
-      expect(result.reportReason).toBe('Inappropriate content');
+      expect((result as any)._id).toBe('item-1');
+      expect((result as any).reportReason).toBe('Inappropriate content');
     });
   });
 
@@ -241,8 +241,8 @@ describe('Content Moderation', () => {
       const result = await adminApi.contentModeration.getAnalytics({});
 
       expect(adminApi.contentModeration.getAnalytics).toHaveBeenCalled();
-      expect(result.totalModerated).toBe(500);
-      expect(result.approved).toBe(450);
+      expect((result as any).totalModerated).toBe(500);
+      expect((result as any).approved).toBe(450);
     });
   });
 });

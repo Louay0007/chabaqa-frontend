@@ -65,7 +65,7 @@ const MOCK_MEMBERS = [
 ];
 
 export default function ModeratorMembersPage() {
-  const { role, can, isLoading, canAccessDashboard, getDashboardPath, creatorSlug } = useDashboard();
+  const { role, can, isLoading, canAccessDashboard, getDashboardPath, creatorSlug, communityId } = useDashboard();
   const basePath = getDashboardPath("moderator");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("recent");
@@ -202,7 +202,7 @@ export default function ModeratorMembersPage() {
       {/* Advanced Directory Component */}
       <div className="mt-8">
         <h3 className="text-lg font-semibold mb-4">Advanced Member Directory</h3>
-        <MemberDirectory />
+        <MemberDirectory communityId={communityId} />
       </div>
     </DashboardShell>
   );

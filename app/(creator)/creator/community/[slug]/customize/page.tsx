@@ -322,7 +322,7 @@ export default function CustomizeCommunityPage() {
 
         for (const candidate of settingsIdentifierCandidates) {
           try {
-            settingsResponse = await communitiesApi.updateSettings(candidate, updateData.settings)
+            settingsResponse = await communitiesApi.updateSettings(candidate, (updateData.settings || {}) as any)
             settingsSaved = true
             break
           } catch (fallbackError) {

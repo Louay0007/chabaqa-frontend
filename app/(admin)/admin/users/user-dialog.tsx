@@ -92,7 +92,7 @@ export function UserDialog({ open, onOpenChange, user, onSuccess }: UserDialogPr
         await adminApi.users.updateUser(user._id, submitData)
         toast.success("User updated successfully")
       } else {
-        await adminApi.users.createUser(submitData)
+        await adminApi.users.createUser(submitData as any)
         toast.success("User created successfully")
       }
 

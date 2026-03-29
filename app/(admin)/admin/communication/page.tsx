@@ -88,7 +88,7 @@ export default function CampaignsListPage() {
         sortOrder: sorting.sortOrder
       })
 
-      const data: CampaignsResponse = response?.data || response
+      const data: CampaignsResponse = (response?.data || response) as any as CampaignsResponse
       setCampaigns(data?.campaigns || [])
       setPagination(prev => ({
         ...prev,

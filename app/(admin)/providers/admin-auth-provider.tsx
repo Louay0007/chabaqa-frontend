@@ -53,6 +53,7 @@ const EMPTY_CAPABILITIES: AdminCapabilities = {
   users: false,
   communities: false,
   contentModeration: false,
+  contentManagement: false,
   financial: false,
   analytics: false,
   security: false,

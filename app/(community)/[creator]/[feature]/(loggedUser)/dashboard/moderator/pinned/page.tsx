@@ -55,7 +55,7 @@ const MOCK_PINNED = [
 ];
 
 export default function ModeratorPinnedPage() {
-  const { role, can, isLoading, canAccessDashboard, getDashboardPath, creatorSlug } = useDashboard();
+  const { role, can, isLoading, canAccessDashboard, getDashboardPath, creatorSlug, communityId } = useDashboard();
   const basePath = getDashboardPath("moderator");
   const [search, setSearch] = useState("");
   const [pinnedPosts, setPinnedPosts] = useState(MOCK_PINNED);
@@ -203,7 +203,7 @@ export default function ModeratorPinnedPage() {
       {/* Advanced manager component */}
       <div className="mt-8">
         <h3 className="text-lg font-semibold mb-4">Advanced Pinned Content Manager</h3>
-        <PinnedContentManager />
+        <PinnedContentManager communityId={communityId} />
       </div>
     </DashboardShell>
   );

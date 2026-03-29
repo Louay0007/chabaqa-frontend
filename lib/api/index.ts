@@ -36,7 +36,8 @@ export * from './live-support.api';
 export * from './tracking.api';
 export * from './affiliate.api';
 export * from './community-access.api';
-export * from './moderation.api';
+export type { ModerationAction, ModerationStatus, ModerationItem, ModerationReport, ModerationQueueFilters, ModerationQueueResponse, ModerationActivityLog, ModerationStats, PinnedPost } from './moderation.api';
+export { moderationApi } from './moderation.api';
 
 // Re-export to avoid ambiguity
 export type { PaginationParams } from './client';

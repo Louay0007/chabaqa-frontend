@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useDashboard } from "./dashboard-context";
 import { cn } from "@/lib/utils";
-import { CommunityPermission, ROLE_LABELS, ROLE_COLORS } from "@/lib/permissions";
+import { CommunityPermission, ROLE_LABELS, ROLE_COLORS, type CommunityPermissionValue } from "@/lib/permissions";
 import {
   Shield,
   Users,
@@ -128,12 +128,12 @@ function getNavSections(basePath: string, variant: "admin" | "moderator" | "supp
 interface NavItemComponentProps {
   item: NavItem;
   isActive: boolean;
-  can: (permission: string) => boolean;
+  can: (permission: CommunityPermissionValue) => boolean;
 }
 
 function NavItemComponent({ item, isActive, can }: NavItemComponentProps) {
   const Icon = item.icon;
-  const hasPermission = !item.permission || can(item.permission as any);
+  const hasPermission = !item.permission || can(item.permission);
 
   if (!hasPermission) return null;
 

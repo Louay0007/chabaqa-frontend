@@ -405,7 +405,7 @@ export default function ContentModerationPage() {
       label: 'Approve',
       icon: CheckCircle,
       onClick: handleBulkApprove,
-      variant: 'success',
+      variant: 'default',
       requiresConfirmation: true,
       confirmationTitle: 'Approve Items',
       confirmationMessage: `Are you sure you want to approve ${selectedRows.length} items?`

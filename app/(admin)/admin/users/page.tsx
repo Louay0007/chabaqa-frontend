@@ -100,9 +100,9 @@ export default function UsersPage() {
 
       // The API returns { success: true, data: { data: [], total: 0, ... } }
       // response.data contains the PaginatedResult object
-      if (response.success && response.data) {
-        setUsers(response.data.data || [])
-        setTotal(response.data.total || 0)
+      if ((response as any).success && (response as any).data) {
+        setUsers(((response as any).data.data || []) as any)
+        setTotal((response as any).data.total || 0)
       } else {
         setUsers([])
         setTotal(0)

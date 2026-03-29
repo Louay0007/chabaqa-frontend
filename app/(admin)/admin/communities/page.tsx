@@ -87,7 +87,7 @@ export default function CommunitiesPage() {
           ...filters,
         })
 
-        if (response.success && response.data) {
+        if ((response as any).success && (response as any).data) {
           // The API returns nested data: { success: true, data: { data: [], total: ... } }
           // But apiClient response.data is the full object.
           // Wait, let's verify the apiClient wrapper. 

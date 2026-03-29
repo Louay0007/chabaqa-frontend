@@ -188,7 +188,6 @@ export const moderationApi = {
   ): Promise<{ success: boolean; message: string }> => {
     return apiClient.delete<{ success: boolean; message: string }>(
       `/posts/${postId}/comments/${commentId}`,
-      { data: { reason } },
     );
   },
 

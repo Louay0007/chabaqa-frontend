@@ -276,7 +276,7 @@ export default function SecurityEventsPage() {
       const response = await adminApi.security.getSecurityMetrics()
       
       if (response.data) {
-        setMetrics(response.data.data || response.data)
+        setMetrics(response.data)
       }
     } catch (error) {
       console.error('[Security Metrics] Fetch error:', error)

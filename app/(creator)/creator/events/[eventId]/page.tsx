@@ -5,7 +5,7 @@ import { Event } from "@/lib/models"
 import { Event as ApiEvent } from "@/lib/api/types"
 
 interface PageProps {
-  params: { eventId: string }
+  params: Promise<{ eventId: string }>
 }
 
 const toDate = (value?: string): Date => {
@@ -21,8 +21,9 @@ const toOptionalDate = (value?: string): Date | undefined => {
 }
 
 export default async function ManageEventPage({ params }: PageProps) {
+  const { eventId } = await params
   try {
-    const eventResponse = await api.events.getById(params.eventId)
+    const eventResponse = await api.events.getById(eventId)
     const apiEvent = eventResponse.data as ApiEvent | undefined
 
     if (!apiEvent) {

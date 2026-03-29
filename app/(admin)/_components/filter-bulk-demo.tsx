@@ -94,7 +94,7 @@ export function FilterBulkDemo() {
     {
       label: 'Approve',
       icon: Check,
-      variant: 'success',
+      variant: 'default',
       onClick: async () => {
         console.log('Approving items:', selectedRows)
         // Simulate API call

@@ -78,7 +78,7 @@ export default function TransactionsListPage() {
           limit: pagination.pageSize
         })
 
-        const data: TransactionsResponse = response?.data || response
+        const data: TransactionsResponse = (response?.data || response) as any as TransactionsResponse
         setTransactions(data?.transactions || [])
         setPagination(prev => ({
           ...prev,

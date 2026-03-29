@@ -121,10 +121,10 @@ export default function AdminFinancePage() {
       {/* Revenue Stats */}
       <DashboardSection title="Revenue Overview" description="Financial performance this month" className="mb-8">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Total Revenue" value="$12,847" description="This month" icon={DollarSign} trend={{ value: 23, isPositive: true }} />
+          <StatCard title="Total Revenue" value="$12,847" description="This month" icon={DollarSign} trend={{ value: 23 }} />
           <StatCard title="Available Balance" value="$3,450" description="Ready to withdraw" icon={Wallet} />
           <StatCard title="Pending" value="$890" description="Processing" icon={Clock} />
-          <StatCard title="Total Sales" value="156" description="Transactions" icon={Receipt} trend={{ value: 12, isPositive: true }} />
+          <StatCard title="Total Sales" value="156" description="Transactions" icon={Receipt} trend={{ value: 12 }} />
         </div>
       </DashboardSection>
 

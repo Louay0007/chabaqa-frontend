@@ -3,11 +3,11 @@ import ProductsPageContent from "@/app/(community)/[creator]/[feature]/(loggedUs
 import { productsCommunityApi } from "@/lib/api/products-community.api"
 
 type Props = {
-  params: { creator: string; feature: string }
+  params: Promise<{ creator: string; feature: string }>
 }
 
 export default async function ProductsPage({ params }: Props) {
-  const { creator, feature } = params
+  const { creator, feature } = await params
   
   try {
     const data = await productsCommunityApi.getProductsPageData(feature)

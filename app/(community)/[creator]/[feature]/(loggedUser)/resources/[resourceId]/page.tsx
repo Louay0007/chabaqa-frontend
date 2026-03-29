@@ -135,7 +135,7 @@ export default function CommunityResourcePage({
 
   const basePath = `/${encodeURIComponent(creator)}/${encodeURIComponent(normalisedSlug)}`
 
-  const contentBlocks = useMemo(() => {
+  const contentBlocks = useMemo((): Array<{ title?: string; description?: string; videoUrl?: string; elements: any[] }> => {
     if (!resource?.content) return []
 
     if (resource.type === 'Guide') {

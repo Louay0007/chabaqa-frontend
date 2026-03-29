@@ -7,9 +7,9 @@ import { getTranslations } from "next-intl/server"
 export const dynamic = 'force-dynamic'
 
 interface ResetPasswordPageProps {
-  searchParams: {
+  searchParams?: Promise<{
     email?: string
-  }
+  }>
 }
 
 export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
@@ -20,7 +20,7 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
     redirect("/")
   }
 
-  const email = searchParams.email || ""
+  const { email = "" } = (await searchParams) ?? {}
 
   return (
     <div className="min-h-screen relative overflow-hidden">

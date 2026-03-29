@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAdminAuth } from "@/app/(admin)/providers/admin-auth-provider"
@@ -56,7 +57,8 @@ interface CommunityDetails {
   }
 }
 
-export default function CommunityDetailsPage({ params }: { params: { id: string } }) {
+export default function CommunityDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params)
   const router = useRouter()
   const { isAuthenticated, loading: authLoading } = useAdminAuth()
   
@@ -92,7 +94,7 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
     const fetchCommunityDetails = async () => {
       setLoading(true)
       try {
-        const response = await adminApi.communities.getCommunityDetails(params.id)
+        const response = await adminApi.communities.getCommunityDetails(id)
         const data = response.data as CommunityDetails
         
         setCommunity(data)
@@ -109,7 +111,7 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
     }
 
     fetchCommunityDetails()
-  }, [isAuthenticated, authLoading, params.id])
+  }, [isAuthenticated, authLoading, id])
 
   // Handle save moderation settings
   const handleSaveSettings = async () => {
@@ -128,7 +130,7 @@ export default function CommunityDetailsPage({ params }: { params: { id: string 
       toast.success('Community settings updated successfully')
       
       // Refresh data
-      const response = await adminApi.communities.getCommunityDetails(params.id)
+      const response = await adminApi.communities.getCommunityDetails(id)
       const updatedData = response.data as CommunityDetails
       setCommunity(updatedData)
       setFeatured(Boolean(updatedData.featured))

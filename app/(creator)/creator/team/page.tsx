@@ -336,7 +336,7 @@ export default function TeamRolesPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {s.role === 'owner' ? (
+                    {(s.role as string) === 'owner' ? (
                       <Badge className={ROLE_COLORS['owner']}>
                         {ROLE_LABELS['owner']}
                       </Badge>
@@ -361,7 +361,7 @@ export default function TeamRolesPage() {
                         {ROLE_LABELS[s.role as CommunityRole] ?? s.role}
                       </Badge>
                     )}
-                    {canManageRoles && s.role !== 'owner' && (
+                    {canManageRoles && (s.role as string) !== 'owner' && (
                       <Button
                         variant="ghost"
                         size="icon"

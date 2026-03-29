@@ -51,8 +51,8 @@ describe('User Management', () => {
       const result = await adminApi.users.getUsers(filters);
 
       expect(adminApi.users.getUsers).toHaveBeenCalledWith(filters);
-      expect(result.users).toHaveLength(2);
-      expect(result.total).toBe(2);
+      expect((result as any).users).toHaveLength(2);
+      expect((result as any).total).toBe(2);
     });
 
     it('should fetch user details', async () => {
@@ -80,8 +80,8 @@ describe('User Management', () => {
       const result = await adminApi.users.getUserDetails('user-1');
 
       expect(adminApi.users.getUserDetails).toHaveBeenCalledWith('user-1');
-      expect(result.user._id).toBe('user-1');
-      expect(result.statistics.totalCommunities).toBe(2);
+      expect((result as any).user._id).toBe('user-1');
+      expect((result as any).statistics.totalCommunities).toBe(2);
     });
   });
 
@@ -172,8 +172,8 @@ describe('User Management', () => {
       const result = await adminApi.users.getAnalytics('month');
 
       expect(adminApi.users.getAnalytics).toHaveBeenCalledWith('month');
-      expect(result.totalUsers).toBe(1000);
-      expect(result.growth).toBe(5.2);
+      expect((result as any).totalUsers).toBe(1000);
+      expect((result as any).growth).toBe(5.2);
     });
   });
 });
