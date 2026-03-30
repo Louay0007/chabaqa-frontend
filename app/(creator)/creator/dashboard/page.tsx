@@ -254,7 +254,7 @@ export default function CreatorDashboardPage() {
               type: 'session',
               metricLabel: 'scheduled',
               metricValue: 1,
-              href: `/creator/sessions/${session.id}/manage`
+              href: `/creator/sessions/${session.id}/edit`
             }))
           topContentItems.push(...topSessions)
         }
@@ -631,7 +631,7 @@ export default function CreatorDashboardPage() {
                           </div>
                         </div>
                         <Button size="sm" className="w-full bg-sessions-500 hover:bg-sessions-600" asChild>
-                          <Link href={`/creator/sessions/${session.id}/manage`}>Manage Session</Link>
+                          <Link href={`/creator/sessions/${session.id}/edit`}>Manage Session</Link>
                         </Button>
                       </CardContent>
                     </EnhancedCard>
