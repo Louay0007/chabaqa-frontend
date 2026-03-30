@@ -37,6 +37,7 @@ import {
   Palette,
   Lock,
   ExternalLink,
+  Star,
   type LucideIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -198,7 +199,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
         { title: "Courses", href: "/creator/courses", icon: BookOpen },
         { title: "Challenges", href: "/creator/challenges", icon: Zap },
         { title: "Sessions", href: "/creator/sessions", icon: Calendar },
-        { title: "Events", href: "/creator/events", icon: Calendar },
+        { title: "Events", href: "/creator/events", icon: Star },
         { title: "Products", href: "/creator/products", icon: ShoppingBag },
         { title: "Posts", href: communityFeedUrl, icon: FileText, external: communityFeedUrl.startsWith("/") && !communityFeedUrl.startsWith("/creator") },
       ],

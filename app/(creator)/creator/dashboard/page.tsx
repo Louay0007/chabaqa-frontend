@@ -161,7 +161,7 @@ export default function CreatorDashboardPage() {
             .slice(0, 2)
             .map((course: any) => {
               const title = course.title || course.titre || 'Untitled course'
-              const enrollmentsCount = Array.isArray(course.enrollments) ? course.enrollments.length : 0
+              const enrollmentsCount = Array.isArray(course.enrollments) ? course.enrollments.length : (course.enrollmentCount || 0)
               return ({
                 id: `course-${course.id}`,
                 title: `New course: ${title}`,
@@ -181,7 +181,7 @@ export default function CreatorDashboardPage() {
             .map((challenge: any) => ({
               id: `challenge-${challenge.id}`,
               title: `New challenge: ${challenge.title}`,
-              message: `${challenge.participants?.length || 0} participants joined`,
+              message: `${Array.isArray(challenge.participants) ? challenge.participants.length : (challenge.participantsCount || 0)} participants joined`,
               type: 'challenge_created',
               createdAt: challenge.startDate
             }))
@@ -216,14 +216,18 @@ export default function CreatorDashboardPage() {
 
         if (courses.length > 0) {
           const topCourses = [...courses]
-            .sort((a: any, b: any) => (b.enrollments?.length || 0) - (a.enrollments?.length || 0))
+            .sort((a: any, b: any) => {
+              const aCount = Array.isArray(a.enrollments) ? a.enrollments.length : (a.enrollmentCount || 0)
+              const bCount = Array.isArray(b.enrollments) ? b.enrollments.length : (b.enrollmentCount || 0)
+              return bCount - aCount
+            })
             .slice(0, 2)
             .map((course: any) => ({
               id: course.id,
               title: course.title || course.titre || 'Untitled course',
               type: 'course',
               metricLabel: 'enrolled',
-              metricValue: course.enrollments?.length || 0,
+              metricValue: Array.isArray(course.enrollments) ? course.enrollments.length : (course.enrollmentCount || 0),
               href: `/creator/courses/${course.id}/manage`
             }))
           topContentItems.push(...topCourses)
@@ -231,14 +235,18 @@ export default function CreatorDashboardPage() {
 
         if (challenges.length > 0) {
           const topChallenges = [...challenges]
-            .sort((a: any, b: any) => (b.participants?.length || 0) - (a.participants?.length || 0))
+            .sort((a: any, b: any) => {
+              const aCount = Array.isArray(a.participants) ? a.participants.length : (a.participantsCount || 0)
+              const bCount = Array.isArray(b.participants) ? b.participants.length : (b.participantsCount || 0)
+              return bCount - aCount
+            })
             .slice(0, 1)
             .map((challenge: any) => ({
               id: challenge.id,
               title: challenge.title || challenge.titre || 'Untitled challenge',
               type: 'challenge',
               metricLabel: 'participants',
-              metricValue: challenge.participants?.length || 0,
+              metricValue: Array.isArray(challenge.participants) ? challenge.participants.length : (challenge.participantsCount || 0),
               href: `/creator/challenges/${challenge.id}/manage`
             }))
           topContentItems.push(...topChallenges)
