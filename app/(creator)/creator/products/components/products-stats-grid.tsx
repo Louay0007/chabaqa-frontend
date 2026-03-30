@@ -1,4 +1,3 @@
-"use client"
 import { MetricCard } from "@/components/ui/metric-card"
 import { ShoppingBag, CheckCircle, Users, Coins } from "lucide-react"
 

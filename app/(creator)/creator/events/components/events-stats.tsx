@@ -1,5 +1,3 @@
-"use client"
-
 import { EnhancedCard } from "@/components/ui/enhanced-card"
 import { CalendarIcon, Users, Coins, TrendingUp } from "lucide-react"
 

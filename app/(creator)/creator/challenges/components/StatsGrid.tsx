@@ -1,5 +1,3 @@
-"use client"
-
 import { MetricCard } from "@/components/ui/metric-card"
 import { Zap, Play, Users, Coins } from "lucide-react";
 

@@ -1,5 +1,3 @@
-"use client"
-
 import { SessionAvailability } from "./session-availability"
 
 interface SessionAvailabilityWrapperProps {

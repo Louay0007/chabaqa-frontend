@@ -1,5 +1,3 @@
-"use client"
-
 /**
  * Skip Navigation Link Component
  * 

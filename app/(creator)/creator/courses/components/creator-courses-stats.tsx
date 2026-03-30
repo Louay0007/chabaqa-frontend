@@ -1,5 +1,3 @@
-"use client"
-
 import { MetricCard } from "@/components/ui/metric-card"
 import { BookOpen, Eye, Users, Coins } from "lucide-react"
 import { Course } from "@/lib/models" // Make sure this type is properly defined

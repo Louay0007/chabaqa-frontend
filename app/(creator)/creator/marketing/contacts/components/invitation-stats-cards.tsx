@@ -1,5 +1,3 @@
-"use client"
-
 import { Card } from "@/components/ui/card"
 import { Mail, Clock, UserCheck, XCircle } from "lucide-react"
 import type { InvitationStats } from "@/lib/api/community-invitations.api"

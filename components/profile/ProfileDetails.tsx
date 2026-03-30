@@ -1,5 +1,3 @@
-"use client"
-
 import { Mail, Phone, Calendar, User as UserIcon, MapPin, Home, Hash, Globe, Instagram, FileText } from "lucide-react"
 
 type Details = {

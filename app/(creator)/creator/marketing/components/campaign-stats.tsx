@@ -1,5 +1,3 @@
-"use client"
-
 import { Card } from "@/components/ui/card"
 import { Users, Send, MousePointerClick, Mail, Loader2 } from "lucide-react"
 import { CampaignStats as CampaignStatsType } from "@/lib/api"
