@@ -1,403 +1,191 @@
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 
+const HTML_HEADERS = {
+  'Content-Type': 'text/html',
+  'Cross-Origin-Opener-Policy': 'unsafe-none',
+  'Cross-Origin-Embedder-Policy': 'unsafe-none',
+};
+
 /**
  * Google OAuth Callback Handler
- * 
- * This route handles the redirect from Google after the user authorizes the app.
- * Google redirects here with:
- * - code: The authorization code to exchange for tokens
- * - state: The user ID (passed in getAuthUrl for security)
- * - error: If the user denied access
- * 
- * The backend GET /google-calendar/callback endpoint handles the token exchange
- * using the state parameter (userId) to identify the user.
- * 
- * If state is missing, we render a client-side page that reads the token from
- * localStorage (stored by the parent window) and calls the backend.
+ *
+ * Communication with the parent window uses localStorage instead of
+ * window.opener.postMessage because Google's accounts.google.com sets
+ * Cross-Origin-Opener-Policy: same-origin which severs window.opener.
+ *
+ * Flow:
+ *   1. Callback writes result to localStorage key 'google_calendar_oauth_result'
+ *   2. Parent listens via the 'storage' event and picks up the result
+ *   3. Callback page auto-closes or redirects
  */
 export async function GET(request: NextRequest) {
-  // Parse URL carefully - Google sometimes encodes parameters differently
   const url = new URL(request.url);
   const searchParams = url.searchParams;
-  
-  // Try to get parameters from query string
-  let code = searchParams.get('code');
-  let error = searchParams.get('error');
-  let state = searchParams.get('state'); // User ID for security
+
+  const code = searchParams.get('code');
+  const error = searchParams.get('error');
+  const state = searchParams.get('state');
 
   const forwardedProto = request.headers.get('x-forwarded-proto');
-  const forwardedHost = request.headers.get('x-forwarded-host') || request.headers.get('host');
+  const forwardedHost =
+    request.headers.get('x-forwarded-host') || request.headers.get('host');
   const [forwardedHostname, forwardedPort] = (forwardedHost || '').split(':', 2);
   const forwardedOrigin = forwardedHostname
     ? `${forwardedProto || 'https'}://${forwardedHostname}${forwardedPort ? `:${forwardedPort}` : ''}`
     : '';
-  const appUrl = forwardedOrigin
-    ? forwardedOrigin
-    : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080';
-  const apiUrl = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-  // For client-side calls, use the public API URL
-  const clientApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+  const appUrl = forwardedOrigin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080';
+  const apiUrl =
+    process.env.API_INTERNAL_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    'http://localhost:3000/api';
+  const clientApiUrl =
+    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
-  // Log the full URL to debug
-  console.log('[Google Callback] Full URL:', request.url);
-  console.log('[Google Callback] URL pathname:', url.pathname);
-  console.log('[Google Callback] URL search:', url.search);
-  console.log('[Google Callback] All search params:', Object.fromEntries(searchParams.entries()));
-  console.log('[Google Callback] Received callback:', { 
-    hasCode: !!code, 
-    codeLength: code?.length,
-    hasError: !!error, 
+  console.log('[Google Callback] Received:', {
+    hasCode: !!code,
+    hasError: !!error,
     state,
-    apiUrl 
   });
-  
-  // Get JWT token from cookies for fallback authentication
+
   const cookieStore = await cookies();
-  const token = cookieStore.get('token')?.value;
-  
-  // Also try to get token from request cookies directly
-  const requestCookies = request.cookies.get('token')?.value;
-  const effectiveToken = token || requestCookies;
-  
-  console.log('[Google Callback] Token from cookieStore:', token ? 'present' : 'missing');
-  console.log('[Google Callback] Token from request.cookies:', requestCookies ? 'present' : 'missing');
-  console.log('[Google Callback] Effective token:', effectiveToken ? 'present' : 'missing');
+  const effectiveToken =
+    cookieStore.get('token')?.value || request.cookies.get('token')?.value;
 
-  // Handle OAuth errors (user denied access)
+  // --- Error from Google (user denied) ---
   if (error) {
-    console.log('[Google Callback] OAuth error:', error);
-    return new Response(`
-      <!DOCTYPE html>
-      <html>
-        <head><title>Google Calendar - Error</title></head>
-        <body>
-          <script>
-            localStorage.removeItem('google_calendar_oauth_pending');
-            localStorage.removeItem('google_calendar_oauth_token');
-            if (window.opener) {
-              window.opener.postMessage({
-                type: 'GOOGLE_CALENDAR_ERROR',
-                message: 'Authorization was denied or cancelled.'
-              }, '${appUrl}');
-              window.close();
-            } else {
-              window.location.href = '/creator/sessions?google_error=denied';
-            }
-          </script>
-          <p>Authorization was denied. This window should close automatically.</p>
-        </body>
-      </html>
-    `, {
-      headers: { 'Content-Type': 'text/html' },
-    });
+    return resultPage('error', 'Authorization was denied or cancelled.');
   }
 
+  // --- No auth code ---
   if (!code) {
-    console.log('[Google Callback] No authorization code received');
-    return new Response(`
-      <!DOCTYPE html>
-      <html>
-        <head><title>Google Calendar - Error</title></head>
-        <body>
-          <script>
-            localStorage.removeItem('google_calendar_oauth_pending');
-            localStorage.removeItem('google_calendar_oauth_token');
-            if (window.opener) {
-              window.opener.postMessage({
-                type: 'GOOGLE_CALENDAR_ERROR',
-                message: 'No authorization code received.'
-              }, '${appUrl}');
-              window.close();
-            } else {
-              window.location.href = '/creator/sessions?google_error=no_code';
-            }
-          </script>
-          <p>No authorization code received. This window should close automatically.</p>
-        </body>
-      </html>
-    `, {
-      headers: { 'Content-Type': 'text/html' },
-    });
+    return resultPage('error', 'No authorization code received.');
   }
 
-  // If no state, render a client-side page that will read token from localStorage
-  if (!state) {
-    console.log('[Google Callback] No state (userId) received, rendering client-side handler');
-    
-    // If we have a server-side token, try that first
-    if (effectiveToken) {
-      console.log('[Google Callback] Using server-side JWT token');
-      try {
-        const callbackUrl = `${apiUrl}/google-calendar/callback`;
-        console.log('[Google Callback] Calling backend POST with JWT:', callbackUrl);
-        
-        const response = await fetch(callbackUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${effectiveToken}`,
-          },
-          body: JSON.stringify({ code }),
-        });
+  // --- Exchange code for tokens ---
 
-        console.log('[Google Callback] Backend POST response status:', response.status);
+  // Strategy 1: state param contains userId → call backend GET endpoint
+  if (state) {
+    try {
+      const callbackUrl = `${apiUrl}/google-calendar/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`;
+      console.log('[Google Callback] Backend GET:', callbackUrl);
+      const response = await fetch(callbackUrl);
+      console.log('[Google Callback] Backend status:', response.status);
 
-        if (response.ok) {
-          const data = await response.json().catch(() => ({}));
-          console.log('[Google Callback] Server-side JWT success:', data);
-          
-          return new Response(`
-            <!DOCTYPE html>
-            <html>
-              <head><title>Google Calendar - Connected</title></head>
-              <body>
-                <script>
-                  localStorage.removeItem('google_calendar_oauth_pending');
-                  localStorage.removeItem('google_calendar_oauth_token');
-                  if (window.opener) {
-                    window.opener.postMessage({
-                      type: 'GOOGLE_CALENDAR_SUCCESS',
-                      message: 'Google Calendar connected successfully!'
-                    }, '${appUrl}');
-                    window.close();
-                  } else {
-                    window.location.href = '/creator/sessions?google_success=true';
-                  }
-                </script>
-                <p>Google Calendar connected successfully! This window should close automatically.</p>
-              </body>
-            </html>
-          `, {
-            headers: { 'Content-Type': 'text/html' },
-          });
-        } else {
-          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-          console.error('[Google Callback] Server-side JWT error:', errorData);
-        }
-      } catch (jwtError: any) {
-        console.error('[Google Callback] Server-side JWT exception:', jwtError);
+      if (response.ok) {
+        return resultPage('success', 'Google Calendar connected successfully!');
       }
-    }
-    
-    // Fall back to client-side handling with localStorage token
-    console.log('[Google Callback] Falling back to client-side localStorage token');
-    return new Response(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Google Calendar - Connecting...</title>
-          <style>
-            body { font-family: system-ui, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f5f5f5; }
-            .container { text-align: center; padding: 20px; }
-            .spinner { width: 40px; height: 40px; border: 3px solid #e0e0e0; border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
-            @keyframes spin { to { transform: rotate(360deg); } }
-            .error { color: #dc2626; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="spinner" id="spinner"></div>
-            <p id="status">Connecting Google Calendar...</p>
-          </div>
-          <script>
-            (async function() {
-              const code = '${code}';
-              const appUrl = '${appUrl}';
-              const apiUrl = '${clientApiUrl}';
-              
-              // Try to get token from localStorage (stored by parent window)
-              const token = localStorage.getItem('google_calendar_oauth_token');
-              
-              console.log('[Google Callback Client] Token from localStorage:', token ? 'present' : 'missing');
-              
-              if (!token) {
-                document.getElementById('spinner').style.display = 'none';
-                document.getElementById('status').innerHTML = '<span class="error">Session expired. Please close this window and try again.</span>';
-                localStorage.removeItem('google_calendar_oauth_pending');
-                
-                setTimeout(() => {
-                  if (window.opener) {
-                    window.opener.postMessage({
-                      type: 'GOOGLE_CALENDAR_ERROR',
-                      message: 'Session expired. Please try again.'
-                    }, appUrl);
-                    window.close();
-                  }
-                }, 2000);
-                return;
-              }
-              
-              try {
-                const response = await fetch(apiUrl + '/google-calendar/callback', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                  },
-                  body: JSON.stringify({ code })
-                });
-                
-                console.log('[Google Callback Client] Response status:', response.status);
-                
-                if (response.ok) {
-                  document.getElementById('status').textContent = 'Connected successfully!';
-                  localStorage.removeItem('google_calendar_oauth_pending');
-                  localStorage.removeItem('google_calendar_oauth_token');
-                  
-                  if (window.opener) {
-                    window.opener.postMessage({
-                      type: 'GOOGLE_CALENDAR_SUCCESS',
-                      message: 'Google Calendar connected successfully!'
-                    }, appUrl);
-                    window.close();
-                  } else {
-                    window.location.href = '/creator/sessions?google_success=true';
-                  }
-                } else {
-                  const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-                  console.error('[Google Callback Client] Error:', errorData);
-                  
-                  document.getElementById('spinner').style.display = 'none';
-                  document.getElementById('status').innerHTML = '<span class="error">' + (errorData.message || 'Failed to connect') + '</span>';
-                  localStorage.removeItem('google_calendar_oauth_pending');
-                  localStorage.removeItem('google_calendar_oauth_token');
-                  
-                  setTimeout(() => {
-                    if (window.opener) {
-                      window.opener.postMessage({
-                        type: 'GOOGLE_CALENDAR_ERROR',
-                        message: errorData.message || 'Failed to connect Google Calendar'
-                      }, appUrl);
-                      window.close();
-                    }
-                  }, 2000);
-                }
-              } catch (err) {
-                console.error('[Google Callback Client] Exception:', err);
-                
-                document.getElementById('spinner').style.display = 'none';
-                document.getElementById('status').innerHTML = '<span class="error">Connection failed. Please try again.</span>';
-                localStorage.removeItem('google_calendar_oauth_pending');
-                localStorage.removeItem('google_calendar_oauth_token');
-                
-                setTimeout(() => {
-                  if (window.opener) {
-                    window.opener.postMessage({
-                      type: 'GOOGLE_CALENDAR_ERROR',
-                      message: 'Connection failed: ' + (err.message || 'Unknown error')
-                    }, appUrl);
-                    window.close();
-                  }
-                }, 2000);
-              }
-            })();
-          </script>
-        </body>
-      </html>
-    `, {
-      headers: { 'Content-Type': 'text/html' },
-    });
-  }
-
-  try {
-    // Call backend to exchange code for tokens
-    // The backend GET /google-calendar/callback endpoint uses the state parameter as userId
-    const callbackUrl = `${apiUrl}/google-calendar/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`;
-    console.log('[Google Callback] Calling backend:', callbackUrl);
-    
-    const response = await fetch(callbackUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    console.log('[Google Callback] Backend response status:', response.status);
-
-    if (response.ok) {
-      const data = await response.json().catch(() => ({}));
-      console.log('[Google Callback] Success:', data);
-      
-      return new Response(`
-        <!DOCTYPE html>
-        <html>
-          <head><title>Google Calendar - Connected</title></head>
-          <body>
-            <script>
-              localStorage.removeItem('google_calendar_oauth_pending');
-              localStorage.removeItem('google_calendar_oauth_token');
-              if (window.opener) {
-                window.opener.postMessage({
-                  type: 'GOOGLE_CALENDAR_SUCCESS',
-                  message: 'Google Calendar connected successfully!'
-                }, '${appUrl}');
-                window.close();
-              } else {
-                window.location.href = '/creator/sessions?google_success=true';
-              }
-            </script>
-            <p>Google Calendar connected successfully! This window should close automatically.</p>
-          </body>
-        </html>
-      `, {
-        headers: { 'Content-Type': 'text/html' },
-      });
-    } else {
       const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
       console.error('[Google Callback] Backend error:', errorData);
-      
-      return new Response(`
-        <!DOCTYPE html>
-        <html>
-          <head><title>Google Calendar - Error</title></head>
-          <body>
-            <script>
-              localStorage.removeItem('google_calendar_oauth_pending');
-              localStorage.removeItem('google_calendar_oauth_token');
-              if (window.opener) {
-                window.opener.postMessage({
-                  type: 'GOOGLE_CALENDAR_ERROR',
-                  message: '${errorData.message || 'Failed to connect Google Calendar'}'
-                }, '${appUrl}');
-                window.close();
-              } else {
-                window.location.href = '/creator/sessions?google_error=backend_error';
-              }
-            </script>
-            <p>Failed to connect Google Calendar. This window should close automatically.</p>
-          </body>
-        </html>
-      `, {
-        headers: { 'Content-Type': 'text/html' },
-      });
+      // fall through to strategy 2
+    } catch (err: any) {
+      console.error('[Google Callback] Backend exception:', err);
+      // fall through to strategy 2
     }
-  } catch (error: any) {
-    console.error('[Google Callback] Exception:', error);
-    
-    return new Response(`
-      <!DOCTYPE html>
-      <html>
-        <head><title>Google Calendar - Error</title></head>
-        <body>
-          <script>
-            localStorage.removeItem('google_calendar_oauth_pending');
-            localStorage.removeItem('google_calendar_oauth_token');
-            if (window.opener) {
-              window.opener.postMessage({
-                type: 'GOOGLE_CALENDAR_ERROR',
-                message: 'Connection failed: ${error.message || 'Unknown error'}'
-              }, '${appUrl}');
-              window.close();
-            } else {
-              window.location.href = '/creator/sessions?google_error=exception';
-            }
-          </script>
-          <p>Connection failed. This window should close automatically.</p>
-        </body>
-      </html>
-    `, {
-      headers: { 'Content-Type': 'text/html' },
-    });
   }
+
+  // Strategy 2: use server-side JWT from cookie
+  if (effectiveToken) {
+    try {
+      const callbackUrl = `${apiUrl}/google-calendar/callback`;
+      const response = await fetch(callbackUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${effectiveToken}`,
+        },
+        body: JSON.stringify({ code }),
+      });
+
+      if (response.ok) {
+        return resultPage('success', 'Google Calendar connected successfully!');
+      }
+      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+      console.error('[Google Callback] JWT error:', errorData);
+    } catch (err: any) {
+      console.error('[Google Callback] JWT exception:', err);
+    }
+  }
+
+  // Strategy 3: client-side fetch using localStorage token (last resort)
+  const safeCode = code.replace(/'/g, "\\'").replace(/\\/g, '\\\\');
+  return new Response(
+    `<!DOCTYPE html>
+<html><head><title>Google Calendar - Connecting...</title>
+<style>
+  body{font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f5f5f5}
+  .c{text-align:center;padding:20px}
+  .s{width:40px;height:40px;border:3px solid #e0e0e0;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .err{color:#dc2626}
+</style></head>
+<body><div class="c"><div class="s" id="sp"></div><p id="st">Connecting Google Calendar...</p></div>
+<script>
+(async()=>{
+  const apiUrl='${clientApiUrl}';
+  const token=localStorage.getItem('google_calendar_oauth_token');
+  if(!token){
+    signalResult('error','Session expired. Please close this window and try again.');
+    return;
+  }
+  try{
+    const r=await fetch(apiUrl+'/google-calendar/callback',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({code:'${safeCode}'})
+    });
+    if(r.ok){
+      signalResult('success','Google Calendar connected successfully!');
+    }else{
+      const d=await r.json().catch(()=>({message:'Unknown error'}));
+      signalResult('error',d.message||'Failed to connect');
+    }
+  }catch(e){
+    signalResult('error','Connection failed: '+(e.message||'Unknown error'));
+  }
+})();
+function signalResult(type,message){
+  localStorage.removeItem('google_calendar_oauth_pending');
+  localStorage.removeItem('google_calendar_oauth_token');
+  localStorage.setItem('google_calendar_oauth_result',JSON.stringify({type:type==='success'?'GOOGLE_CALENDAR_SUCCESS':'GOOGLE_CALENDAR_ERROR',message:message}));
+  const sp=document.getElementById('sp');
+  const st=document.getElementById('st');
+  if(sp)sp.style.display='none';
+  if(st)st.innerHTML=type==='success'?message:'<span class="err">'+message+'</span>';
+  setTimeout(()=>{try{window.close()}catch(e){}},1500);
+  setTimeout(()=>{window.location.href='/creator/sessions?google_'+(type==='success'?'success=true':'error=failed')},3000);
+}
+</script></body></html>`,
+    { headers: HTML_HEADERS }
+  );
+}
+
+/** Build an HTML page that signals the result via localStorage and auto-closes */
+function resultPage(
+  type: 'success' | 'error',
+  message: string,
+): Response {
+  const eventType =
+    type === 'success'
+      ? 'GOOGLE_CALENDAR_SUCCESS'
+      : 'GOOGLE_CALENDAR_ERROR';
+  const redirectQs =
+    type === 'success' ? 'google_success=true' : 'google_error=failed';
+  const safeMessage = message.replace(/'/g, "\\'").replace(/\\/g, '\\\\');
+
+  return new Response(
+    `<!DOCTYPE html>
+<html><head><title>Google Calendar - ${type === 'success' ? 'Connected' : 'Error'}</title></head>
+<body>
+<p>${type === 'success' ? 'Google Calendar connected successfully!' : 'Something went wrong.'} This window should close automatically.</p>
+<script>
+  localStorage.removeItem('google_calendar_oauth_pending');
+  localStorage.removeItem('google_calendar_oauth_token');
+  localStorage.setItem('google_calendar_oauth_result',JSON.stringify({type:'${eventType}',message:'${safeMessage}'}));
+  setTimeout(function(){try{window.close()}catch(e){}},1200);
+  setTimeout(function(){window.location.href='/creator/sessions?${redirectQs}'},2500);
+</script>
+</body></html>`,
+    { headers: HTML_HEADERS }
+  );
 }

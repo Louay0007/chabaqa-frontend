@@ -98,6 +98,16 @@ const nextConfig = {
         source: '/:path*',
         headers: securityHeaders,
       },
+      {
+        // Google OAuth callback popup must postMessage back to the opener.
+        // COOP unsafe-none prevents Chrome from severing window.opener
+        // after the cross-origin Google redirect.
+        source: '/api/auth/google/callback',
+        headers: [
+          { key: 'Cross-Origin-Opener-Policy', value: 'unsafe-none' },
+          { key: 'Cross-Origin-Embedder-Policy', value: 'unsafe-none' },
+        ],
+      },
     ];
   },
   async rewrites() {

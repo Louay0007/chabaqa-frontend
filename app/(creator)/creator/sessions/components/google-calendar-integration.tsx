@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -21,6 +21,7 @@ export default function GoogleCalendarIntegration({ className, onConnectionUpdat
   const [loading, setLoading] = useState(true)
   const [connecting, setConnecting] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
+  const cleanupRef = useRef<(() => void) | null>(null)
 
   const checkConnectionStatus = useCallback(async () => {
     try {
@@ -38,17 +39,39 @@ export default function GoogleCalendarIntegration({ className, onConnectionUpdat
     }
   }, [toast])
 
-  // Check connection status on mount
   useEffect(() => {
     void checkConnectionStatus()
   }, [checkConnectionStatus])
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanupRef.current?.()
+    }
+  }, [])
+
   const handleConnect = async () => {
-    let authWindow: Window | null = null
     try {
       setConnecting(true)
-      authWindow = window.open(
-        '',
+
+      const response = await googleCalendarApi.getAuthUrl()
+      const authUrl = response?.data?.authUrl
+      if (!authUrl || typeof authUrl !== 'string') {
+        throw new Error("Google OAuth URL was not returned by the server.")
+      }
+
+      // Store token in localStorage for the callback to use
+      localStorage.setItem('google_calendar_oauth_pending', 'true')
+      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1]
+      if (token) {
+        localStorage.setItem('google_calendar_oauth_token', token)
+      }
+      // Clear any stale result
+      localStorage.removeItem('google_calendar_oauth_result')
+
+      // Open popup
+      const authWindow = window.open(
+        authUrl,
         'google-auth',
         'width=500,height=600,scrollbars=yes,resizable=yes'
       )
@@ -56,77 +79,68 @@ export default function GoogleCalendarIntegration({ className, onConnectionUpdat
         throw new Error("Popup was blocked by the browser. Please allow popups and try again.")
       }
 
-      const response = await googleCalendarApi.getAuthUrl()
-      const authUrl = response?.data?.authUrl
-      if (!authUrl || typeof authUrl !== 'string') {
-        throw new Error("Google OAuth URL was not returned by the server.")
+      // --- Listen for result via localStorage (works despite COOP) ---
+      const handleStorageEvent = (event: StorageEvent) => {
+        if (event.key !== 'google_calendar_oauth_result' || !event.newValue) return
+        handleOAuthResult(event.newValue)
       }
-      
-      // Store a flag to indicate we're in the middle of Google Calendar OAuth
-      // This helps the callback know to use the JWT token instead of state
-      localStorage.setItem('google_calendar_oauth_pending', 'true')
-      
-      // Store the token in localStorage for the callback to use
-      // This is needed because popup windows may not share cookies
-      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1]
-      if (token) {
-        localStorage.setItem('google_calendar_oauth_token', token)
-      }
-      
-      // Navigate popup after URL is resolved
-      authWindow.location.href = authUrl
 
-      // Listen for the callback
-      const checkClosed = setInterval(() => {
-        if (authWindow?.closed) {
-          clearInterval(checkClosed)
-          setConnecting(false)
-          // Recheck status after auth window closes
-          setTimeout(checkConnectionStatus, 1000)
+      // Also poll localStorage as a fallback (storage event doesn't fire in same tab)
+      const pollInterval = setInterval(() => {
+        const result = localStorage.getItem('google_calendar_oauth_result')
+        if (result) {
+          handleOAuthResult(result)
         }
       }, 1000)
 
-      // Handle message from callback window
-      const handleMessage = (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) return
-        
-        if (event.data.type === 'GOOGLE_CALENDAR_SUCCESS') {
-          clearInterval(checkClosed)
-          authWindow?.close()
+      const timeoutId = setTimeout(() => {
+        cleanup()
+        setConnecting(false)
+        // If we're still pending after 5 minutes, recheck status in case it worked
+        void checkConnectionStatus()
+      }, 5 * 60 * 1000)
+
+      const cleanup = () => {
+        window.removeEventListener('storage', handleStorageEvent)
+        clearInterval(pollInterval)
+        clearTimeout(timeoutId)
+        localStorage.removeItem('google_calendar_oauth_result')
+        localStorage.removeItem('google_calendar_oauth_pending')
+        localStorage.removeItem('google_calendar_oauth_token')
+        cleanupRef.current = null
+      }
+      cleanupRef.current = cleanup
+
+      const handleOAuthResult = (raw: string) => {
+        cleanup()
+        try {
+          const data = JSON.parse(raw)
+          if (data.type === 'GOOGLE_CALENDAR_SUCCESS') {
+            setConnecting(false)
+            void sessionsApi.retryMeetProvisioning().catch(() => {})
+            toast({
+              title: "Google Calendar connected",
+              description: "Your Google Calendar has been connected successfully. Meet links will now be created automatically for your sessions.",
+            })
+            void checkConnectionStatus()
+            onConnectionUpdated?.()
+          } else {
+            setConnecting(false)
+            toast({
+              title: "Connection failed",
+              description: data.message || "Failed to connect Google Calendar. Please try again.",
+              variant: "destructive",
+            })
+          }
+        } catch {
           setConnecting(false)
-          void sessionsApi.retryMeetProvisioning().catch(() => {})
-          toast({
-            title: "Google Calendar connected",
-            description: "Your Google Calendar has been connected successfully. Meet links will now be created automatically for your sessions.",
-          })
           void checkConnectionStatus()
-          onConnectionUpdated?.()
-        } else if (event.data.type === 'GOOGLE_CALENDAR_ERROR') {
-          clearInterval(checkClosed)
-          authWindow?.close()
-          setConnecting(false)
-          toast({
-            title: "Connection failed",
-            description: event.data.message || "Failed to connect Google Calendar. Please try again.",
-            variant: "destructive",
-          })
         }
       }
 
-      window.addEventListener('message', handleMessage)
-      
-      // Cleanup listener after 5 minutes
-      setTimeout(() => {
-        window.removeEventListener('message', handleMessage)
-        clearInterval(checkClosed)
-        if (!authWindow?.closed) {
-          authWindow?.close()
-          setConnecting(false)
-        }
-      }, 5 * 60 * 1000)
+      window.addEventListener('storage', handleStorageEvent)
 
     } catch (error: any) {
-      authWindow?.close()
       setConnecting(false)
       toast({
         title: "Connection failed",
@@ -140,12 +154,10 @@ export default function GoogleCalendarIntegration({ className, onConnectionUpdat
     try {
       setDisconnecting(true)
       await googleCalendarApi.disconnect()
-      
       toast({
         title: "Google Calendar disconnected",
         description: "Your Google Calendar has been disconnected. Meet links will no longer be created automatically.",
       })
-      
       void checkConnectionStatus()
       onConnectionUpdated?.()
     } catch (error: any) {
@@ -204,7 +216,7 @@ export default function GoogleCalendarIntegration({ className, onConnectionUpdat
                 Connect your Google Calendar to automatically create Google Meet links when participants book your sessions.
               </AlertDescription>
             </Alert>
-            
+
             <div className="space-y-3">
               <h4 className="font-medium">Benefits of connecting:</h4>
               <ul className="text-sm text-muted-foreground space-y-1 ml-4">
@@ -215,8 +227,8 @@ export default function GoogleCalendarIntegration({ className, onConnectionUpdat
               </ul>
             </div>
 
-            <Button 
-              onClick={handleConnect} 
+            <Button
+              onClick={handleConnect}
               disabled={connecting}
               className="w-full"
             >
@@ -242,7 +254,7 @@ export default function GoogleCalendarIntegration({ className, onConnectionUpdat
                 <AlertCircle className="h-4 w-4 text-red-600" />
               )}
               <AlertDescription className={status.hasValidAccess ? "text-green-800" : "text-red-800"}>
-                {status.hasValidAccess 
+                {status.hasValidAccess
                   ? "Google Calendar is connected and working properly. Meet links will be created automatically for new bookings."
                   : "Your Google Calendar connection has expired. Please reconnect to continue creating Meet links automatically."
                 }
@@ -263,8 +275,8 @@ export default function GoogleCalendarIntegration({ className, onConnectionUpdat
 
             <div className="flex gap-2">
               {!status.hasValidAccess && (
-                <Button 
-                  onClick={handleConnect} 
+                <Button
+                  onClick={handleConnect}
                   disabled={connecting}
                   variant="default"
                   className="flex-1"
@@ -282,9 +294,9 @@ export default function GoogleCalendarIntegration({ className, onConnectionUpdat
                   )}
                 </Button>
               )}
-              
-              <Button 
-                onClick={handleDisconnect} 
+
+              <Button
+                onClick={handleDisconnect}
                 disabled={disconnecting}
                 variant="outline"
                 className={status.hasValidAccess ? "flex-1" : ""}
