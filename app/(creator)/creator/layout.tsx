@@ -14,7 +14,7 @@ import { CommunityProvider } from "@/app/providers/community-context"
 
 const LiveSupportWidget = dynamic(
   () => import("@/components/live-support/live-support-widget").then(mod => ({ default: mod.LiveSupportWidget })),
-  { ssr: false }
+  { loading: () => null }
 )
 
 export default function CreatorLayout({ children }: { children: React.ReactNode }) {

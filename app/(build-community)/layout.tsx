@@ -5,7 +5,7 @@ import { AuthProvider } from "../providers/auth-provider"
 
 const LiveSupportWidget = dynamic(
   () => import("@/components/live-support/live-support-widget").then(mod => ({ default: mod.LiveSupportWidget })),
-  { ssr: false }
+  { loading: () => null }
 )
 
 export const metadata: Metadata = {

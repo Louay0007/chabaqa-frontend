@@ -17,9 +17,11 @@ export async function GET(request: Request) {
         console.log('[Participations Route] Cookie token:', tokenCookie ? 'present' : 'missing');
         console.log('[Participations Route] Final token:', token ? 'present' : 'missing');
 
+        const noCacheHeaders = { 'Cache-Control': 'private, no-cache' };
+
         if (!token) {
             console.log('[Participations Route] No token, returning empty participations');
-            return NextResponse.json({ participations: [] }, { status: 200 });
+            return NextResponse.json({ participations: [] }, { status: 200, headers: noCacheHeaders });
         }
 
         const apiBaseUrl = BACKEND_URL.replace(/\/$/, '');
@@ -42,14 +44,14 @@ export async function GET(request: Request) {
             const errorText = await backendResponse.text();
             console.log('[Participations Route] Backend error:', errorText);
             // Return empty participations on error (user not logged in, etc.)
-            return NextResponse.json({ participations: [] }, { status: 200 });
+            return NextResponse.json({ participations: [] }, { status: 200, headers: noCacheHeaders });
         }
 
         const data = await backendResponse.json();
         console.log('[Participations Route] Success, participations count:', data?.participations?.length || 0);
-        return NextResponse.json(data);
+        return NextResponse.json(data, { headers: noCacheHeaders });
     } catch (error: any) {
         console.error('[Participations Route] Error:', error);
-        return NextResponse.json({ participations: [] }, { status: 200 });
+        return NextResponse.json({ participations: [] }, { status: 200, headers: noCacheHeaders });
     }
 }

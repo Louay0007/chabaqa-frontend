@@ -108,6 +108,13 @@ const nextConfig = {
           { key: 'Cross-Origin-Embedder-Policy', value: 'unsafe-none' },
         ],
       },
+      {
+        // Cache proxied uploads (images, documents, audio) at the browser
+        source: '/uploads/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' },
+        ],
+      },
     ];
   },
   async rewrites() {

@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { About } from "@/app/(landing)/components/about"
 import { AppInstallCTA } from "@/app/(landing)/components/app-install-cta"
 import { FAQ } from "@/app/(landing)/components/faq"
@@ -131,11 +132,21 @@ export default function Home() {
         <RevealProvider />
         <Hero />
         <About />
-        <Features />
-        <YouTubeVideos />
-        <Pricing />
-        <AppInstallCTA />
-        <FAQ />
+        <Suspense fallback={<div className="h-96 animate-pulse bg-muted" />}>
+          <Features />
+        </Suspense>
+        <Suspense fallback={<div className="h-64 animate-pulse bg-muted" />}>
+          <YouTubeVideos />
+        </Suspense>
+        <Suspense fallback={<div className="h-96 animate-pulse bg-muted" />}>
+          <Pricing />
+        </Suspense>
+        <Suspense fallback={<div className="h-48 animate-pulse bg-muted" />}>
+          <AppInstallCTA />
+        </Suspense>
+        <Suspense fallback={<div className="h-64 animate-pulse bg-muted" />}>
+          <FAQ />
+        </Suspense>
         <Footer />
       </main>
       

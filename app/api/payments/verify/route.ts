@@ -12,10 +12,12 @@ export async function GET(req: NextRequest) {
     const authHeader = req.headers.get('authorization');
     const incomingCookies = req.headers.get('cookie') || '';
 
+    const noCacheHeaders = { 'Cache-Control': 'private, no-cache' };
+
     if (!sessionId && !paymentId && !paymentRef) {
       return NextResponse.json(
         { message: 'sessionId, paymentId, or paymentRef query parameter is required' },
-        { status: 400 }
+        { status: 400, headers: noCacheHeaders }
       );
     }
 
@@ -69,7 +71,7 @@ export async function GET(req: NextRequest) {
 
     const data = await response.json();
 
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json(data, { status: response.status, headers: noCacheHeaders });
   } catch (error) {
     console.error('Payment verification error:', error);
 
@@ -79,7 +81,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       { message: errorMessage, status: 'error' },
-      { status: 500 }
+      { status: 500, headers: noCacheHeaders }
     );
   }
 }
