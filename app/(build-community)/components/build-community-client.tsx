@@ -557,6 +557,7 @@ export default function CommunityPage() {
                 alt="Chabaqa Logo"
                 width={200}
                 height={80}
+                sizes="200px"
                 className="drop-shadow-md"
                 priority
               />

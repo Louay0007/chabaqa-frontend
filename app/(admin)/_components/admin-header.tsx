@@ -129,7 +129,7 @@ export function AdminHeader({
       {/* Breadcrumbs or Title */}
       <div className="flex flex-1 items-center gap-3">
         <div className="hidden rounded-2xl border border-[hsl(var(--admin-border)/0.8)] bg-white/75 px-3 py-2 lg:flex lg:items-center lg:gap-2">
-          <Image src="/Logos/PNG/brandmark.png" alt="Chabaqa" width={20} height={20} className="h-5 w-5 object-contain" />
+          <Image src="/Logos/PNG/brandmark.png" alt="Chabaqa" width={20} height={20} sizes="20px" className="h-5 w-5 object-contain" />
           <span className="text-xs font-semibold uppercase tracking-[0.22em] text-[hsl(var(--admin-muted))]">Operations</span>
         </div>
         {breadcrumbs && breadcrumbs.length > 0 ? (

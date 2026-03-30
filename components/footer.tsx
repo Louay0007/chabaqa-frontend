@@ -43,6 +43,7 @@ export function Footer() {
                 alt="Chabaqa"
                 width={140}
                 height={36}
+                sizes="140px"
                 className="h-9 w-auto"
               />
             </Link>

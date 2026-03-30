@@ -395,7 +395,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
         <div className="flex items-center space-x-2">
           <Link href="/" className="flex-shrink-0">
             <div className="w-8 h-8 relative cursor-pointer hover:opacity-90 transition-opacity">
-              <Image src="/Logos/PNG/brandmark.png" alt="Chabaqa" fill className="object-contain" />
+              <Image src="/Logos/PNG/brandmark.png" alt="Chabaqa" fill sizes="32px" className="object-contain" />
             </div>
           </Link>
           <div className="flex-1 min-w-0">

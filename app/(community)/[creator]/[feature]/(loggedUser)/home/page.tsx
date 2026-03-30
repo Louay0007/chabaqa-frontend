@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import React from "react"
+import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -964,7 +965,7 @@ export default function CommunityDashboard({ params }: { params: Promise<{ creat
                       {/* Brand header */}
                       <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-primary-600 to-primary-500">
                         <div className="flex items-center gap-2.5">
-                          <img src="/logo_chabaqa.png" alt="Chabaqa" className="h-6 w-auto brightness-0 invert" />
+                          <Image src="/logo_chabaqa.png" alt="Chabaqa" width={96} height={24} sizes="96px" className="h-6 w-auto brightness-0 invert" />
                           <div className="w-px h-4 bg-white/30" />
                           <span className="text-white font-semibold text-sm tracking-tight">
                             {isEditMode ? "Edit Post" : "Create a Post"}

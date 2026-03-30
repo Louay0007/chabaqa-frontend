@@ -14,10 +14,11 @@ export function AppInstallCTA() {
         <div className="relative w-full border-4 border-gray-200 rounded-2xl overflow-hidden">
           {/* Desktop Image */}
           <Image
-            src="/app-install-banner.png"
+            src="/app-install-banner.webp"
             alt={t("bannerAlt")}
             width={1920}
             height={600}
+            sizes="100vw"
             className="hidden sm:block w-full h-auto"
             priority={false}
           />
@@ -28,6 +29,7 @@ export function AppInstallCTA() {
             alt={t("bannerAlt")}
             width={800}
             height={1000}
+            sizes="100vw"
             className="block sm:hidden w-full h-auto"
             priority={false}
           />
@@ -46,6 +48,7 @@ export function AppInstallCTA() {
                   alt={t("downloadAppStore")}
                   width={370}
                   height={111}
+                  sizes="(max-width: 768px) 120px, 150px"
                   className="w-auto h-12 sm:h-12 lg:h-14"
                 />
               </Link>
@@ -60,6 +63,7 @@ export function AppInstallCTA() {
                   alt={t("downloadGooglePlay")}
                   width={370}
                   height={111}
+                  sizes="(max-width: 768px) 120px, 150px"
                   className="w-auto h-12 sm:h-12 lg:h-14"
                 />
               </Link>

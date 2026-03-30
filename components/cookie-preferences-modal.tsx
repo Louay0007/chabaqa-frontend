@@ -53,6 +53,7 @@ export function CookiePreferencesModal({
                   alt="Chabaqa"
                   width={24}
                   height={24}
+                  sizes="24px"
                   className="h-6 w-6 object-contain"
                 />
               </div>

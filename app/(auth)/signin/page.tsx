@@ -46,7 +46,7 @@ export default function SignInPage() {
     <div className="min-h-screen relative overflow-hidden">
       {/* Background avec fallback */}
       <div className="absolute inset-0 gradient-fallback">
-        <Image src="/gradient-background.png" alt="Gradient Background" fill className="object-cover" priority />
+        <Image src="/gradient-background.webp" alt="Gradient Background" fill sizes="100vw" className="object-cover" priority />
       </div>
 
       {/* Main Content */}
@@ -60,6 +60,7 @@ export default function SignInPage() {
                 alt="Chabaqa Logo"
                 width={280}
                 height={112}
+                sizes="280px"
                 className="drop-shadow-lg"
                 priority
               />

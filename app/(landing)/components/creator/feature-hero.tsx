@@ -130,6 +130,7 @@ export function FeatureHero({ feature }: FeatureHeroProps) {
                 alt="Chabaqa Logo"
                 width={40}
                 height={10}
+                sizes="40px"
                 style={{ objectFit: "contain" }}
                 priority
               />
@@ -140,6 +141,7 @@ export function FeatureHero({ feature }: FeatureHeroProps) {
                 alt="Chabaqa Logo"
                 width={120}
                 height={30}
+                sizes="120px"
                 style={{ objectFit: "contain" }}
                 priority
               />

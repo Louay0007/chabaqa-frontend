@@ -135,6 +135,7 @@ export function CommunityHero({
               alt="Chabaqa Logo"
               width={150}
               height={28}
+              sizes="150px"
               priority
               style={{ objectFit: 'contain' }}
             />

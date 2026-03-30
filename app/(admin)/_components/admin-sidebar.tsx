@@ -300,6 +300,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
               alt="Chabaqa"
               width={32}
               height={32}
+              sizes="32px"
               className="h-8 w-8 object-contain"
             />
           </div>
@@ -309,6 +310,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
               alt="Chabaqa"
               width={122}
               height={28}
+              sizes="122px"
               className="h-7 w-auto object-contain"
             />
             <p className="mt-1 text-xs font-medium uppercase tracking-[0.22em] text-[hsl(var(--admin-muted))]">

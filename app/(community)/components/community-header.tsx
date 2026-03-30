@@ -310,6 +310,7 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
                   src="/Logos/PNG/frensh1.png"
                   alt="Chabaqa Logo"
                   fill
+                  sizes="100px"
                   style={{ objectFit: "contain" }}
                   priority
                 />
@@ -320,6 +321,7 @@ export function CommunityHeader({ currentCommunity, creatorSlug }: CommunityHead
                   src="/Logos/PNG/brandmark.png"
                   alt="Chabaqa Logo"
                   fill
+                  sizes="32px"
                   style={{ objectFit: "contain" }}
                   priority
                 />

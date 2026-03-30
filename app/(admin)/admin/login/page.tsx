@@ -154,11 +154,11 @@ export default function AdminLoginPage() {
         <CardHeader className="space-y-3 pb-6">
           <div className="mb-2 flex items-center justify-center">
             <div className="admin-icon-chip h-20 w-20 rounded-[1.75rem] bg-white/90 p-4">
-              <Image src="/Logos/PNG/brandmark.png" alt="Chabaqa" width={48} height={48} className="h-12 w-12 object-contain" />
+              <Image src="/Logos/PNG/brandmark.png" alt="Chabaqa" width={48} height={48} sizes="48px" className="h-12 w-12 object-contain" />
             </div>
           </div>
           <div className="flex justify-center">
-            <Image src="/logo_chabaqa.png" alt="Chabaqa" width={136} height={32} className="h-8 w-auto object-contain" />
+            <Image src="/logo_chabaqa.png" alt="Chabaqa" width={136} height={32} sizes="136px" className="h-8 w-auto object-contain" />
           </div>
           <CardTitle className="text-center text-3xl font-bold tracking-tight text-foreground">
             {show2FAForm ? t("twoFactorTitle") : t("title")}

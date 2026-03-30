@@ -18,7 +18,7 @@ export default async function ForgotPasswordPage() {
     <div className="min-h-screen relative overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0 gradient-fallback">
-        <Image src="/gradient-background.png" alt={t("backgroundAlt")} fill className="object-cover" priority />
+        <Image src="/gradient-background.webp" alt={t("backgroundAlt")} fill sizes="100vw" className="object-cover" priority />
       </div>
 
 
@@ -29,6 +29,7 @@ export default async function ForgotPasswordPage() {
           alt={t("logoAlt")}
           width={140}
           height={56}
+          sizes="140px"
           className="drop-shadow-lg"
           priority
         />

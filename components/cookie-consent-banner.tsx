@@ -49,6 +49,7 @@ export function CookieConsentBanner({
                   alt="Chabaqa"
                   width={40}
                   height={40}
+                  sizes="40px"
                   className="h-10 w-10 object-contain"
                 />
               </div>

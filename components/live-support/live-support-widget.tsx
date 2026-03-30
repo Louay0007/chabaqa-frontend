@@ -242,6 +242,7 @@ export function LiveSupportWidget() {
                     alt="Chabaqa"
                     width={24}
                     height={24}
+                    sizes="24px"
                     className="h-6 w-6"
                   />
                 </div>
@@ -395,6 +396,7 @@ export function LiveSupportWidget() {
             alt="Chabaqa"
             width={30}
             height={30}
+            sizes="30px"
             className="relative h-8 w-8"
           />
         )}
