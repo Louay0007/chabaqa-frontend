@@ -89,18 +89,37 @@ export default function GoogleCalendarIntegration({ className, onConnectionUpdat
         handleOAuthResult(event.newValue)
       }
 
-      // Also poll localStorage as a fallback (storage event doesn't fire in same tab)
+      // Poll localStorage more frequently as a fallback
       const pollInterval = setInterval(() => {
         const result = localStorage.getItem('google_calendar_oauth_result')
         if (result) {
           handleOAuthResult(result)
         }
-      }, 1000)
+      }, 500)
+
+      // Also check API status directly after a delay (backup method)
+      const apiCheckTimeout = setTimeout(async () => {
+        try {
+          const status = await googleCalendarApi.getConnectionStatus()
+          if (status?.data?.connected) {
+            cleanup()
+            setConnecting(false)
+            toast({
+              title: "Google Calendar connected",
+              description: "Your Google Calendar has been connected successfully.",
+            })
+            void checkConnectionStatus()
+            onConnectionUpdated?.()
+          }
+        } catch {
+          // Ignore errors, keep waiting for localStorage
+        }
+      }, 3000)
 
       const timeoutId = setTimeout(() => {
         cleanup()
         setConnecting(false)
-        // If we're still pending after 5 minutes, recheck status in case it worked
+        // Check status one final time
         void checkConnectionStatus()
       }, 5 * 60 * 1000)
 
@@ -108,6 +127,7 @@ export default function GoogleCalendarIntegration({ className, onConnectionUpdat
         window.removeEventListener('storage', handleStorageEvent)
         clearInterval(pollInterval)
         clearTimeout(timeoutId)
+        clearTimeout(apiCheckTimeout)
         localStorage.removeItem('google_calendar_oauth_result')
         localStorage.removeItem('google_calendar_oauth_pending')
         localStorage.removeItem('google_calendar_oauth_token')
