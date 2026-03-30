@@ -32,6 +32,7 @@ export interface PaginationParams {
 
 export interface ApiGetOptions {
   cache?: RequestCache;
+  next?: NextFetchRequestConfig;
 }
 
 // API Client Configuration
