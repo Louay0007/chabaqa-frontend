@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useDashboard } from "./dashboard-context";
@@ -131,7 +132,7 @@ interface NavItemComponentProps {
   can: (permission: CommunityPermissionValue) => boolean;
 }
 
-function NavItemComponent({ item, isActive, can }: NavItemComponentProps) {
+const NavItemComponent = memo(function NavItemComponent({ item, isActive, can }: NavItemComponentProps) {
   const Icon = item.icon;
   const hasPermission = !item.permission || can(item.permission);
 
@@ -155,7 +156,7 @@ function NavItemComponent({ item, isActive, can }: NavItemComponentProps) {
       {!item.badge && <ChevronRight className={cn("h-4 w-4 opacity-0 transition-all duration-200", "group-hover:opacity-50 group-hover:translate-x-0.5", isActive && "opacity-70")} />}
     </Link>
   );
-}
+})
 
 interface DashboardNavProps {
   variant: "admin" | "moderator" | "support";

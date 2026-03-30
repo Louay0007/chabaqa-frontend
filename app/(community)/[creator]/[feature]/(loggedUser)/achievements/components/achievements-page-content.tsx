@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { memo, useMemo, useState } from "react"
 import { formatDistanceToNow } from "date-fns"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -347,7 +347,7 @@ export default function AchievementsPageContent({
   )
 }
 
-function AchievementCard({ 
+const AchievementCard = memo(function AchievementCard({ 
   achievement, 
   viewMode,
 }: { 
@@ -487,4 +487,4 @@ function AchievementCard({
       </CardContent>
     </Card>
   )
-}
+})

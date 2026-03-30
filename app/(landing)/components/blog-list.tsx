@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { memo, useState, useMemo } from "react"
 import Link from "next/link"
 import { useTranslations, useLocale } from "next-intl"
 import { usePathname } from "next/navigation"
@@ -139,7 +139,7 @@ function BlogCardThumbnail({ category }: { category: string }) {
   )
 }
 
-function BlogCard({ post, t, locale, pathname }: { post: BlogPost; t: ReturnType<typeof useTranslations<"landing.blogs">>; locale: string; pathname: string }) {
+const BlogCard = memo(function BlogCard({ post, t, locale, pathname }: { post: BlogPost; t: ReturnType<typeof useTranslations<"landing.blogs">>; locale: string; pathname: string }) {
   const catColor = getCategoryColor(post.category)
   const isAr = locale === "ar"
   const title = isAr ? (post.arTitle ?? post.title) : post.title
@@ -285,7 +285,7 @@ function BlogCard({ post, t, locale, pathname }: { post: BlogPost; t: ReturnType
       </div>
     </article>
   )
-}
+})
 
 export function BlogList() {
   const t = useTranslations("landing.blogs")

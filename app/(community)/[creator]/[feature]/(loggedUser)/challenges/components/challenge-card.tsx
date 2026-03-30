@@ -1,5 +1,7 @@
 "use client"
 
+import { memo } from "react"
+
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -15,7 +17,7 @@ interface ChallengeCardProps {
   challenge: any
 }
 
-export default function ChallengeCard({ creatorSlug, slug, challenge }: ChallengeCardProps) {
+const ChallengeCard = memo(function ChallengeCard({ creatorSlug, slug, challenge }: ChallengeCardProps) {
   const status = getChallengeStatus(challenge)
   const isParticipating = challenge.isParticipating || false
   const daysRemaining = getDaysRemaining(new Date(challenge.endDate))
@@ -138,7 +140,9 @@ export default function ChallengeCard({ creatorSlug, slug, challenge }: Challeng
       </CardContent>
     </Card>
   )
-}
+})
+
+export default ChallengeCard
 
 function getDaysRemaining(endDate: Date | string) {
   const now = new Date()

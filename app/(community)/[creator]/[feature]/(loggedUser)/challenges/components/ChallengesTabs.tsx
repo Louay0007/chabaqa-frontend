@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,7 +36,7 @@ export default function ChallengesTabs({
   activeTab,
   setActiveTab
 }: ChallengesTabsProps) {
-  const filteredChallenges = allChallenges.filter((challenge) => {
+  const filteredChallenges = useMemo(() => allChallenges.filter((challenge) => {
     const matchesSearch =
       challenge.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       challenge.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -56,7 +57,14 @@ export default function ChallengesTabs({
       default:
         return matchesSearch
     }
-  })
+  }), [allChallenges, searchQuery, activeTab])
+
+  const tabCounts = useMemo(() => ({
+    active: allChallenges.filter((c) => getChallengeStatus(c) === "active").length,
+    upcoming: allChallenges.filter((c) => getChallengeStatus(c) === "upcoming").length,
+    completed: allChallenges.filter((c) => getChallengeStatus(c) === "completed").length,
+    joined: allChallenges.filter((c) => c.isParticipating).length,
+  }), [allChallenges])
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -66,16 +74,16 @@ export default function ChallengesTabs({
         <TabsList className="flex w-full overflow-x-auto scrollbar-hide sm:grid sm:grid-cols-5 lg:w-auto">
           <TabsTrigger value="browse" className="flex-shrink-0">Browse</TabsTrigger>
           <TabsTrigger value="active" className="flex-shrink-0">
-            Active ({allChallenges.filter((c) => getChallengeStatus(c) === "active").length})
+            Active ({tabCounts.active})
           </TabsTrigger>
           <TabsTrigger value="upcoming" className="flex-shrink-0">
-            Upcoming ({allChallenges.filter((c) => getChallengeStatus(c) === "upcoming").length})
+            Upcoming ({tabCounts.upcoming})
           </TabsTrigger>
           <TabsTrigger value="completed" className="flex-shrink-0">
-            Completed ({allChallenges.filter((c) => getChallengeStatus(c) === "completed").length})
+            Completed ({tabCounts.completed})
           </TabsTrigger>
           <TabsTrigger value="joined" className="flex-shrink-0">
-            Joined ({allChallenges.filter((c) => c.isParticipating).length})
+            Joined ({tabCounts.joined})
           </TabsTrigger>
         </TabsList>
 

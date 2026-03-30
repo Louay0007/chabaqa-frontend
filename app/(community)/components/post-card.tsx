@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { memo } from "react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -270,7 +270,7 @@ interface PostCardProps {
   onEdit?: (post: Post) => void
 }
 
-export function PostCard({
+export const PostCard = memo(function PostCard({
   post,
   currentUser,
   canPinPost = false,
@@ -1278,5 +1278,4 @@ export function PostCard({
       </AlertDialog>
     </Card>
   )
-}
-
+})

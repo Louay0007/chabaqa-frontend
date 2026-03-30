@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, memo, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   useDashboard,
@@ -75,7 +75,7 @@ interface StaffRowProps {
   isUpdating: boolean;
 }
 
-function StaffRow({ member, onRoleChange, onRemove, canManage, isUpdating }: StaffRowProps) {
+const StaffRow = memo(function StaffRow({ member, onRoleChange, onRemove, canManage, isUpdating }: StaffRowProps) {
   const name = getDisplayName(member);
   const initials = getInitials(member);
   const isOwner = member.role === ("owner" as CommunityStaffRole);
@@ -121,7 +121,7 @@ function StaffRow({ member, onRoleChange, onRemove, canManage, isUpdating }: Sta
       </CardContent>
     </Card>
   );
-}
+})
 
 export default function AdminStaffPage() {
   const { communityId, can, role, isLoading, canAccessDashboard, getDashboardPath, creatorSlug } = useDashboard();
@@ -177,13 +177,13 @@ export default function AdminStaffPage() {
     if (removeDialog.member) { removeStaffMutation.mutate(removeDialog.member.userId); }
   }, [removeDialog.member, removeStaffMutation]);
 
-  const filteredStaff = staff.filter((m) => {
+  const filteredStaff = useMemo(() => staff.filter((m) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     const name = getDisplayName(m).toLowerCase();
     const email = m.user?.email?.toLowerCase() || "";
     return name.includes(q) || email.includes(q) || m.role.includes(q);
-  });
+  }), [staff, searchQuery]);
 
   if (isLoading) return <DashboardLoading message="Loading staff management..." />;
   if (!canAccessDashboard("admin")) {
