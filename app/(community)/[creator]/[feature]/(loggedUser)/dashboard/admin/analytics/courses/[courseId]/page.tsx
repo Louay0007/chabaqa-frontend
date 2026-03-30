@@ -15,7 +15,13 @@ import {
   useAnalyticsCourseChaptersFunnel,
   useAnalyticsInsights,
 } from "@/hooks/use-creator-analytics";
-import { AnalyticsPlanGate, FunnelChart, AIInsightsPanel } from "@/components/analytics";
+import { AnalyticsPlanGate, AIInsightsPanel } from "@/components/analytics";
+import dynamic from "next/dynamic";
+
+const FunnelChart = dynamic(
+  () => import("@/components/analytics/FunnelChart").then(mod => ({ default: mod.FunnelChart })),
+  { loading: () => <div className="h-64 w-full animate-pulse rounded-lg bg-muted" />, ssr: false }
+);
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";

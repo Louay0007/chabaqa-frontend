@@ -19,8 +19,16 @@ import ChallengeTasksTab from "./ChallengeTasksTab"
 import ChallengeParticipantsTab from "./ChallengeParticipantsTab"
 import ChallengeRewardsTab from "./ChallengeRewardsTab"
 import ChallengeResourcesTab from "./ChallengeResourcesTab"
-import ChallengeAnalyticsTab from "./ChallengeAnalyticsTab"
+import dynamic from "next/dynamic"
 import ChallengeSettingsTab from "./ChallengeSettingsTab"
+
+const ChallengeAnalyticsTab = dynamic(
+  () => import("./ChallengeAnalyticsTab"),
+  {
+    loading: () => <div className="h-64 w-full animate-pulse rounded-lg bg-muted" />,
+    ssr: false,
+  }
+)
 
 interface ChallengeResource {
   id: string

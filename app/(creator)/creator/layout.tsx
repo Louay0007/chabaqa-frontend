@@ -1,5 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
+import dynamic from "next/dynamic"
 import CreatorClientLayout from "@/app/(creator)/creator/creator-client-layout"
 
 export const metadata: Metadata = {
@@ -10,7 +11,11 @@ export const metadata: Metadata = {
 
 import { AuthProvider } from "@/app/providers/auth-provider"
 import { CommunityProvider } from "@/app/providers/community-context"
-import { LiveSupportWidget } from "@/components/live-support/live-support-widget"
+
+const LiveSupportWidget = dynamic(
+  () => import("@/components/live-support/live-support-widget").then(mod => ({ default: mod.LiveSupportWidget })),
+  { ssr: false }
+)
 
 export default function CreatorLayout({ children }: { children: React.ReactNode }) {
   return (

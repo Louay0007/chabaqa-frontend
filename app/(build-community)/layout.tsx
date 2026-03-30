@@ -1,7 +1,12 @@
 import type React from "react"
 import type { Metadata } from "next"
+import dynamic from "next/dynamic"
 import { AuthProvider } from "../providers/auth-provider"
-import { LiveSupportWidget } from "@/components/live-support/live-support-widget"
+
+const LiveSupportWidget = dynamic(
+  () => import("@/components/live-support/live-support-widget").then(mod => ({ default: mod.LiveSupportWidget })),
+  { ssr: false }
+)
 
 export const metadata: Metadata = {
   title: "Build Community - Chabaqa",

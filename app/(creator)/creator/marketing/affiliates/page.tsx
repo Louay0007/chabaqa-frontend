@@ -18,7 +18,16 @@ import { useCommunityGuard } from "@/hooks/use-community-guard"
 import { PageShell } from "@/components/creator-dashboard"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import { StatusChip } from "./components/status-chip"
-import { AffiliateLinkBuilder, type AffiliateTargetType, type PartnerOption, type TargetOption } from "./components/affiliate-link-builder"
+import dynamic from "next/dynamic"
+import type { AffiliateTargetType, PartnerOption, TargetOption } from "./components/affiliate-link-builder"
+
+const AffiliateLinkBuilder = dynamic(
+  () => import("./components/affiliate-link-builder").then(mod => ({ default: mod.AffiliateLinkBuilder })),
+  {
+    loading: () => <div className="h-64 w-full animate-pulse rounded-lg bg-muted" />,
+    ssr: false,
+  }
+)
 
 type ProgramForm = {
   scopeType: 'community' | 'creator' | 'content'

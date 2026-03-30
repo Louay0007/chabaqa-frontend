@@ -28,7 +28,17 @@ import {
   useAnalyticsExportCsv,
 } from "@/hooks/use-creator-analytics";
 import { creatorAnalyticsApi } from "@/lib/api/creator-analytics.api";
-import { AnalyticsPlanGate, FunnelChart, RetentionCohortGrid, RevenueByContentChart, GeographyTable, AIInsightsPanel } from "@/components/analytics";
+import { AnalyticsPlanGate, RetentionCohortGrid, GeographyTable, AIInsightsPanel } from "@/components/analytics";
+import dynamic from "next/dynamic";
+
+const FunnelChart = dynamic(
+  () => import("@/components/analytics/FunnelChart").then(mod => ({ default: mod.FunnelChart })),
+  { loading: () => <div className="h-64 w-full animate-pulse rounded-lg bg-muted" />, ssr: false }
+);
+const RevenueByContentChart = dynamic(
+  () => import("@/components/analytics/RevenueByContentChart").then(mod => ({ default: mod.RevenueByContentChart })),
+  { loading: () => <div className="h-64 w-full animate-pulse rounded-lg bg-muted" />, ssr: false }
+);
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

@@ -2,8 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { QRCodeCanvas } from "qrcode.react";
+import dynamic from "next/dynamic";
 import { eventsApi } from "@/lib/api/events.api";
+
+const QRCodeCanvas = dynamic(
+  () => import("qrcode.react").then(mod => ({ default: mod.QRCodeCanvas })),
+  { ssr: false, loading: () => <div className="h-48 w-48 animate-pulse rounded-lg bg-muted" /> }
+);
 import { normalizeEventRegistrations } from "@/lib/api/events-community.api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

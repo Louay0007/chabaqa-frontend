@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import {
   useDashboard,
   DashboardShell,
@@ -10,8 +11,15 @@ import {
   DashboardUnauthorized,
   DashboardEmpty,
 } from "../../components";
-import { PinnedContentManager } from "../components";
 import { CommunityPermission } from "@/lib/permissions";
+
+const PinnedContentManager = dynamic(
+  () => import("../components/pinned-content-manager").then(mod => ({ default: mod.PinnedContentManager })),
+  {
+    loading: () => <div className="h-64 w-full animate-pulse rounded-lg bg-muted" />,
+    ssr: false,
+  }
+);
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

@@ -1,11 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import dynamic from "next/dynamic"
 import { DashboardLayout } from "@/app/(creator)/creator/components/dashboard-layout"
 import { CreatorCommunityProvider } from "@/app/(creator)/creator/context/creator-community-context"
 import { Toaster } from "@/components/ui/toaster"
-import { CreatorNotificationListener } from "@/app/(creator)/creator/components/creator-notification-listener"
 import { ExtensionErrorGuard } from "@/app/(auth)/components/extension-error-guard"
+
+const CreatorNotificationListener = dynamic(
+  () => import("@/app/(creator)/creator/components/creator-notification-listener").then(mod => ({ default: mod.CreatorNotificationListener })),
+  { ssr: false }
+)
 
 export default function CreatorClientLayout({ children }: { children: React.ReactNode }) {
   const [isMobile, setIsMobile] = useState(false)
