@@ -161,12 +161,15 @@ export default function CoursePlayerPage({ params }: CoursePlayerPageProps) {
         await new Promise((resolve) => setTimeout(resolve, delay))
       }
       try {
-        await refreshEnrollmentProgress(resolvedCourseId, course)
-        await refreshUnlockedChapters(resolvedCourseId)
-        // Refresh centralized session to get updated access
-        await courseSession.refreshSession().catch(() => {})
-        const paidRaw = await coursesApi.checkChapterAccessPaid(resolvedCourseId, chapterId).catch(() => null)
-        const seqRaw = await coursesApi.checkChapterAccessSequential(resolvedCourseId, chapterId).catch(() => null)
+        await Promise.all([
+          refreshEnrollmentProgress(resolvedCourseId, course),
+          refreshUnlockedChapters(resolvedCourseId),
+          courseSession.refreshSession().catch(() => {}),
+        ])
+        const [paidRaw, seqRaw] = await Promise.all([
+          coursesApi.checkChapterAccessPaid(resolvedCourseId, chapterId).catch(() => null),
+          coursesApi.checkChapterAccessSequential(resolvedCourseId, chapterId).catch(() => null),
+        ])
         const paid = (paidRaw as any)?.data || paidRaw
         const seq = (seqRaw as any)?.data || seqRaw
         const paidAllowed = Boolean((paid as any)?.canAccess)

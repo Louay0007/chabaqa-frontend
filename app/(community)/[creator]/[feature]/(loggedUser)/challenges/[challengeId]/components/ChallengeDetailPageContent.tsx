@@ -56,9 +56,14 @@ export default function ChallengeDetailPageContent({
       const id = String(challenge.id || challenge._id || "")
       if (!id) return
 
-      try {
-        const response = await challengesApi.getSubmissions(id)
-        const payload = (response as any)?.data || response
+      const [submissionsResult, unlockedResult] = await Promise.allSettled([
+        challengesApi.getSubmissions(id),
+        challengesApi.getUnlockedTasks(id),
+      ])
+
+      // Process submissions
+      if (submissionsResult.status === "fulfilled") {
+        const payload = (submissionsResult.value as any)?.data || submissionsResult.value
         const list = Array.isArray(payload) ? payload : []
         setSubmissions(list)
         const byTask: Record<string, any> = {}
@@ -68,33 +73,14 @@ export default function ChallengeDetailPageContent({
           if (!byTask[taskId]) byTask[taskId] = submission
         })
         setSubmissionByTaskId(byTask)
-      } catch {
+      } else {
         setSubmissions([])
         setSubmissionByTaskId({})
       }
-    }
 
-    void run()
-  }, [challenge, isUpcoming])
-
-  const handleSubmissionCreated = (submission: any) => {
-    if (!submission?.taskId) return
-    setSubmissions((prev) => [submission, ...prev])
-    setSubmissionByTaskId((prev) => ({
-      ...prev,
-      [String(submission.taskId)]: submission,
-    }))
-  }
-
-  useEffect(() => {
-    const run = async () => {
-      if (!challenge || isUpcoming) return
-      const id = String(challenge.id || challenge._id || "")
-      if (!id) return
-
-      try {
-        const response = await challengesApi.getUnlockedTasks(id)
-        const unlockedPayload = (response as any)?.data || response
+      // Process unlocked tasks
+      if (unlockedResult.status === "fulfilled") {
+        const unlockedPayload = (unlockedResult.value as any)?.data || unlockedResult.value
         const unlockedTasks = ((unlockedPayload as any)?.unlockedTasks || []) as any[]
         const unlockedMap: Record<string, { isUnlocked: boolean; isCompleted: boolean }> = {}
         unlockedTasks.forEach((task: any) => {
@@ -111,14 +97,24 @@ export default function ChallengeDetailPageContent({
         setUnlockedByTaskId(unlockedMap)
         setSequentialProgressionEnabled(sequentialEnabled)
         setUnlockMessage(apiUnlockMessage || challenge?.unlockMessage)
-      } catch {
+      } else {
         setUnlockedByTaskId({})
         setSequentialProgressionEnabled(Boolean(challenge?.sequentialProgression))
         setUnlockMessage(challenge?.unlockMessage)
       }
     }
+
     void run()
   }, [challenge, isUpcoming])
+
+  const handleSubmissionCreated = (submission: any) => {
+    if (!submission?.taskId) return
+    setSubmissions((prev) => [submission, ...prev])
+    setSubmissionByTaskId((prev) => ({
+      ...prev,
+      [String(submission.taskId)]: submission,
+    }))
+  }
 
   useEffect(() => {
     const tasks = [...(challengeTasks || [])].sort(

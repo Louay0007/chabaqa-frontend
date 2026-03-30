@@ -1196,39 +1196,42 @@ export default function CommunityAnalyticsPage() {
     setAiInsights(null)
 
     try {
-      const funnelResponse = await api.creatorAnalytics.getFunnel({
-        contentType: selectedContentType,
-        contentId: selectedItemId,
-        from,
-        to,
-        communityId: selectedCommunityId,
-        communitySlug: selectedCommunity?.slug,
-      } as any)
+      const stepFunnelPromise =
+        selectedContentType === "course"
+          ? api.creatorAnalytics.getCourseChaptersFunnel(selectedItemId, {
+              from,
+              to,
+              communityId: selectedCommunityId,
+              communitySlug: selectedCommunity?.slug,
+            })
+          : selectedContentType === "challenge"
+            ? api.creatorAnalytics.getChallengeTasksFunnel(selectedItemId, {
+                from,
+                to,
+                communityId: selectedCommunityId,
+                communitySlug: selectedCommunity?.slug,
+              })
+            : Promise.resolve(null)
+
+      const [funnelResponse, stepFunnelResponse] = await Promise.all([
+        api.creatorAnalytics.getFunnel({
+          contentType: selectedContentType,
+          contentId: selectedItemId,
+          from,
+          to,
+          communityId: selectedCommunityId,
+          communitySlug: selectedCommunity?.slug,
+        } as any),
+        stepFunnelPromise,
+      ])
 
       const funnelPayload = (funnelResponse as any)?.data || funnelResponse
       setFunnelData(funnelPayload)
 
-      if (selectedContentType === "course") {
-        const chaptersResponse = await api.creatorAnalytics.getCourseChaptersFunnel(selectedItemId, {
-          from,
-          to,
-          communityId: selectedCommunityId,
-          communitySlug: selectedCommunity?.slug,
-        })
-        const chaptersPayload = (chaptersResponse as any)?.data || chaptersResponse
-        setStepFunnelData(chaptersPayload)
-        const worst = chaptersPayload?.dropOff?.worstStep?.stepId
-        setFocusStepId((prev) => prev || (worst ? String(worst) : null))
-      } else if (selectedContentType === "challenge") {
-        const tasksResponse = await api.creatorAnalytics.getChallengeTasksFunnel(selectedItemId, {
-          from,
-          to,
-          communityId: selectedCommunityId,
-          communitySlug: selectedCommunity?.slug,
-        })
-        const tasksPayload = (tasksResponse as any)?.data || tasksResponse
-        setStepFunnelData(tasksPayload)
-        const worst = tasksPayload?.dropOff?.worstStep?.stepId
+      if (stepFunnelResponse) {
+        const stepPayload = (stepFunnelResponse as any)?.data || stepFunnelResponse
+        setStepFunnelData(stepPayload)
+        const worst = stepPayload?.dropOff?.worstStep?.stepId
         setFocusStepId((prev) => prev || (worst ? String(worst) : null))
       } else {
         setStepFunnelData(null)
