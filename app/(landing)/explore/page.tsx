@@ -14,9 +14,9 @@ import {
 } from "@/lib/seo-config"
 
 const EXPLORE_FETCH_TIMEOUT_MS = 7000
-const EXPLORE_LIST_FETCH_OPTIONS = { cache: "no-store" as const }
+const EXPLORE_LIST_FETCH_OPTIONS = { next: { revalidate: 60 } }
 
-export const dynamic = "force-dynamic"
+export const revalidate = 60
 export const metadata: Metadata = {
   title: "Explore Communities, Courses, Events and Sessions",
   description:

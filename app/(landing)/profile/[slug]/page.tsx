@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React from "react"
 import { useParams, useRouter } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import ProfilePage from "../page"
 const ProfilePageContent = (ProfilePage as any).__profileContent as React.ComponentType<{ overrideUser?: any; isOwnProfile?: boolean }>
@@ -23,115 +24,114 @@ interface SlugUser {
   createdAt: string
 }
 
+async function fetchUserByHandle(handle: string): Promise<SlugUser> {
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+  const candidates = getHandleCandidates(handle)
+  let resolvedUser: SlugUser | null = null
+
+  for (const candidate of candidates) {
+    const response = await fetch(`${apiBase}/user/by-username/${encodeURIComponent(candidate)}`)
+    if (!response.ok) continue
+
+    const data = await response.json()
+    if (data?.success && data?.user) {
+      resolvedUser = data.user
+      break
+    }
+    if (data?.user) {
+      resolvedUser = data.user
+      break
+    }
+  }
+
+  if (!resolvedUser) {
+    for (const candidate of candidates) {
+      const byIdResponse = await fetch(`${apiBase}/user/user/${encodeURIComponent(candidate)}`)
+      if (!byIdResponse.ok) continue
+
+      const byIdData = await byIdResponse.json()
+      if (byIdData?.user) {
+        resolvedUser = byIdData.user
+        break
+      }
+      if (byIdData?.data?.user) {
+        resolvedUser = byIdData.data.user
+        break
+      }
+    }
+  }
+
+  if (!resolvedUser) {
+    throw new Error(`User @${safeDecodeHandle(handle)} not found`)
+  }
+
+  return resolvedUser
+}
+
 export default function ProfileSlugPage() {
   const params = useParams()
   const router = useRouter()
   const { user: currentUser, loading: authLoading } = useAuthContext()
-  const [slugUser, setSlugUser] = useState<SlugUser | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   
   const handle = String(params?.slug || "")
   const currentUserHandle = getUserProfileHandle(currentUser)
 
-  useEffect(() => {
-    const fetchSlugUser = async () => {
-      if (!handle) {
-        setError("No handle provided")
-        setLoading(false)
-        return
-      }
+  const isOwnHandle = Boolean(
+    currentUser && !authLoading && handle.toLowerCase() === currentUserHandle
+  )
 
-      try {
-        setError(null)
-        
-        // If viewing own profile and already authenticated, use current user
-        if (currentUser && !authLoading && handle.toLowerCase() === currentUserHandle) {
-          if (handle !== currentUserHandle) {
-            router.replace(`/profile/${currentUserHandle}`)
-            return
-          }
+  const {
+    data: slugUser,
+    isLoading,
+    error,
+  } = useQuery<SlugUser>({
+    queryKey: ["profile", handle.toLowerCase()],
+    queryFn: () => fetchUserByHandle(handle),
+    enabled: !!handle && !isOwnHandle,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+  })
 
-          setSlugUser({
-            _id: (currentUser as any)._id || (currentUser as any).id || '',
-            name: (currentUser as any).name || '',
-            username: (currentUser as any).username,
-            email: currentUser.email || '',
-            role: (currentUser as any).role || 'user',
-            avatar: (currentUser as any).avatar,
-            ville: (currentUser as any).ville,
-            pays: (currentUser as any).pays,
-            bio: (currentUser as any).bio,
-            socialLinks: (currentUser as any).socialLinks,
-            lien_instagram: (currentUser as any).lien_instagram,
-            createdAt: (currentUser as any).createdAt || new Date().toISOString()
-          })
-          setLoading(false)
-          return
-        }
-
-        // Fetch user by username handle from API
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
-        const candidates = getHandleCandidates(handle)
-        let resolvedUser: SlugUser | null = null
-
-        for (const candidate of candidates) {
-          const response = await fetch(`${apiBase}/user/by-username/${encodeURIComponent(candidate)}`)
-          if (!response.ok) continue
-
-          const data = await response.json()
-          if (data?.success && data?.user) {
-            resolvedUser = data.user
-            break
-          }
-          if (data?.user) {
-            resolvedUser = data.user
-            break
-          }
-        }
-
-        if (!resolvedUser) {
-          // Fallback for contexts where only user id is available.
-          for (const candidate of candidates) {
-            const byIdResponse = await fetch(`${apiBase}/user/user/${encodeURIComponent(candidate)}`)
-            if (!byIdResponse.ok) continue
-
-            const byIdData = await byIdResponse.json()
-            if (byIdData?.user) {
-              resolvedUser = byIdData.user
-              break
-            }
-            if (byIdData?.data?.user) {
-              resolvedUser = byIdData.data.user
-              break
-            }
-          }
-        }
-
-        if (!resolvedUser) {
-          setError(`User @${safeDecodeHandle(handle)} not found`)
-          setLoading(false)
-          return
-        }
-
-        const canonicalHandle = getUserProfileHandle(resolvedUser)
-        if (canonicalHandle && canonicalHandle !== handle.toLowerCase()) {
-          router.replace(`/profile/${canonicalHandle}`)
-          return
-        }
-        setSlugUser(resolvedUser)
-      } catch (err) {
-        console.error("Error fetching slug user:", err)
-        setError("Failed to load profile")
-      } finally {
-        setLoading(false)
+  // Build resolved user: prefer auth context for own profile
+  const resolvedUser = React.useMemo<SlugUser | null>(() => {
+    if (isOwnHandle && currentUser) {
+      return {
+        _id: (currentUser as any)._id || (currentUser as any).id || '',
+        name: (currentUser as any).name || '',
+        username: (currentUser as any).username,
+        email: currentUser.email || '',
+        role: (currentUser as any).role || 'user',
+        avatar: (currentUser as any).avatar,
+        ville: (currentUser as any).ville,
+        pays: (currentUser as any).pays,
+        bio: (currentUser as any).bio,
+        socialLinks: (currentUser as any).socialLinks,
+        lien_instagram: (currentUser as any).lien_instagram,
+        createdAt: (currentUser as any).createdAt || new Date().toISOString()
       }
     }
+    return slugUser ?? null
+  }, [isOwnHandle, currentUser, slugUser])
 
-    fetchSlugUser()
-  }, [handle, currentUser, authLoading, currentUserHandle, router])
+  // Handle canonical redirect for own profile
+  React.useEffect(() => {
+    if (isOwnHandle && handle !== currentUserHandle) {
+      router.replace(`/profile/${currentUserHandle}`)
+    }
+  }, [isOwnHandle, handle, currentUserHandle, router])
 
-  if (loading || authLoading) {
+  // Handle canonical redirect for fetched user
+  React.useEffect(() => {
+    if (slugUser && !isOwnHandle) {
+      const canonicalHandle = getUserProfileHandle(slugUser)
+      if (canonicalHandle && canonicalHandle !== handle.toLowerCase()) {
+        router.replace(`/profile/${canonicalHandle}`)
+      }
+    }
+  }, [slugUser, isOwnHandle, handle, router])
+
+  if (isLoading || authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -147,7 +147,7 @@ export default function ProfileSlugPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center max-w-md">
           <h2 className="text-2xl font-semibold mb-2">Profile Not Found</h2>
-          <p className="text-muted-foreground mb-4">{error}</p>
+          <p className="text-muted-foreground mb-4">{error instanceof Error ? error.message : "Failed to load profile"}</p>
           <button 
             onClick={() => router.push("/explore")} 
             className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark"
@@ -159,7 +159,7 @@ export default function ProfileSlugPage() {
     )
   }
 
-  if (!slugUser) {
+  if (!resolvedUser) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -172,11 +172,10 @@ export default function ProfileSlugPage() {
   const isOwnProfile = Boolean(
     currentUser &&
     String((currentUser as any)._id || (currentUser as any).id || "") ===
-      String((slugUser as any)._id || (slugUser as any).id || ""),
+      String((resolvedUser as any)._id || (resolvedUser as any).id || ""),
   )
 
-  // Pass the fetched user data to the existing ProfilePage component
-  return <ProfilePageContent overrideUser={slugUser} isOwnProfile={isOwnProfile} />
+  return <ProfilePageContent overrideUser={resolvedUser} isOwnProfile={isOwnProfile} />
 }
 
 function safeDecodeHandle(value: string): string {
