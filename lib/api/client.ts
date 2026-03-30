@@ -49,8 +49,8 @@ const getApiBaseUrl = () => {
 
 class ApiClient {
   private baseURL: string;
+  // Single-flight refresh: all concurrent 401 requests share this promise.
   private refreshPromise: Promise<boolean> | null = null;
-  private isRefreshing: boolean = false;
 
   constructor() {
     this.baseURL = getApiBaseUrl();
@@ -313,65 +313,50 @@ class ApiClient {
     return this.handleResponse<T>(response);
   }
 
-  // Token refresh logic (single-flight with better error handling)
+  // Token refresh: single-flight so all concurrent 401 requests share one refresh.
   private async tryRefreshToken(): Promise<boolean> {
-    if (this.isRefreshing) {
-      // Wait for ongoing refresh to complete
-      while (this.isRefreshing) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      return false;
-    }
-
+    // If a refresh is already in progress, piggyback on it — don't start a second one.
     if (this.refreshPromise) {
-      await this.refreshPromise;
-      return false;
+      return this.refreshPromise
     }
 
-    this.isRefreshing = true;
     this.refreshPromise = (async () => {
       try {
-        if (typeof window === 'undefined') {
-          return false;
-        }
+        if (typeof window === 'undefined') return false
 
-        // Attempt refresh using cookies
         const res = await fetch(`${this.baseURL}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include', // Send cookies
-          body: JSON.stringify({}), // Empty body, backend should read cookie
-        });
+          credentials: 'include', // sends httpOnly refreshToken cookie
+          body: '{}',
+        })
 
-        if (!res.ok) {
-          return false;
-        }
+        if (!res.ok) return false
 
-        const payload = await res.json().catch(() => ({}));
-        const data = payload?.data || payload || {};
-        const refreshedAccessToken = data.access_token || data.accessToken;
+        const payload = await res.json().catch(() => ({}))
+        const data = payload?.data || payload || {}
+        const newToken = (data.access_token || data.accessToken || '').trim()
 
-        if (refreshedAccessToken) {
+        if (newToken) {
+          localStorage.setItem('accessToken', newToken)
+          localStorage.removeItem('access_token')
+          // Sync the JS-accessible cookie so middleware sees the refreshed token.
           try {
-            localStorage.setItem('accessToken', refreshedAccessToken);
-            localStorage.removeItem('access_token');
-          } catch (storageError) {
-            console.warn('Failed to sync refreshed access token to storage:', storageError);
-          }
+            const { syncAccessTokenCookie } = await import('@/lib/cookie-sync')
+            syncAccessTokenCookie(newToken)
+          } catch { /* non-critical */ }
         }
 
-        return true;
+        return true
       } catch (error) {
-        console.error('Token refresh failed:', error);
-        return false;
+        console.error('[ApiClient] Token refresh failed:', error)
+        return false
       } finally {
-        this.isRefreshing = false;
-        this.refreshPromise = null;
+        this.refreshPromise = null
       }
-    })();
+    })()
 
-    const result = await this.refreshPromise;
-    return result;
+    return this.refreshPromise
   }
 }
 

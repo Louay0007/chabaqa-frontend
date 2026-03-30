@@ -8,6 +8,7 @@ import { registerBrowserPushForCurrentUser } from "@/lib/push-notifications"
 import { io, Socket } from "socket.io-client"
 import { resolveSocketBaseUrl } from "@/lib/socket-url"
 import { localizeHref } from "@/lib/i18n/client"
+import { syncAccessTokenCookie } from "@/lib/cookie-sync"
 
 export interface User {
   _id: string
@@ -33,9 +34,6 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
-const ACCESS_TOKEN_COOKIE_NAME = 'accessToken'
-const ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
-
 function extractAccessTokenFromResponse(payload: any): string {
   const rawToken =
     payload?.accessToken ||
@@ -55,45 +53,25 @@ function extractRefreshTokenFromResponse(payload: any): string {
 
   return String(rawToken || '').trim()
 }
+
 function clearAllAuthCookies() {
   if (typeof document === 'undefined') return
   const isSecure =
     (typeof window !== 'undefined' && window.location.protocol === 'https:') ||
     process.env.NODE_ENV === 'production'
   const securePart = isSecure ? '; Secure' : ''
-  
-  // Clear cookies with multiple names and paths for thorough cleanup
+
   const cookieNames = ['accessToken', 'access_token', 'token', 'refreshToken', 'refresh_token']
   const paths = ['/', '/en', '/ar', '/api', '/creator', '/admin', '/dashboard']
-  
+
   for (const name of cookieNames) {
     for (const path of paths) {
       document.cookie = `${name}=; Path=${path}; Max-Age=0; SameSite=Lax${securePart}`
       document.cookie = `${name}=; Path=${path}; Max-Age=0; SameSite=Strict${securePart}`
       document.cookie = `${name}=; Path=${path}; Expires=Thu, 01 Jan 1970 00:00:00 UTC${securePart}`
-      // Also try without Secure for local dev
       document.cookie = `${name}=; Path=${path}; Max-Age=0; SameSite=Lax`
     }
   }
-}
-
-
-
-function syncAccessTokenCookie(accessToken: string | null) {
-  if (typeof document === 'undefined') return
-  const isSecure =
-    (typeof window !== 'undefined' && window.location.protocol === 'https:') ||
-    process.env.NODE_ENV === 'production'
-  const securePart = isSecure ? '; Secure' : ''
-
-  if (!accessToken) {
-    // Clear cookie with multiple methods for better browser compatibility
-    document.cookie = `${ACCESS_TOKEN_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax${securePart}`
-    document.cookie = `${ACCESS_TOKEN_COOKIE_NAME}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax${securePart}`
-    return
-  }
-
-  document.cookie = `${ACCESS_TOKEN_COOKIE_NAME}=${encodeURIComponent(accessToken)}; Path=/; Max-Age=${ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${securePart}`
 }
 
 function extractErrorMessage(data: any): string {
@@ -172,15 +150,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const normalizedUser = normalizeUser(userData)
         setUser(normalizedUser)
         return normalizedUser
-      } else {
-        // Token invalid
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('user')
-        syncAccessTokenCookie(null)
-        setUser(null)
-        return null
       }
+
+      // Access token expired/invalid — try to refresh before clearing the session.
+      // The backend's httpOnly refreshToken cookie may still be valid.
+      if (res.status === 401) {
+        try {
+          const refreshRes = await fetch(`${apiBase}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: '{}',
+          })
+          if (refreshRes.ok) {
+            const refreshData = await refreshRes.json()
+            const d = refreshData?.data || refreshData || {}
+            const newToken = (d.accessToken || d.access_token || '').trim()
+            if (newToken) {
+              localStorage.setItem('accessToken', newToken)
+              localStorage.removeItem('access_token')
+              syncAccessTokenCookie(newToken)
+              setToken(newToken)
+              // Retry /auth/me with the fresh token
+              const retryRes = await fetch(`${apiBase}/auth/me`, {
+                headers: { 'Authorization': `Bearer ${newToken}` },
+              })
+              if (retryRes.ok) {
+                const retryData = await retryRes.json()
+                const userData = retryData.data || retryData
+                const normalizedUser = normalizeUser(userData)
+                setUser(normalizedUser)
+                return normalizedUser
+              }
+            }
+          }
+        } catch {
+          // Refresh failed — fall through to clear session
+        }
+      }
+
+      // All attempts failed — clear session completely
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('user')
+      syncAccessTokenCookie(null)
+      setUser(null)
+      return null
     } catch (e) {
       setUser(null)
       return null

@@ -1,5 +1,7 @@
 'use client';
 
+import { syncAccessTokenCookie } from '@/lib/cookie-sync'
+
 /**
  * Secure token storage using localStorage
  * Handles access and refresh tokens for cookie-less auth
@@ -15,14 +17,14 @@ class TokenStorage {
   private readonly REFRESH_KEY = 'refreshToken';
 
   /**
-   * Store both tokens
+   * Store both tokens and sync the access token cookie
    */
   setTokens(tokens: TokenPair): void {
     try {
       localStorage.setItem(this.ACCESS_KEY, tokens.accessToken);
       localStorage.setItem(this.REFRESH_KEY, tokens.refreshToken);
-      
-      // Sync to other tabs
+      syncAccessTokenCookie(tokens.accessToken)
+
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new StorageEvent('storage', {
           key: this.ACCESS_KEY,
@@ -63,22 +65,28 @@ class TokenStorage {
   }
 
   /**
-   * Clear all tokens
+   * Clear all tokens, sync cookie, and notify other tabs
    */
   clearTokens(): void {
     try {
+      // Capture old values BEFORE removal so StorageEvent carries correct oldValue
+      const oldAccessToken = this.getAccessToken();
+      const oldRefreshToken = this.getRefreshToken();
+
       localStorage.removeItem(this.ACCESS_KEY);
       localStorage.removeItem(this.REFRESH_KEY);
-      
-      // Sync to other tabs
+      syncAccessTokenCookie(null)
+
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new StorageEvent('storage', {
           key: this.ACCESS_KEY,
-          oldValue: this.getAccessToken(),
+          oldValue: oldAccessToken,
+          newValue: null,
         }));
         window.dispatchEvent(new StorageEvent('storage', {
           key: this.REFRESH_KEY,
-          oldValue: this.getRefreshToken(),
+          oldValue: oldRefreshToken,
+          newValue: null,
         }));
       }
     } catch (error) {

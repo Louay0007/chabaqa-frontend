@@ -1,5 +1,7 @@
 "use client"
 
+import { syncAccessTokenCookie } from '@/lib/cookie-sync'
+
 /**
  * Enhanced Token Management Utility
  * Handles automatic token refresh, storage, and cleanup
@@ -102,12 +104,12 @@ class TokenManager {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        const payload = data?.data || data || {};
-        const accessToken = payload.access_token || payload.accessToken;
+        const data = await response.json()
+        const payload = data?.data || data || {}
+        const accessToken = payload.access_token || payload.accessToken
         if (accessToken) {
-          this.setAccessToken(accessToken);
-          return true;
+          this.setAccessToken(accessToken) // also syncs cookie
+          return true
         }
       }
       
@@ -125,19 +127,22 @@ class TokenManager {
    * Handle authentication failure
    */
   private handleAuthFailure() {
-    this.clearTokens();
+    this.clearTokens()
     if (typeof window !== 'undefined') {
-      window.location.href = '/signin';
+      // Preserve the locale prefix (en/ar) from the current URL
+      const locale = window.location.pathname.startsWith('/ar') ? 'ar' : 'en'
+      window.location.href = `/${locale}/signin`
     }
   }
 
   /**
-   * Set access token and update storage
+   * Set access token, update storage, and sync middleware cookie
    */
   setAccessToken(token: string) {
-    this.accessToken = token;
+    this.accessToken = token
     if (typeof window !== 'undefined') {
-      localStorage.setItem('accessToken', token);
+      localStorage.setItem('accessToken', token)
+      syncAccessTokenCookie(token)
     }
   }
 
@@ -152,12 +157,13 @@ class TokenManager {
   }
 
   /**
-   * Clear all tokens
+   * Clear all tokens and sync cookie
    */
   clearTokens() {
-    this.accessToken = null;
+    this.accessToken = null
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
+      localStorage.removeItem('accessToken')
+      syncAccessTokenCookie(null)
     }
   }
 
