@@ -60,9 +60,13 @@ export default function GoogleCalendarIntegration({ className, onConnectionUpdat
         throw new Error("Google OAuth URL was not returned by the server.")
       }
 
-      // Store token in localStorage for the callback to use
+      // Store token in localStorage for the callback to use.
+      // The access token is stored in localStorage by the auth provider
+      // (the httpOnly accessToken cookie is not accessible via document.cookie).
       localStorage.setItem('google_calendar_oauth_pending', 'true')
-      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1]
+      const token =
+        localStorage.getItem('accessToken') ||
+        localStorage.getItem('access_token')
       if (token) {
         localStorage.setItem('google_calendar_oauth_token', token)
       }

@@ -50,7 +50,10 @@ export async function GET(request: NextRequest) {
 
   const cookieStore = await cookies();
   const effectiveToken =
-    cookieStore.get('token')?.value || request.cookies.get('token')?.value;
+    cookieStore.get('accessToken')?.value ||
+    request.cookies.get('accessToken')?.value ||
+    cookieStore.get('token')?.value ||
+    request.cookies.get('token')?.value;
 
   // --- Error from Google (user denied) ---
   if (error) {
@@ -123,9 +126,10 @@ export async function GET(request: NextRequest) {
 <script>
 (async()=>{
   const apiUrl='${clientApiUrl}';
-  const token=localStorage.getItem('google_calendar_oauth_token');
+  // Try multiple localStorage keys — the auth provider stores as 'accessToken'
+  const token=localStorage.getItem('google_calendar_oauth_token')||localStorage.getItem('accessToken')||localStorage.getItem('access_token');
   if(!token){
-    signalResult('error','Session expired. Please close this window and try again.');
+    signalResult('error','Authentication token not found. Please sign in and try again.');
     return;
   }
   try{
