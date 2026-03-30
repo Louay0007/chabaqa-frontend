@@ -468,7 +468,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): 
   })
 }
 
-export default async function CommunitiesPage() {
+async function ExploreContent() {
   const allExploreItems: ExploreItem[] = []
   const featuredItems: ExploreItem[] = []
 
@@ -616,11 +616,41 @@ export default async function CommunitiesPage() {
     // Keep page usable if one fetch path throws unexpectedly.
   }
 
+  return <ExplorePageClient items={allExploreItems} featured={featuredItems} />
+}
+
+function ExploreGridSkeleton() {
+  return (
+    <div className="px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="h-10 w-64 animate-pulse rounded-lg bg-muted" />
+        <div className="h-10 w-48 animate-pulse rounded-lg bg-muted" />
+      </div>
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="flex flex-col gap-3 rounded-xl border p-4">
+            <div className="h-40 animate-pulse rounded-lg bg-muted" />
+            <div className="h-5 w-3/4 animate-pulse rounded bg-muted" />
+            <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
+            <div className="mt-auto flex items-center gap-2 pt-2">
+              <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
+              <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default function CommunitiesPage() {
   return (
     <div className="min-h-screen bg-white">
       <Header />
       <main className="pt-14">
-        <ExplorePageClient items={allExploreItems} featured={featuredItems} />
+        <Suspense fallback={<ExploreGridSkeleton />}>
+          <ExploreContent />
+        </Suspense>
       </main>
       <Footer />
     </div>
