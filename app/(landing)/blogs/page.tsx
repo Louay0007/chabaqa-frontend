@@ -34,7 +34,7 @@ export default async function BlogsPage() {
   const baseUrl = "https://chabaqa.io"
 
   return (
-    <main className="min-h-screen" style={{ background: "var(--bg)" }}>
+    <main className="min-h-screen bg-white">
       <Header />
       <BlogList />
       <Footer />

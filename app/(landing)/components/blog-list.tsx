@@ -321,7 +321,7 @@ export function BlogList() {
   }
 
   return (
-    <div style={{ background: "var(--bg,#fafafe)" }}>
+    <div style={{ background: "#ffffff" }}>
       {/* ── Hero Section ── */}
       <section
         aria-label="Blog hero"
