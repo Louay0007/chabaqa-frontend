@@ -67,3 +67,6 @@ temp/
 
 # Misc
 .env.example
+
+# Profile images
+public/profile/

@@ -356,17 +356,16 @@ export function Hero() {
         <div className="flex items-center gap-2 sm:gap-3 justify-center" style={{ animation: 'fadeDown .7s .4s ease both' }}>
           <div className="flex" aria-hidden="true">
             {[
-              ['I', '#ede9ff', '#8e78fb'],
-              ['I.', '#dcfce7', '#166534'],
-              ['l', '#e4f8fd', '#0e7490'],
-              ['l.', '#ffe4ee', '#9d174d'],
-            ].map(([init, bg, color]) => (
+              '/profile/637781117_883560937847524_881110216935920072_n.jpg',
+              '/profile/637821498_903865835718612_2266197064791773063_n.jpg',
+              '/profile/639077524_1227592362783256_5641138724717692722_n.jpg',
+              '/profile/642635919_768841262950142_5195117104642339597_n.jpg',
+            ].map((src, i) => (
               <div
-                key={init}
-                className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-[2px] sm:border-[2.5px] border-white -ml-1.5 sm:-ml-2 first:ml-0 text-[8px] sm:text-[10px] font-extrabold flex items-center justify-center"
-                style={{ background: bg, color }}
+                key={src}
+                className="relative w-6 h-6 sm:w-8 sm:h-8 rounded-full border-[2px] sm:border-[2.5px] border-white -ml-1.5 sm:-ml-2 first:ml-0 overflow-hidden"
               >
-                {init}
+                <Image src={src} alt={`Creator ${i + 1}`} fill className="object-cover" sizes="32px" />
               </div>
             ))}
           </div>
