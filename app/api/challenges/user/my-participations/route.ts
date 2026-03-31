@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 const BACKEND_URL = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 export async function GET(request: Request) {
+    const noCacheHeaders = { 'Cache-Control': 'private, no-cache' };
     try {
         const { searchParams } = new URL(request.url);
         const communitySlug = searchParams.get('communitySlug');
@@ -16,8 +17,6 @@ export async function GET(request: Request) {
         console.log('[Participations Route] Auth header:', authHeader ? 'present' : 'missing');
         console.log('[Participations Route] Cookie token:', tokenCookie ? 'present' : 'missing');
         console.log('[Participations Route] Final token:', token ? 'present' : 'missing');
-
-        const noCacheHeaders = { 'Cache-Control': 'private, no-cache' };
 
         if (!token) {
             console.log('[Participations Route] No token, returning empty participations');

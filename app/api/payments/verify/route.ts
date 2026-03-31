@@ -5,14 +5,13 @@ import { NextRequest, NextResponse } from 'next/server';
  * Gets called after user returns from Stripe / Flouci / Konnect checkout
  */
 export async function GET(req: NextRequest) {
+  const noCacheHeaders = { 'Cache-Control': 'private, no-cache' };
   try {
     const sessionId = req.nextUrl.searchParams.get('sessionId');
     const paymentId = req.nextUrl.searchParams.get('paymentId');
     const paymentRef = req.nextUrl.searchParams.get('paymentRef');
     const authHeader = req.headers.get('authorization');
     const incomingCookies = req.headers.get('cookie') || '';
-
-    const noCacheHeaders = { 'Cache-Control': 'private, no-cache' };
 
     if (!sessionId && !paymentId && !paymentRef) {
       return NextResponse.json(
