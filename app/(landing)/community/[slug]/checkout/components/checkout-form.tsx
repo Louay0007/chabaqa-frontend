@@ -6,13 +6,12 @@ import Image from "next/image"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { ArrowLeft, CheckCircle, Tag, Users, Star, Loader2, ShieldCheck, Percent, UploadCloud } from "lucide-react"
+import { ArrowLeft, CheckCircle, Tag, Users, Star, Loader2, ShieldCheck, Percent } from "lucide-react"
 import { communitiesApi } from "@/lib/api"
 import type { CommunityThemeTokens } from "@/lib/community-theme"
-
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CreditCard, Wallet } from "lucide-react"
+import { PaymentProviderModal } from "@/components/payment-provider-modal"
+import { usePaymentProviderModal } from "@/lib/hooks/use-payment-provider-modal"
+import { Label } from "@/components/ui/label"
 
 interface CheckoutFormProps {
   community: any
@@ -35,11 +34,23 @@ export function CheckoutForm({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [alreadyMember, setAlreadyMember] = useState(false)
-  const [paymentProof, setPaymentProof] = useState<File | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState<"stripe" | "manual">("stripe")
 
   const pricing = community as any
   const normalizedInviteCode = typeof inviteCode === "string" ? inviteCode.trim() : ""
+
+  const paymentModal = usePaymentProviderModal({
+    initStripe: () => (communitiesApi as any).initStripePayment(
+      community?.id,
+      promoCode || undefined,
+      normalizedInviteCode || undefined,
+    ),
+    initKonnect: () => (communitiesApi as any).initKonnectPayment(
+      community?.id,
+      promoCode || undefined,
+      normalizedInviteCode || undefined,
+    ),
+  })
+
   const isPrivateCommunity =
     typeof pricing?.isPrivate === "boolean"
       ? pricing.isPrivate
@@ -132,80 +143,38 @@ export function CheckoutForm({
       return
     }
 
-    setIsProcessing(true)
     setError(null)
     setPromoError(null)
 
+    // For paid communities, open the payment provider modal
+    if (basePrice > 0) {
+      paymentModal.open()
+      return
+    }
+
+    // For free communities, join directly
+    setIsProcessing(true)
+
     try {
-      // Check if community is free
-      if (basePrice <= 0) {
-        const result = await communitiesApi.join({
-          ...(normalizedInviteCode ? { inviteCode: normalizedInviteCode } : { communityId: community.id }),
-        })
+      const result = await communitiesApi.join({
+        ...(normalizedInviteCode ? { inviteCode: normalizedInviteCode } : { communityId: community.id }),
+      })
 
-        const message = (result.message || "").toLowerCase()
+      const message = (result.message || "").toLowerCase()
 
-        if (message.includes("déjà") || message.includes("already")) {
-          setAlreadyMember(true)
-          setSuccess(true)
-          setTimeout(() => {
-            router.push(`/community/${community.slug}/home?joined=1`)
-          }, 2000)
-          return
-        }
-
+      if (message.includes("déjà") || message.includes("already")) {
+        setAlreadyMember(true)
         setSuccess(true)
         setTimeout(() => {
           router.push(`/community/${community.slug}/home?joined=1`)
         }, 2000)
-      } else if (paymentMethod === "stripe") {
-        // Stripe payment
-        const result = await (communitiesApi as any).initStripePayment(
-          community.id,
-          promoCode || undefined,
-          normalizedInviteCode || undefined,
-        )
-        const checkoutUrl = result?.data?.checkoutUrl || result?.checkoutUrl
-        if (checkoutUrl) {
-          window.location.href = checkoutUrl
-        } else {
-          throw new Error("Failed to get checkout URL from Stripe")
-        }
-      } else if ((paymentMethod as string) === "konnect") {
-        // Konnect payment
-        const result = await (communitiesApi as any).initKonnectPayment(
-          community.id,
-          promoCode || undefined,
-          normalizedInviteCode || undefined,
-        )
-        const checkoutUrl = result?.data?.checkoutUrl || result?.checkoutUrl || result?.payUrl || result?.data?.payUrl
-        if (checkoutUrl) {
-          window.location.href = checkoutUrl
-        } else {
-          throw new Error("Failed to get checkout URL from Konnect")
-        }
-      } else {
-        // Paid community: initiate manual payment
-        if (!paymentProof) {
-          setError("Please upload a payment proof")
-          setIsProcessing(false)
-          return
-        }
-
-        await communitiesApi.initManualPayment({
-          communityId: community.id,
-          proof: paymentProof,
-          inviteCode: normalizedInviteCode || undefined,
-          promoCode: promoCode || undefined,
-        })
-
-        setSuccess(true)
-        // For manual payment, we show a success message but DO NOT redirect
-        // The user must wait for creator approval
-        // setTimeout(() => {
-        //   router.push(`/community/${community.slug}/home?payment=pending`)
-        // }, 2000)
+        return
       }
+
+      setSuccess(true)
+      setTimeout(() => {
+        router.push(`/community/${community.slug}/home?joined=1`)
+      }, 2000)
     } catch (err: any) {
       console.error("Checkout error:", err)
       const rawMsg = typeof err?.message === 'string'
@@ -252,7 +221,13 @@ export function CheckoutForm({
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
+    <>
+      <PaymentProviderModal
+        open={paymentModal.isOpen}
+        onOpenChange={paymentModal.close}
+        onSelect={paymentModal.handleSelect}
+      />
+      <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
         {/* Left Column - Community Info */}
         <div className="lg:col-span-2 flex flex-col gap-6">
@@ -413,42 +388,12 @@ export function CheckoutForm({
             </div>
 
             {basePrice > 0 && !success && (
-              <div className="mb-6">
-                <Label className="block text-sm font-medium text-gray-900 mb-3">
-                  Select Payment Method
-                </Label>
-                <Tabs defaultValue="stripe" value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 h-12">
-                    <TabsTrigger value="stripe" className="flex items-center gap-2">
-                      <CreditCard className="w-4 h-4" />
-                      <span>Card (Stripe)</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="manual" className="flex items-center gap-2">
-                      <Wallet className="w-4 h-4" />
-                      <span>Transfer</span>
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="stripe" className="mt-4">
-                    <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-800 text-sm">
-                      <p className="font-semibold flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-emerald-600" />
-                        Instant Access
-                      </p>
-                      <p className="mt-1 opacity-90">Pay securely with your credit/debit card and get instant access to the community.</p>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="manual" className="mt-4">
-                    <div className="p-4 rounded-lg bg-amber-50 border border-amber-100 text-amber-800 text-sm">
-                      <p className="font-semibold flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 text-amber-600" />
-                        Requires Approval
-                      </p>
-                      <p className="mt-1 opacity-90">Upload your proof of payment. The community creator will verify it manually before granting access (usually within 24-48h).</p>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+              <div className="mb-6 p-4 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-800 text-sm">
+                <p className="font-semibold flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-600" />
+                  Instant Access
+                </p>
+                <p className="mt-1 opacity-90">Pay securely with your credit/debit card and get instant access to the community.</p>
               </div>
             )}
 
@@ -463,58 +408,8 @@ export function CheckoutForm({
                 <p className="text-green-700 text-sm">
                   {alreadyMember
                     ? "You are already a member of this community. Redirecting to community..."
-                    : basePrice <= 0
-                      ? "Successfully joined! Redirecting to your community..."
-                      : "Demande de paiement reçue. Veuillez attendre l'approbation du créateur pour accéder à la communauté."}
+                    : "Successfully joined! Redirecting to your community..."}
                 </p>
-              </div>
-            )}
-
-            {basePrice > 0 && paymentMethod === "manual" && !success && (
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-                <h3 className="font-bold mb-2">Instructions de virement</h3>
-                <p>Veuillez effectuer un virement du montant total ({formatCurrency(total)}) vers le compte suivant :</p>
-                <div className="mt-2 bg-white p-3 rounded border border-blue-100 font-mono text-gray-700">
-                  <p className="mb-1"><span className="font-semibold">Bénéficiaire:</span> {community.creatorBankDetails?.ownerName || community.creator?.name || "Chabaqa Creator"}</p>
-                  <p className="mb-1"><span className="font-semibold">Banque:</span> {community.creatorBankDetails?.bankName || "Banque Tunisienne"}</p>
-                  <p><span className="font-semibold">RIB:</span> {community.creatorBankDetails?.rib || "0000 0000 0000 0000 0000"}</p>
-                </div>
-                <p className="mt-2 text-xs">Une fois le virement effectué, veuillez télécharger la preuve de paiement (capture d&apos;écran ou reçu) ci-dessous.</p>
-              </div>
-            )}
-
-            {basePrice > 0 && paymentMethod === "manual" && !success && (
-              <div className="mb-6">
-                <Label htmlFor="proof" className="block text-sm font-medium text-gray-900 mb-2">
-                  Preuve de paiement (Requis)
-                </Label>
-                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-chabaqa-primary transition-colors cursor-pointer relative bg-white"
-                  style={{ borderColor: mutedBorder || undefined }}
-                  onClick={() => document.getElementById('proof-upload')?.click()}>
-                  <div className="space-y-1 text-center">
-                    <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
-                    <div className="flex text-sm text-gray-600 justify-center">
-                      <label htmlFor="proof-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-chabaqa-primary hover:text-chabaqa-primary/80 focus-within:outline-none">
-                        <span style={{ color: primary }}>Upload a file</span>
-                        <input id="proof-upload" name="proof-upload" type="file" className="sr-only" accept="image/*,application/pdf" onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setPaymentProof(e.target.files[0])
-                          }
-                        }}
-                        />
-                      </label>
-                      <p className="pl-1">or drag and drop</p>
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      PNG, JPG, PDF up to 10MB
-                    </p>
-                    {paymentProof && (
-                      <p className="text-sm text-emerald-600 font-semibold mt-2">
-                        Selected: {paymentProof.name}
-                      </p>
-                    )}
-                  </div>
-                </div>
               </div>
             )}
 
@@ -536,15 +431,6 @@ export function CheckoutForm({
                   <span>{basePrice <= 0 ? 'Join Community (Free)' : 'Complete Purchase'}</span>
                 )}
               </Button>
-
-              <Link href={`/community/${community.slug}`}>
-                <Button
-                  variant="secondary"
-                  className="w-full bg-gray-200 text-gray-900 font-bold py-3 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors"
-                >
-                  View Community
-                </Button>
-              </Link>
             </div>
 
             <p className="mt-4 text-xs text-gray-500 text-center">
@@ -562,5 +448,6 @@ export function CheckoutForm({
         </div>
       </div>
     </div>
+    </>
   )
 }

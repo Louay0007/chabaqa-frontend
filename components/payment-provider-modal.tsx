@@ -1,10 +1,9 @@
 "use client"
 
 import React, { useState } from "react"
-import Image from "next/image"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { Loader2, ShieldCheck } from "lucide-react"
+import { Loader2, ShieldCheck, CreditCard } from "lucide-react"
 
 export type PaymentProvider = "stripe" | "konnect"
 
@@ -14,34 +13,6 @@ interface PaymentProviderModalProps {
   onSelect: (provider: PaymentProvider) => Promise<void>
   title?: string
   description?: string
-}
-
-function StripeLogo() {
-  return (
-    <Image
-      src="/Logos/PNG/stripe.png"
-      alt="Stripe"
-      width={80}
-      height={40}
-      className="h-7 w-auto object-contain"
-      unoptimized
-    />
-  )
-}
-
-function KonnectLogo() {
-  return (
-    <svg viewBox="0 0 120 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-7 w-auto">
-      <rect width="34" height="34" rx="8" fill="#FF6B35" />
-      <path
-        d="M8 8h4.5v7.2l6.3-7.2H24l-7 7.8 7.4 10.2h-5.3l-5.1-7.2-1 1.1V26H8V8z"
-        fill="white"
-      />
-      <text x="39" y="24" fontFamily="Arial, sans-serif" fontWeight="700" fontSize="15" fill="#1a1a2e">
-        konnect
-      </text>
-    </svg>
-  )
 }
 
 export function PaymentProviderModal({
@@ -65,12 +36,11 @@ export function PaymentProviderModal({
 
   const isLoading = processingProvider !== null
 
-  const providers: { id: PaymentProvider; label: string; sublabel: string; Logo: () => React.ReactElement; borderColor: string; hoverBg: string }[] = [
+  const providers: { id: PaymentProvider; label: string; sublabel: string; borderColor: string; hoverBg: string }[] = [
     {
       id: "stripe",
-      label: "Stripe",
+      label: "Pay with Card",
       sublabel: "Credit / Debit card · International",
-      Logo: StripeLogo,
       borderColor: "border-[#6772E5]",
       hoverBg: "hover:bg-[#6772E5]/5",
     },
@@ -85,7 +55,7 @@ export function PaymentProviderModal({
         </DialogHeader>
 
         <div className="flex flex-col gap-3 pt-1">
-          {providers.map(({ id, label, sublabel, Logo, borderColor, hoverBg }) => {
+          {providers.map(({ id, label, sublabel, borderColor, hoverBg }) => {
             const isThis = processingProvider === id
             return (
               <button
@@ -100,14 +70,19 @@ export function PaymentProviderModal({
                     : cn("border-[var(--bd)]", hoverBg, "hover:border-opacity-80 cursor-pointer hover:shadow-sm"),
                 )}
               >
-                <div className="flex flex-col gap-1">
-                  <Logo />
-                  <span className="text-xs text-[var(--t3)] mt-1">{sublabel}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-[#6772E5]/10 flex items-center justify-center">
+                    <CreditCard className="w-5 h-5 text-[#6772E5]" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-gray-900">{label}</span>
+                    <span className="text-xs text-[var(--t3)]">{sublabel}</span>
+                  </div>
                 </div>
                 {isThis ? (
                   <Loader2 className="h-5 w-5 animate-spin text-[var(--t2)] shrink-0" />
                 ) : (
-                  <span className="text-sm font-medium text-[var(--t1)] shrink-0">{label} →</span>
+                  <span className="text-sm font-medium text-[#6772E5] shrink-0">→</span>
                 )}
               </button>
             )
