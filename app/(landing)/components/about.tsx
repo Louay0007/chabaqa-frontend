@@ -39,8 +39,7 @@ export function About() {
             ))}
           </ul>
           <a
-            href={withLocale('/register')}
-            className="inline-flex items-center gap-1.5 sm:gap-2 px-5 py-3 sm:px-7 sm:py-4 rounded-xl sm:rounded-2xl text-sm font-bold text-white bg-[#8e78fb] hover:bg-[#7a64f0] hover:-translate-y-[2px] transition-all shadow-[0_8px_24px_rgba(142,120,251,.35)]"
+            href={withLocale('/dashboard/create-community')} hover:bg-[#7a64f0] hover:-translate-y-[2px] transition-all shadow-[0_8px_24px_rgba(142,120,251,.35)]"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" className="sm:w-4 sm:h-4" aria-hidden="true">
               <line x1="5" y1="12" x2="19" y2="12" />

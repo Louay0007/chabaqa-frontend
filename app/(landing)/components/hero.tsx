@@ -331,8 +331,7 @@ export function Hero() {
 
         <div className="flex items-center gap-2 sm:gap-3 justify-center flex-wrap mb-8 sm:mb-12" style={{ animation: 'fadeDown .7s .3s ease both' }}>
           <a
-            href={withLocale('/register')}
-            className="inline-flex items-center gap-1.5 sm:gap-2 px-5 py-3 sm:px-8 sm:py-4 rounded-xl sm:rounded-2xl text-sm sm:text-[15px] font-bold text-white bg-[#8e78fb] hover:bg-[#7a64f0] hover:-translate-y-[3px] transition-all shadow-[0_8px_30px_rgba(142,120,251,.35)] hover:shadow-[0_14px_40px_rgba(142,120,251,.45)]"
+            href={withLocale('/dashboard/create-community')} hover:bg-[#7a64f0] hover:-translate-y-[3px] transition-all shadow-[0_8px_30px_rgba(142,120,251,.35)] hover:shadow-[0_14px_40px_rgba(142,120,251,.45)]"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" className="sm:w-4 sm:h-4" aria-hidden="true">
               <line x1="5" y1="12" x2="19" y2="12" />
