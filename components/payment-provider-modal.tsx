@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import Image from "next/image"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { Loader2, ShieldCheck } from "lucide-react"
@@ -17,28 +18,13 @@ interface PaymentProviderModalProps {
 
 function StripeLogo() {
   return (
-    <svg viewBox="0 0 60 25" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-7 w-auto">
-      <path
-        d="M5.454 9.415c0-.9.74-1.25 1.963-1.25 1.754 0 3.97.53 5.724 1.478V4.95C11.363 4.19 9.638 3.9 7.9 3.9 3.546 3.9.5 6.16.5 9.665c0 5.527 7.614 4.645 7.614 7.033 0 1.063-.924 1.407-2.211 1.407-1.914 0-4.362-.787-6.298-1.847V21.1c2.147.924 4.312 1.31 6.298 1.31 4.476 0 7.554-2.21 7.554-5.754-.016-5.966-7.003-4.902-7.003-7.241z"
-        fill="#6772E5"
-      />
-      <path
-        d="M22.11 1.5l-4.245.9-.016 13.937c0 2.573 1.93 4.47 4.503 4.47 1.427 0 2.47-.262 3.047-.573v-3.432c-.557.225-3.308 1.027-3.308-1.546V8.08h3.308V4.273H22.11V1.5z"
-        fill="#6772E5"
-      />
-      <path
-        d="M32.695 5.386l-.27-1.113h-3.818v16.023h4.423V9.94c1.044-1.366 2.81-1.12 3.367-.924V4.273c-.573-.21-2.66-.594-3.702 1.113z"
-        fill="#6772E5"
-      />
-      <path
-        d="M40.938 2.02l-4.44.94v3.608l4.44-.94V2.02zm-4.44 2.253h4.44v16.023h-4.44V4.273z"
-        fill="#6772E5"
-      />
-      <path
-        d="M51.62 4.02c-1.61 0-2.654.757-3.226 1.283l-.214-1.03h-3.608v21.228l4.44-.94V20.63c.588.427 1.459 1.034 2.9 1.034 2.933 0 5.607-2.35 5.607-7.516-.016-4.726-2.706-7.127-5.9-7.127zm-1.036 10.97c-.966 0-1.538-.346-1.93-.773V9.44c.427-.46 1.014-.789 1.93-.789 1.476 0 2.49 1.657 2.49 3.655 0 2.05-1.014 3.683-2.49 3.683z"
-        fill="#6772E5"
-      />
-    </svg>
+    <Image
+      src="/Logos/SVG/stripe-ar21.svg"
+      alt="Stripe"
+      width={80}
+      height={40}
+      className="h-7 w-auto"
+    />
   )
 }
 
