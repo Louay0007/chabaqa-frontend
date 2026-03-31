@@ -159,7 +159,7 @@ export function ExploreCard({ item, featured = false }: ExploreCardProps) {
         </div>
         <Link href={ctaHref}
           className={`mt-auto w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 hover:-translate-y-[1px] ${
-            item.isMember ? 'bg-emerald-500' : 'bg-[#8e78fb]'
+            item.isMember ? 'bg-[#8e78fb]' : 'bg-blue-500'
           }`}>
           {ctaLabel}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="11" height="11" aria-hidden="true">
