@@ -38,7 +38,7 @@ export function AppInstallCTA() {
           <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 sm:top-[75%] sm:bottom-8 sm:left-[30%] lg:bottom-10 z-10 w-full sm:w-auto px-4 sm:px-0">
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 items-center">
               <Link 
-                href="https://expo.dev/accounts/louay1234/projects/mobile/builds/0f41562d-879e-4d16-8c99-3334c286baba"
+                href="https://expo.dev/accounts/louay1234/projects/mobile/builds/526a31c6-acd2-414e-8155-6348625aa9c2"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-white hover:opacity-90 rounded-lg overflow-hidden shadow-xl hover:scale-105 transition-all duration-300"
@@ -53,7 +53,7 @@ export function AppInstallCTA() {
                 />
               </Link>
               <Link 
-                href="https://expo.dev/accounts/louay1234/projects/mobile/builds/0f41562d-879e-4d16-8c99-3334c286baba"
+                href="https://expo.dev/accounts/louay1234/projects/mobile/builds/526a31c6-acd2-414e-8155-6348625aa9c2"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-white hover:opacity-90 rounded-lg overflow-hidden shadow-xl hover:scale-105 transition-all duration-300"
