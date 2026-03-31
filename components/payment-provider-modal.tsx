@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState } from "react"
-import Image from "next/image"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { Loader2, ShieldCheck } from "lucide-react"
@@ -18,11 +17,10 @@ interface PaymentProviderModalProps {
 
 function StripeLogo() {
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src="/Logos/SVG/stripe-ar21.svg"
       alt="Stripe"
-      width={80}
-      height={40}
       className="h-7 w-auto"
     />
   )
@@ -116,6 +114,26 @@ export function PaymentProviderModal({
         <div className="flex items-center justify-center gap-1.5 pt-1 text-xs text-[var(--t3)]">
           <ShieldCheck className="h-3.5 w-3.5" />
           <span>Secure &amp; encrypted payment</span>
+        </div>
+
+        {/* Stripe test cards */}
+        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3 space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Test Cards</p>
+          <div className="flex items-center justify-between gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
+            <div>
+              <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">✓ Success</p>
+              <p className="text-xs font-mono font-semibold text-emerald-800 mt-0.5">4242 4242 4242 4242</p>
+            </div>
+            <span className="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-300">TEST CARD</span>
+          </div>
+          <div className="flex items-center justify-between gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+            <div>
+              <p className="text-[10px] font-bold text-red-700 uppercase tracking-wide">✕ Declined</p>
+              <p className="text-xs font-mono font-semibold text-red-800 mt-0.5">4000 0000 0000 0002</p>
+            </div>
+            <span className="text-[9px] font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-300">TEST CARD</span>
+          </div>
+          <p className="text-[9px] text-gray-400 text-center">Any future expiry · any CVC · any ZIP</p>
         </div>
       </DialogContent>
     </Dialog>
