@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import Image from "next/image"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { Loader2, ShieldCheck } from "lucide-react"
@@ -17,11 +18,13 @@ interface PaymentProviderModalProps {
 
 function StripeLogo() {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/Logos/SVG/stripe-ar21.svg"
+    <Image
+      src="/Logos/PNG/stripe.png"
       alt="Stripe"
-      className="h-7 w-auto"
+      width={80}
+      height={40}
+      className="h-7 w-auto object-contain"
+      unoptimized
     />
   )
 }
