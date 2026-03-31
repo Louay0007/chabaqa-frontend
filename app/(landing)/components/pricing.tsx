@@ -262,6 +262,7 @@ export function Pricing() {
 
                     <a
                       href={withLocale('/dashboard/create-community')}
+                      className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 bg-white text-[#8e78fb] hover:bg-opacity-90 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
                     >
                       {plan.cta}
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="12" height="12" className="sm:w-[14px] sm:h-[14px]" aria-hidden="true">
@@ -312,9 +313,14 @@ export function Pricing() {
 
                 <a
                   href={withLocale('/dashboard/create-community')}
+                  className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-xl font-bold text-sm transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
                   style={{ background: '#ede9ff', color: '#8e78fb', border: '1.5px solid #c4b8fd' }}
                 >
                   {plan.cta}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="12" height="12" aria-hidden="true">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
                 </a>
               </div>
             )
