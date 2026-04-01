@@ -32,7 +32,7 @@ const nextConfig = {
       {
         protocol: 'http',
         hostname: '51.254.132.77',
-        port: '3000',
+        port: '3001',
         pathname: '/uploads/**',
       },
       {
@@ -86,12 +86,7 @@ const nextConfig = {
       { key: 'X-Permitted-Cross-Domain-Policies', value: 'none' },
     ];
 
-    if (process.env.NODE_ENV === 'production') {
-      securityHeaders.push({
-        key: 'Strict-Transport-Security',
-        value: 'max-age=31536000; includeSubDomains; preload',
-      });
-    }
+    // HSTS disabled for demo (no HTTPS/TLS on IP:port)
 
     return [
       {

@@ -48,7 +48,7 @@ function readCookie(name: string): string | null {
 function writeCookie(name: string, value: string): void {
   if (!isBrowser()) return
   const secure =
-    window.location.protocol === "https:" || process.env.NODE_ENV === "production"
+    window.location.protocol === "https:"
       ? "; Secure"
       : ""
   document.cookie =

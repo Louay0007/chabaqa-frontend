@@ -203,6 +203,17 @@ export interface CreatePlanData {
 
 export interface UpdatePlanData extends Partial<CreatePlanData> { }
 
+export interface StorageUsageData {
+  usedBytes: number;
+  usedGB: number;
+  limitGB: number;
+  limitBytes: number;
+  percentUsed: number;
+  remainingGB: number;
+  isNearLimit: boolean;
+  isAtLimit: boolean;
+}
+
 export interface RecordUsageData {
   metricType: UsageMetricType;
   value: number;
@@ -260,6 +271,20 @@ export const subscriptionApi = {
    */
   async getTrialRemaining(): Promise<ApiSuccessResponse<TrialRemaining>> {
     return apiClient.get('/subscriptions/trial-remaining');
+  },
+
+  /**
+   * Get storage usage for current creator
+   */
+  async getStorageUsage(): Promise<ApiSuccessResponse<StorageUsageData>> {
+    return apiClient.get('/subscriptions/storage');
+  },
+
+  /**
+   * Reactivate a subscription that was set to cancel at period end
+   */
+  async reactivateSubscription(): Promise<ApiSuccessResponse<{ message: string; subscription: CreatorSubscription }>> {
+    return apiClient.post('/subscriptions/reactivate');
   },
 
   // Plan management

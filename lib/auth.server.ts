@@ -72,7 +72,7 @@ export async function getProfileServer(): Promise<User | null> {
           const expiresIn = refreshPayload.expires_in || refreshPayload.expiresIn || 2 * 60 * 60
           cookieStore.set('accessToken', refreshedAccessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: process.env.NEXT_PUBLIC_APP_URL?.startsWith('https'),
             sameSite: 'lax',
             maxAge: expiresIn
           })
