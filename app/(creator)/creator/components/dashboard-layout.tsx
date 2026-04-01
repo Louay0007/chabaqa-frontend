@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { DashboardSidebar } from "./dashboard-sidebar"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import { TrialBanner } from "@/components/plan"
+import { SubscriptionPaywall } from "@/components/plan/subscription-paywall"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -48,6 +49,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* Paywall overlay for expired trials / past_due without payment */}
+      <SubscriptionPaywall />
     </div>
   )
 }

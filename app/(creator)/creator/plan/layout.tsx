@@ -3,7 +3,7 @@
 import type React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { CreditCard, HardDrive, Receipt, ArrowUpCircle } from "lucide-react"
+import { CreditCard, HardDrive, Receipt, ArrowUpCircle, Wallet } from "lucide-react"
 import { PageShell } from "@/components/creator-dashboard"
 import { cn } from "@/lib/utils"
 
@@ -11,6 +11,7 @@ const tabs = [
   { label: "Overview", href: "/creator/plan", icon: CreditCard },
   { label: "Storage", href: "/creator/plan/storage", icon: HardDrive },
   { label: "Invoices", href: "/creator/plan/invoices", icon: Receipt },
+  { label: "Billing", href: "/creator/plan/billing/manage", icon: Wallet },
   { label: "Upgrade", href: "/creator/plan/upgrade", icon: ArrowUpCircle },
 ]
 
@@ -33,7 +34,7 @@ export default function PlanLayout({ children }: { children: React.ReactNode }) 
           const isActive =
             tab.href === "/creator/plan"
               ? pathname === tab.href
-              : pathname.startsWith(tab.href)
+              : pathname.startsWith(tab.href) || (tab.href.includes('/billing/') && pathname.startsWith('/creator/plan/billing'))
 
           return (
             <Link

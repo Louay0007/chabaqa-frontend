@@ -435,3 +435,37 @@ export const subscriptionApi = {
     return apiClient.post('/payment/konnect/init/subscription', { tier });
   },
 };
+
+// ============ PAYMENT METHODS API ============
+
+export interface SavedPaymentMethod {
+  id: string;
+  provider: string;
+  brand?: string;
+  last4?: string;
+  expMonth?: number;
+  expYear?: number;
+  isDefault: boolean;
+}
+
+export const paymentMethodApi = {
+  createSetupIntent: async (): Promise<{ clientSecret: string; customerId: string; setupIntentId: string }> => {
+    return apiClient.post('/payment-methods/setup-intent');
+  },
+
+  confirmPaymentMethod: async (setupIntentId: string): Promise<{ success: boolean; card: { brand: string; last4: string } }> => {
+    return apiClient.post('/payment-methods/confirm', { setupIntentId });
+  },
+
+  list: async (): Promise<SavedPaymentMethod[]> => {
+    return apiClient.get('/payment-methods');
+  },
+
+  setDefault: async (pmId: string): Promise<{ success: boolean }> => {
+    return apiClient.patch(`/payment-methods/${pmId}/set-default`);
+  },
+
+  remove: async (pmId: string): Promise<{ success: boolean }> => {
+    return apiClient.delete(`/payment-methods/${pmId}`);
+  },
+};

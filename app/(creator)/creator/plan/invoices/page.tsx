@@ -25,9 +25,17 @@ export default function InvoicesPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await subscriptionApi.getInvoices({ page, limit: 20 });
-      setInvoices(res.data);
-      setTotalPages(res.pagination?.totalPages ?? 1);
+      const res = await subscriptionApi.getInvoices({ page, limit: 20 }) as any;
+      // Backend returns { invoices, total, page, limit } — handle both shapes safely
+      const list = Array.isArray(res?.invoices)
+        ? res.invoices
+        : Array.isArray(res?.data)
+        ? res.data
+        : [];
+      setInvoices(list);
+      const total = res?.total ?? res?.pagination?.total ?? 0;
+      const pages = res?.pagination?.totalPages ?? Math.ceil(total / 20);
+      setTotalPages(pages || 1);
     } catch {
       toast({ title: 'Error', description: 'Failed to load invoices.', variant: 'destructive' });
     } finally {
