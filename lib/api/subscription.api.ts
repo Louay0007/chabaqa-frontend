@@ -457,6 +457,14 @@ export const paymentMethodApi = {
     return apiClient.post('/payment-methods/setup-intent');
   },
 
+  createSetupSession: async (successUrl?: string, cancelUrl?: string): Promise<{ url: string; sessionId: string }> => {
+    return apiClient.post('/payment-methods/setup-session', { successUrl, cancelUrl });
+  },
+
+  completeSetupSession: async (sessionId: string): Promise<{ success: boolean; card: { brand: string; last4: string } }> => {
+    return apiClient.post('/payment-methods/setup-session/complete', { sessionId });
+  },
+
   confirmPaymentMethod: async (setupIntentId: string): Promise<{ success: boolean; card: { brand: string; last4: string } }> => {
     return apiClient.post('/payment-methods/confirm', { setupIntentId });
   },
