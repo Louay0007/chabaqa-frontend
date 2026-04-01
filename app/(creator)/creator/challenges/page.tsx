@@ -10,6 +10,7 @@ import { api, apiClient } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useCommunityGuard } from "@/hooks/use-community-guard"
 import { PageShell, PageState, ModuleEmptyState, TOAST_MESSAGES } from "@/components/creator-dashboard"
+import { FeatureGate, LockedFeatureCard } from "@/components/plan"
 
 export default function CreatorChallengesPage() {
   const { toast } = useToast()
@@ -116,6 +117,18 @@ export default function CreatorChallengesPage() {
   if (loading) return <PageState variant="loading" title="Loading challenges…" />
 
   return (
+    <FeatureGate
+      feature="challenges"
+      fallback={
+        <PageShell>
+          <LockedFeatureCard
+            feature="Challenges"
+            requiredPlan="growth"
+            description="Create competitive challenges for your community members. Available on the Growth plan and above."
+          />
+        </PageShell>
+      }
+    >
     <PageShell>
       <PageHeader />
       <StatsGrid allChallenges={filtered} revenue={revenue} />
@@ -126,5 +139,6 @@ export default function CreatorChallengesPage() {
       )}
       {filtered.length === 0 && <ModuleEmptyState module="challenges" />}
     </PageShell>
+    </FeatureGate>
   )
 }

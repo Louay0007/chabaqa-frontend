@@ -6,6 +6,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { DashboardSidebar } from "./dashboard-sidebar"
 import { useAuthContext } from "@/app/providers/auth-provider"
+import { TrialBanner } from "@/components/plan"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -42,6 +43,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
+        <TrialBanner />
         <main className="mx-auto w-full max-w-7xl px-6 py-6 lg:px-10 lg:py-8">
           {children}
         </main>

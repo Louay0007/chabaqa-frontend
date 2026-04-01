@@ -38,6 +38,7 @@ import {
   Lock,
   ExternalLink,
   Star,
+  Crown,
   type LucideIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -255,6 +256,11 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
     },
 
     // ── System ──
+    {
+      title: "Plan & Billing",
+      icon: Crown,
+      href: "/creator/plan",
+    },
     {
       title: "Notifications",
       icon: Bell,

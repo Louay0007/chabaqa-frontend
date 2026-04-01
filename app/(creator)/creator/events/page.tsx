@@ -17,6 +17,7 @@ import {
   ModuleEmptyState,
   TOAST_MESSAGES,
 } from "@/components/creator-dashboard"
+import { FeatureGate, LockedFeatureCard } from "@/components/plan"
 
 export default function EventsPage() {
   const { toast } = useToast()
@@ -168,6 +169,18 @@ export default function EventsPage() {
 
   if (events.length === 0) {
     return (
+      <FeatureGate
+        feature="events"
+        fallback={
+          <PageShell>
+            <LockedFeatureCard
+              feature="Events"
+              requiredPlan="growth"
+              description="Create and manage events for your community. Available on the Growth plan and above."
+            />
+          </PageShell>
+        }
+      >
       <PageShell>
         <PageHeader
           title="Events"
@@ -175,10 +188,23 @@ export default function EventsPage() {
         />
         <ModuleEmptyState module="events" />
       </PageShell>
+      </FeatureGate>
     )
   }
 
   return (
+    <FeatureGate
+      feature="events"
+      fallback={
+        <PageShell>
+          <LockedFeatureCard
+            feature="Events"
+            requiredPlan="growth"
+            description="Create and manage events for your community. Available on the Growth plan and above."
+          />
+        </PageShell>
+      }
+    >
     <PageShell>
       <EventsHeader />
       <EventsStats
@@ -201,5 +227,6 @@ export default function EventsPage() {
         communityEventBaseUrl={communityEventBaseUrl}
       />
     </PageShell>
+    </FeatureGate>
   )
 }

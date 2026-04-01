@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useCommunityGuard } from "@/hooks/use-community-guard"
 import { loadSessionsCached } from "@/app/(creator)/creator/context/community-switch-cache"
 import { PageState, TOAST_MESSAGES } from "@/components/creator-dashboard"
+import { FeatureGate, LockedFeatureCard } from "@/components/plan"
 
 export default function CreatorSessionsPage() {
   const { toast } = useToast()
@@ -77,6 +78,16 @@ export default function CreatorSessionsPage() {
   if (guard) return guard
 
   return (
+    <FeatureGate
+      feature="sessions"
+      fallback={
+        <LockedFeatureCard
+          feature="1:1 Sessions"
+          requiredPlan="growth"
+          description="Offer 1-on-1 session bookings to your community members. Available on the Growth plan and above."
+        />
+      }
+    >
     <ClientSessionsView
       allSessions={sessions}
       allBookings={bookings}
@@ -84,5 +95,6 @@ export default function CreatorSessionsPage() {
       isSwitchLoading={isSwitchLoading}
       onSessionsUpdate={handleSessionsUpdate}
     />
+    </FeatureGate>
   )
 }
