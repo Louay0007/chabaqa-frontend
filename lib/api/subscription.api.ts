@@ -449,6 +449,10 @@ export interface SavedPaymentMethod {
 }
 
 export const paymentMethodApi = {
+  getConfig: async (): Promise<{ publishableKey: string }> => {
+    return apiClient.get('/payment-methods/config');
+  },
+
   createSetupIntent: async (): Promise<{ clientSecret: string; customerId: string; setupIntentId: string }> => {
     return apiClient.post('/payment-methods/setup-intent');
   },
