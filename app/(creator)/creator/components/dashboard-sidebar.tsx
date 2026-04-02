@@ -15,6 +15,7 @@ import {
   Settings,
   BarChart3,
   CreditCard,
+  TicketPercent,
   Bell,
   HelpCircle,
   Plus,
@@ -216,6 +217,7 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
       items: [
         { title: "Subscriptions", href: "/creator/monetization/subscriptions", icon: CreditCard },
         { title: "Payouts", href: "/creator/monetization/payouts", icon: CreditCard },
+        { title: "Promo Codes", href: "/creator/monetization/promo-codes", icon: TicketPercent },
         { title: "Manual Payments", href: "/creator/monetization/manual-payments", icon: CreditCard },
       ],
     },

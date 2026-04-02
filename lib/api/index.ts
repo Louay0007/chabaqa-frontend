@@ -36,6 +36,7 @@ export * from './live-support.api';
 export * from './tracking.api';
 export * from './affiliate.api';
 export * from './community-access.api';
+export * from './promo-codes.api';
 export type { ModerationAction, ModerationStatus, ModerationItem, ModerationReport, ModerationQueueFilters, ModerationQueueResponse, ModerationActivityLog, ModerationStats, PinnedPost } from './moderation.api';
 export { moderationApi } from './moderation.api';
 
@@ -71,6 +72,7 @@ import { communityInvitationsApi } from './community-invitations.api';
 import { communityMembersApi } from './community-members.api';
 import { communityAccessApi } from './community-access.api';
 import { moderationApi } from './moderation.api';
+import { promoCodesApi } from './promo-codes.api';
 
 export const api = {
   auth: authApi,
@@ -101,4 +103,5 @@ export const api = {
   communityMembers: communityMembersApi,
   communityAccess: communityAccessApi,
   moderation: moderationApi,
+  promoCodes: promoCodesApi,
 };
