@@ -1,38 +1,44 @@
-import type React from "react"
-import type { Metadata } from "next"
-import dynamic from "next/dynamic"
-import { AuthProvider } from "@/app/providers/auth-provider"
-import { CommunityProvider } from "@/app/providers/community-context"
-import { SocketProvider } from "@/lib/socket-context"
-import { Toaster } from "@/components/ui/toaster"
-import { ExtensionErrorGuard } from "@/app/(auth)/components/extension-error-guard"
+import type React from "react";
+import type { Metadata } from "next";
+import dynamic from "next/dynamic";
+import { AuthProvider } from "@/app/providers/auth-provider";
+import { CommunityProvider } from "@/app/providers/community-context";
+import { SocketProvider } from "@/lib/socket-context";
+import { ChannelSocketProvider } from "@/lib/channel-socket-context";
+import { Toaster } from "@/components/ui/toaster";
+import { ExtensionErrorGuard } from "@/app/(auth)/components/extension-error-guard";
 
 const LiveSupportWidget = dynamic(
-  () => import("@/components/live-support/live-support-widget").then(mod => ({ default: mod.LiveSupportWidget })),
-  { loading: () => null }
-)
+    () =>
+        import("@/components/live-support/live-support-widget").then((mod) => ({
+            default: mod.LiveSupportWidget,
+        })),
+    { loading: () => null },
+);
 
 export const metadata: Metadata = {
-  title: "Chabaqa - Turn your passion into buisness",
-  description:
-    "The ultimate platform for creators to build engaged communities, monetize their expertise, and scale their impact.",
-}
+    title: "Chabaqa - Turn your passion into buisness",
+    description:
+        "The ultimate platform for creators to build engaged communities, monetize their expertise, and scale their impact.",
+};
 
 export default function RootLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode
+    children: React.ReactNode;
 }) {
-  return (
-    <AuthProvider>
-      <SocketProvider>
-        <CommunityProvider>
-          <ExtensionErrorGuard />
-          {children}
-          <LiveSupportWidget />
-          <Toaster />
-        </CommunityProvider>
-      </SocketProvider>
-    </AuthProvider>
-  )
+    return (
+        <AuthProvider>
+            <SocketProvider>
+                <CommunityProvider>
+                    <ChannelSocketProvider>
+                        <ExtensionErrorGuard />
+                        {children}
+                        <LiveSupportWidget />
+                        <Toaster />
+                    </ChannelSocketProvider>
+                </CommunityProvider>
+            </SocketProvider>
+        </AuthProvider>
+    );
 }
