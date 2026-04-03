@@ -132,6 +132,8 @@ export interface CommunitySettings {
     metaDescription?: string;
     customDomain?: string;
     headerScripts?: string;
+    welcomeDmEnabled?: boolean;
+    welcomeDmMessage?: string;
 }
 
 export interface CommunityMember {
