@@ -3,9 +3,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText as FileTextIcon, Download as DownloadIcon, Video, Code, Link as LinkIcon, FileType, Wrench, Star, Sparkles } from "lucide-react"
-import { CourseReviewsSection } from "@/components/reviews/course-reviews-section"
-import AiTutorWidget from "./ai-tutor-widget"
+import { FileText as FileTextIcon, Download as DownloadIcon, Video, Code, Link as LinkIcon, FileType, Wrench, MessageSquare, ClipboardCheck } from "lucide-react"
+import GeoChat from "./geo-chat"
+import GeoQuizPanel from "./geo-quiz-panel"
 
 interface ChapterTabsProps {
   activeTab: string
@@ -18,6 +18,7 @@ interface ChapterTabsProps {
   onGoToNextChapter?: () => void | Promise<void>
   courseId?: string
   onRefreshCourse?: () => Promise<void>
+  courseName?: string
 }
 
 const getResourceIcon = (type: string) => {
@@ -41,17 +42,18 @@ const getResourceIcon = (type: string) => {
   }
 }
 
-export default function ChapterTabs({ 
-  activeTab, 
-  setActiveTab, 
-  currentChapter, 
-  currentChapterIndex, 
+export default function ChapterTabs({
+  activeTab,
+  setActiveTab,
+  currentChapter,
+  currentChapterIndex,
   allChapters,
   isCurrentChapterCompleted,
   nextChapterId,
   onGoToNextChapter,
   courseId,
   onRefreshCourse,
+  courseName,
 }: ChapterTabsProps) {
   const chapterResources = currentChapter?.resources || []
   const chapterNotes = currentChapter?.notes || ''
@@ -90,12 +92,19 @@ export default function ChapterTabs({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList className="grid w-full grid-cols-5 md:grid-cols-5 lg:grid-cols-5 h-auto p-1.5 bg-muted/50">
+      <TabsList className="grid w-full grid-cols-5 h-auto p-1.5 bg-muted/50">
         <TabsTrigger value="content" className="py-2.5 md:py-3 text-xs md:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">Content</TabsTrigger>
-        <TabsTrigger value="ai-tutor" className="py-2.5 md:py-3 text-xs md:text-sm font-medium gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm"><Sparkles className="h-3 w-3 md:h-4 md:w-4 text-purple-500" /> AI</TabsTrigger>
+        <TabsTrigger value="geo" className="py-2.5 md:py-3 text-xs md:text-sm font-medium gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          <MessageSquare className="h-3 w-3 md:h-4 md:w-4 text-violet-500" />
+          <span className="hidden sm:inline">Ask Geo</span>
+          <span className="sm:hidden">Geo</span>
+        </TabsTrigger>
+        <TabsTrigger value="quiz" className="py-2.5 md:py-3 text-xs md:text-sm font-medium gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          <ClipboardCheck className="h-3 w-3 md:h-4 md:w-4 text-violet-500" />
+          <span>Quiz</span>
+        </TabsTrigger>
         <TabsTrigger value="notes" className="py-2.5 md:py-3 text-xs md:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">Notes</TabsTrigger>
         <TabsTrigger value="resources" className="py-2.5 md:py-3 text-xs md:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">Resources</TabsTrigger>
-        <TabsTrigger value="reviews" className="py-2.5 md:py-3 text-xs md:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">Reviews</TabsTrigger>
       </TabsList>
 
       <TabsContent value="content" className="mt-4 md:mt-6">
@@ -126,14 +135,36 @@ export default function ChapterTabs({
         </Card>
       </TabsContent>
 
-      <TabsContent value="ai-tutor" className="mt-4 md:mt-6">
+      <TabsContent value="geo" className="mt-4 md:mt-6">
         {courseId && currentChapter?.id ? (
-          <AiTutorWidget courseId={courseId!} chapterId={String(currentChapter.id)} />
+          <GeoChat
+            courseId={courseId}
+            chapterId={String(currentChapter.id)}
+            courseName={courseName}
+            chapterName={currentChapter?.title || currentChapter?.titre}
+          />
         ) : (
           <Card className="border shadow-sm">
             <CardContent className="py-12 text-center text-muted-foreground">
-              <Sparkles className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-4 opacity-50" />
-              <p className="text-sm md:text-base">Please select a chapter to use the AI Tutor.</p>
+              <MessageSquare className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-4 opacity-50" />
+              <p className="text-sm md:text-base">Please select a chapter to use Geo.</p>
+            </CardContent>
+          </Card>
+        )}
+      </TabsContent>
+
+      <TabsContent value="quiz" className="mt-4 md:mt-6">
+        {courseId && currentChapter?.id ? (
+          <GeoQuizPanel
+            courseId={courseId}
+            chapterId={String(currentChapter.id)}
+            chapterName={currentChapter?.title || currentChapter?.titre}
+          />
+        ) : (
+          <Card className="border shadow-sm">
+            <CardContent className="py-12 text-center text-muted-foreground">
+              <ClipboardCheck className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-4 opacity-50" />
+              <p className="text-sm md:text-base">Please select a chapter to take a quiz.</p>
             </CardContent>
           </Card>
         )}
@@ -199,19 +230,6 @@ export default function ChapterTabs({
             )}
           </CardContent>
         </Card>
-      </TabsContent>
-
-      <TabsContent value="reviews" className="mt-4 md:mt-6">
-        {courseId ? (
-          <CourseReviewsSection courseId={courseId} showForm={true} onRefreshCourse={onRefreshCourse} />
-        ) : (
-          <Card className="border shadow-sm">
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <Star className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-4 opacity-50" />
-              <p className="text-sm md:text-base">Reviews unavailable</p>
-            </CardContent>
-          </Card>
-        )}
       </TabsContent>
     </Tabs>
   )

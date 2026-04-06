@@ -967,7 +967,7 @@ export default function CoursePlayer({
               onChapterComplete={handleChapterComplete}
             />
 
-	            <ChapterTabs 
+	            <ChapterTabs
 	              activeTab={activeTab}
 	              setActiveTab={setActiveTab}
 	              currentChapter={currentChapter}
@@ -977,6 +977,7 @@ export default function CoursePlayer({
 	              nextChapterId={nextChapterId}
 	              courseId={resolvedCourseId}
 	              onRefreshCourse={onRefreshCourse}
+	              courseName={course?.titre || course?.title}
               onGoToNextChapter={async () => {
                 console.info("[CourseNextFlow] onGoToNextChapter invoked from ChapterTabs", {
                   currentChapterId: currentChapter?.id ? String(currentChapter.id) : null,

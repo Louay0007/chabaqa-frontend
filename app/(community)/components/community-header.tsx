@@ -76,7 +76,8 @@ const navigationItems = [
     { label: "Reviews", href: "/reviews", icon: Star },
     { label: "Progress", href: "/progress", icon: TrendingUp },
     // { label: "Learning Path", href: "/learning-path", icon: Route },
-    // { label: "Achievements", href: "/achievements", icon: Trophy },
+    { label: "Achievements", href: "/achievements", icon: Trophy },
+    { label: "Leaderboard", href: "/leaderboard", icon: TrendingUp },
     { label: "Members", href: "/members", icon: Users },
 ];
 

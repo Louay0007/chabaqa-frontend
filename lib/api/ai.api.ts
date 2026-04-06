@@ -1,68 +1,127 @@
-import { apiClient } from './client';
+import { apiClient } from "./client";
 
 export interface AskChapterQuestionResponse {
-  answer: string;
-  chapterId: string;
-  model?: string;
+    answer: string;
+    chapterId: string;
+    model?: string;
 }
 
 export interface ChapterHistoryMessage {
-  role: 'user' | 'ai';
-  content: string;
-  createdAt?: string | null;
+    role: "user" | "ai";
+    content: string;
+    createdAt?: string | null;
 }
 
 export interface ChapterHistoryResponse {
-  courseId: string;
-  chapterId: string;
-  messages: ChapterHistoryMessage[];
+    courseId: string;
+    chapterId: string;
+    messages: ChapterHistoryMessage[];
+}
+
+export type AiAssistAction =
+    | "brainstorm"
+    | "improve"
+    | "expand"
+    | "shorten"
+    | "rewrite"
+    | "summarize";
+
+export interface ContentAssistRequest {
+    action: AiAssistAction;
+    text: string;
+    context?: string;
+    tone?: string;
+}
+
+export interface ContentAssistResponse {
+    result: string;
+    model?: string;
 }
 
 export const aiApi = {
-  askChapterQuestion: async (courseId: string, chapterId: string, question: string) => {
-    const response = await apiClient.post<any>(
-      `/ai/courses/${courseId}/chapters/${chapterId}/ask`,
-      { question }
-    );
+    askChapterQuestion: async (
+        courseId: string,
+        chapterId: string,
+        question: string,
+    ) => {
+        const response = await apiClient.post<any>(
+            `/ai/courses/${courseId}/chapters/${chapterId}/ask`,
+            { question },
+        );
 
-    const payload = response?.data && typeof response.data === 'object'
-      ? response.data
-      : response;
-    const answer =
-      typeof payload?.answer === 'string'
-        ? payload.answer.trim()
-        : '';
+        const payload =
+            response?.data && typeof response.data === "object"
+                ? response.data
+                : response;
+        const answer =
+            typeof payload?.answer === "string" ? payload.answer.trim() : "";
 
-    if (!answer) {
-      throw new Error('AI returned an empty response');
-    }
+        if (!answer) {
+            throw new Error("AI returned an empty response");
+        }
 
-    return {
-      answer,
-      chapterId: String(payload?.chapterId || chapterId),
-      model: typeof payload?.model === 'string' ? payload.model : undefined,
-    } as AskChapterQuestionResponse;
-  },
+        return {
+            answer,
+            chapterId: String(payload?.chapterId || chapterId),
+            model:
+                typeof payload?.model === "string" ? payload.model : undefined,
+        } as AskChapterQuestionResponse;
+    },
 
-  getChapterHistory: async (courseId: string, chapterId: string) => {
-    const response = await apiClient.get<any>(
-      `/ai/courses/${courseId}/chapters/${chapterId}/history`,
-    );
-    const payload = response?.data && typeof response.data === 'object'
-      ? response.data
-      : response;
-    const rawMessages = Array.isArray(payload?.messages) ? payload.messages : [];
+    getChapterHistory: async (courseId: string, chapterId: string) => {
+        const response = await apiClient.get<any>(
+            `/ai/courses/${courseId}/chapters/${chapterId}/history`,
+        );
+        const payload =
+            response?.data && typeof response.data === "object"
+                ? response.data
+                : response;
+        const rawMessages = Array.isArray(payload?.messages)
+            ? payload.messages
+            : [];
 
-    return {
-      courseId: String(payload?.courseId || courseId),
-      chapterId: String(payload?.chapterId || chapterId),
-      messages: rawMessages
-        .map((message: any) => ({
-          role: message?.role === 'user' ? 'user' : 'ai',
-          content: typeof message?.content === 'string' ? message.content.trim() : '',
-          createdAt: message?.createdAt || null,
-        }))
-        .filter((message: ChapterHistoryMessage) => message.content.length > 0),
-    } as ChapterHistoryResponse;
-  },
+        return {
+            courseId: String(payload?.courseId || courseId),
+            chapterId: String(payload?.chapterId || chapterId),
+            messages: rawMessages
+                .map((message: any) => ({
+                    role: message?.role === "user" ? "user" : "ai",
+                    content:
+                        typeof message?.content === "string"
+                            ? message.content.trim()
+                            : "",
+                    createdAt: message?.createdAt || null,
+                }))
+                .filter(
+                    (message: ChapterHistoryMessage) =>
+                        message.content.length > 0,
+                ),
+        } as ChapterHistoryResponse;
+    },
+
+    assistContent: async (
+        request: ContentAssistRequest,
+    ): Promise<ContentAssistResponse> => {
+        const response = await apiClient.post<any>(
+            "/ai/content/assist",
+            request,
+        );
+
+        const payload =
+            response?.data && typeof response.data === "object"
+                ? response.data
+                : response;
+        const result =
+            typeof payload?.result === "string" ? payload.result.trim() : "";
+
+        if (!result) {
+            throw new Error("Wanis returned an empty response");
+        }
+
+        return {
+            result,
+            model:
+                typeof payload?.model === "string" ? payload.model : undefined,
+        };
+    },
 };

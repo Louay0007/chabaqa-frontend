@@ -1,483 +1,710 @@
-import { apiClient, ApiSuccessResponse, PaginatedResponse } from './client';
-import type { User } from './types';
+import { apiClient, ApiSuccessResponse, PaginatedResponse } from "./client";
+import type { User } from "./types";
+import type { BillingInterval } from "@/lib/plans/plan-config";
 
 // ============ ENUMS ============
 
 export enum PlanTier {
-  STARTER = 'starter',
-  GROWTH = 'growth',
-  PRO = 'pro',
-  ENTERPRISE = 'enterprise',
+    STARTER = "starter",
+    GROWTH = "growth",
+    PRO = "pro",
+    ENTERPRISE = "enterprise",
 }
 
 export enum SubscriptionStatus {
-  TRIALING = 'trialing',
-  ACTIVE = 'active',
-  PAST_DUE = 'past_due',
-  CANCELED = 'canceled',
-  INCOMPLETE = 'incomplete',
+    TRIALING = "trialing",
+    ACTIVE = "active",
+    PAST_DUE = "past_due",
+    CANCELED = "canceled",
+    INCOMPLETE = "incomplete",
 }
 
 export enum InvoiceStatus {
-  DRAFT = 'draft',
-  OPEN = 'open',
-  PAID = 'paid',
-  VOID = 'void',
-  UNCOLLECTIBLE = 'uncollectible',
+    DRAFT = "draft",
+    OPEN = "open",
+    PAID = "paid",
+    VOID = "void",
+    UNCOLLECTIBLE = "uncollectible",
 }
 
 export enum UsageMetricType {
-  COMMUNITIES_CREATED = 'communities_created',
-  MEMBERS_ADDED = 'members_added',
-  COURSES_ACTIVATED = 'courses_activated',
-  STORAGE_USED = 'storage_used',
-  ADMINS_ADDED = 'admins_added',
-  API_REQUESTS = 'api_requests',
-  EMAIL_SENT = 'email_sent',
-  AUTOMATION_TRIGGERED = 'automation_triggered',
+    COMMUNITIES_CREATED = "communities_created",
+    MEMBERS_ADDED = "members_added",
+    COURSES_ACTIVATED = "courses_activated",
+    STORAGE_USED = "storage_used",
+    ADMINS_ADDED = "admins_added",
+    API_REQUESTS = "api_requests",
+    EMAIL_SENT = "email_sent",
+    AUTOMATION_TRIGGERED = "automation_triggered",
 }
 
 // ============ INTERFACES & TYPES ============
 
 export interface PlanLimits {
-  communitiesMax: number;
-  membersMax: number;
-  coursesActivationMax: number;
-  storageGB: number;
-  adminsMax: number;
-  emailCampaignRecipientsPerMonth: number;
-  whatsappMessagesPerMonth: number;
-  analyticsLookbackDays: number;
-  sessionBookingsPerMonth: number;
+    communitiesMax: number;
+    membersMax: number;
+    coursesActivationMax: number;
+    storageGB: number;
+    adminsMax: number;
+    emailCampaignRecipientsPerMonth: number;
+    whatsappMessagesPerMonth: number;
+    analyticsLookbackDays: number;
+    sessionBookingsPerMonth: number;
 }
 
 export interface PlanFeatures {
-  courses: boolean;
-  challenges: boolean;
-  sessions: boolean;
-  products: boolean;
-  events: boolean;
-  automationQuota: number;
-  branding: boolean;
-  gamification: boolean;
-  verifiedBadge: boolean;
-  featuredBadge: boolean;
+    courses: boolean;
+    challenges: boolean;
+    sessions: boolean;
+    products: boolean;
+    events: boolean;
+    automationQuota: number;
+    branding: boolean;
+    gamification: boolean;
+    verifiedBadge: boolean;
+    featuredBadge: boolean;
 }
 
 export interface SubscriptionPlan {
-  tier: PlanTier;
-  name: string;
-  priceDTPerMonth: number;
-  trialDays: number;
-  limits: PlanLimits;
-  features: PlanFeatures;
-  transactionFeePercent: number;
-  transactionFixedFeeDT: number;
-  isActive: boolean;
+    tier: PlanTier;
+    name: string;
+    priceDTPerMonth: number;
+    trialDays: number;
+    limits: PlanLimits;
+    features: PlanFeatures;
+    transactionFeePercent: number;
+    transactionFixedFeeDT: number;
+    isActive: boolean;
 }
 
 export interface CreatorSubscription {
-  id: string;
-  creatorId: string;
-  plan: PlanTier;
-  status: SubscriptionStatus;
-  cancelAtPeriodEnd: boolean;
-  currentPeriodStart: string;
-  currentPeriodEnd: string;
-  trialEndsAt?: string;
-  hasPaymentMethod: boolean;
-  paymentBrand?: string;
-  paymentLast4?: string;
-  provider?: string;
-  providerCustomerId?: string;
-  providerSubscriptionId?: string;
-  createdAt: string;
-  updatedAt: string;
+    id: string;
+    creatorId: string;
+    plan: PlanTier;
+    status: SubscriptionStatus;
+    cancelAtPeriodEnd: boolean;
+    currentPeriodStart: string;
+    currentPeriodEnd: string;
+    trialEndsAt?: string;
+    hasPaymentMethod: boolean;
+    paymentBrand?: string;
+    paymentLast4?: string;
+    provider?: string;
+    providerCustomerId?: string;
+    providerSubscriptionId?: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface TrialRemaining {
-  isTrialing: boolean;
-  expiresAt: string | null;
-  remaining: {
-    days: number;
-    hours: number;
-    minutes: number;
-    seconds: number;
-    totalMs: number;
-  };
-  message: string;
+    isTrialing: boolean;
+    expiresAt: string | null;
+    remaining: {
+        days: number;
+        hours: number;
+        minutes: number;
+        seconds: number;
+        totalMs: number;
+    };
+    message: string;
 }
 
 export interface SetupBillingData {
-  providerCustomerId: string;
-  paymentBrand?: string;
-  paymentLast4?: string;
-  provider?: 'stripe' | 'paypal' | 'custom';
+    providerCustomerId: string;
+    paymentBrand?: string;
+    paymentLast4?: string;
+    provider?: "stripe" | "paypal" | "custom";
 }
 
 export interface UpgradePlanData {
-  tier: PlanTier;
+    tier: PlanTier;
+    billingInterval?: "month" | "year";
+}
+
+export interface DowngradePlanData {
+    tier: PlanTier;
+}
+
+export interface UpgradePreview {
+    newPlanName: string;
+    newPlanPrice: number;
+    currentDailyRate: number;
+    daysRemaining: number;
+    prorationCredit: number;
+    chargeToday: number;
+    nextInvoiceDate: string;
+    nextInvoiceAmount: number;
+    billingInterval: "month" | "year";
+    currency: string;
+}
+
+export interface RetryPaymentResult {
+    success: boolean;
+    chargedAmount?: number;
+    currency?: string;
+    error?: string;
+}
+
+export interface AddOnPurchaseData {
+    type: "storage" | "admin_seat";
+    units: number;
+}
+
+export interface AddOnPurchaseResult {
+    success: boolean;
+    message: string;
+    chargedAmount?: number;
+    newLimit?: number;
+}
+
+export interface CancellationFeedback {
+    reason: string;
+    comment?: string;
 }
 
 export interface SubscriptionStats {
-  totalSubscribers: number;
-  activeSubscribers: number;
-  monthlyRevenue: number;
-  averageSubscriptionValue: number;
-  trialSubscribers: number;
-  canceledSubscribers: number;
-  pastDueSubscribers: number;
+    totalSubscribers: number;
+    activeSubscribers: number;
+    monthlyRevenue: number;
+    averageSubscriptionValue: number;
+    trialSubscribers: number;
+    canceledSubscribers: number;
+    pastDueSubscribers: number;
 }
 
 export interface InvoiceLineItem {
-  id: string;
-  description: string;
-  amount: number;
-  currency: string;
-  quantity: number;
+    id: string;
+    description: string;
+    amount: number;
+    currency: string;
+    quantity: number;
 }
 
 export interface Invoice {
-  id: string;
-  customerId: string;
-  subscriptionId: string;
-  status: InvoiceStatus;
-  invoiceNumber: string;
-  total: number;
-  subtotal: number;
-  tax?: number;
-  currency: string;
-  invoiceDate: string;
-  dueDate?: string;
-  paidAt?: string;
-  lineItems: InvoiceLineItem[];
-  invoicePdfUrl?: string;
-  createdAt: string;
-  updatedAt: string;
+    id: string;
+    customerId: string;
+    subscriptionId: string;
+    status: InvoiceStatus;
+    invoiceNumber: string;
+    total: number;
+    subtotal: number;
+    tax?: number;
+    currency: string;
+    invoiceDate: string;
+    dueDate?: string;
+    paidAt?: string;
+    lineItems: InvoiceLineItem[];
+    invoicePdfUrl?: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface UsageSummary {
-  customerId: string;
-  subscriptionId: string;
-  periodStart: string;
-  periodEnd: string;
-  communitiesCreated: number;
-  membersAdded: number;
-  coursesActivated: number;
-  storageUsedGB: number;
-  adminsAdded: number;
-  apiRequests?: number;
-  emailsSent?: number;
-  automationsTriggered?: number;
-  planLimits: PlanLimits;
-  usagePercentages: {
-    communities: number;
-    members: number;
-    courses: number;
-    storage: number;
-    admins: number;
-  };
+    customerId: string;
+    subscriptionId: string;
+    periodStart: string;
+    periodEnd: string;
+    communitiesCreated: number;
+    membersAdded: number;
+    coursesActivated: number;
+    storageUsedGB: number;
+    adminsAdded: number;
+    apiRequests?: number;
+    emailsSent?: number;
+    automationsTriggered?: number;
+    planLimits: PlanLimits;
+    usagePercentages: {
+        communities: number;
+        members: number;
+        courses: number;
+        storage: number;
+        admins: number;
+    };
 }
 
 // ============ API METHOD PAYLOADS ============
 
 export interface GetAllSubscriptionsParams {
-  status?: SubscriptionStatus;
-  plan?: PlanTier;
-  startDate?: string;
-  endDate?: string;
-  page?: number;
-  limit?: number;
+    status?: SubscriptionStatus;
+    plan?: PlanTier;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
 }
 
 export interface CreatePlanData {
-  tier: PlanTier;
-  name: string;
-  priceDTPerMonth: number;
-  trialDays?: number;
-  limits?: Partial<PlanLimits>;
-  features?: Partial<PlanFeatures>;
-  transactionFeePercent?: number;
-  transactionFixedFeeDT?: number;
+    tier: PlanTier;
+    name: string;
+    description?: string;
+    priceDTPerMonth: number;
+    trialDays?: number;
+    limits?: Partial<PlanLimits>;
+    features?: Partial<PlanFeatures>;
+    transactionFeePercent?: number;
+    transactionFixedFeeDT?: number;
 }
 
-export interface UpdatePlanData extends Partial<CreatePlanData> { }
+export interface UpdatePlanData extends Partial<CreatePlanData> {}
 
 export interface StorageUsageData {
-  usedBytes: number;
-  usedGB: number;
-  limitGB: number;
-  limitBytes: number;
-  percentUsed: number;
-  remainingGB: number;
-  isNearLimit: boolean;
-  isAtLimit: boolean;
+    usedBytes: number;
+    usedGB: number;
+    limitGB: number;
+    limitBytes: number;
+    percentUsed: number;
+    remainingGB: number;
+    isNearLimit: boolean;
+    isAtLimit: boolean;
 }
 
 export interface RecordUsageData {
-  metricType: UsageMetricType;
-  value: number;
-  resourceId?: string;
-  metadata?: Record<string, any>;
+    metricType: UsageMetricType;
+    value: number;
+    resourceId?: string;
+    metadata?: Record<string, any>;
 }
 
 export interface ExportSubscriptionsParams {
-  status?: SubscriptionStatus;
-  plan?: PlanTier;
-  startDate?: string;
-  endDate?: string;
+    status?: SubscriptionStatus;
+    plan?: PlanTier;
+    startDate?: string;
+    endDate?: string;
+}
+
+export interface InvoiceFilterParams {
+    page?: number;
+    limit?: number;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
 }
 
 // ============ API CLIENT ============
 
 export const subscriptionApi = {
-  /**
-   * Get current creator's subscription
-   */
-  async getMySubscription(): Promise<ApiSuccessResponse<CreatorSubscription>> {
-    return apiClient.get<ApiSuccessResponse<CreatorSubscription>>('/subscriptions/me');
-  },
+    /**
+     * Get current creator's subscription
+     */
+    async getMySubscription(): Promise<
+        ApiSuccessResponse<CreatorSubscription>
+    > {
+        return apiClient.get<ApiSuccessResponse<CreatorSubscription>>(
+            "/subscriptions/me",
+        );
+    },
 
-  /**
-   * Start trial for creator
-   */
-  async startTrial(): Promise<ApiSuccessResponse<{ message: string; subscription: CreatorSubscription }>> {
-    return apiClient.post('/subscriptions/start-trial');
-  },
+    /**
+     * Start trial for creator
+     */
+    async startTrial(): Promise<
+        ApiSuccessResponse<{
+            message: string;
+            subscription: CreatorSubscription;
+        }>
+    > {
+        return apiClient.post("/subscriptions/start-trial");
+    },
 
-  /**
-   * Setup billing method for creator
-   */
-  async setupBilling(data: SetupBillingData): Promise<ApiSuccessResponse<{ message: string; subscription: CreatorSubscription }>> {
-    return apiClient.post('/subscriptions/setup-billing', data);
-  },
+    /**
+     * Setup billing method for creator
+     */
+    async setupBilling(data: SetupBillingData): Promise<
+        ApiSuccessResponse<{
+            message: string;
+            subscription: CreatorSubscription;
+        }>
+    > {
+        return apiClient.post("/subscriptions/setup-billing", data);
+    },
 
-  /**
-   * Upgrade plan tier
-   */
-  async upgradePlan(data: UpgradePlanData): Promise<ApiSuccessResponse<{ message: string; subscription: CreatorSubscription }>> {
-    return apiClient.post('/subscriptions/upgrade', data);
-  },
+    /**
+     * Upgrade plan tier with optional billing interval
+     */
+    async upgradePlan(data: UpgradePlanData): Promise<
+        ApiSuccessResponse<{
+            message: string;
+            subscription: CreatorSubscription;
+        }>
+    > {
+        return apiClient.post("/subscriptions/upgrade", data);
+    },
 
-  /**
-   * Cancel subscription at period end
-   */
-  async cancelSubscription(): Promise<ApiSuccessResponse<{ message: string; subscription: CreatorSubscription }>> {
-    return apiClient.post('/subscriptions/cancel');
-  },
+    /**
+     * Preview upgrade charges before confirming (proration calculator)
+     */
+    async getUpgradePreview(
+        tier: PlanTier,
+        billingInterval: "month" | "year" = "month",
+    ): Promise<ApiSuccessResponse<UpgradePreview>> {
+        return apiClient.get("/subscriptions/upgrade-preview", {
+            tier,
+            interval: billingInterval,
+        });
+    },
 
-  /**
-   * Get trial remaining time
-   */
-  async getTrialRemaining(): Promise<ApiSuccessResponse<TrialRemaining>> {
-    return apiClient.get('/subscriptions/trial-remaining');
-  },
+    /**
+     * Downgrade plan tier — takes effect at end of current billing period
+     */
+    async downgradePlan(data: DowngradePlanData): Promise<
+        ApiSuccessResponse<{
+            message: string;
+            subscription: CreatorSubscription;
+            effectiveDate: string;
+        }>
+    > {
+        return apiClient.post("/subscriptions/downgrade", data);
+    },
 
-  /**
-   * Get storage usage for current creator
-   */
-  async getStorageUsage(): Promise<ApiSuccessResponse<StorageUsageData>> {
-    return apiClient.get('/subscriptions/storage');
-  },
+    /**
+     * Cancel a scheduled downgrade
+     */
+    async cancelDowngrade(): Promise<
+        ApiSuccessResponse<{
+            message: string;
+            subscription: CreatorSubscription;
+        }>
+    > {
+        return apiClient.post("/subscriptions/cancel-downgrade");
+    },
 
-  /**
-   * Reactivate a subscription that was set to cancel at period end
-   */
-  async reactivateSubscription(): Promise<ApiSuccessResponse<{ message: string; subscription: CreatorSubscription }>> {
-    return apiClient.post('/subscriptions/reactivate');
-  },
+    /**
+     * Retry payment for a past_due subscription
+     */
+    async retryPayment(): Promise<ApiSuccessResponse<RetryPaymentResult>> {
+        return apiClient.post("/subscriptions/retry-payment");
+    },
 
-  // Plan management
-  async getPlans(): Promise<ApiSuccessResponse<SubscriptionPlan[]>> {
-    return apiClient.get('/subscriptions/plans');
-  },
+    /**
+     * Purchase an add-on (extra storage or admin seats)
+     */
+    async purchaseAddOn(
+        data: AddOnPurchaseData,
+    ): Promise<ApiSuccessResponse<AddOnPurchaseResult>> {
+        return apiClient.post("/subscriptions/addons", data);
+    },
 
-  async getPlanByTier(tier: PlanTier): Promise<ApiSuccessResponse<SubscriptionPlan>> {
-    return apiClient.get(`/subscriptions/plans/${tier}`);
-  },
+    /**
+     * Cancel subscription at period end (current creator's own subscription)
+     */
+    async cancelSubscription(feedback?: CancellationFeedback): Promise<
+        ApiSuccessResponse<{
+            message: string;
+            subscription: CreatorSubscription;
+        }>
+    > {
+        return apiClient.post("/subscriptions/cancel", feedback ?? {});
+    },
 
-  async createPlan(planData: CreatePlanData): Promise<ApiSuccessResponse<SubscriptionPlan>> {
-    return apiClient.post('/subscriptions/plans', planData);
-  },
+    /**
+     * Cancel a specific subscription by ID (admin action on a subscriber).
+     * Different from cancelSubscription() which cancels the caller's own plan.
+     */
+    async cancelSubscriptionById(
+        subscriptionId: string,
+    ): Promise<ApiSuccessResponse<{ message: string }>> {
+        return apiClient.post(`/subscriptions/${subscriptionId}/cancel`);
+    },
 
-  async updatePlan(tier: PlanTier, planData: UpdatePlanData): Promise<ApiSuccessResponse<SubscriptionPlan>> {
-    return apiClient.put(`/subscriptions/plans/${tier}`, planData);
-  },
+    /**
+     * Get trial remaining time
+     */
+    async getTrialRemaining(): Promise<ApiSuccessResponse<TrialRemaining>> {
+        return apiClient.get("/subscriptions/trial-remaining");
+    },
 
-  async deletePlan(tier: PlanTier): Promise<ApiSuccessResponse<{ message: string }>> {
-    return apiClient.delete(`/subscriptions/plans/${tier}`);
-  },
+    /**
+     * Get storage usage for current creator
+     */
+    async getStorageUsage(): Promise<ApiSuccessResponse<StorageUsageData>> {
+        return apiClient.get("/subscriptions/storage");
+    },
 
-  // Subscription management
-  async getSubscriptionStats(): Promise<ApiSuccessResponse<SubscriptionStats>> {
-    return apiClient.get('/subscriptions/stats');
-  },
+    /**
+     * Reactivate a subscription that was set to cancel at period end
+     */
+    async reactivateSubscription(): Promise<
+        ApiSuccessResponse<{
+            message: string;
+            subscription: CreatorSubscription;
+        }>
+    > {
+        return apiClient.post("/subscriptions/reactivate");
+    },
 
-  async getAllSubscriptions(params: GetAllSubscriptionsParams = {}): Promise<PaginatedResponse<CreatorSubscription>> {
-    return apiClient.get('/subscriptions/all', params);
-  },
+    // Plan management
+    async getPlans(): Promise<ApiSuccessResponse<SubscriptionPlan[]>> {
+        return apiClient.get("/subscriptions/plans");
+    },
 
-  async updateSubscription(
-    subscriptionId: string,
-    updateData: Partial<CreatorSubscription>
-  ): Promise<ApiSuccessResponse<CreatorSubscription>> {
-    return apiClient.put(`/subscriptions/${subscriptionId}`, updateData);
-  },
+    async getPlanByTier(
+        tier: PlanTier,
+    ): Promise<ApiSuccessResponse<SubscriptionPlan>> {
+        return apiClient.get(`/subscriptions/plans/${tier}`);
+    },
 
-  async deleteSubscription(subscriptionId: string): Promise<ApiSuccessResponse<{ message: string }>> {
-    return apiClient.delete(`/subscriptions/${subscriptionId}`);
-  },
+    async createPlan(
+        planData: CreatePlanData,
+    ): Promise<ApiSuccessResponse<SubscriptionPlan>> {
+        return apiClient.post("/subscriptions/plans", planData);
+    },
 
-  // Invoice management
-  async getInvoices(
-    params: { page?: number; limit?: number } = {}
-  ): Promise<PaginatedResponse<Invoice>> {
-    return apiClient.get('/subscriptions/invoices', params);
-  },
+    async updatePlan(
+        tier: PlanTier,
+        planData: UpdatePlanData,
+    ): Promise<ApiSuccessResponse<SubscriptionPlan>> {
+        return apiClient.put(`/subscriptions/plans/${tier}`, planData);
+    },
 
-  async getInvoiceById(invoiceId: string): Promise<ApiSuccessResponse<Invoice>> {
-    return apiClient.get(`/subscriptions/invoices/${invoiceId}`);
-  },
+    async deletePlan(
+        tier: PlanTier,
+    ): Promise<ApiSuccessResponse<{ message: string }>> {
+        return apiClient.delete(`/subscriptions/plans/${tier}`);
+    },
 
-  // Usage tracking
-  async recordUsage(usageData: RecordUsageData): Promise<ApiSuccessResponse<{ message: string }>> {
-    return apiClient.post('/subscriptions/usage', usageData);
-  },
+    // Subscription management
+    async getSubscriptionStats(): Promise<
+        ApiSuccessResponse<SubscriptionStats>
+    > {
+        return apiClient.get("/subscriptions/stats");
+    },
 
-  async getUsageSummary(params: { startDate?: string; endDate?: string } = {}): Promise<ApiSuccessResponse<UsageSummary>> {
-    return apiClient.get('/subscriptions/usage', params);
-  },
+    async getAllSubscriptions(
+        params: GetAllSubscriptionsParams = {},
+    ): Promise<PaginatedResponse<CreatorSubscription>> {
+        return apiClient.get("/subscriptions/all", params);
+    },
 
-  /**
-   * Export subscriptions to CSV
-   */
-  async exportSubscriptions(params: ExportSubscriptionsParams = {}): Promise<ApiSuccessResponse<{ message: string; downloadUrl: string }>> {
-    return apiClient.post('/subscriptions/export', params);
-  },
+    async updateSubscription(
+        subscriptionId: string,
+        updateData: Partial<CreatorSubscription>,
+    ): Promise<ApiSuccessResponse<CreatorSubscription>> {
+        return apiClient.put(`/subscriptions/${subscriptionId}`, updateData);
+    },
 
-  // ============ HELPER FUNCTIONS ============
+    async deleteSubscription(
+        subscriptionId: string,
+    ): Promise<ApiSuccessResponse<{ message: string }>> {
+        return apiClient.delete(`/subscriptions/${subscriptionId}`);
+    },
 
-  /**
-   * Check if creator has an active (or trialing) subscription
-   */
-  async hasActiveSubscription(): Promise<boolean> {
-    try {
-      const response = await this.getMySubscription();
-      const sub = response.data;
-      return sub && (sub.status === SubscriptionStatus.ACTIVE || sub.status === SubscriptionStatus.TRIALING);
-    } catch {
-      return false;
-    }
-  },
+    // Invoice management
+    async getInvoices(
+        params: InvoiceFilterParams = {},
+    ): Promise<PaginatedResponse<Invoice>> {
+        return apiClient.get("/subscriptions/invoices", params);
+    },
 
-  /**
-   * Get a summary of the current subscription status
-   */
-  async getSubscriptionSummary(): Promise<{
-    hasSubscription: boolean;
-    isActive: boolean;
-    isTrialing: boolean;
-    plan: PlanTier | 'none';
-    status: SubscriptionStatus | 'none';
-    currentPeriodEnd?: string;
-    trialEndsAt?: string;
-    cancelAtPeriodEnd: boolean;
-    hasPaymentMethod: boolean;
-  }> {
-    try {
-      const response = await this.getMySubscription();
-      const sub = response.data;
+    /**
+     * Get total paid amount across all invoices (server-side aggregate).
+     */
+    async getInvoiceTotals(): Promise<
+        ApiSuccessResponse<{
+            totalPaid: number;
+            totalOpen: number;
+            currency: string;
+        }>
+    > {
+        return apiClient.get("/subscriptions/invoices/totals");
+    },
 
-      if (!sub) {
-        return {
-          hasSubscription: false,
-          isActive: false,
-          isTrialing: false,
-          plan: 'none',
-          status: 'none',
-          cancelAtPeriodEnd: false,
-          hasPaymentMethod: false,
-        };
-      }
+    /**
+     * Get the upcoming invoice preview (next charge).
+     */
+    async getUpcomingInvoice(): Promise<
+        ApiSuccessResponse<{
+            amount: number;
+            currency: string;
+            dueDate: string;
+            planName: string;
+        } | null>
+    > {
+        return apiClient.get("/subscriptions/invoices/upcoming");
+    },
 
-      return {
-        hasSubscription: true,
-        isActive: sub.status === SubscriptionStatus.ACTIVE,
-        isTrialing: sub.status === SubscriptionStatus.TRIALING,
-        plan: sub.plan,
-        status: sub.status,
-        currentPeriodEnd: sub.currentPeriodEnd,
-        trialEndsAt: sub.trialEndsAt,
-        cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
-        hasPaymentMethod: sub.hasPaymentMethod,
-      };
-    } catch {
-      return {
-        hasSubscription: false,
-        isActive: false,
-        isTrialing: false,
-        plan: 'none',
-        status: 'none',
-        cancelAtPeriodEnd: false,
-        hasPaymentMethod: false,
-      };
-    }
-  },
+    async getInvoiceById(
+        invoiceId: string,
+    ): Promise<ApiSuccessResponse<Invoice>> {
+        return apiClient.get(`/subscriptions/invoices/${invoiceId}`);
+    },
 
-  /**
-   * Initiate Stripe Link payment for subscription
-   */
-  initStripePayment: async (tier: PlanTier, interval: 'month' | 'year' = 'month'): Promise<any> => {
-    return apiClient.post('/payment/stripe-link/init/subscription', { tier, interval });
-  },
+    // Usage tracking
+    async recordUsage(
+        usageData: RecordUsageData,
+    ): Promise<ApiSuccessResponse<{ message: string }>> {
+        return apiClient.post("/subscriptions/usage", usageData);
+    },
 
-  initKonnectPayment: async (tier: PlanTier): Promise<any> => {
-    return apiClient.post('/payment/konnect/init/subscription', { tier });
-  },
+    async getUsageSummary(
+        params: { startDate?: string; endDate?: string } = {},
+    ): Promise<ApiSuccessResponse<UsageSummary>> {
+        return apiClient.get("/subscriptions/usage", params);
+    },
+
+    /**
+     * Export subscriptions to CSV
+     */
+    async exportSubscriptions(
+        params: ExportSubscriptionsParams = {},
+    ): Promise<ApiSuccessResponse<{ message: string; downloadUrl: string }>> {
+        return apiClient.post("/subscriptions/export", params);
+    },
+
+    // ============ HELPER FUNCTIONS ============
+
+    /**
+     * Check if creator has an active (or trialing) subscription
+     */
+    async hasActiveSubscription(): Promise<boolean> {
+        try {
+            const response = await this.getMySubscription();
+            const sub = response.data;
+            return (
+                sub &&
+                (sub.status === SubscriptionStatus.ACTIVE ||
+                    sub.status === SubscriptionStatus.TRIALING)
+            );
+        } catch {
+            return false;
+        }
+    },
+
+    /**
+     * Get a summary of the current subscription status
+     */
+    async getSubscriptionSummary(): Promise<{
+        hasSubscription: boolean;
+        isActive: boolean;
+        isTrialing: boolean;
+        plan: PlanTier | "none";
+        status: SubscriptionStatus | "none";
+        currentPeriodEnd?: string;
+        trialEndsAt?: string;
+        cancelAtPeriodEnd: boolean;
+        hasPaymentMethod: boolean;
+    }> {
+        try {
+            const response = await this.getMySubscription();
+            const sub = response.data;
+
+            if (!sub) {
+                return {
+                    hasSubscription: false,
+                    isActive: false,
+                    isTrialing: false,
+                    plan: "none",
+                    status: "none",
+                    cancelAtPeriodEnd: false,
+                    hasPaymentMethod: false,
+                };
+            }
+
+            return {
+                hasSubscription: true,
+                isActive: sub.status === SubscriptionStatus.ACTIVE,
+                isTrialing: sub.status === SubscriptionStatus.TRIALING,
+                plan: sub.plan,
+                status: sub.status,
+                currentPeriodEnd: sub.currentPeriodEnd,
+                trialEndsAt: sub.trialEndsAt,
+                cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+                hasPaymentMethod: sub.hasPaymentMethod,
+            };
+        } catch {
+            return {
+                hasSubscription: false,
+                isActive: false,
+                isTrialing: false,
+                plan: "none",
+                status: "none",
+                cancelAtPeriodEnd: false,
+                hasPaymentMethod: false,
+            };
+        }
+    },
+
+    /**
+     * Initiate Stripe Link payment for subscription
+     */
+    initStripePayment: async (
+        tier: PlanTier,
+        interval: "month" | "year" = "month",
+    ): Promise<any> => {
+        return apiClient.post("/payment/stripe-link/init/subscription", {
+            tier,
+            interval,
+        });
+    },
+
+    initKonnectPayment: async (tier: PlanTier): Promise<any> => {
+        return apiClient.post("/payment/konnect/init/subscription", { tier });
+    },
 };
 
 // ============ PAYMENT METHODS API ============
 
 export interface SavedPaymentMethod {
-  id: string;
-  provider: string;
-  brand?: string;
-  last4?: string;
-  expMonth?: number;
-  expYear?: number;
-  isDefault: boolean;
+    id: string;
+    provider: string;
+    brand?: string;
+    last4?: string;
+    expMonth?: number;
+    expYear?: number;
+    isDefault: boolean;
 }
 
 export const paymentMethodApi = {
-  getConfig: async (): Promise<{ publishableKey: string }> => {
-    return apiClient.get('/payment-methods/config');
-  },
+    getConfig: async (): Promise<{ publishableKey: string }> => {
+        return apiClient.get("/payment-methods/config");
+    },
 
-  createSetupIntent: async (): Promise<{ clientSecret: string; customerId: string; setupIntentId: string }> => {
-    return apiClient.post('/payment-methods/setup-intent');
-  },
+    createSetupIntent: async (): Promise<{
+        clientSecret: string;
+        customerId: string;
+        setupIntentId: string;
+    }> => {
+        return apiClient.post("/payment-methods/setup-intent");
+    },
 
-  createSetupSession: async (successUrl?: string, cancelUrl?: string): Promise<{ url: string; sessionId: string }> => {
-    return apiClient.post('/payment-methods/setup-session', { successUrl, cancelUrl });
-  },
+    createSetupSession: async (
+        successUrl?: string,
+        cancelUrl?: string,
+    ): Promise<{ url: string; sessionId: string }> => {
+        return apiClient.post("/payment-methods/setup-session", {
+            successUrl,
+            cancelUrl,
+        });
+    },
 
-  completeSetupSession: async (sessionId: string): Promise<{ success: boolean; card: { brand: string; last4: string } }> => {
-    return apiClient.post('/payment-methods/setup-session/complete', { sessionId });
-  },
+    completeSetupSession: async (
+        sessionId: string,
+    ): Promise<{
+        success: boolean;
+        card: { brand: string; last4: string };
+    }> => {
+        return apiClient.post("/payment-methods/setup-session/complete", {
+            sessionId,
+        });
+    },
 
-  confirmPaymentMethod: async (setupIntentId: string): Promise<{ success: boolean; card: { brand: string; last4: string } }> => {
-    return apiClient.post('/payment-methods/confirm', { setupIntentId });
-  },
+    confirmPaymentMethod: async (
+        setupIntentId: string,
+    ): Promise<{
+        success: boolean;
+        card: { brand: string; last4: string };
+    }> => {
+        return apiClient.post("/payment-methods/confirm", { setupIntentId });
+    },
 
-  list: async (): Promise<SavedPaymentMethod[]> => {
-    return apiClient.get('/payment-methods');
-  },
+    list: async (): Promise<SavedPaymentMethod[]> => {
+        return apiClient.get("/payment-methods");
+    },
 
-  setDefault: async (pmId: string): Promise<{ success: boolean }> => {
-    return apiClient.patch(`/payment-methods/${pmId}/set-default`);
-  },
+    setDefault: async (pmId: string): Promise<{ success: boolean }> => {
+        return apiClient.patch(`/payment-methods/${pmId}/set-default`);
+    },
 
-  remove: async (pmId: string): Promise<{ success: boolean }> => {
-    return apiClient.delete(`/payment-methods/${pmId}`);
-  },
+    remove: async (pmId: string): Promise<{ success: boolean }> => {
+        return apiClient.delete(`/payment-methods/${pmId}`);
+    },
 };

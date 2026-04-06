@@ -32,6 +32,7 @@ import { api } from "@/lib/api";
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context";
 import { ArrowLeft, Loader2, Trash2, UserCog } from "lucide-react";
 import { toast } from "sonner";
+import { WanisAssistButton } from "@/components/wanis-assist-button";
 
 const formSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters").max(50),
@@ -243,6 +244,13 @@ export default function EditChannelPage({
                                                 {...field}
                                             />
                                         </FormControl>
+                                        <WanisAssistButton
+                                            value={field.value || ""}
+                                            onAccept={(text) =>
+                                                field.onChange(text)
+                                            }
+                                            context="channel description"
+                                        />
                                         <FormMessage />
                                     </FormItem>
                                 )}

@@ -1100,3 +1100,85 @@ export interface TypingUser {
     avatar?: string;
     channelId: string;
 }
+
+// ─── Gamification ────────────────────────────────────────────
+export interface GamificationProfile {
+    userId: string;
+    communityId: string;
+    totalPoints: number;
+    weeklyPoints: number;
+    level: number;
+    levelName: string;
+    nextLevelName: string;
+    nextLevelPoints: number;
+    pointsToNextLevel: number;
+    levelProgress: number;
+    streakCurrent: number;
+    streakBest: number;
+    rank: number;
+    totalPostsCreated: number;
+    totalCommentsCreated: number;
+    totalLikesReceived: number;
+    totalCoursesCompleted: number;
+    totalChallengesCompleted: number;
+}
+
+export interface LeaderboardEntry {
+    rank: number;
+    userId: string;
+    userName: string;
+    userAvatar: string;
+    totalPoints: number;
+    weeklyPoints: number;
+    level: number;
+    levelName: string;
+    streakCurrent: number;
+}
+
+export interface LeaderboardResponse {
+    entries: LeaderboardEntry[];
+    total: number;
+    period: string;
+    currentUserRank?: number;
+    isPrivate?: boolean;
+}
+
+export interface GamificationLevelThreshold {
+    level: number;
+    name: string;
+    minPoints: number;
+    icon?: string;
+    color?: string;
+}
+
+export interface CommunityGamificationConfig {
+    _id: string;
+    communityId: string;
+    enabled: boolean;
+    publicLeaderboard: boolean;
+    scoringWeights: {
+        postLikeReceived: number;
+        commentLikeReceived: number;
+        postCreated: number;
+        commentCreated: number;
+        courseCompleted: number;
+        challengeTaskApproved: number;
+        challengeCompleted: number;
+        dailyLoginStreak: number;
+        weeklyStreakBonus: number;
+    };
+    dailyCaps: {
+        postCreated: number;
+        commentCreated: number;
+        postLikeReceived: number;
+        commentLikeReceived: number;
+    };
+    levelThresholds: GamificationLevelThreshold[];
+    unlockRules: Array<{
+        level: number;
+        targetType: string;
+        targetId?: string;
+        description?: string;
+    }>;
+    cooldownSeconds: number;
+}

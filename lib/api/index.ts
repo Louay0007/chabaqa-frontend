@@ -38,6 +38,7 @@ export * from "./tracking.api";
 export * from "./affiliate.api";
 export * from "./community-access.api";
 export * from "./promo-codes.api";
+export * from "./landing-pages.api";
 export type {
     ModerationAction,
     ModerationStatus,
@@ -73,6 +74,7 @@ import { storageApi } from "./storage.api";
 import { emailCampaignsApi } from "./email-campaigns.api";
 import { feedbackApi } from "./feedback.api";
 import { aiApi } from "./ai.api";
+import { geoApi } from "./geo.api";
 import { dmApi } from "./dm.api";
 import { liveSupportApi } from "./live-support.api";
 import { learningPathApi } from "./learning-path.api";
@@ -85,6 +87,11 @@ import { communityAccessApi } from "./community-access.api";
 import { moderationApi } from "./moderation.api";
 import { promoCodesApi } from "./promo-codes.api";
 import { channelApi } from "./channel.api";
+import {
+    landingPagesApi,
+    funnelsApi,
+    communityHomePageApi,
+} from "./landing-pages.api";
 
 export const api = {
     auth: authApi,
@@ -105,6 +112,7 @@ export const api = {
     emailCampaigns: emailCampaignsApi,
     feedback: feedbackApi,
     ai: aiApi,
+    geo: geoApi,
     dm: dmApi,
     liveSupport: liveSupportApi,
     learningPath: learningPathApi,
@@ -117,4 +125,7 @@ export const api = {
     moderation: moderationApi,
     promoCodes: promoCodesApi,
     channel: channelApi,
+    landingPages: landingPagesApi,
+    funnels: funnelsApi,
+    communityHomePage: communityHomePageApi,
 };

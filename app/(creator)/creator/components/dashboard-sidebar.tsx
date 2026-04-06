@@ -28,6 +28,7 @@ import {
     Calendar,
     Zap,
     Shield,
+    Home,
     Globe,
     ChevronDown,
     ChevronRight,
@@ -332,6 +333,26 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
             ],
         },
 
+        // ── Community Home ──
+        {
+            label: "Community Home",
+            section: "landing-pages",
+            icon: Globe,
+            expandable: true,
+            items: [
+                {
+                    title: "Home Pages",
+                    href: "/creator/landing-pages",
+                    icon: Home,
+                },
+                {
+                    title: "Funnels",
+                    href: "/creator/landing-pages/funnels",
+                    icon: Zap,
+                },
+            ],
+        },
+
         // ── Configure Workspace ──
         {
             title: "Team & Roles",
@@ -341,9 +362,9 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
                 CommunityPermission.ROLES_MANAGE as CommunityPermissionValue,
         },
         {
-            title: "Customize",
+            title: "Appearance",
             icon: Palette,
-            href: `${communityBasePath}/customize`,
+            href: "/creator/landing-pages",
         },
         {
             title: "Integrations",
