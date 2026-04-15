@@ -1902,6 +1902,13 @@ function FunnelAnalyticsPanel({
     const [timeFilter, setTimeFilter] = useState("30d");
     const analytics = funnel.analytics;
 
+    const animRevenue = useAnimatedCounter(analytics?.revenue || 0, 1200, "", "$");
+    const animRate = useAnimatedCounter(
+        analytics?.overallConversionRate || 0,
+        1000,
+        "%",
+    );
+
     if (!analytics) {
         return (
             <motion.div
@@ -1935,13 +1942,6 @@ function FunnelAnalyticsPanel({
     const bestStep = funnel.steps
         .filter((s) => s.type !== "thank-you" && (s.conversionRate ?? 0) > 0)
         .sort((a, b) => (b.conversionRate ?? 0) - (a.conversionRate ?? 0))[0];
-
-    const animRevenue = useAnimatedCounter(analytics.revenue, 1200, "", "$");
-    const animRate = useAnimatedCounter(
-        analytics.overallConversionRate,
-        1000,
-        "%",
-    );
 
     return (
         <motion.div

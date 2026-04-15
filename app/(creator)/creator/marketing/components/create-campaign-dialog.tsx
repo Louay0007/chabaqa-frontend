@@ -29,6 +29,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -36,6 +38,8 @@ import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-com
 import { emailCampaignsApi } from "@/lib/api/email-campaigns.api";
 import { useToast } from "@/components/ui/use-toast";
 import { buildCampaignPayload } from "./campaign-form-utils";
+import { useQuery } from "@tanstack/react-query";
+import { crmApi } from "@/lib/api/crm.api";
 
 const formSchema = z
     .object({
@@ -113,6 +117,33 @@ export function CreateCampaignDialog({
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // A/B test state
+    const [abEnabled, setAbEnabled] = useState(false);
+    const [abSubject, setAbSubject] = useState("");
+    const [abContent, setAbContent] = useState("");
+    const [abSplitRatio, setAbSplitRatio] = useState(50);
+
+    // Segment state
+    const [selectedSegmentId, setSelectedSegmentId] = useState<string>("none");
+
+    // Template picker state
+    const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+
+    const { data: segments = [] } = useQuery({
+        queryKey: ["segments", selectedCommunityId],
+        queryFn: () => crmApi.listSegments(selectedCommunityId!),
+        enabled: !!selectedCommunityId,
+    });
+
+    const { data: templates = [] } = useQuery({
+        queryKey: ["email-templates", selectedCommunityId],
+        queryFn: () => crmApi.listTemplates(selectedCommunityId!),
+        enabled: !!selectedCommunityId && showTemplatePicker,
+    });
+
+    const segList = Array.isArray(segments) ? segments : (segments as any)?.data ?? [];
+    const tmplList = Array.isArray(templates) ? templates : (templates as any)?.data ?? [];
+
     const defaultValues = useMemo(
         () => ({
             title: "",
@@ -150,8 +181,18 @@ export function CreateCampaignDialog({
         setIsSubmitting(true);
         try {
             const payload = buildCampaignPayload(values, selectedCommunityId);
+            // Attach segment + A/B test extras
+            const extra: any = {};
+            if (selectedSegmentId && selectedSegmentId !== "none") extra.segmentId = selectedSegmentId;
+            if (abEnabled && abSubject && abContent) {
+                extra.abTest = {
+                    variantBSubject: abSubject,
+                    variantBContent: abContent,
+                    splitRatio: abSplitRatio / 100,
+                };
+            }
             if (payload.request === "createCampaign") {
-                await emailCampaignsApi.createCampaign(payload.data);
+                await emailCampaignsApi.createCampaign({ ...payload.data, ...extra });
             } else if (payload.request === "createInactiveUserCampaign") {
                 await emailCampaignsApi.createInactiveUserCampaign(
                     payload.data,
@@ -454,6 +495,99 @@ export function CreateCampaignDialog({
                         )}
 
                         <DialogFooter>
+                            {/* Segment Picker */}
+                            <div className="w-full space-y-2 mb-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium">Audience Segment (optional)</span>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-xs"
+                                        onClick={() => setShowTemplatePicker((p) => !p)}
+                                    >
+                                        {showTemplatePicker ? "Hide templates" : "Use template"}
+                                    </Button>
+                                </div>
+                                <select
+                                    className="w-full rounded-md border px-3 py-2 text-sm"
+                                    value={selectedSegmentId}
+                                    onChange={(e) => setSelectedSegmentId(e.target.value)}
+                                >
+                                    <option value="none">All members (no segment filter)</option>
+                                    {segList.map((s: any) => (
+                                        <option key={s._id} value={s._id}>
+                                            {s.name} ({s.estimatedSize} contacts)
+                                        </option>
+                                    ))}
+                                </select>
+
+                                {showTemplatePicker && (
+                                    <div className="rounded-lg border p-3 max-h-48 overflow-y-auto space-y-1">
+                                        {tmplList.length === 0 ? (
+                                            <p className="text-xs text-muted-foreground">No templates saved yet.</p>
+                                        ) : tmplList.map((t: any) => (
+                                            <button
+                                                key={t._id}
+                                                type="button"
+                                                className="w-full text-left rounded px-3 py-2 text-sm hover:bg-muted transition-colors"
+                                                onClick={() => {
+                                                    form.setValue("subject", t.subject);
+                                                    form.setValue("content", t.content);
+                                                    setShowTemplatePicker(false);
+                                                    toast({ title: `Template "${t.name}" loaded` });
+                                                }}
+                                            >
+                                                <span className="font-medium">{t.name}</span>
+                                                <span className="text-xs text-muted-foreground ml-2">{t.subject}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* A/B Test toggle */}
+                                <div className="flex items-center gap-3 pt-2">
+                                    <Switch
+                                        checked={abEnabled}
+                                        onCheckedChange={setAbEnabled}
+                                        id="ab-toggle"
+                                    />
+                                    <label htmlFor="ab-toggle" className="text-sm font-medium cursor-pointer">
+                                        Enable A/B Split Test
+                                    </label>
+                                </div>
+
+                                {abEnabled && (
+                                    <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
+                                        <p className="text-xs font-medium text-muted-foreground uppercase">Variant B</p>
+                                        <Input
+                                            placeholder="Variant B subject line"
+                                            value={abSubject}
+                                            onChange={(e) => setAbSubject(e.target.value)}
+                                        />
+                                        <Textarea
+                                            rows={3}
+                                            placeholder="Variant B email content"
+                                            value={abContent}
+                                            onChange={(e) => setAbContent(e.target.value)}
+                                        />
+                                        <div>
+                                            <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                                <span>Variant A: {abSplitRatio}%</span>
+                                                <span>Variant B: {100 - abSplitRatio}%</span>
+                                            </div>
+                                            <Slider
+                                                min={10}
+                                                max={90}
+                                                step={10}
+                                                value={[abSplitRatio]}
+                                                onValueChange={([v]) => setAbSplitRatio(v)}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
                             <Button
                                 type="submit"
                                 className="bg-chabaqa-primary hover:bg-chabaqa-primary/90"

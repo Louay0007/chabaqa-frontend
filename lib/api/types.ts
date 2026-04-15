@@ -493,6 +493,9 @@ export interface Post {
     authorId: string;
     thumbnail?: string;
     isPublished: boolean;
+    status?: 'published' | 'scheduled' | 'draft';
+    scheduledAt?: string;
+    publishedAt?: string;
     likes: number;
     likesCount?: number; // Alias for likes, kept for backwards compatibility
     reactions?: PostReaction[];

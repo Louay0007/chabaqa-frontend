@@ -48,6 +48,10 @@ import {
     Star,
     Crown,
     Hash,
+    Contact2,
+    LayoutGrid,
+    Activity,
+    TrendingUp,
     type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -302,32 +306,39 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
                     icon: Mail,
                 },
                 {
-                    title: "Auto DM",
-                    href: "/creator/marketing/auto-dm",
-                    icon: Bot,
+                    title: "Email Templates",
+                    href: "/creator/marketing/emails/templates",
+                    icon: LayoutGrid,
+                },
+                {
+                    title: "Contacts",
+                    href: "/creator/marketing/contacts",
+                    icon: Contact2,
+                },
+                {
+                    title: "Segments",
+                    href: "/creator/marketing/segments",
+                    icon: Users,
+                },
+                {
+                    title: "Automations",
+                    href: "/creator/marketing/automations",
+                    icon: Zap,
+                },
+                {
+                    title: "Invitations",
+                    href: "/creator/marketing/invitations",
+                    icon: UserPlus,
+                },
+                {
+                    title: "Deliverability",
+                    href: "/creator/marketing/deliverability",
+                    icon: TrendingUp,
                 },
                 {
                     title: "Affiliates",
                     href: "/creator/marketing/affiliates",
-                    icon: UserPlus,
-                    soon: true,
-                },
-                {
-                    title: "Affiliate Portal",
-                    href: "/dashboard/affiliate",
-                    icon: ExternalLink,
-                    soon: true,
-                },
-                {
-                    title: "Messages",
-                    href: "/creator/marketing/messages",
-                    icon: MessageSquare,
-                    soon: true,
-                },
-                {
-                    title: "WhatsApp",
-                    href: "/creator/marketing/whatsapp",
-                    icon: MessageSquare,
+                    icon: Star,
                     soon: true,
                 },
             ],

@@ -67,7 +67,7 @@ interface CommunityHeaderProps {
 
 const navigationItems = [
     { label: "Feed", href: "/home", icon: MessageSquare },
-    { label: "Channels", href: "/channels", icon: Hash },
+    // { label: "Channels", href: "/channels", icon: Hash },
     { label: "Courses", href: "/courses", icon: BookOpen },
     { label: "Challenge", href: "/challenges", icon: Zap },
     { label: "Sessions", href: "/sessions", icon: Calendar },

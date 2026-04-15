@@ -39,6 +39,7 @@ export * from "./affiliate.api";
 export * from "./community-access.api";
 export * from "./promo-codes.api";
 export * from "./landing-pages.api";
+export * from "./automation-workflows.api";
 export type {
     ModerationAction,
     ModerationStatus,
@@ -92,6 +93,7 @@ import {
     funnelsApi,
     communityHomePageApi,
 } from "./landing-pages.api";
+import { automationWorkflowsApi } from "./automation-workflows.api";
 
 export const api = {
     auth: authApi,
@@ -128,4 +130,5 @@ export const api = {
     landingPages: landingPagesApi,
     funnels: funnelsApi,
     communityHomePage: communityHomePageApi,
+    automationWorkflows: automationWorkflowsApi,
 };

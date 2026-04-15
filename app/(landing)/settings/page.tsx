@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -728,6 +729,26 @@ export default function SettingsPage() {
                         {/* Security Tab */}
                         <TabsContent value="security">
                             <div className="space-y-6">
+                                {/* Link to full Privacy & Security page */}
+                                <Card className="border-primary/20 bg-primary/5">
+                                    <CardContent className="py-4 flex items-center justify-between">
+                                        <div>
+                                            <p className="font-medium text-sm">
+                                                Privacy & Security Center
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-0.5">
+                                                Manage 2FA, active sessions,
+                                                data export, consent history,
+                                                and account deletion.
+                                            </p>
+                                        </div>
+                                        <Link href="/settings/privacy">
+                                            <Button size="sm" variant="outline">
+                                                Open →
+                                            </Button>
+                                        </Link>
+                                    </CardContent>
+                                </Card>
                                 <Card>
                                     <CardHeader>
                                         <CardTitle>Change Password</CardTitle>

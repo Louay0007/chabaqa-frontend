@@ -1,13 +1,19 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Star, StarOff, Edit } from "lucide-react"
+import { Star, StarOff, Edit, Plus } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
 import { CampaignBuilderDialog } from "./campaign-builder-dialog"
+import { crmApi, EmailTemplate as CrmEmailTemplate } from "@/lib/api/crm.api"
+import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context"
 
-interface EmailTemplate {
+// ── Builtin template shape ──────────────────────────────────────────────────
+interface BuiltinTemplate {
+  source: 'builtin'
   id: string
   name: string
   description: string
@@ -22,8 +28,22 @@ interface EmailTemplate {
   contentType?: 'event' | 'challenge' | 'cours' | 'product' | 'session' | 'all'
 }
 
-const emailTemplates: EmailTemplate[] = [
+// ── CRM template shape for display ─────────────────────────────────────────
+interface CrmDisplayTemplate {
+  source: 'crm'
+  id: string
+  name: string
+  subject: string
+  content: string
+  category: string
+  usageCount: number
+}
+
+type DisplayTemplate = BuiltinTemplate | CrmDisplayTemplate
+
+const builtinTemplates: BuiltinTemplate[] = [
   {
+    source: 'builtin',
     id: "1",
     name: "Welcome New Member",
     description: "First welcome email for new community members",
@@ -61,6 +81,7 @@ const emailTemplates: EmailTemplate[] = [
     `
   },
   {
+    source: 'builtin',
     id: "2",
     name: "Course Reminder",
     description: "Reminder for upcoming course sessions",
@@ -92,6 +113,7 @@ const emailTemplates: EmailTemplate[] = [
     `
   },
   {
+    source: 'builtin',
     id: "3",
     name: "Re-engagement - 30 Days",
     description: "Re-engage members inactive for 30 days",
@@ -122,6 +144,7 @@ const emailTemplates: EmailTemplate[] = [
     `
   },
   {
+    source: 'builtin',
     id: "4",
     name: "Event Announcement",
     description: "Announce upcoming community events",
@@ -150,6 +173,7 @@ const emailTemplates: EmailTemplate[] = [
     `
   },
   {
+    source: 'builtin',
     id: "5",
     name: "Monthly Newsletter",
     description: "Monthly community updates and highlights",
@@ -184,6 +208,7 @@ const emailTemplates: EmailTemplate[] = [
     `
   },
   {
+    source: 'builtin',
     id: "6",
     name: "Content Update",
     description: "Notify about new content releases",
@@ -211,6 +236,7 @@ const emailTemplates: EmailTemplate[] = [
     `
   },
   {
+    source: 'builtin',
     id: "7",
     name: "Course Progress Reminder",
     description: "Re-engage learners who haven't finished a course",
@@ -245,86 +271,169 @@ const emailTemplates: EmailTemplate[] = [
 export function EmailTemplateCards(props: { onCampaignCreated?: () => void }) {
   const { onCampaignCreated } = props
 
+  const { selectedCommunityId } = useCreatorCommunity()
+
   const [builderOpen, setBuilderOpen] = useState(false)
   const [builderSeed, setBuilderSeed] = useState<any>(null)
   const [isViewAllOpen, setIsViewAllOpen] = useState(false)
 
   const displayLimit = 4
 
-  const handleUseTemplate = (template: EmailTemplate) => {
-    setBuilderSeed({
-      title: `Campaign: ${template.name}`,
-      kind: (template.type || "announcement") as any,
-      subject: template.subject,
-      content: template.fullContent,
-      isHtml: true,
-      trackOpens: true,
-      trackClicks: true,
-      inactivityPeriod: template.inactivityPeriod as any,
-      contentType: template.contentType as any,
+  // ── Fetch CRM templates ──────────────────────────────────────────────────
+  const { data: crmTemplatesRaw } = useQuery<CrmEmailTemplate[]>({
+    queryKey: ["crm-email-templates", selectedCommunityId],
+    queryFn: () => crmApi.listTemplates(selectedCommunityId!),
+    enabled: !!selectedCommunityId,
+    staleTime: 30_000,
+  })
+
+  // Map CRM templates to display shape
+  const crmDisplayTemplates: CrmDisplayTemplate[] = (crmTemplatesRaw ?? []).map(
+    (t) => ({
+      source: 'crm' as const,
+      id: t._id,
+      name: t.name,
+      subject: t.subject,
+      content: t.content,
+      category: t.category,
+      usageCount: t.usageCount,
     })
+  )
+
+  // CRM templates first, then builtin
+  const allTemplates: DisplayTemplate[] = [...crmDisplayTemplates, ...builtinTemplates]
+
+  const handleUseTemplate = (template: DisplayTemplate) => {
+    if (template.source === 'crm') {
+      setBuilderSeed({
+        title: `Campaign: ${template.name}`,
+        kind: "announcement" as any,
+        subject: template.subject,
+        content: template.content,
+        isHtml: true,
+        trackOpens: true,
+        trackClicks: true,
+      })
+    } else {
+      setBuilderSeed({
+        title: `Campaign: ${template.name}`,
+        kind: (template.type || "announcement") as any,
+        subject: template.subject,
+        content: template.fullContent,
+        isHtml: true,
+        trackOpens: true,
+        trackClicks: true,
+        inactivityPeriod: template.inactivityPeriod as any,
+        contentType: template.contentType as any,
+      })
+    }
     setBuilderOpen(true)
   }
 
-  const displayedTemplates = isViewAllOpen ? emailTemplates : emailTemplates.slice(0, displayLimit)
+  const displayedTemplates = isViewAllOpen ? allTemplates : allTemplates.slice(0, displayLimit)
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Email Templates</h2>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => setIsViewAllOpen(!isViewAllOpen)}
-        >
-          {isViewAllOpen ? "Show Less" : "View All Templates"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+          >
+            <Link href="/creator/marketing/emails/templates/new">
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Create Template
+            </Link>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsViewAllOpen(!isViewAllOpen)}
+          >
+            {isViewAllOpen ? "Show Less" : "View All Templates"}
+          </Button>
+        </div>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {displayedTemplates.map((template) => (
-          <Card key={template.id} className="p-4 flex flex-col hover:shadow-lg transition-shadow">
+          <Card key={`${template.source}-${template.id}`} className="p-4 flex flex-col hover:shadow-lg transition-shadow">
             <div className="flex items-start justify-between mb-2">
-              <div className="flex-1">
-                <h3 className="font-medium text-sm">{template.name}</h3>
-                <p className="text-gray-500 text-xs mt-1">{template.description}</p>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 flex-shrink-0"
-              >
-                {template.isStarred ? (
-                  <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                ) : (
-                  <StarOff className="h-4 w-4 text-gray-400" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                  {template.source === 'crm' && (
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] px-1.5 py-0 bg-purple-100 text-purple-700 border-purple-200"
+                    >
+                      CRM
+                    </Badge>
+                  )}
+                  <h3 className="font-medium text-sm truncate">{template.name}</h3>
+                </div>
+                {template.source === 'builtin' && (
+                  <p className="text-gray-500 text-xs mt-1">{template.description}</p>
                 )}
-              </Button>
+                {template.source === 'crm' && (
+                  <p className="text-gray-500 text-xs mt-1 truncate">{template.subject}</p>
+                )}
+              </div>
+              {template.source === 'builtin' && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 flex-shrink-0"
+                >
+                  {template.isStarred ? (
+                    <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                  ) : (
+                    <StarOff className="h-4 w-4 text-gray-400" />
+                  )}
+                </Button>
+              )}
             </div>
-            
-            <Badge 
-              variant="secondary" 
-              className="w-fit mb-3"
-            >
-              {template.segment}
-            </Badge>
-            
-            <p className="text-xs text-gray-600 line-clamp-2 mb-3 flex-grow">
-              {template.preview}
-            </p>
-            
+
+            <div className="flex items-center gap-1.5 flex-wrap mb-3">
+              {template.source === 'builtin' && (
+                <Badge variant="secondary" className="w-fit">
+                  {template.segment}
+                </Badge>
+              )}
+              {template.source === 'crm' && (
+                <>
+                  <Badge variant="secondary" className="w-fit capitalize">
+                    {template.category}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="w-fit text-[10px] px-1.5 py-0 text-purple-600 border-purple-300"
+                  >
+                    My Templates
+                  </Badge>
+                </>
+              )}
+            </div>
+
+            {template.source === 'builtin' && (
+              <p className="text-xs text-gray-600 line-clamp-2 mb-3 flex-grow">
+                {template.preview}
+              </p>
+            )}
+
             <div className="flex flex-col gap-2 mt-auto pt-3 border-t">
               <span className="text-xs text-gray-500">
-                Used {template.useCount} times
+                Used {template.source === 'builtin' ? template.useCount : template.usageCount} times
               </span>
-              <Button 
+              <Button
                 variant="default"
-                size="sm" 
+                size="sm"
                 className="w-full bg-chabaqa-primary hover:bg-chabaqa-primary/90"
                 onClick={() => handleUseTemplate(template)}
               >
                 <Edit className="h-3.5 w-3.5 mr-1.5" />
-                Use & Edit Template
+                Use &amp; Edit Template
               </Button>
             </div>
           </Card>

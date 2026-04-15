@@ -18,7 +18,21 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, PlayCircle, Lock, Unlock } from "lucide-react";
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+} from "@/components/ui/sheet";
+import {
+    Plus,
+    Edit,
+    Trash2,
+    PlayCircle,
+    Lock,
+    Unlock,
+    Subtitles,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +42,8 @@ import { useEffect, useState } from "react";
 import { Course } from "@/lib/models";
 import { coursesApi } from "@/lib/api/courses.api";
 import { mediaApi } from "@/lib/api/media.api";
+import TranscriptEditor from "@/components/course/TranscriptEditor";
+import { transcriptionApi } from "@/lib/api/transcription.api";
 import {
     getCreatorVideoUrlError,
     normalizeVideoUrl,
@@ -134,6 +150,10 @@ export function ContentTab({
     const [newChapterFormError, setNewChapterFormError] = useState<
         string | null
     >(null);
+    const [transcriptChapterId, setTranscriptChapterId] = useState<
+        string | null
+    >(null);
+    const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
 
     const validateChapterDraft = (chapter: {
         title: string;
@@ -212,6 +232,23 @@ export function ContentTab({
             if (newUrl) {
                 setEditChapter((p) => ({ ...p, videoUrl: String(newUrl) }));
                 setEditChapterVideoUrlError(getCreatorVideoUrlError(newUrl));
+            }
+            // Auto-trigger transcription on video upload
+            if (chapterId && newUrl) {
+                const storageKey = newUrl.replace(/^.*\/uploads\//, "");
+                transcriptionApi
+                    .triggerTranscription(
+                        chapterId,
+                        courseId,
+                        "auto",
+                        storageKey,
+                    )
+                    .catch((err: Error) =>
+                        console.warn(
+                            "Transcription trigger failed:",
+                            err.message,
+                        ),
+                    );
             }
             if (onRefreshCourse) {
                 await onRefreshCourse();
@@ -744,6 +781,21 @@ export function ContentTab({
                                             <div className="flex items-center space-x-2">
                                                 <Button
                                                     variant="ghost"
+                                                    size="icon"
+                                                    title="Manage transcript"
+                                                    onClick={() => {
+                                                        setTranscriptChapterId(
+                                                            String(chapter.id),
+                                                        );
+                                                        setIsTranscriptOpen(
+                                                            true,
+                                                        );
+                                                    }}
+                                                >
+                                                    <Subtitles className="h-4 w-4 text-violet-500" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
                                                     size="sm"
                                                     onClick={() =>
                                                         openEditChapter(
@@ -1053,6 +1105,26 @@ export function ContentTab({
                     ))}
                 </div>
             </CardContent>
+            {/* Transcript Editor Sheet */}
+            <Sheet open={isTranscriptOpen} onOpenChange={setIsTranscriptOpen}>
+                <SheetContent
+                    side="right"
+                    className="w-full sm:max-w-2xl overflow-y-auto"
+                >
+                    <SheetHeader className="mb-4">
+                        <SheetTitle className="flex items-center gap-2">
+                            <Subtitles className="h-5 w-5 text-violet-500" />
+                            Transcript Editor
+                        </SheetTitle>
+                    </SheetHeader>
+                    {transcriptChapterId && (
+                        <TranscriptEditor
+                            chapterId={transcriptChapterId}
+                            courseId={courseId}
+                        />
+                    )}
+                </SheetContent>
+            </Sheet>
         </EnhancedCard>
     );
 }

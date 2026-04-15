@@ -10,11 +10,235 @@ import { PageShell } from "@/components/creator-dashboard"
 import { useAuthContext } from "@/app/providers/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Loader2 } from "lucide-react"
+import { Plus, Loader2, Clock } from "lucide-react"
 import Link from "next/link"
 import { CreatePostDialog } from "./components/create-post-dialog"
 import { PostsList } from "./components/posts-list"
 import type { Post } from "@/lib/api/types"
+
+export default function CreatorPostsPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { toast } = useToast()
+  const { user: authUser, isAuthenticated, loading: authLoading } = useAuthContext()
+  const { guard, selectedCommunity, selectedCommunityId, isLoading: communityLoading } = useCommunityGuard()
+
+  const [posts, setPosts] = useState<Post[]>([])
+  const [scheduledCount, setScheduledCount] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [isPostDialogOpen, setIsPostDialogOpen] = useState(false)
+  const [editingPost, setEditingPost] = useState<Post | null>(null)
+  const [stats, setStats] = useState({
+    total: 0,
+    likes: 0,
+    comments: 0,
+  })
+  const editPostId = searchParams.get("edit")
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/signin?redirect=/creator/posts')
+    }
+  }, [authLoading, isAuthenticated, router])
+
+  const refreshPosts = useCallback(async () => {
+    if (communityLoading || !authUser) return
+    if (!selectedCommunityId) {
+      setPosts([])
+      setStats({ total: 0, likes: 0, comments: 0 })
+      setLoading(false)
+      return
+    }
+
+    setLoading(true)
+    try {
+      const [postsResponse, scheduledResponse] = await Promise.allSettled([
+        api.posts.getByCreator(authUser._id || authUser.id, {
+          page: 1,
+          limit: 50,
+          communityId: selectedCommunityId,
+        }),
+        api.posts.getScheduled(selectedCommunityId),
+      ])
+
+      const postsList = postsResponse.status === "fulfilled"
+        ? (postsResponse.value.posts || [])
+        : []
+      setPosts(postsList)
+
+      if (scheduledResponse.status === "fulfilled") {
+        const data = (scheduledResponse.value as any)?.data
+        setScheduledCount(Array.isArray(data) ? data.length : 0)
+      }
+    } catch (error: any) {
+      console.error('Failed to load posts:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load posts",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [communityLoading, authUser, selectedCommunityId, toast])
+
+  // Load posts when community changes
+  useEffect(() => {
+    void refreshPosts()
+  }, [refreshPosts])
+
+  useEffect(() => {
+    const totalLikes = posts.reduce((sum, post) => sum + (post.likes || 0), 0)
+    const totalComments = posts.reduce((sum, post) => sum + (post.commentsCount || post.comments?.length || 0), 0)
+    setStats({
+      total: posts.length,
+      likes: totalLikes,
+      comments: totalComments,
+    })
+  }, [posts])
+
+  useEffect(() => {
+    if (!editPostId) return
+    const matchedPost = posts.find((post) => post.id === editPostId)
+    if (!matchedPost) return
+    setEditingPost(matchedPost)
+    setIsPostDialogOpen(true)
+  }, [editPostId, posts])
+
+  const handlePostSaved = useCallback(() => {
+    setEditingPost(null)
+    setIsPostDialogOpen(false)
+    if (editPostId) {
+      router.replace("/creator/posts")
+    }
+    void refreshPosts()
+  }, [editPostId, refreshPosts, router])
+
+  const handleOpenCreate = useCallback(() => {
+    setEditingPost(null)
+    setIsPostDialogOpen(true)
+    if (editPostId) {
+      router.replace("/creator/posts")
+    }
+  }, [editPostId, router])
+
+  const handleDialogOpenChange = useCallback((open: boolean) => {
+    setIsPostDialogOpen(open)
+    if (!open) {
+      setEditingPost(null)
+      if (editPostId) {
+        router.replace("/creator/posts")
+      }
+    }
+  }, [editPostId, router])
+
+  const mode = useMemo(() => (editingPost ? "edit" : "create"), [editingPost])
+
+
+
+  if (guard) return guard
+
+  return (
+    <PageShell className="max-w-6xl mx-auto space-y-8 p-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Posts Management</h1>
+          <p className="text-gray-600 mt-1">Manage posts for {selectedCommunity.name}</p>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/creator/posts/scheduled">
+            <Button variant="outline">
+              <Clock className="h-4 w-4 mr-2" />
+              Scheduled
+              {scheduledCount > 0 && (
+                <span className="ml-2 inline-flex items-center justify-center rounded-full bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-0.5">
+                  {scheduledCount}
+                </span>
+              )}
+            </Button>
+          </Link>
+          <Button onClick={handleOpenCreate}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Post
+          </Button>
+        </div>
+      </div>
+
+      <CreatePostDialog
+        open={isPostDialogOpen}
+        onOpenChange={handleDialogOpenChange}
+        communityId={selectedCommunityId || ""}
+        onPostSaved={handlePostSaved}
+        mode={mode}
+        postToEdit={editingPost}
+        showTrigger={false}
+      />
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">Total Posts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{stats.total}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">Total Likes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{stats.likes}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">Total Comments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{stats.comments}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Posts List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Posts</CardTitle>
+          <CardDescription>View and manage all your published posts</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600 mb-4">No posts yet</p>
+              <Button onClick={handleOpenCreate}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Your First Post
+              </Button>
+            </div>
+          ) : (
+            <PostsList
+              posts={posts}
+              onPostDeleted={handlePostSaved}
+              onEdit={(post) => {
+                setEditingPost(post)
+                setIsPostDialogOpen(true)
+              }}
+            />
+          )}
+        </CardContent>
+      </Card>
+    </PageShell>
+  )
+}
+
 
 export default function CreatorPostsPage() {
   const router = useRouter()

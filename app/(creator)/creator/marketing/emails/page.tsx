@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { LayoutGrid, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -28,12 +28,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { useCreatorCommunity } from "@/app/(creator)/creator/context/creator-community-context";
 import { useCommunityGuard } from "@/hooks/use-community-guard";
 import { PageShell } from "@/components/creator-dashboard";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AutomationsTab } from "../components/automations-tab";
 import { CampaignStats } from "../components/campaign-stats";
 import { CampaignBuilderDialog } from "../components/campaign-builder-dialog";
 import { EmailCampaignList } from "../components/email-campaign-list";
-import { EmailTemplateCards } from "../components/email-template-cards";
 import {
     emailCampaignsApi,
     EmailCampaign,
@@ -45,6 +42,8 @@ import {
     toLocalDateTimeFields,
     toUtcIsoFromLocalDateTime,
 } from "../components/campaign-form-utils";
+import { useQuery } from "@tanstack/react-query";
+import { crmApi, EmailTemplate } from "@/lib/api/crm.api";
 
 const PAGE_LIMIT = 10;
 const RECIPIENTS_LIMIT = 20;
@@ -68,7 +67,15 @@ export default function EmailCampaignsPage() {
     const { toast } = useToast();
 
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+    const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false);
+    const [templateSeed, setTemplateSeed] = useState<{ subject: string; content: string } | undefined>(undefined);
     const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+
+    const { data: emailTemplates = [], isLoading: templatesLoading } = useQuery<EmailTemplate[]>({
+        queryKey: ["email-templates", selectedCommunityId],
+        queryFn: () => crmApi.listTemplates(selectedCommunityId!),
+        enabled: !!selectedCommunityId && isTemplatePickerOpen,
+    });
 
     const [campaigns, setCampaigns] = useState<EmailCampaign[]>([]);
     const [campaignsLoading, setCampaignsLoading] = useState(true);
@@ -404,27 +411,33 @@ export default function EmailCampaignsPage() {
         <PageShell className="container mx-auto space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold">Email Marketing</h1>
+                    <h1 className="text-2xl font-bold">Email Campaigns</h1>
                     <p className="text-gray-500">
-                        Campaigns &amp; automations for {selectedCommunity.name}
+                        Campaigns for {selectedCommunity.name}
                     </p>
                 </div>
-                <Button
-                    onClick={() => setIsCreateDialogOpen(true)}
-                    className="bg-chabaqa-primary hover:bg-chabaqa-primary/90"
-                >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Campaign
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsTemplatePickerOpen(true)}
+                    >
+                        <LayoutGrid className="w-4 h-4 mr-2" />
+                        Use Template
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setTemplateSeed(undefined);
+                            setIsCreateDialogOpen(true);
+                        }}
+                        className="bg-chabaqa-primary hover:bg-chabaqa-primary/90"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        New Campaign
+                    </Button>
+                </div>
             </div>
 
-            <Tabs defaultValue="campaigns">
-                <TabsList>
-                    <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
-                    <TabsTrigger value="automations">Automations</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="campaigns" className="space-y-6 mt-4">
+            <div className="space-y-6">
                     <CampaignStats
                         stats={stats}
                         loading={statsLoading}
@@ -529,10 +542,6 @@ export default function EmailCampaignsPage() {
                         </div>
                     </div>
 
-                    <EmailTemplateCards
-                        onCampaignCreated={refreshCurrentPage}
-                    />
-
                     {campaignsError && (
                         <Alert variant="destructive">
                             <AlertCircle className="h-4 w-4" />
@@ -606,15 +615,64 @@ export default function EmailCampaignsPage() {
 
                     <CampaignBuilderDialog
                         open={isCreateDialogOpen}
-                        onOpenChange={setIsCreateDialogOpen}
+                        onOpenChange={(open) => {
+                            setIsCreateDialogOpen(open);
+                            if (!open) setTemplateSeed(undefined);
+                        }}
                         onSuccess={refreshCurrentPage}
+                        initialValues={templateSeed}
                     />
-                </TabsContent>
+                </div>
 
-                <TabsContent value="automations" className="mt-4">
-                    <AutomationsTab />
-                </TabsContent>
-            </Tabs>
+            {/* Template Picker Dialog */}
+            <Dialog open={isTemplatePickerOpen} onOpenChange={setIsTemplatePickerOpen}>
+                <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Choose a Template</DialogTitle>
+                        <DialogDescription>
+                            Select a template to pre-fill your campaign subject and content.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {templatesLoading ? (
+                        <div className="flex justify-center py-10">
+                            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                        </div>
+                    ) : emailTemplates.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                            No templates found. Create templates from the Email Templates page.
+                        </p>
+                    ) : (
+                        <div className="space-y-2">
+                            {emailTemplates.map((tmpl) => (
+                                <div
+                                    key={tmpl._id}
+                                    className="flex items-start gap-3 p-3 rounded-lg border hover:border-chabaqa-primary/50 hover:bg-chabaqa-primary/5 transition-colors cursor-pointer"
+                                    onClick={() => {
+                                        setTemplateSeed({ subject: tmpl.subject, content: tmpl.content });
+                                        setIsTemplatePickerOpen(false);
+                                        setIsCreateDialogOpen(true);
+                                    }}
+                                >
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-sm">{tmpl.name}</p>
+                                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                                            {tmpl.subject}
+                                        </p>
+                                        <span className="inline-block mt-1 text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                            {tmpl.category}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsTemplatePickerOpen(false)}>
+                            Cancel
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog
                 open={!!editCampaign}
