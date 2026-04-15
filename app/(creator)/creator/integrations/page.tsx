@@ -3,6 +3,7 @@
 import { PageShell } from "@/components/creator-dashboard"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,7 +22,9 @@ import {
   Clock,
   Bell,
   Rocket,
-  Sparkles
+  Sparkles,
+  Key,
+  Webhook,
 } from "lucide-react"
 
 interface Integration {
@@ -32,9 +35,30 @@ interface Integration {
   category: string
   status: "available" | "coming-soon" | "planned"
   popular?: boolean
+  href?: string
 }
 
 const integrations: Integration[] = [
+  {
+    id: "api-keys",
+    name: "API Access",
+    description: "Build custom integrations with our REST API using API keys",
+    icon: <Key className="w-8 h-8" />,
+    category: "Developer Tools",
+    status: "available",
+    popular: true,
+    href: "/creator/developer/api-keys",
+  },
+  {
+    id: "webhooks",
+    name: "Webhooks",
+    description: "Receive real-time event notifications to your server",
+    icon: <Webhook className="w-8 h-8" />,
+    category: "Developer Tools",
+    status: "available",
+    popular: true,
+    href: "/creator/developer/webhooks",
+  },
   {
     id: "1",
     name: "Zapier",
@@ -182,8 +206,12 @@ export default function IntegrationsPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-semibold">Available Integrations</h2>
           <div className="flex items-center space-x-2">
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
               <CheckCircle2 className="w-3 h-3 mr-1" />
+              {integrations.filter(i => i.status === "available").length} Available
+            </Badge>
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <Clock className="w-3 h-3 mr-1" />
               {integrations.filter(i => i.status === "coming-soon").length} Coming Soon
             </Badge>
             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
@@ -224,7 +252,21 @@ export default function IntegrationsPage() {
                 </div>
 
                 <div className="pt-4 border-t">
-                  {integration.status === "coming-soon" ? (
+                  {integration.status === "available" ? (
+                    integration.href ? (
+                      <Link href={integration.href}>
+                        <Button size="sm" className="w-full">
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                          Configure
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Badge variant="outline" className="w-full justify-center bg-purple-50 text-purple-700 border-purple-200">
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        Available
+                      </Badge>
+                    )
+                  ) : integration.status === "coming-soon" ? (
                     <Badge variant="outline" className="w-full justify-center bg-green-50 text-green-700 border-green-200">
                       <Clock className="w-3 h-3 mr-1" />
                       Coming Soon
