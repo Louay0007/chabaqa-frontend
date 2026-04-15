@@ -22,7 +22,7 @@ export function Footer() {
 
   const FOOTER_HREFS: string[][] = [
     ["/#features", "/#pricing", "/explore", "/#features", "/#features"],
-    ["/#about", "/blogs", "#", "#"],
+    ["/#about", "/blogs", "#", "#", "/trust-center"],
     ["/terms-of-service", "/privacy-policy", "#"],
   ]
 

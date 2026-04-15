@@ -36,6 +36,8 @@ import {
   KeyRound,
   FileDown,
   ChevronRight,
+  Globe,
+  MapPin,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { privacyApi, type ConsentRecord, type UserSession } from '@/lib/api/privacy.api'
@@ -49,7 +51,17 @@ const CONSENT_LABELS: Record<string, string> = {
   marketing: 'Marketing Emails',
   analytics: 'Analytics Cookies',
   cookies: 'Cookie Preferences',
+  ccpa_opt_out: 'CCPA Opt-Out',
+  ccpa_do_not_sell: 'Do Not Sell My Personal Information',
+  california_resident: 'California Resident Verification',
 }
+
+const DATA_REGIONS = [
+  { code: 'us', name: 'United States', description: 'Default — lowest latency for Americas' },
+  { code: 'eu', name: 'European Union', description: 'GDPR-compliant storage in EU' },
+  { code: 'mea', name: 'Middle East & Africa', description: 'Optimal for MENA region users' },
+  { code: 'apac', name: 'Asia Pacific', description: 'Optimal for Asian market users' },
+]
 
 function ConsentBadge({ granted }: { granted: boolean }) {
   return granted ? (
@@ -92,13 +104,32 @@ export default function PrivacySettingsPage() {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [showDeletePassword, setShowDeletePassword] = useState(false)
 
+  // CCPA state
+  const [ccpaOptOut, setCcpaOptOut] = useState(false)
+  const [ccpaLoading, setCcpaLoading] = useState(false)
+
+  // Data residency state
+  const [selectedRegion, setSelectedRegion] = useState('us')
+  const [regionLoading, setRegionLoading] = useState(false)
+  const [regionSaving, setRegionSaving] = useState(false)
+
   const fetchData = useCallback(async () => {
-    const [c, s] = await Promise.allSettled([
+    const [c, s, ccpa, region] = await Promise.allSettled([
       privacyApi.getConsents(),
       privacyApi.getSessions(),
+      apiClient.get('/user/me/consents').catch(() => ({ data: [] })),
+      apiClient.get('/user/me/data-residency').catch(() => ({ data: { preferredRegion: 'us' } })),
     ])
     if (c.status === 'fulfilled') setConsents(c.value)
     if (s.status === 'fulfilled') setSessions(s.value)
+    if (ccpa.status === 'fulfilled') {
+      const records = (ccpa.value as any)?.data || []
+      const doNotSell = records.find((r: any) => r.consentType === 'ccpa_do_not_sell' && !r.revokedAt)
+      setCcpaOptOut(!!doNotSell?.granted)
+    }
+    if (region.status === 'fulfilled') {
+      setSelectedRegion((region.value as any)?.data?.preferredRegion || 'us')
+    }
     setConsentsLoading(false)
     setSessionsLoading(false)
   }, [])
@@ -212,6 +243,44 @@ export default function PrivacySettingsPage() {
       toast({ title: 'Invalid code. Please try again.', variant: 'destructive' })
     } finally {
       setTwoFALoading(false)
+    }
+  }
+
+  // ── CCPA ────────────────────────────────────────────────────
+  const handleCcpaOptOut = async () => {
+    setCcpaLoading(true)
+    try {
+      await apiClient.post('/user/me/consents', {
+        consentType: 'ccpa_do_not_sell',
+        granted: !ccpaOptOut,
+      })
+      setCcpaOptOut(prev => !prev)
+      toast({
+        title: ccpaOptOut ? 'Opt-out removed' : 'Opted out successfully',
+        description: ccpaOptOut
+          ? 'Your data may now be used as described in our Privacy Policy.'
+          : 'We will not sell your personal information to third parties.',
+      })
+    } catch {
+      toast({ title: 'Failed to update preference', variant: 'destructive' })
+    } finally {
+      setCcpaLoading(false)
+    }
+  }
+
+  // ── Data Residency ──────────────────────────────────────────
+  const handleSaveRegion = async () => {
+    setRegionSaving(true)
+    try {
+      await apiClient.post('/user/me/data-residency', { region: selectedRegion })
+      toast({
+        title: 'Region preference saved',
+        description: 'Data migration will begin shortly.',
+      })
+    } catch {
+      toast({ title: 'Failed to save region preference', variant: 'destructive' })
+    } finally {
+      setRegionSaving(false)
     }
   }
 
@@ -477,6 +546,115 @@ export default function PrivacySettingsPage() {
                 : <Download className="h-4 w-4 mr-2" />}
               Export My Data
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* ── Data Residency ── */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Globe className="h-5 w-5" />
+              Data Residency
+            </CardTitle>
+            <CardDescription>
+              Choose which region your personal data is stored in. Changing region triggers an async data migration.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-3">
+              {DATA_REGIONS.map(r => (
+                <button
+                  key={r.code}
+                  type="button"
+                  onClick={() => setSelectedRegion(r.code)}
+                  className={`text-left p-3 rounded-lg border transition-all duration-150 ${
+                    selectedRegion === r.code
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-border hover:border-muted-foreground/40'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="text-sm font-medium">{r.name}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-5">{r.description}</p>
+                </button>
+              ))}
+            </div>
+            <Button
+              size="sm"
+              onClick={handleSaveRegion}
+              disabled={regionSaving}
+            >
+              {regionSaving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Save Region Preference
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* ── California Privacy Rights (CCPA) ── */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Shield className="h-5 w-5" />
+              California Privacy Rights (CCPA)
+            </CardTitle>
+            <CardDescription>
+              As a California resident, you have additional privacy rights under the California Consumer Privacy Act.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Do Not Sell My Personal Information */}
+            <div className="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-100 dark:border-orange-900/30">
+              <div className="min-w-0 mr-4">
+                <p className="text-sm font-medium">Do Not Sell My Personal Information</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Opt out of having your personal information sold to third parties
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant={ccpaOptOut ? 'default' : 'outline'}
+                onClick={handleCcpaOptOut}
+                disabled={ccpaLoading}
+                className="shrink-0"
+              >
+                {ccpaLoading
+                  ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  : ccpaOptOut
+                    ? <CheckCircle className="h-4 w-4 mr-1" />
+                    : null}
+                {ccpaOptOut ? 'Opted Out' : 'Opt Out'}
+              </Button>
+            </div>
+
+            {/* California Resident Verification */}
+            <div className="p-4 bg-muted/40 rounded-lg border">
+              <p className="text-sm font-medium mb-1">Verify California Residency</p>
+              <p className="text-xs text-muted-foreground mb-3">
+                To exercise certain CCPA rights, we need to verify you are a California resident.
+              </p>
+              <Button variant="outline" size="sm">
+                <MapPin className="h-4 w-4 mr-2" />
+                Verify Residency
+              </Button>
+            </div>
+
+            {/* Request Data */}
+            <div className="flex items-center justify-between p-4 bg-muted/40 rounded-lg border">
+              <div>
+                <p className="text-sm font-medium">Request My Data</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Download a copy of all personal information we hold about you
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleExport} disabled={exportLoading}>
+                {exportLoading
+                  ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  : <Download className="h-4 w-4 mr-1" />}
+                Request Data
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
