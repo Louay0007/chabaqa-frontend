@@ -215,7 +215,7 @@ export default function EditProfilePage() {
         socialLinks: cleanSocialLinks(socialLinks),
       }
       if (!Object.keys(payload.socialLinks).length) {
-        payload.socialLinks = {}
+        delete payload.socialLinks
       }
       // Prepare optimistic user
       const optimisticUser = {

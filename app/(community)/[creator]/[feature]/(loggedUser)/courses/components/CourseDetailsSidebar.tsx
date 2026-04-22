@@ -129,8 +129,8 @@ export default function CourseDetailsSidebar({
                     )}
                     {chapter.duration && (
                       <span className="text-xs text-muted-foreground ml-auto">
-                        {Math.floor(chapter.duration / 60)}:
-                        {(chapter.duration % 60).toString().padStart(2, "0")}
+                        {Math.floor(chapter.duration / 60)}
+                        {chapter.duration % 60 > 0 && `:${(chapter.duration % 60).toString().padStart(2, "0")}`}
                       </span>
                     )}
                   </div>

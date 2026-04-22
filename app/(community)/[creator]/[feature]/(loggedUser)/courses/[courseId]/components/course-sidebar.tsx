@@ -469,7 +469,8 @@ export default function CourseSidebar({
                                     </div>
                                     {chapter.duration && (
                                       <span className="text-xs md:text-sm text-muted-foreground whitespace-nowrap font-medium">
-                                        {Math.floor(chapter.duration / 60)}:{String(chapter.duration % 60).padStart(2, '0')}
+                                        {Math.floor(chapter.duration / 60)}
+                                        {chapter.duration % 60 > 0 && `:${String(chapter.duration % 60).padStart(2, '0')}`}
                                       </span>
                                     )}
                                   </div>
