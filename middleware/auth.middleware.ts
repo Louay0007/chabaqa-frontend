@@ -230,7 +230,7 @@ export async function authMiddleware(request: NextRequest) {
   }
 
   const continueWithHeaders = (headers?: Headers) => {
-    const rewrittenUrl = getExternalUrl(request)
+    const rewrittenUrl = request.nextUrl.clone()
     rewrittenUrl.pathname = normalizedPath
 
     const requestHeaders = headers ? new Headers(headers) : new Headers(request.headers)

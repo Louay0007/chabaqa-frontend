@@ -356,11 +356,6 @@ export function DashboardSidebar({ user, onLogout }: DashboardSidebarProps) {
                     href: "/creator/landing-pages",
                     icon: Home,
                 },
-                {
-                    title: "Funnels",
-                    href: "/creator/landing-pages/funnels",
-                    icon: Zap,
-                },
             ],
         },
 

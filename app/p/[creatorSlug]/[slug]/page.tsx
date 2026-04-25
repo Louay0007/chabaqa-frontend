@@ -56,6 +56,8 @@ export default async function PublicLandingPage({ params }: Props) {
     if (!page) notFound();
 
     const pageId = page._id || page.id;
+    // Do not execute database-provided script content on the public page.
+    // Tracking pixels stored as arbitrary JS can break SSR/runtime stability.
 
     return (
         <>
@@ -66,20 +68,6 @@ export default async function PublicLandingPage({ params }: Props) {
                     pageId={pageId}
                 />
             </main>
-            {page.settings?.trackingPixels?.meta && (
-                <script
-                    dangerouslySetInnerHTML={{
-                        __html: page.settings.trackingPixels.meta,
-                    }}
-                />
-            )}
-            {page.settings?.trackingPixels?.google && (
-                <script
-                    dangerouslySetInnerHTML={{
-                        __html: page.settings.trackingPixels.google,
-                    }}
-                />
-            )}
         </>
     );
 }

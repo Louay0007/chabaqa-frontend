@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -906,6 +906,7 @@ function DeleteDialog({
 
 export default function LandingPagesPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [isLoading, setIsLoading] = useState(true);
     const [pages, setPages] = useState<LandingPage[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
@@ -1044,6 +1045,7 @@ export default function LandingPagesPage() {
     const hasPages = pages.length > 0;
     const hasFilteredPages = filteredPages.length > 0;
     const isSearching = searchQuery.length > 0 || statusFilter !== "all";
+    const migratedFromFunnels = searchParams.get("from") === "funnels";
 
     return (
         <PageShell>
@@ -1079,6 +1081,29 @@ export default function LandingPagesPage() {
 
             {/* Hero */}
             <HeroSection />
+
+            {migratedFromFunnels && (
+                <Card className="border-violet-200 bg-violet-50/80 shadow-none">
+                    <CardContent className="flex flex-col gap-2 p-4 text-sm text-slate-700 md:flex-row md:items-center md:justify-between">
+                        <div className="space-y-1">
+                            <p className="font-medium text-slate-900">
+                                Funnels are now part of Community Home Pages
+                            </p>
+                            <p>
+                                Use your home page blocks to handle lead capture, calls to action, pricing, and visitor conversion without a separate funnels dashboard.
+                            </p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            onClick={() =>
+                                router.push("/creator/landing-pages/templates")
+                            }
+                        >
+                            Explore Templates
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
 
             {hasPages ? (
                 <>

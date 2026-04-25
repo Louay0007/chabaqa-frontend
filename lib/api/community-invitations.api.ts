@@ -56,6 +56,7 @@ export interface InviteSingleDto {
   name?: string;
   communityId: string;
   personalMessage?: string;
+  expiryDays?: number;
 }
 
 export interface InvitationQueryParams {

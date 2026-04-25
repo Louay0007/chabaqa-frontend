@@ -35,3 +35,6 @@ export { SkipNav } from './skip-nav'
 // Optimized image components
 export { OptimizedAvatar } from './optimized-avatar'
 export { OptimizedImage, OptimizedCardImage, OptimizedLogo } from './optimized-image'
+
+export { BatchConfirmDialog } from './batch-confirm-dialog'
+export type { BatchConfirmDialogProps } from './batch-confirm-dialog'

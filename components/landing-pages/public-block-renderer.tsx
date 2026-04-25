@@ -3,6 +3,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { landingPagesApi } from "@/lib/api/landing-pages.api";
 import type { PageBlock } from "@/lib/landing-pages/types";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 
 /* ------------------------------------------------------------------ */
 /*  Helper: build individual padding from style props                 */
@@ -17,6 +18,59 @@ function buildPaddingStylePublic(s: Record<string, any>): React.CSSProperties {
         };
     }
     return { padding: s.padding || "48px 24px" };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helper: build shared base style for all blocks                    */
+/*  (BUG-001, 002, 003, 025 – single source of truth)                */
+/* ------------------------------------------------------------------ */
+function buildBaseStyle(s: Record<string, any>, defaultPadding = "48px 24px"): React.CSSProperties {
+    const padding = s.paddingTop || s.paddingBottom || s.paddingLeft || s.paddingRight
+        ? { paddingTop: s.paddingTop || undefined, paddingBottom: s.paddingBottom || undefined, paddingLeft: s.paddingLeft || undefined, paddingRight: s.paddingRight || undefined }
+        : { padding: s.padding || defaultPadding };
+
+    return {
+        backgroundColor: s.backgroundGradient ? undefined : s.backgroundColor || undefined,
+        backgroundImage: s.backgroundGradient
+            ? s.backgroundGradient
+            : s.backgroundImage
+              ? `url(${s.backgroundImage})`
+              : undefined,
+        backgroundSize:
+            s.backgroundImage && !s.backgroundGradient
+                ? s.backgroundSize || "cover"
+                : undefined,
+        backgroundPosition:
+            s.backgroundImage && !s.backgroundGradient
+                ? s.backgroundPosition || "center"
+                : undefined,
+        color: s.textColor || undefined,
+        textAlign: (s.textAlign as React.CSSProperties["textAlign"]) || "center",
+        ...padding,
+        marginTop: s.marginTop || undefined,
+        marginBottom: s.marginBottom || undefined,
+        borderRadius: s.borderRadius || undefined,
+        borderWidth:
+            s.borderStyle && s.borderStyle !== "none"
+                ? s.borderWidth || "1px"
+                : undefined,
+        borderStyle:
+            s.borderStyle && s.borderStyle !== "none"
+                ? s.borderStyle
+                : undefined,
+        borderColor: s.borderColor || undefined,
+        boxShadow: s.boxShadow || undefined,
+        opacity: s.opacity ?? undefined,
+        minHeight: s.minHeight || undefined,
+        fontFamily: s.fontFamily || "inherit",
+        fontSize: s.fontSize || undefined,
+        fontWeight: s.fontWeight || undefined,
+        lineHeight: s.lineHeight || undefined,
+        letterSpacing: s.letterSpacing || undefined,
+        maxWidth: s.maxWidth || "100%",
+        width: "100%",
+        boxSizing: "border-box" as const,
+    };
 }
 
 /* ------------------------------------------------------------------ */
@@ -35,6 +89,10 @@ function toEmbedUrl(url: string): string {
     if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
 
     return url;
+}
+
+function resolveAssetUrl(value?: string): string | undefined {
+    return resolveImageUrl(value) || value;
 }
 
 /* ------------------------------------------------------------------ */
@@ -76,51 +134,7 @@ function CountdownBlock({ block }: { block: PageBlock }) {
         return () => clearInterval(id);
     }, [c.targetDate]);
 
-    const base: React.CSSProperties = {
-        backgroundColor: s.backgroundGradient
-            ? undefined
-            : s.backgroundColor || undefined,
-        backgroundImage: s.backgroundGradient
-            ? s.backgroundGradient
-            : s.backgroundImage
-              ? `url(${s.backgroundImage})`
-              : undefined,
-        backgroundSize:
-            s.backgroundImage && !s.backgroundGradient
-                ? s.backgroundSize || "cover"
-                : undefined,
-        backgroundPosition:
-            s.backgroundImage && !s.backgroundGradient
-                ? s.backgroundPosition || "center"
-                : undefined,
-        color: s.textColor || undefined,
-        textAlign:
-            (s.textAlign as React.CSSProperties["textAlign"]) || "center",
-        ...buildPaddingStylePublic(s),
-        marginTop: s.marginTop || undefined,
-        marginBottom: s.marginBottom || undefined,
-        borderRadius: s.borderRadius || undefined,
-        borderWidth:
-            s.borderStyle && s.borderStyle !== "none"
-                ? s.borderWidth || "1px"
-                : undefined,
-        borderStyle:
-            s.borderStyle && s.borderStyle !== "none"
-                ? s.borderStyle
-                : undefined,
-        borderColor: s.borderColor || undefined,
-        boxShadow: s.boxShadow || undefined,
-        opacity: s.opacity ?? undefined,
-        minHeight: s.minHeight || undefined,
-        fontFamily: s.fontFamily || "inherit",
-        fontSize: s.fontSize || undefined,
-        fontWeight: s.fontWeight || undefined,
-        lineHeight: s.lineHeight || undefined,
-        letterSpacing: s.letterSpacing || undefined,
-        maxWidth: s.maxWidth || "100%",
-        width: "100%",
-        boxSizing: "border-box" as const,
-    };
+    const base = buildBaseStyle(s);
 
     const units: [number, string][] = [
         [timeLeft.days, "Days"],
@@ -236,51 +250,7 @@ function PublicBlock({ block, pageId }: { block: PageBlock; pageId: string }) {
     const [formError, setFormError] = useState("");
 
     /* ---------- base style (BUG-001, 002, 003, 025) ---------- */
-    const base: React.CSSProperties = {
-        backgroundColor: s.backgroundGradient
-            ? undefined
-            : s.backgroundColor || undefined,
-        backgroundImage: s.backgroundGradient
-            ? s.backgroundGradient
-            : s.backgroundImage
-              ? `url(${s.backgroundImage})`
-              : undefined,
-        backgroundSize:
-            s.backgroundImage && !s.backgroundGradient
-                ? s.backgroundSize || "cover"
-                : undefined,
-        backgroundPosition:
-            s.backgroundImage && !s.backgroundGradient
-                ? s.backgroundPosition || "center"
-                : undefined,
-        color: s.textColor || undefined,
-        textAlign:
-            (s.textAlign as React.CSSProperties["textAlign"]) || "center",
-        ...buildPaddingStylePublic(s),
-        marginTop: s.marginTop || undefined,
-        marginBottom: s.marginBottom || undefined,
-        borderRadius: s.borderRadius || undefined,
-        borderWidth:
-            s.borderStyle && s.borderStyle !== "none"
-                ? s.borderWidth || "1px"
-                : undefined,
-        borderStyle:
-            s.borderStyle && s.borderStyle !== "none"
-                ? s.borderStyle
-                : undefined,
-        borderColor: s.borderColor || undefined,
-        boxShadow: s.boxShadow || undefined,
-        opacity: s.opacity ?? undefined,
-        minHeight: s.minHeight || undefined,
-        fontFamily: s.fontFamily || "inherit",
-        fontSize: s.fontSize || undefined,
-        fontWeight: s.fontWeight || undefined,
-        lineHeight: s.lineHeight || undefined,
-        letterSpacing: s.letterSpacing || undefined,
-        maxWidth: s.maxWidth || "100%",
-        width: "100%",
-        boxSizing: "border-box" as const,
-    };
+    const base = buildBaseStyle(s);
 
     if (block.visible === false) return null;
 
@@ -288,7 +258,8 @@ function PublicBlock({ block, pageId }: { block: PageBlock; pageId: string }) {
         /* ============================================================== */
         /*  HEADER (BUG-014: use logoUrl / logoText)                      */
         /* ============================================================== */
-        case "header":
+        case "header": {
+            const headerLogoUrl = resolveAssetUrl(c.logoUrl);
             return (
                 <div
                     style={{
@@ -327,9 +298,9 @@ function PublicBlock({ block, pageId }: { block: PageBlock; pageId: string }) {
                                 gap: "8px",
                             }}
                         >
-                            {c.logoUrl ? (
+                            {headerLogoUrl ? (
                                 <img
-                                    src={c.logoUrl}
+                                    src={headerLogoUrl}
                                     alt={c.logoText || "Logo"}
                                     style={{
                                         height: "32px",
@@ -390,16 +361,18 @@ function PublicBlock({ block, pageId }: { block: PageBlock; pageId: string }) {
                     </div>
                 </div>
             );
+        }
 
         /* ============================================================== */
         /*  HERO (BUG-020: read c.backgroundImageUrl)                     */
         /* ============================================================== */
         case "hero": {
             const heroBg: React.CSSProperties = {};
+            const heroBackgroundUrl = resolveAssetUrl(c.backgroundImageUrl || s.backgroundImage);
             if (s.backgroundGradient) {
                 heroBg.background = s.backgroundGradient;
-            } else if (c.backgroundImageUrl || s.backgroundImage) {
-                heroBg.backgroundImage = `url(${c.backgroundImageUrl || s.backgroundImage})`;
+            } else if (heroBackgroundUrl) {
+                heroBg.backgroundImage = `url(${heroBackgroundUrl})`;
                 heroBg.backgroundSize = s.backgroundSize || "cover";
                 heroBg.backgroundPosition = s.backgroundPosition || "center";
                 heroBg.backgroundColor = s.backgroundColor || "#0f0a2e";
@@ -510,26 +483,30 @@ function PublicBlock({ block, pageId }: { block: PageBlock; pageId: string }) {
         /*  IMAGE (BUG-021: imageSize & imageBorderRadius)                */
         /* ============================================================== */
         case "image": {
+            const imageUrl = resolveAssetUrl(c.imageUrl);
             const imgMaxWidth =
                 c.imageSize === "full-width"
                     ? "100%"
                     : c.imageSize === "contained"
                       ? "600px"
-                      : "900px";
+                      : c.imageSize === "auto"
+                        ? undefined
+                        : "900px";
             const imgBorderRadius =
                 c.imageBorderRadius != null
                     ? `${c.imageBorderRadius}px`
-                    : "12px";
+                    : s.borderRadius || "12px";
 
             return (
                 <div style={base}>
                     <div style={{ maxWidth: imgMaxWidth, margin: "0 auto" }}>
-                        {c.imageUrl ? (
+                        {imageUrl ? (
                             <img
-                                src={c.imageUrl}
+                                src={imageUrl}
                                 alt={c.imageAlt || ""}
                                 style={{
-                                    width: "100%",
+                                    width: c.imageSize === "auto" ? "auto" : "100%",
+                                    maxWidth: "100%",
                                     borderRadius: imgBorderRadius,
                                     display: "block",
                                 }}
@@ -773,7 +750,7 @@ function PublicBlock({ block, pageId }: { block: PageBlock; pageId: string }) {
                             }}
                         >
                             {(c.testimonials || []).map((t: any) => {
-                                const avatarSrc = t.avatarUrl || t.avatar;
+                                const avatarSrc = resolveAssetUrl(t.avatarUrl || t.avatar);
                                 return (
                                     <div
                                         key={t.id}
@@ -1271,10 +1248,12 @@ function PublicBlock({ block, pageId }: { block: PageBlock; pageId: string }) {
                                     alignItems: "center",
                                 }}
                             >
-                                {(c.logos as any[]).map((logo: any) => (
+                                {(c.logos as any[])
+                                    .filter((logo: any) => Boolean(resolveAssetUrl(logo.imageUrl)))
+                                    .map((logo: any) => (
                                     <img
                                         key={logo.id}
-                                        src={logo.imageUrl}
+                                        src={resolveAssetUrl(logo.imageUrl)}
                                         alt={logo.alt || ""}
                                         style={{
                                             height: "40px",
@@ -1710,7 +1689,8 @@ function PublicBlock({ block, pageId }: { block: PageBlock; pageId: string }) {
         /* ============================================================== */
         /*  FOOTER (BUG-014: use logoUrl / logoText)                      */
         /* ============================================================== */
-        case "footer":
+        case "footer": {
+            const footerLogoUrl = resolveAssetUrl(c.logoUrl);
             return (
                 <div
                     style={{
@@ -1738,9 +1718,9 @@ function PublicBlock({ block, pageId }: { block: PageBlock; pageId: string }) {
                                 marginBottom: "16px",
                             }}
                         >
-                            {c.logoUrl ? (
+                            {footerLogoUrl ? (
                                 <img
-                                    src={c.logoUrl}
+                                    src={footerLogoUrl}
                                     alt={c.logoText || "Logo"}
                                     style={{
                                         height: "24px",
@@ -1834,11 +1814,261 @@ function PublicBlock({ block, pageId }: { block: PageBlock; pageId: string }) {
                     </div>
                 </div>
             );
+        }
+
+        /* ============================================================== */
+        /*  COMMUNITY-JOIN                                                 */
+        /* ============================================================== */
+        case "community-join": {
+            const joinBg: React.CSSProperties = {};
+            if (s.backgroundGradient) {
+                joinBg.background = s.backgroundGradient;
+            } else if (s.backgroundImage) {
+                joinBg.backgroundImage = `url(${s.backgroundImage})`;
+                joinBg.backgroundSize = "cover";
+                joinBg.backgroundPosition = "center";
+            } else {
+                joinBg.background = s.backgroundColor || "linear-gradient(135deg, #8e78fb, #f65887)";
+            }
+
+            return (
+                <div
+                    style={{
+                        ...base,
+                        ...joinBg,
+                        color: s.textColor || "#fff",
+                    }}
+                >
+                    <div style={{ maxWidth: "700px", margin: "0 auto" }}>
+                        <h2
+                            style={{
+                                fontSize: "clamp(1.5rem, 3vw, 2.5rem)",
+                                fontWeight: 700,
+                                marginBottom: "12px",
+                                margin: "0 0 12px 0",
+                            }}
+                        >
+                            {c.headline || `Join ${c.communityName || "our community"}`}
+                        </h2>
+                        {c.subheadline && (
+                            <p
+                                style={{
+                                    fontSize: "16px",
+                                    opacity: 0.85,
+                                    marginBottom: "24px",
+                                    margin: "0 0 24px 0",
+                                    lineHeight: 1.6,
+                                }}
+                            >
+                                {c.subheadline}
+                            </p>
+                        )}
+                        {c.showMemberCount && (
+                            <p
+                                style={{
+                                    fontSize: "14px",
+                                    opacity: 0.75,
+                                    marginBottom: "20px",
+                                    margin: "0 0 20px 0",
+                                }}
+                            >
+                                Join our growing community
+                            </p>
+                        )}
+                        <a
+                            href={c.ctaUrl || `/community/${c.communitySlug || ""}`}
+                            style={{
+                                display: "inline-block",
+                                background: "rgba(255,255,255,0.2)",
+                                color: "#fff",
+                                padding: "14px 36px",
+                                borderRadius: "12px",
+                                textDecoration: "none",
+                                fontSize: "16px",
+                                fontWeight: 700,
+                                border: "2px solid rgba(255,255,255,0.3)",
+                            }}
+                        >
+                            {c.ctaText || "Join Now"}
+                        </a>
+                    </div>
+                </div>
+            );
+        }
+
+        /* ============================================================== */
+        /*  COMMUNITY-CONTENT-PREVIEW                                     */
+        /* ============================================================== */
+        case "community-content-preview":
+            return (
+                <div style={base}>
+                    <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+                        {c.headline && (
+                            <h2
+                                style={{
+                                    fontSize: "clamp(1.5rem, 3vw, 2.5rem)",
+                                    fontWeight: 700,
+                                    marginBottom: "8px",
+                                    margin: "0 0 8px 0",
+                                }}
+                            >
+                                {c.headline}
+                            </h2>
+                        )}
+                        {c.subheadline && (
+                            <p
+                                style={{
+                                    fontSize: "16px",
+                                    opacity: 0.7,
+                                    marginBottom: "32px",
+                                    margin: "0 0 32px 0",
+                                }}
+                            >
+                                {c.subheadline}
+                            </p>
+                        )}
+                        <div
+                            style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                                gap: "20px",
+                            }}
+                        >
+                            {(c.previewTypes || ["courses", "posts"]).map(
+                                (ptype: string, i: number) => (
+                                    <div
+                                        key={i}
+                                        style={{
+                                            background: "#fff",
+                                            borderRadius: "12px",
+                                            padding: "24px",
+                                            boxShadow:
+                                                "0 2px 8px rgba(0,0,0,0.06)",
+                                            textAlign: "left",
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                fontSize: "13px",
+                                                fontWeight: 600,
+                                                color: "#8e78fb",
+                                                textTransform: "uppercase",
+                                                letterSpacing: "0.05em",
+                                                marginBottom: "8px",
+                                            }}
+                                        >
+                                            {ptype}
+                                        </div>
+                                        <p
+                                            style={{
+                                                fontSize: "14px",
+                                                opacity: 0.7,
+                                                margin: 0,
+                                            }}
+                                        >
+                                            Browse our latest{" "}
+                                            {ptype}
+                                        </p>
+                                    </div>
+                                ),
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+
+        /* ============================================================== */
+        /*  COMMUNITY-STATS                                               */
+        /* ============================================================== */
+        case "community-stats":
+            return (
+                <div style={base}>
+                    <div
+                        style={{
+                            maxWidth: "900px",
+                            margin: "0 auto",
+                        }}
+                    >
+                        {c.headline && (
+                            <h2
+                                style={{
+                                    fontSize: "clamp(1.5rem, 3vw, 2.5rem)",
+                                    fontWeight: 700,
+                                    marginBottom: "32px",
+                                    margin: "0 0 32px 0",
+                                }}
+                            >
+                                {c.headline}
+                            </h2>
+                        )}
+                        <div
+                            style={{
+                                display: "grid",
+                                gridTemplateColumns:
+                                    c.statsLayout === "horizontal"
+                                        ? "repeat(auto-fit, minmax(140px, 1fr))"
+                                        : c.statsLayout === "grid"
+                                          ? "repeat(auto-fit, minmax(180px, 1fr))"
+                                          : "1fr",
+                                gap: "24px",
+                            }}
+                        >
+                            {(c.stats || []).map((st: any) => (
+                                <div key={st.id} style={{ textAlign: "center" }}>
+                                    <div
+                                        style={{
+                                            fontSize: "2.5rem",
+                                            fontWeight: 800,
+                                            color: "#8e78fb",
+                                            lineHeight: 1.1,
+                                        }}
+                                    >
+                                        {st.value}
+                                    </div>
+                                    <div
+                                        style={{
+                                            fontSize: "14px",
+                                            opacity: 0.7,
+                                            marginTop: "4px",
+                                        }}
+                                    >
+                                        {st.label}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
 
         default:
             return null;
     }
 }
+
+/* ==================================================================== */
+/*  CSS for responsive visibility & animations (BUG-007, BUG-015)       */
+/* ==================================================================== */
+const BLOCK_RENDERER_CSS = `
+@media (max-width: 768px) {
+  .hide-on-mobile { display: none !important; }
+}
+@media (min-width: 769px) {
+  .hide-on-desktop { display: none !important; }
+}
+@keyframes anim-fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes anim-slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes anim-slideLeft { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes anim-slideRight { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes anim-scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+@keyframes anim-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.anim-fadeIn { animation: anim-fadeIn 0.6s ease-out both; }
+.anim-slideUp { animation: anim-slideUp 0.6s ease-out both; }
+.anim-slideLeft { animation: anim-slideLeft 0.6s ease-out both; }
+.anim-slideRight { animation: anim-slideRight 0.6s ease-out both; }
+.anim-scaleIn { animation: anim-scaleIn 0.5s ease-out both; }
+.anim-bounce { animation: anim-bounce 0.6s ease-out both; }
+`;
 
 /* ==================================================================== */
 /*  PublicBlockRenderer – wraps each block with visibility / animation   */
@@ -1849,6 +2079,7 @@ function PublicBlock({ block, pageId }: { block: PageBlock; pageId: string }) {
 export default function PublicBlockRenderer({ blocks, pageId }: Props) {
     return (
         <div style={{ width: "100%", minHeight: "100vh" }}>
+            <style dangerouslySetInnerHTML={{ __html: BLOCK_RENDERER_CSS }} />
             {blocks
                 .filter((b) => b.visible !== false)
                 .map((block) => {

@@ -40,6 +40,15 @@ export * from "./community-access.api";
 export * from "./promo-codes.api";
 export * from "./landing-pages.api";
 export * from "./automation-workflows.api";
+export * from "./crm.api";
+export * from "./developer.api";
+export * from "./gamification.api";
+export * from "./google-calendar.api";
+export * from "./live-streaming.api";
+export * from "./media.api";
+export * from "./privacy.api";
+export * from "./transcription.api";
+export * from "./video-playback.api";
 export type {
     ModerationAction,
     ModerationStatus,
@@ -94,6 +103,15 @@ import {
     communityHomePageApi,
 } from "./landing-pages.api";
 import { automationWorkflowsApi } from "./automation-workflows.api";
+import { crmApi } from "./crm.api";
+import { developerApi } from "./developer.api";
+import { gamificationApi } from "./gamification.api";
+import { googleCalendarApi } from "./google-calendar.api";
+import { liveStreamingApi } from "./live-streaming.api";
+import { mediaApi } from "./media.api";
+import { privacyApi } from "./privacy.api";
+import { transcriptionApi } from "./transcription.api";
+import { videoPlaybackApi } from "./video-playback.api";
 
 export const api = {
     auth: authApi,
@@ -131,4 +149,13 @@ export const api = {
     funnels: funnelsApi,
     communityHomePage: communityHomePageApi,
     automationWorkflows: automationWorkflowsApi,
+    crm: crmApi,
+    developer: developerApi,
+    gamification: gamificationApi,
+    googleCalendar: googleCalendarApi,
+    liveStreaming: liveStreamingApi,
+    media: mediaApi,
+    privacy: privacyApi,
+    transcription: transcriptionApi,
+    videoPlayback: videoPlaybackApi,
 };

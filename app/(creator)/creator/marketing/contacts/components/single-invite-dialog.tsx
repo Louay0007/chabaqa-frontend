@@ -49,7 +49,7 @@ export function SingleInviteDialog({
   const [sending, setSending] = useState(false)
   const [emailError, setEmailError] = useState("")
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
-  const [expiryDays, setExpiryDays] = useState<number>(30) // TODO: wire to backend
+  const [expiryDays, setExpiryDays] = useState<number>(30)
 
   const isValid = EMAIL_REGEX.test(email.trim())
   const charPercent = Math.min((personalMessage.length / 500) * 100, 100)
@@ -80,6 +80,7 @@ export function SingleInviteDialog({
         ...(name.trim() ? { name: name.trim() } : {}),
         communityId,
         ...(personalMessage.trim() ? { personalMessage: personalMessage.trim() } : {}),
+        expiryDays,
       })
       toast({
         title: "Invitation sent!",

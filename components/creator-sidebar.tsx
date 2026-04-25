@@ -44,7 +44,6 @@ import {
     LogOut,
     User,
     Loader2,
-    GitBranch,
 } from "lucide-react";
 
 const menuItems = [
@@ -95,11 +94,6 @@ const menuItems = [
         title: "Community Home",
         url: "/creator/landing-pages",
         icon: Palette,
-    },
-    {
-        title: "Funnels",
-        url: "/creator/landing-pages/funnels",
-        icon: GitBranch,
     },
     {
         title: "Settings",

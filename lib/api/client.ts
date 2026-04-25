@@ -309,6 +309,7 @@ class ApiClient {
             string,
             string | number | boolean | undefined | null
         >,
+        method: "POST" | "PUT" | "PATCH" = "POST",
     ): Promise<T> {
         const formData = new FormData();
         formData.append(fieldName, file);
@@ -321,7 +322,7 @@ class ApiClient {
 
         const doRequest = async () =>
             fetch(`${this.baseURL}${endpoint}`, {
-                method: "POST",
+                method,
                 headers: this.getHeaders(true),
                 credentials: "include",
                 body: formData,

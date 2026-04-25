@@ -12,10 +12,25 @@ interface AdminLayoutContextType {
 const AdminLayoutContext = createContext<AdminLayoutContextType | undefined>(undefined)
 
 export function AdminLayoutProvider({ children }: { children: ReactNode }) {
+  // Initialize sidebar state based on screen size to prevent flash
+  // Always start with true for SSR, will be corrected on client without flash
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true)
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Mark as mounted after first render
+  useEffect(() => {
+    setIsMounted(true)
+    
+    // Set initial state based on screen size
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false)
+    }
+  }, [])
 
   // Handle responsive behavior - close sidebar on mobile by default
   useEffect(() => {
+    if (!isMounted) return
+
     const handleResize = () => {
       if (window.innerWidth < 1024) { // lg breakpoint
         setSidebarOpen(false)
@@ -24,13 +39,10 @@ export function AdminLayoutProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Set initial state
-    handleResize()
-
     // Listen for resize events
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [])
+  }, [isMounted])
 
   const toggleSidebar = useCallback(() => {
     setSidebarOpen(prev => !prev)

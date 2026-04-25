@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { MetricCard } from "@/app/(admin)/_components/metric-card"
+import { MetricCardSkeleton } from "@/app/(admin)/_components/metric-card-skeleton"
 import {
   ArrowRight,
   Building2,
@@ -300,10 +301,30 @@ export default function AdminDashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-sm text-muted-foreground">{t("loadingDashboardData")}</p>
+      <div className="space-y-8">
+        <section className="admin-surface overflow-hidden rounded-[2rem] border-0 shadow-none">
+          <div className="grid gap-6 px-6 py-7 lg:grid-cols-[1.5fr_0.9fr] lg:px-8">
+            <div className="space-y-5">
+              <div className="admin-badge w-fit border-0">Chabaqa operations center</div>
+              <div className="space-y-3">
+                <div className="h-10 w-64 bg-muted rounded animate-pulse" />
+                <div className="h-5 w-96 bg-muted rounded animate-pulse" />
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="admin-surface-muted rounded-3xl p-4 h-24 animate-pulse"
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <MetricCardSkeleton key={i} />
+          ))}
         </div>
       </div>
     )

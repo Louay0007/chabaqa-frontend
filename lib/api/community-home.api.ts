@@ -3,6 +3,7 @@ import { communitiesApi } from './communities.api';
 import { postsApi } from './posts.api';
 import { challengesApi } from './challenges.api';
 import { coursesApi } from './courses.api';
+import { gamificationApi } from './gamification.api';
 import { getMe } from './user.api';
 import { normalizeUser } from '@/lib/hooks/useUser';
 import type { Community, Post, Challenge, Course, User } from './types';
@@ -248,7 +249,9 @@ function transformCourse(backendCourse: any): Course {
 async function calculateStats(
   communityId: string,
   community: Community,
-  posts: Post[]
+  posts: Post[],
+  currentUserId?: string,
+  userRank?: number,
 ): Promise<CommunityStats> {
   const now = new Date();
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -270,11 +273,33 @@ async function calculateStats(
   // Active today should be at least the number of people who posted, or estimate 5% of members minimum
   const activeToday = Math.max(uniqueActiveAuthors, Math.ceil(community.members * 0.05));
 
+  let fallbackUserRank: number | undefined;
+
+  if (currentUserId) {
+    const authorActivity = new Map<string, number>();
+    posts.forEach((post) => {
+      if (!post.authorId) return;
+      authorActivity.set(post.authorId, (authorActivity.get(post.authorId) || 0) + 1);
+    });
+
+    const rankedAuthors = Array.from(authorActivity.entries())
+      .sort((a, b) => {
+        if (b[1] !== a[1]) return b[1] - a[1];
+        return a[0].localeCompare(b[0]);
+      })
+      .map(([authorId]) => authorId);
+
+    const currentUserIndex = rankedAuthors.indexOf(currentUserId);
+    if (currentUserIndex >= 0) {
+      fallbackUserRank = currentUserIndex + 1;
+    }
+  }
+
   return {
     totalMembers: community.members,
     activeToday,
     postsThisWeek,
-    userRank: undefined, // TODO: Calculate from member activity
+    userRank: userRank ?? fallbackUserRank,
   };
 }
 
@@ -292,14 +317,13 @@ export const communityHomeApi = {
   ): Promise<CommunityHomeData> {
     try {
       // Fetch all data in parallel
-      const [communityResponse, postsResponse, challengesResponse, coursesResponse, currentUser] = await Promise.allSettled([
+      const [communityResponse, challengesResponse, coursesResponse, currentUser, gamificationProfile] = await Promise.allSettled([
         communitiesApi.getBySlug(slug),
-        // We'll fetch posts after getting community ID
-        Promise.resolve(null),
         challengesApi.getByCommunity(slug),
         // Courses API - backend uses /cours/community/:slug
         apiClient.get(`/cours/community/${slug}`).catch(() => ({ data: [] })) as Promise<any>,
         getMe().catch(() => null), // Don't fail if user is not authenticated
+        gamificationApi.getMyProfile({ communitySlug: slug }).catch(() => null),
       ]);
 
       // Handle community fetch
@@ -380,7 +404,15 @@ export const communityHomeApi = {
         : null;
 
       // Calculate statistics
-      const stats = await calculateStats(communityWithStats.id, communityWithStats, posts);
+      const stats = await calculateStats(
+        communityWithStats.id,
+        communityWithStats,
+        posts,
+        user?.id ? String(user.id) : undefined,
+        gamificationProfile.status === 'fulfilled' && gamificationProfile.value
+          ? gamificationProfile.value.rank
+          : undefined,
+      );
 
       return {
         community: communityWithStats,

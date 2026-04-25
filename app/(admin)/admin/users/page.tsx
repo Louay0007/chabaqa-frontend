@@ -314,10 +314,25 @@ export default function UsersPage() {
       type: 'text',
       placeholder: 'Search by name or email',
     },
+    {
+      key: 'dateRange',
+      label: 'Registration Date',
+      type: 'dateRange',
+      placeholder: 'Filter by registration date',
+    },
   ]
 
   // Handle filter changes
   const handleFilterChange = (key: string, value: any) => {
+    // Special handling for dateRange — map to registeredFrom / registeredTo
+    if (key === 'dateRange') {
+      setFilters(prev => ({
+        ...prev,
+        registeredFrom: value?.from || undefined,
+        registeredTo: value?.to || undefined,
+      }))
+      return
+    }
     if (value === 'all') {
       setFilters(prev => ({
         ...prev,

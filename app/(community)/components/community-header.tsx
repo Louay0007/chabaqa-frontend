@@ -47,6 +47,7 @@ import {
     LayoutDashboard,
     Route,
     Hash,
+    Radio,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCommunityPermissions } from "@/hooks/use-community-permissions";
@@ -73,6 +74,7 @@ const navigationItems = [
     { label: "Sessions", href: "/sessions", icon: Calendar },
     { label: "Products", href: "/products", icon: ShoppingBag },
     { label: "Events", href: "/events", icon: Sparkles },
+    { label: "Live", href: "/live", icon: Radio },
     { label: "Reviews", href: "/reviews", icon: Star },
     { label: "Progress", href: "/progress", icon: TrendingUp },
     // { label: "Learning Path", href: "/learning-path", icon: Route },

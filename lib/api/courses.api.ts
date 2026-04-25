@@ -2,6 +2,7 @@ import { apiClient, ApiSuccessResponse, PaginatedResponse, PaginationParams } fr
 import type { ApiGetOptions } from './client';
 import type { Course, CourseSection, CourseChapter, CourseEnrollment } from './types';
 import { getDeviceInfo } from '@/lib/utils/device';
+import { resolveImageUrl } from '@/lib/resolve-image-url';
 
 export interface CreateCourseData {
   title: string;
@@ -362,6 +363,21 @@ export const coursesApi = {
 
   // Update thumbnail (file upload)
   updateThumbnail: async (courseId: string, file: File): Promise<any> => {
-    return apiClient.put(`/cours/${courseId}/thumbnail`, { thumbnailUrl: 'TEMP_URL_NEED_UPLOAD_SERVICE' }); // TODO: Fix upload integration
+    const response = await apiClient.uploadFile<any>(
+      `/cours/${courseId}/thumbnail`,
+      file,
+      'thumbnail',
+      undefined,
+      'PUT',
+    );
+
+    const payload = response?.data && typeof response.data === 'object'
+      ? response.data
+      : response;
+    const thumbnailUrl = resolveImageUrl(payload?.thumbnail || payload?.url || payload?.image) || payload?.thumbnail || payload?.url || payload?.image;
+
+    return thumbnailUrl
+      ? { ...response, thumbnail: thumbnailUrl }
+      : response;
   },
 };

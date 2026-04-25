@@ -31,6 +31,24 @@ import {
   ChevronRight,
   LogOut,
   FileText,
+  Activity,
+  BookOpen,
+  Trophy,
+  Calendar,
+  MessageSquare,
+  CreditCard,
+  Receipt,
+  Wallet,
+  Download,
+  FolderSync,
+  ShieldAlert,
+  AlertCircle,
+  Send,
+  FileCode,
+  Bell,
+  MessageCircle,
+  Phone,
+  Headphones,
 } from "lucide-react"
 
 interface NavigationItem {
@@ -42,6 +60,7 @@ interface NavigationItem {
   children?: Array<{
     title: string
     href: string
+    icon?: React.ComponentType<{ className?: string }>
   }>
 }
 
@@ -151,10 +170,10 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       icon: FileText,
       hidden: !capabilities.contentManagement,
       children: [
-        { title: "Courses", href: "/admin/content/courses" },
-        { title: "Challenges", href: "/admin/content/challenges" },
-        { title: "Events", href: "/admin/content/events" },
-        { title: "Posts", href: "/admin/content/posts" },
+        { title: "Courses", href: "/admin/content/courses", icon: BookOpen },
+        { title: "Challenges", href: "/admin/content/challenges", icon: Trophy },
+        { title: "Events", href: "/admin/content/events", icon: Calendar },
+        { title: "Posts", href: "/admin/content/posts", icon: MessageSquare },
       ],
     },
     {
@@ -163,10 +182,10 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       icon: Coins,
       hidden: !capabilities.financial,
       children: [
-        { title: "Dashboard", href: "/admin/financial" },
-        { title: "Subscriptions", href: "/admin/financial/subscriptions" },
-        { title: "Transactions", href: "/admin/financial/transactions" },
-        { title: "Payouts", href: "/admin/financial/payouts" },
+        { title: "Dashboard", href: "/admin/financial", icon: BarChart3 },
+        { title: "Subscriptions", href: "/admin/financial/subscriptions", icon: CreditCard },
+        { title: "Transactions", href: "/admin/financial/transactions", icon: Receipt },
+        { title: "Payouts", href: "/admin/financial/payouts", icon: Wallet },
       ],
     },
     {
@@ -181,8 +200,8 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       icon: Database,
       hidden: !canAccessOperations,
       children: [
-        { title: "Export Center", href: "/admin/export" },
-        { title: "Bulk Operations", href: "/admin/data-management" },
+        { title: "Export Center", href: "/admin/export", icon: Download },
+        { title: "Bulk Operations", href: "/admin/data-management", icon: FolderSync },
       ],
     },
     {
@@ -191,8 +210,8 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       icon: Lock,
       hidden: !capabilities.security,
       children: [
-        { title: "Audit Logs", href: "/admin/security" },
-        { title: "Security Events", href: "/admin/security/events" },
+        { title: "Audit Logs", href: "/admin/security", icon: FileText },
+        { title: "Security Events", href: "/admin/security/events", icon: ShieldAlert },
       ],
     },
     {
@@ -202,12 +221,20 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       badge: pendingCounts.support,
       hidden: !capabilities.communication && !capabilities.liveSupport,
       children: [
-        ...(capabilities.communication ? [{ title: "Campaigns", href: "/admin/communication" }] : []),
-        ...(capabilities.communication ? [{ title: "Templates", href: "/admin/communication/templates" }] : []),
-        ...(capabilities.communication ? [{ title: "Notifications", href: "/admin/communication/notifications" }] : []),
-        ...(capabilities.communication ? [{ title: "Communication Analytics", href: "/admin/communication/analytics" }] : []),
-        ...(capabilities.liveSupport ? [{ title: "Live Support", href: "/admin/communication/support" }] : []),
+        ...(capabilities.communication ? [{ title: "Campaigns", href: "/admin/communication", icon: Send }] : []),
+        ...(capabilities.communication ? [{ title: "Templates", href: "/admin/communication/templates", icon: FileCode }] : []),
+        ...(capabilities.communication ? [{ title: "Notifications", href: "/admin/communication/notifications", icon: Bell }] : []),
+        ...(capabilities.communication ? [{ title: "Communication Analytics", href: "/admin/communication/analytics", icon: BarChart3 }] : []),
+        ...(capabilities.communication ? [{ title: "WhatsApp", href: "/admin/communication/whatsapp", icon: MessageCircle }] : []),
+        ...(capabilities.communication ? [{ title: "SMS", href: "/admin/communication/sms", icon: Phone }] : []),
+        ...(capabilities.liveSupport ? [{ title: "Live Support", href: "/admin/communication/support", icon: Headphones }] : []),
       ],
+    },
+    {
+      title: "Health Monitor",
+      href: "/admin/health",
+      icon: Activity,
+      hidden: !canAccessOperations,
     },
     {
       title: "Settings",
@@ -258,6 +285,9 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       Operations: t("menu.operations"),
       "Export Center": t("menu.exportCenter"),
       "Bulk Operations": t("menu.bulkOperations"),
+      WhatsApp: "WhatsApp",
+      SMS: "SMS",
+      "Health Monitor": "Health Monitor",
     }
     return mapping[label] || label
   }
@@ -366,28 +396,33 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="mt-0.5 space-y-0.5">
-                    {item.children?.map((child) => (
-                      <Button
-                        key={child.href}
-                        variant="ghost"
-                        size="sm"
-                        asChild
-                        className={cn(
-                          "admin-nav-item h-10 rounded-xl px-2.5 py-2 text-sm",
-                          isActive(child.href) && "admin-nav-active"
-                        )}
-                      >
-                        <Link 
-                          href={child.href} 
-                          onClick={closeSidebar}
-                          className="flex w-full items-center justify-start text-left"
-                          aria-current={isActive(child.href) ? "page" : undefined}
+                    {item.children?.map((child) => {
+                      const ChildIcon = child.icon
+                      return (
+                        <Button
+                          key={child.href}
+                          variant="ghost"
+                          size="sm"
+                          asChild
+                          className={cn(
+                            "admin-nav-item h-10 rounded-xl px-2.5 py-2 text-sm",
+                            isActive(child.href) && "admin-nav-active"
+                          )}
                         >
-                          <span className="admin-icon-chip mr-2.5 h-8 w-8 rounded-xl opacity-70" aria-hidden="true" />
-                          <span className="flex-1 text-left">{child.title}</span>
-                        </Link>
-                      </Button>
-                    ))}
+                          <Link 
+                            href={child.href} 
+                            onClick={closeSidebar}
+                            className="flex w-full items-center justify-start text-left"
+                            aria-current={isActive(child.href) ? "page" : undefined}
+                          >
+                            <span className="admin-icon-chip mr-2.5 h-8 w-8 rounded-xl" aria-hidden="true">
+                              {ChildIcon && <ChildIcon className="h-4 w-4" />}
+                            </span>
+                            <span className="flex-1 text-left">{child.title}</span>
+                          </Link>
+                        </Button>
+                      )
+                    })}
                   </CollapsibleContent>
                 </Collapsible>
               )
@@ -465,8 +500,11 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
   const desktopSidebar = (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen w-72 border-r border-[hsl(var(--admin-border)/0.75)] bg-white/85 backdrop-blur-xl transition-transform duration-300 ease-in-out lg:translate-x-0",
-        !sidebarOpen && "-translate-x-full",
+        "fixed left-0 top-0 z-40 h-screen w-72 border-r border-[hsl(var(--admin-border)/0.75)] bg-white/85 backdrop-blur-xl transition-transform duration-300 ease-in-out",
+        // On desktop (lg+), always show sidebar
+        "lg:translate-x-0",
+        // On mobile, hide by default and show only when sidebarOpen is true
+        sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         className
       )}
       aria-label={t("header.toggleNavigation")}

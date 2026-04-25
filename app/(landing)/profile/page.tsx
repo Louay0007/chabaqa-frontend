@@ -780,12 +780,12 @@ function ProfilePageContent({ overrideUser, isOwnProfile = true }: ProfilePagePr
           const data = await response.json()
           if (data.success && data.data) {
             // Map courses to include community name
-            // NOTE: Backend issue - community field not populated in response
-            // Fix needed: Backend should populate community data in /api/cours/by-user/:userId
+            // Backend may not always populate community data, so we resolve it from multiple sources
             const coursesWithCommunity = (data.data.courses || []).map((course: any) => ({
               ...course,
-              communityName: course.communityName || 
-                             course.community?.name || 
+              communityName: course.communityName ||
+                             course.community?.name ||
+                             course.community?.nom ||
                              (typeof course.community === 'string' ? course.community : null)
             }))
             setCourses(deduplicateById(coursesWithCommunity))

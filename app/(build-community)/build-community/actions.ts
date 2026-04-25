@@ -1,5 +1,7 @@
 "use server"
 
+import { communitiesApi } from "@/lib/api/communities.api"
+
 interface CommunityFormData {
   name: string
   bio: string
@@ -17,11 +19,18 @@ interface CommunityFormData {
 
 export async function createCommunity(formData: CommunityFormData) {
   try {
-    // TODO: Valider les données
+    // Validate data
     if (!formData.name.trim()) {
       return {
         success: false,
         error: "Community name is required",
+      }
+    }
+
+    if (formData.name.trim().length < 3) {
+      return {
+        success: false,
+        error: "Community name must be at least 3 characters",
       }
     }
 
@@ -32,16 +41,37 @@ export async function createCommunity(formData: CommunityFormData) {
       }
     }
 
-    // TODO: Sauvegarder en base de données
-    console.log("Creating community:", formData)
+    if (formData.joinFee === "paid") {
+      const fee = parseFloat(formData.customFee)
+      if (isNaN(fee) || fee <= 0) {
+        return {
+          success: false,
+          error: "Custom fee must be a positive number",
+        }
+      }
+    }
 
-    // Simuler un délai de traitement
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    // Save to database via API
+    const result = await communitiesApi.create({
+      name: formData.name.trim(),
+      country: "TN", // Default country, should be configurable
+      status: "public",
+      joinFee: formData.joinFee === "paid" ? "paid" : "free",
+      feeAmount: formData.joinFee === "paid" ? formData.customFee : "0",
+      currency: "TND",
+      socialLinks: {
+        instagram: formData.socialLinks.instagram,
+        tiktok: formData.socialLinks.twitter,
+        facebook: formData.socialLinks.facebook,
+        youtube: formData.socialLinks.youtube,
+        linkedin: formData.socialLinks.linkedin,
+      },
+    })
 
     return {
       success: true,
       message: "Community created successfully!",
-      communityId: `community_${Date.now()}`,
+      communityId: result?.data?._id || result?.data?.id || `community_${Date.now()}`,
     }
   } catch (error) {
     console.error("Error creating community:", error)
@@ -63,7 +93,7 @@ export async function uploadCommunityImage(formData: FormData) {
       }
     }
 
-    // TODO: Valider le type de fichier et la taille
+    // Validate file type and size
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"]
     if (!allowedTypes.includes(file.type)) {
       return {
@@ -80,15 +110,28 @@ export async function uploadCommunityImage(formData: FormData) {
       }
     }
 
-    // TODO: Uploader vers un service de stockage (Cloudinary, S3, etc.)
-    console.log("Uploading image:", file.name)
+    // Upload to storage service via media API
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "/api"
+    const uploadRes = await fetch(`${apiBase}/media/upload`, {
+      method: "POST",
+      body: (() => {
+        const fd = new FormData()
+        fd.append("file", file)
+        fd.append("purpose", "community_logo")
+        return fd
+      })(),
+    })
 
-    // Simuler un délai d'upload
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    if (!uploadRes.ok) {
+      throw new Error(`Upload failed with status ${uploadRes.status}`)
+    }
+
+    const uploadData = await uploadRes.json()
+    const imageUrl = uploadData?.data?.url || uploadData?.url || uploadData?.data?.file?.url
 
     return {
       success: true,
-      imageUrl: `/placeholder-community-${Date.now()}.jpg`,
+      imageUrl: imageUrl || `/placeholder-community-${Date.now()}.jpg`,
     }
   } catch (error) {
     console.error("Error uploading image:", error)
